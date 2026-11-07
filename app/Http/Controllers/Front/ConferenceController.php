@@ -1,0 +1,184 @@
+<?php
+
+namespace App\Http\Controllers\Front;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
+use App\Models\Conference;
+use App\Models\ConferenceRegistration;
+use App\Services\ImageService;
+
+class ConferenceController extends Controller
+{
+    public function index(Request $request)
+    {
+        $city = $request->input('city');
+        $date = $request->input('date');
+        $search = $request->input('search');
+
+        $query = Conference::where('status', 'approved')
+            ->withCount('registrations')
+            ->orderBy('start_date');
+
+        if ($city) {
+            $query->where('city', 'like', "%{$city}%");
+        }
+
+        if ($date) {
+            $query->whereDate('start_date', '>=', $date);
+        }
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('city', 'like', "%{$search}%");
+            });
+        }
+
+        $conferences = $query->paginate(9)->withQueryString();
+
+        $cities = Conference::where('status', 'approved')->distinct()->pluck('city');
+
+        return Inertia::render('Conferences/Index', [
+            'conferences' => $conferences,
+            'cities' => $cities,
+            'filters' => [
+                'city' => $city,
+                'date' => $date,
+                'search' => $search,
+            ],
+        ]);
+    }
+
+    public function show(string $slug, Request $request)
+    {
+        $conference = Conference::with(['creatorUser', 'admin'])
+            ->withCount('registrations')
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $userId = $request->user('web')?->id;
+        $isUserRegistered = false;
+        if ($userId) {
+            $isUserRegistered = ConferenceRegistration::where('conference_id', $conference->id)
+                ->where('user_id', $userId)
+                ->exists();
+        }
+
+        $upcomingConferences = Conference::where('status', 'approved')
+            ->where('id', '!=', $conference->id)
+            ->where('start_date', '>=', now())
+            ->orderBy('start_date')
+            ->take(3)
+            ->get();
+
+        return Inertia::render('Conferences/Show', [
+            'conference' => $conference,
+            'isUserRegistered' => $isUserRegistered,
+            'upcomingConferences' => $upcomingConferences,
+        ]);
+    }
+
+    public function register(Request $request, int $id)
+    {
+        $conference = Conference::findOrFail($id);
+
+        if (!$conference->accepts_registrations) {
+            return back()->with('error', 'Les inscriptions ne sont pas ouvertes pour cet événement.');
+        }
+
+        if ($conference->registrations()->count() >= $conference->max_attendees) {
+            return back()->with('error', 'Désolé, cet événement est complet !');
+        }
+
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:100',
+            'last_name' => 'required|string|max:100',
+            'email' => 'required|email|max:255',
+            'phone_whatsapp' => 'nullable|string|max:50',
+            'gender' => 'required|in:Homme,Femme,Autre',
+            'city' => 'required|string|max:100',
+            'bio' => 'nullable|string|max:500',
+            'photo' => 'nullable|image|max:5120',
+        ]);
+
+        $photoPath = null;
+        if ($request->hasFile('photo')) {
+            $photoPath = ImageService::saveImage($request->file('photo'), 'conference_attendee');
+        }
+
+        $userId = $request->user('web')?->id;
+
+        // Check if already registered
+        $existing = ConferenceRegistration::where('conference_id', $conference->id)
+            ->where('email', $validated['email'])
+            ->first();
+
+        if ($existing) {
+            return back()->with('error', 'Vous êtes déjà inscrit(e) à cet événement avec cette adresse email.');
+        }
+
+        ConferenceRegistration::create([
+            'conference_id' => $conference->id,
+            'user_id' => $userId,
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+            'phone_whatsapp' => $validated['phone_whatsapp'] ?? null,
+            'gender' => $validated['gender'],
+            'city' => $validated['city'],
+            'photo' => $photoPath,
+            'bio' => $validated['bio'] ?? null,
+            'status' => 'confirmed',
+            'email_sent_at' => now(), // Mock confirmation sent
+        ]);
+
+        $conference->increment('current_attendees_count');
+
+        return back()->with('success', 'Félicitations ! Votre inscription a été validée. Un email de confirmation avec votre billet vous a été transmis.');
+    }
+
+    public function propose(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'start_date' => 'required|date|after:now',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'city' => 'required|string|max:100',
+            'venue_address' => 'nullable|string|max:255',
+            'location_type' => 'required|in:in_person,online,hybrid',
+            'max_attendees' => 'required|integer|min:10',
+            'description' => 'required|string',
+            'banner_image' => 'nullable|image|max:10240',
+        ]);
+
+        $bannerPath = null;
+        if ($request->hasFile('banner_image')) {
+            $bannerPath = ImageService::saveImage($request->file('banner_image'), 'conference');
+        }
+
+        $slug = Str::slug($validated['title']) . '-' . Str::random(5);
+
+        Conference::create([
+            'user_id' => $request->user('web')->id,
+            'title' => $validated['title'],
+            'slug' => $slug,
+            'banner_image' => $bannerPath,
+            'start_date' => $validated['start_date'],
+            'end_date' => $validated['end_date'] ?? $validated['start_date'],
+            'location_type' => $validated['location_type'],
+            'venue_address' => $validated['venue_address'] ?? null,
+            'city' => $validated['city'],
+            'max_attendees' => $validated['max_attendees'],
+            'description' => $validated['description'],
+            'is_official' => false,
+            'accepts_registrations' => true,
+            'status' => 'pending_validation',
+        ]);
+
+        return back()->with('success', 'Votre événement a été soumis et sera validé par l\'équipe Tech237 sous 24h.');
+    }
+}

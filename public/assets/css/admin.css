@@ -1,0 +1,214 @@
+:root {
+  --melty-primary: #FF004B;
+  --melty-primary-hover: #E00042;
+  --melty-dark: #0f1015;
+  --melty-sidebar: #171821;
+  --melty-card: #ffffff;
+  --melty-border: #e9ecef;
+  --melty-text: #2b2d42;
+  --melty-muted: #8d99ae;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #f4f6fa;
+  color: var(--melty-text);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: 270px;
+  min-height: 100vh;
+  background-color: var(--melty-sidebar);
+  color: #fff;
+  transition: all 0.3s ease;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1040;
+  overflow-y: auto;
+}
+
+.admin-sidebar .brand {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.72);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  margin: 0.2rem 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.admin-sidebar .nav-link i {
+  font-size: 1.2rem;
+  margin-right: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.admin-sidebar .nav-link:hover,
+.admin-sidebar .nav-link.active {
+  color: #fff;
+  background-color: rgba(255, 0, 75, 0.15);
+}
+
+.admin-sidebar .nav-link:hover i,
+.admin-sidebar .nav-link.active i {
+  color: var(--melty-primary);
+}
+
+.admin-sidebar .nav-heading {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 1.25rem 1.25rem 0.4rem;
+  font-weight: 700;
+}
+
+/* Main Content */
+.admin-main {
+  margin-left: 270px;
+  transition: all 0.3s ease;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-topbar {
+  background: #fff;
+  border-bottom: 1px solid var(--melty-border);
+  padding: 0.85rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.admin-content {
+  padding: 2rem;
+  flex: 1;
+}
+
+/* Stat Cards */
+.stat-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 1.5rem;
+  border: 1px solid var(--melty-border);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+}
+
+.stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.badge-melty {
+  background-color: rgba(255, 0, 75, 0.12);
+  color: var(--melty-primary);
+  font-weight: 600;
+}
+
+.btn-melty {
+  background-color: var(--melty-primary);
+  border-color: var(--melty-primary);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 0.6rem 1.25rem;
+  transition: all 0.2s ease;
+}
+
+.btn-melty:hover {
+  background-color: var(--melty-primary-hover);
+  border-color: var(--melty-primary-hover);
+  color: #fff;
+}
+
+.card-melty {
+  border-radius: 14px;
+  border: 1px solid var(--melty-border);
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.card-header-melty {
+  background-color: #fff;
+  border-bottom: 1px solid var(--melty-border);
+  padding: 1.25rem 1.5rem;
+  font-weight: 700;
+}
+
+/* Alert Banner for Default Password */
+.default-pwd-alert {
+  background: linear-gradient(90deg, #ff416c, #ff4b2b);
+  color: #fff;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 6px 20px rgba(255, 65, 108, 0.3);
+}
+
+/* Responsive Sidebar for Mobile & Tablet */
+@media (max-width: 991.98px) {
+  .admin-sidebar {
+    margin-left: -270px;
+  }
+  .admin-sidebar.show {
+    margin-left: 0;
+  }
+  .admin-main {
+    margin-left: 0;
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1030;
+  }
+}
+
+/* Summernote & editor adjustments */
+.note-editor.note-frame {
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.note-toolbar {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e9ecef !important;
+}

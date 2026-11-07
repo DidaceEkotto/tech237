@@ -1,0 +1,116 @@
+<?php
+
+namespace App\Models;
+
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    use HasFactory, Notifiable;
+
+    protected $fillable = [
+        'name',
+        'first_name',
+        'gender',
+        'country_code',
+        'phone',
+        'email',
+        'password',
+        'avatar',
+        'bio',
+        'status',
+        'ban_reason',
+        'birth_date',
+        'marital_status',
+        'registered_at',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'birth_date' => 'date',
+            'registered_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+    protected $appends = ['age', 'full_name'];
+
+    public function getAgeAttribute(): ?int
+    {
+        if (!$this->birth_date) {
+            return null;
+        }
+        return Carbon::parse($this->birth_date)->age;
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return trim(($this->first_name ?? '') . ' ' . ($this->name ?? ''));
+    }
+
+    public function isBanned(): bool
+    {
+        return $this->status === 'banned';
+    }
+
+    public function startups(): HasMany
+    {
+        return $this->hasMany(Startup::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function messages(): HasMany
+    {
+        return $this->hasMany(UserMessage::class);
+    }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class);
+    }
+
+    public function forumTopics(): HasMany
+    {
+        return $this->hasMany(ForumTopic::class);
+    }
+
+    public function forumPosts(): HasMany
+    {
+        return $this->hasMany(ForumPost::class);
+    }
+
+    public function conferences(): HasMany
+    {
+        return $this->hasMany(Conference::class);
+    }
+
+    public function jobOffers(): HasMany
+    {
+        return $this->hasMany(JobOffer::class);
+    }
+
+    public function jobApplications(): HasMany
+    {
+        return $this->hasMany(JobApplication::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(UserDocument::class);
+    }
+}

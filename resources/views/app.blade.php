@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="{{ session('locale', 'fr') }}" prefix="og: http://ogp.me/ns#">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title inertia>{{ config('app.name', 'Tech237') }} - Là où les idées deviennent des projets</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/images/logo.png') }}">
+
+    <!-- 100% Offline Local Assets: Poppins Font, Bootstrap 5, Bootstrap Icons, Tech237 Front Theme -->
+    <link rel="stylesheet" href="{{ asset('assets/css/poppins.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-icons.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/melty-front.css') }}">
+
+    <!-- Search Engine & Social Media OpenGraph / Twitter Meta Tags (Exclusively for Front-End) -->
+    @php
+        $settings = \App\Models\SiteSetting::current();
+        $defaultImg = $settings->seo_image ? asset($settings->seo_image) : asset('assets/images/logo.png');
+        $siteName = $settings->site_name ?? 'Tech237';
+        $defaultDesc = $settings->meta_description ?? 'Tech237 - Là où les idées deviennent des projets. Le média tech, innovation et startups de référence au Cameroun.';
+
+        $formatImage = function (?string $path) use ($defaultImg): string {
+            if (empty($path)) return $defaultImg;
+            if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+                return $path;
+            }
+            return asset(ltrim($path, '/'));
+        };
+
+        $formatText = function (?string $text, int $limit = 160) use ($defaultDesc): string {
+            if (empty($text)) return $defaultDesc;
+            return \Illuminate\Support\Str::limit(trim(preg_replace('/\s+/', ' ', strip_tags($text))), $limit);
+        };
+
+        $seoTitle = $siteName . ' - Là où les idées deviennent des projets';
+        $seoDesc = $defaultDesc;
+        $seoImg = $defaultImg;
+        $ogType = 'website';
+
+        try {
+            if (Request::routeIs('article.show')) {
+                $slug = request()->route('slug');
+                $article = \App\Models\Article::with('category')->where('slug', $slug)->first();
+                if ($article) {
+                    $seoTitle = ($article->title_fr ?: $article->title_en) . ' | ' . $siteName;
+                    $seoDesc = $formatText($article->summary_fr ?: $article->content_fr);
+                    $seoImg = $formatImage($article->featured_image);
+                    $ogType = 'article';
+                }
+            }
+            elseif (Request::routeIs('entrepreneurs.current')) {
+                $entrepreneur = \App\Models\Entrepreneur::where('is_current_month', true)->first()
+                    ?? \App\Models\Entrepreneur::latest()->first();
+                if ($entrepreneur) {
+                    $seoTitle = "Entrepreneur du Mois : " . $entrepreneur->name . ($entrepreneur->startup_name ? ' (' . $entrepreneur->startup_name . ')' : '') . ' | ' . $siteName;
+                    $seoDesc = $formatText($entrepreneur->bio_fr ?: $entrepreneur->story_fr);
+                    $seoImg = $formatImage($entrepreneur->photo ?: $entrepreneur->cover_image);
+                } else {
+                    $seoTitle = "L'Entrepreneur du Mois | " . $siteName;
+                    $seoDesc = "Découvrez chaque mois le portrait d'un entrepreneur tech innovant au Cameroun.";
+                }
+            }
+            elseif (Request::routeIs('entrepreneurs.show')) {
+                $id = request()->route('id');
+                $entrepreneur = \App\Models\Entrepreneur::find($id);
+                if ($entrepreneur) {
+                    $seoTitle = "Portrait Entrepreneur : " . $entrepreneur->name . ' | ' . $siteName;
+                    $seoDesc = $formatText($entrepreneur->bio_fr ?: $entrepreneur->story_fr);
+                    $seoImg = $formatImage($entrepreneur->photo ?: $entrepreneur->cover_image);
+                }
+            }
+            elseif (Request::routeIs('conferences.show')) {
+                $slug = request()->route('slug');
+                $conf = \App\Models\Conference::where('slug', $slug)->first();
+                if ($conf) {
+                    $seoTitle = "Événement : " . $conf->title . ($conf->city ? ' à ' . $conf->city : '') . ' | ' . $siteName;
+                    $seoDesc = $formatText($conf->description);
+                    $seoImg = $formatImage($conf->cover_image ?: $conf->banner);
+                }
+            }
+            elseif (Request::routeIs('jobs.show')) {
+                $slug = request()->route('slug');
+                $job = \App\Models\JobOffer::where('slug', $slug)->first();
+                if ($job) {
+                    $seoTitle = "Recrutement IT : " . $job->title . ($job->company_name ? ' chez ' . $job->company_name : '') . ' | ' . $siteName;
+                    $seoDesc = $formatText($job->description);
+                    $seoImg = $formatImage($job->company_logo);
+                }
+            }
+            elseif (Request::routeIs('games.index')) {
+                $seoTitle = "Tests Jeux Vidéo - Critiques, Avis & Notes | " . $siteName;
+                $seoDesc = "Retrouvez tous les tests indépendants, avis détaillés et notes sur les dernières sorties jeux vidéo console, PC et mobile.";
+                $seoImg = asset('assets/images/image_jeux_video.jpg');
+            }
+            elseif (Request::routeIs('games.show')) {
+                $slug = request()->route('slug');
+                $game = \App\Models\GameReview::where('slug', $slug)->first();
+                if ($game) {
+                    $seoTitle = "Test " . $game->game_name . " : Verdict & Note | " . $siteName;
+                    $seoDesc = $formatText($game->summary_fr ?: $game->verdict_fr);
+                    $seoImg = $formatImage($game->cover_image);
+                }
+            }
+            elseif (Request::routeIs('apps.index')) {
+                $seoTitle = "Tests Applications Mobiles & Web Innovantes | " . $siteName;
+                $seoDesc = "Découvrez nos tests et analyses détaillées des meilleures applications mobiles et plateformes web utiles au quotidien.";
+                $seoImg = $defaultImg;
+            }
+            elseif (Request::routeIs('apps.show')) {
+                $slug = request()->route('slug');
+                $app = \App\Models\AppReview::where('slug', $slug)->first();
+                if ($app) {
+                    $seoTitle = "Test " . $app->app_name . " : Fonctionnalités & Avis | " . $siteName;
+                    $seoDesc = $formatText($app->summary_fr ?: $app->verdict_fr);
+                    $seoImg = $formatImage($app->cover_image ?: $app->logo);
+                }
+            }
+            elseif (Request::routeIs('interviews.index')) {
+                $seoTitle = "Grandes Interviews Tech & Rencontres Inspirantes | " . $siteName;
+                $seoDesc = "Retrouvez nos grands entretiens avec les fondateurs de startups, experts en IA et leaders de l'écosystème numérique africain.";
+                $seoImg = $defaultImg;
+            }
+            elseif (Request::routeIs('interviews.show')) {
+                $slug = request()->route('slug');
+                $interview = \App\Models\Interview::where('slug', $slug)->first();
+                if ($interview) {
+                    $seoTitle = "Interview : " . $interview->interviewee_name . " - " . $interview->title_fr . ' | ' . $siteName;
+                    $seoDesc = $formatText($interview->summary_fr ?: $interview->bio_fr);
+                    $seoImg = $formatImage($interview->cover_image ?: $interview->interviewee_photo);
+                }
+            }
+            elseif (Request::routeIs('projects.index')) {
+                $seoTitle = "Projets & Produits Tech Made in Cameroon | " . $siteName;
+                $seoDesc = "Explorez les projets logiciels, plateformes SaaS et innovations technologiques conçues et propulsées au Cameroun.";
+                $seoImg = $defaultImg;
+            }
+            elseif (Request::routeIs('projects.show')) {
+                $slug = request()->route('slug');
+                $project = \App\Models\Project::where('slug', $slug)->first();
+                if ($project) {
+                    $seoTitle = "Projet : " . $project->title . ($project->category ? ' (' . $project->category . ')' : '') . ' | ' . $siteName;
+                    $seoDesc = $formatText($project->short_description ?: $project->description);
+                    $seoImg = $formatImage($project->banner ?: $project->logo);
+                }
+            }
+            elseif (Request::routeIs('startups.index')) {
+                $seoTitle = "Annuaire des Startups Camerounaises & Ecosystème Tech | " . $siteName;
+                $seoDesc = "Découvrez le répertoire exclusif des startups du Cameroun : Fintech, Agritech, Edtech, Santé et GreenTech en plein essor.";
+                $seoImg = $defaultImg;
+            }
+            elseif (Request::routeIs('startups.show')) {
+                $slug = request()->route('slug');
+                $startup = \App\Models\Startup::where('slug', $slug)->first();
+                if ($startup) {
+                    $seoTitle = "Startup : " . $startup->name . ($startup->sector ? ' - ' . $startup->sector : '') . ' | ' . $siteName;
+                    $seoDesc = $formatText($startup->pitch ?: $startup->description);
+                    $seoImg = $formatImage($startup->banner ?: $startup->logo);
+                }
+            }
+            elseif (Request::routeIs('rubrique.show')) {
+                $slug = request()->route('slug');
+                $rubrique = \App\Models\Rubrique::where('slug', $slug)->first();
+                if ($rubrique) {
+                    $seoTitle = "Rubrique " . $rubrique->name_fr . " | " . $siteName;
+                    $seoDesc = "Toutes les actualités, décryptages et dossiers exclusifs sur " . $rubrique->name_fr . " sur " . $siteName . ".";
+                    $seoImg = $formatImage($rubrique->banner_image);
+                }
+            }
+            elseif (Request::routeIs('dossier.show')) {
+                $slug = request()->route('slug');
+                $dossier = \App\Models\Dossier::where('slug', $slug)->first();
+                if ($dossier) {
+                    $seoTitle = "Grand Dossier : " . $dossier->title_fr . " | " . $siteName;
+                    $seoDesc = $formatText($dossier->description_fr);
+                    $seoImg = $formatImage($dossier->cover_image);
+                }
+            }
+            elseif (Request::routeIs('support')) {
+                $seoTitle = "Nous Soutenir - Contribuez au Hub Média & Tech | " . $siteName;
+                $seoDesc = "Participez au développement de Tech237 via Orange Money, MTN MoMo ou virement bancaire pour soutenir l'innovation au Cameroun.";
+                $seoImg = $defaultImg;
+            }
+            elseif (Request::routeIs('terms')) {
+                $seoTitle = "Conditions Générales d'Utilisation (CGU) & Mentions Légales | " . $siteName;
+                $seoDesc = "Consultez l'ensemble des règles régissant l'utilisation de la plateforme média et des services communautaires de Tech237.";
+                $seoImg = $defaultImg;
+            }
+            elseif (Request::routeIs('privacy')) {
+                $seoTitle = "Politique de Confidentialité & Protection des Données | " . $siteName;
+                $seoDesc = "Nos engagements rigoureux concernant la confidentialité, le respect de votre vie privée et la gestion des données personnelles.";
+                $seoImg = $defaultImg;
+            }
+        } catch (\Throwable $e) {
+            // Safe fallback to site defaults
+            $seoTitle = $siteName . ' - Là où les idées deviennent des projets';
+            $seoDesc = $defaultDesc;
+            $seoImg = $defaultImg;
+        }
+    @endphp
+
+    <meta name="description" head-key="description" content="{{ $seoDesc }}">
+    <meta name="keywords" head-key="keywords" content="{{ $settings->meta_keywords ?? 'tech237, startups, cameroun, tech, dev, ia, emplois, programmation' }}">
+    <meta property="og:type" head-key="og:type" content="{{ $ogType }}">
+    <meta property="og:site_name" head-key="og:site_name" content="{{ $siteName }}">
+    <meta property="og:title" head-key="og:title" content="{{ $seoTitle }}">
+    <meta property="og:description" head-key="og:description" content="{{ $seoDesc }}">
+    <meta property="og:url" head-key="og:url" content="{{ url()->current() }}">
+    <meta property="og:image" head-key="og:image" content="{{ $seoImg }}">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="627">
+    <meta name="twitter:card" head-key="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" head-key="twitter:title" content="{{ $seoTitle }}">
+    <meta name="twitter:description" head-key="twitter:description" content="{{ $seoDesc }}">
+    <meta name="twitter:image" head-key="twitter:image" content="{{ $seoImg }}">
+
+    @inertiaHead
+    @vite(['resources/js/app.js'])
+</head>
+<body class="melty-body">
+    @inertia
+
+    <!-- 100% Offline Bootstrap JS Bundle -->
+    <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

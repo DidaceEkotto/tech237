@@ -1,0 +1,508 @@
+/* ==========================================================================
+   TECH237 BRAND DESIGN SYSTEM
+   "Là où les idées deviennent des projets"
+   Color Palette extracted directly from the official Tech237 logo:
+   - Tech Deep Navy:   #0B2559
+   - Tech Darker Navy: #06152D
+   - Tech Green 237:   #00A859 (Emerald Tech)
+   - Tech Pixel Blue:  #0284C7
+   - Cameroon Flag:    #007A3D (Green), #CE1126 (Red), #F59E0B (Yellow)
+   - Slate & Light:    #F8FAFC, #FFFFFF, #E2E8F0
+   ========================================================================== */
+
+:root {
+  --tech-navy: #0B2559;
+  --tech-navy-hover: #071c44;
+  --tech-navy-dark: #06152D;
+  --tech-navy-light: #163674;
+  
+  --tech-green: #00A859;
+  --tech-green-hover: #008f4c;
+  --tech-green-light: #e6f7ef;
+  --tech-green-glow: rgba(0, 168, 89, 0.25);
+
+  --tech-cyan: #0284C7;
+  --tech-cyan-light: #e0f2fe;
+
+  --cam-green: #007A3D;
+  --cam-red: #CE1126;
+  --cam-yellow: #F59E0B;
+
+  --tech-surface: #ffffff;
+  --tech-bg: #f8fafc;
+  --tech-border: #e2e8f0;
+  --tech-text: #0f172a;
+  --tech-muted: #64748b;
+
+  /* Global Brand Color Replacement: replace rgba(var(--bs-danger-rgb) with var(--tech-green) */
+  --bs-danger: var(--tech-green) !important;
+  --bs-danger-rgb: 0, 168, 89 !important;
+  --bs-danger-text-emphasis: #007A3D !important;
+  --bs-danger-bg-subtle: #e6f7ef !important;
+  --bs-danger-border-subtle: #a3cfbb !important;
+
+  /* Backward Compatibility mapping so existing classes inherit the new brand */
+  --melty-red: #00A859;
+  --melty-red-hover: #008f4c;
+  --melty-dark: #0B2559;
+  --melty-darker: #06152D;
+  --melty-surface: #0B2559;
+  --melty-border: rgba(255, 255, 255, 0.12);
+  --melty-light-bg: #f8fafc;
+  --melty-card-bg: #ffffff;
+  --melty-text: #0f172a;
+  --melty-muted: #64748b;
+}
+
+body.melty-body, body.tech237-body {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--tech-bg);
+  color: var(--tech-text);
+  overflow-x: hidden;
+  letter-spacing: -0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   BRAND BUTTONS & BADGES
+   -------------------------------------------------------------------------- */
+/* Global Bootstrap danger replacement with Tech237 Emerald Green */
+.bg-danger {
+  background-color: var(--tech-green) !important;
+}
+.btn-danger {
+  background-color: var(--tech-green) !important;
+  border-color: var(--tech-green) !important;
+  color: #ffffff !important;
+}
+.btn-danger:hover {
+  background-color: var(--tech-green-hover) !important;
+  border-color: var(--tech-green-hover) !important;
+  color: #ffffff !important;
+}
+.text-danger {
+  color: var(--tech-green) !important;
+}
+.border-danger {
+  border-color: var(--tech-green) !important;
+}
+.btn-outline-danger {
+  color: var(--tech-green) !important;
+  border-color: var(--tech-green) !important;
+}
+.btn-outline-danger:hover {
+  background-color: var(--tech-green) !important;
+  border-color: var(--tech-green) !important;
+  color: #ffffff !important;
+}
+
+.btn-melty, .btn-tech-green {
+  background-color: var(--tech-green) !important;
+  border-color: var(--tech-green) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px var(--tech-green-glow);
+}
+
+.btn-melty:hover, .btn-tech-green:hover {
+  background-color: var(--tech-green-hover) !important;
+  border-color: var(--tech-green-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 168, 89, 0.35);
+}
+
+.btn-tech-navy {
+  background-color: var(--tech-navy) !important;
+  border-color: var(--tech-navy) !important;
+  color: #ffffff !important;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(11, 37, 89, 0.2);
+}
+
+.btn-tech-navy:hover {
+  background-color: var(--tech-navy-hover) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(11, 37, 89, 0.3);
+}
+
+.btn-tech-outline-green {
+  background-color: transparent !important;
+  border: 2px solid var(--tech-green) !important;
+  color: var(--tech-green) !important;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-tech-outline-green:hover {
+  background-color: var(--tech-green) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+}
+
+.btn-tech-outline-navy {
+  background-color: transparent !important;
+  border: 2px solid var(--tech-navy) !important;
+  color: var(--tech-navy) !important;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.btn-tech-outline-navy:hover {
+  background-color: var(--tech-navy) !important;
+  color: #ffffff !important;
+  transform: translateY(-2px);
+}
+
+.badge-tech-green {
+  background-color: var(--tech-green-light);
+  color: var(--tech-green);
+  border: 1px solid rgba(0, 168, 89, 0.25);
+  font-weight: 700;
+}
+
+.badge-tech-navy {
+  background-color: #e8eef8;
+  color: var(--tech-navy);
+  border: 1px solid rgba(11, 37, 89, 0.2);
+  font-weight: 700;
+}
+
+.badge-cameroon {
+  background: linear-gradient(90deg, #007A3D 0%, #CE1126 50%, #F59E0B 100%);
+  color: #ffffff;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+}
+
+/* --------------------------------------------------------------------------
+   TOP BAR & TICKER
+   -------------------------------------------------------------------------- */
+.top-nav-bar {
+  background: #ffffff;
+  border-bottom: 1px solid var(--tech-border);
+}
+
+.ticker-bar {
+  background: linear-gradient(90deg, #06152D 0%, #0B2559 100%);
+  color: #fff;
+  font-size: 0.82rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ticker-badge {
+  background-color: var(--tech-green);
+  color: #fff;
+  font-weight: 800;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   MAIN NAVIGATION
+   -------------------------------------------------------------------------- */
+.tech237-main-nav, .melty-main-nav {
+  background-color: #ffffff !important;
+  border-bottom: 2px solid #e8eef8;
+  box-shadow: 0 4px 20px rgba(11, 37, 89, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  transition: all 0.3s ease;
+}
+
+.nav-item-link {
+  color: var(--tech-navy) !important;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.5rem 0.75rem !important;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+}
+
+.nav-item-link:hover {
+  color: var(--tech-green) !important;
+  background-color: var(--tech-green-light);
+}
+
+.nav-item-link.active {
+  color: var(--tech-green) !important;
+  background-color: var(--tech-green-light);
+  font-weight: 700;
+}
+
+.nav-item-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  background-color: var(--tech-green);
+  border-radius: 3px;
+}
+
+/* --------------------------------------------------------------------------
+   SUB-TOPICS / TRENDING BAR
+   -------------------------------------------------------------------------- */
+.sub-topics-bar {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--tech-border);
+  padding: 0.5rem 0;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.topic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.32rem 0.85rem;
+  border-radius: 50px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--tech-navy);
+  background-color: #f1f5f9;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.topic-pill:hover,
+.topic-pill.active {
+  background-color: var(--tech-navy);
+  color: #fff;
+  border-color: var(--tech-navy);
+  transform: translateY(-1px);
+}
+
+/* --------------------------------------------------------------------------
+   CARDS & HOVERS
+   -------------------------------------------------------------------------- */
+.tech237-card, .article-card {
+  background: #ffffff;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--tech-border);
+  box-shadow: 0 4px 16px rgba(11, 37, 89, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tech237-card:hover, .article-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 32px rgba(11, 37, 89, 0.1) !important;
+  border-color: rgba(0, 168, 89, 0.4) !important;
+}
+
+.article-card-img-wrap {
+  position: relative;
+  overflow: hidden;
+  padding-top: 56.25%;
+}
+
+.article-card-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.article-card:hover .article-card-img {
+  transform: scale(1.05);
+}
+
+.article-card-body {
+  padding: 1.35rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.article-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--tech-navy);
+  margin-bottom: 0.65rem;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.article-card:hover .article-card-title {
+  color: var(--tech-green);
+}
+
+/* Hero Section */
+.hero-main-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  height: 500px;
+  background-color: var(--tech-navy-dark);
+  box-shadow: 0 14px 34px rgba(11, 37, 89, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.hero-main-card:hover {
+  transform: translateY(-4px);
+}
+
+.hero-main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.hero-main-card:hover .hero-main-img {
+  transform: scale(1.04);
+}
+
+.hero-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2.25rem;
+  background: linear-gradient(180deg, transparent 0%, rgba(6, 21, 45, 0.7) 40%, rgba(6, 21, 45, 0.98) 95%);
+  color: #fff;
+}
+
+.hero-side-card {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  height: 238px;
+  background-color: var(--tech-navy-dark);
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 24px rgba(11, 37, 89, 0.12);
+  transition: transform 0.25s ease;
+}
+
+.hero-side-card:hover {
+  transform: translateY(-3px);
+}
+
+.hero-side-card .hero-overlay {
+  padding: 1.35rem;
+}
+
+/* Score Badge (/20) */
+.score-badge-20 {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--tech-green) 0%, #007A3D 100%);
+  color: #fff;
+  font-weight: 900;
+  border-radius: 12px;
+  padding: 0.45rem 0.85rem;
+  box-shadow: 0 4px 12px var(--tech-green-glow);
+  font-size: 1.1rem;
+}
+
+/* --------------------------------------------------------------------------
+   FOOTER (TECH237 BRANDED)
+   -------------------------------------------------------------------------- */
+.tech237-footer, .melty-footer {
+  background: linear-gradient(180deg, #0B2559 0%, #06152D 100%) !important;
+  color: rgba(255, 255, 255, 0.75);
+  padding: 4rem 0 2.5rem;
+  border-top: 4px solid var(--tech-green) !important;
+  margin-top: 5rem;
+}
+
+.tech237-footer h5, .tech237-footer h6,
+.melty-footer h5, .melty-footer h6 {
+  color: #ffffff !important;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.tech237-footer a, .melty-footer a {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.tech237-footer a:hover, .melty-footer a:hover {
+  color: var(--tech-green) !important;
+  padding-left: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   AD BANNERS
+   -------------------------------------------------------------------------- */
+.ad-container {
+  background-color: #f8fafc;
+  border: 1px dashed var(--tech-border);
+  border-radius: 12px;
+  padding: 0.75rem;
+  text-align: center;
+  position: relative;
+  margin: 1.5rem 0;
+  overflow: hidden;
+}
+
+.ad-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #94a3b8;
+  margin-bottom: 0.35rem;
+  display: block;
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   SEARCH MODAL
+   -------------------------------------------------------------------------- */
+.fullscreen-search-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(6, 21, 45, 0.97);
+  backdrop-filter: blur(14px);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  padding: 2.5rem 1.5rem;
+  overflow-y: auto;
+}
+
+.search-input-lg {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 700;
+  width: 100%;
+  padding: 0.85rem 0;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.search-input-lg:focus {
+  border-color: var(--tech-green);
+}
+
+.search-input-lg::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
