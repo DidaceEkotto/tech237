@@ -231,6 +231,15 @@
                 </div>
               </div>
             </div>
+
+            <!-- Sidebar Ad Banner (Pavé 300x250) -->
+            <div v-if="sidebarAd" class="card rounded-4 p-3 mt-4 border-0 shadow-sm text-center bg-light">
+              <div class="extra-small text-muted mb-1 text-uppercase font-monospace" style="font-size: 9px; letter-spacing: 1px;">Sponsor &bull; Partenaire</div>
+              <a v-if="sidebarAd.image" :href="sidebarAd.link_url || '#'" target="_blank" rel="noopener noreferrer">
+                <img :src="'/' + sidebarAd.image" :alt="sidebarAd.title || 'Publicité'" class="img-fluid rounded-3 shadow-sm w-100" style="max-height: 280px; object-fit: cover;">
+              </a>
+              <div v-else-if="sidebarAd.custom_code" v-html="sidebarAd.custom_code"></div>
+            </div>
           </div>
         </div>
 
@@ -252,6 +261,7 @@ const props = defineProps({
 
 const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')
+const sidebarAd = computed(() => page.props.adBanners?.sidebar?.[0] || null)
 
 const formatImageUrl = (img) => {
   if (!img) return '/assets/images/placeholder.jpg'

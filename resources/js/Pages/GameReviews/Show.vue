@@ -48,8 +48,8 @@
               <img :src="'/' + review.cover_image" :alt="review.game_name" class="img-fluid rounded-4 w-100 shadow-sm" style="max-height: 420px; object-fit: cover;">
             </div>
 
-            <!-- Full Review Body (Description / WYSIWYG) -->
-            <div class="article-body-content mb-5" v-html="locale === 'en' ? (review.content_en || review.content_fr) : review.content_fr"></div>
+            <!-- Full Review Body (Description / WYSIWYG with In-Article Ad) -->
+            <div class="article-body-content mb-5" v-html="contentWithInArticleAd"></div>
 
             <!-- SCORE SUMMARY CARD (PLACED AT BOTTOM AFTER DESCRIPTION AS REQUESTED) -->
             <div class="p-4 rounded-4 mb-4 text-white shadow" style="background: linear-gradient(135deg, #111116 0%, #1f0b20 100%);">
@@ -94,12 +94,12 @@
                 </div>
               </div>
               <div class="col-md-6">
-                <div class="p-3 rounded-4 bg-danger bg-opacity-10 h-100 border border-danger">
-                  <h6 class="fw-bold text-danger mb-2 d-flex align-items-center">
-                    <span class="badge bg-danger text-white rounded-pill me-2 px-2 py-1"><i class="bi bi-dash-circle-fill"></i></span>
-                    <span class="text-danger fw-bold fs-6">Points Faibles</span>
+                <div class="p-3 rounded-4 h-100" style="background-color: rgba(220, 53, 69, 0.12); border: 1px solid rgba(220, 53, 69, 0.35);">
+                  <h6 class="fw-bold mb-2 d-flex align-items-center" style="color: #dc3545 !important;">
+                    <span class="badge rounded-pill me-2 px-2 py-1 text-white" style="background-color: #dc3545 !important;"><i class="bi bi-dash-circle-fill"></i></span>
+                    <span class="fw-bold fs-6" style="color: #dc3545 !important;">Points Faibles</span>
                   </h6>
-                  <div class="small text-danger fw-semibold" style="white-space: pre-line;">
+                  <div class="small fw-semibold" style="white-space: pre-line; color: #b02a37 !important;">
                     {{ locale === 'en' ? (review.cons_en || review.cons_fr) : review.cons_fr }}
                   </div>
                 </div>
@@ -122,6 +122,15 @@
             <Link href="/tests-jeux-video" class="btn btn-outline-danger w-100 rounded-pill fw-bold">
               Tous les tests jeux vidéo
             </Link>
+          </div>
+
+          <!-- Sidebar Ad Banner (Pavé 300x250) -->
+          <div v-if="sidebarAd" class="card rounded-4 p-3 mb-4 border-0 shadow-sm text-center bg-light">
+            <div class="extra-small text-muted mb-1 text-uppercase font-monospace" style="font-size: 9px; letter-spacing: 1px;">Sponsor &bull; Partenaire</div>
+            <a v-if="sidebarAd.image" :href="sidebarAd.link_url || '#'" target="_blank" rel="noopener noreferrer">
+              <img :src="'/' + sidebarAd.image" :alt="sidebarAd.title || 'Publicité'" class="img-fluid rounded-3 shadow-sm w-100" style="max-height: 280px; object-fit: cover;">
+            </a>
+            <div v-else-if="sidebarAd.custom_code" v-html="sidebarAd.custom_code"></div>
           </div>
 
           <!-- 2 RELATED TESTS IN SIDEBAR (Requested by user) -->
@@ -161,6 +170,45 @@ const props = defineProps({
 
 const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')
+
+const inArticleAd = computed(() => page.props.adBanners?.in_article?.[0] || null)
+const sidebarAd = computed(() => page.props.adBanners?.sidebar?.[0] || null)
+
+const contentWithInArticleAd = computed(() => {
+  const content = locale.value === 'en' ? (props.review.content_en || props.review.content_fr) : props.review.content_fr
+  if (!content) return ''
+  if (!inArticleAd.value) return content
+
+  let adHtml = ''
+  if (inArticleAd.value.image) {
+    const link = inArticleAd.value.link_url || '#'
+    adHtml = `
+      <div class="in-article-ad my-4 text-center p-3 bg-light rounded-3 border">
+        <span class="text-muted small text-uppercase d-block mb-1" style="font-size: 10px; letter-spacing: 1px;">Publicité Sponsorisée</span>
+        <a href="${link}" target="_blank" rel="noopener noreferrer">
+          <img src="/${inArticleAd.value.image}" alt="${inArticleAd.value.title || 'Publicité'}" class="img-fluid rounded-3 shadow-sm" style="max-height: 260px; width: auto; object-fit: contain;">
+        </a>
+      </div>
+    `
+  } else if (inArticleAd.value.custom_code) {
+    adHtml = `
+      <div class="in-article-ad my-4 text-center">
+        <span class="text-muted small text-uppercase d-block mb-1" style="font-size: 10px; letter-spacing: 1px;">Publicité</span>
+        ${inArticleAd.value.custom_code}
+      </div>
+    `
+  }
+
+  if (!adHtml) return content
+
+  const paragraphs = content.split('</p>')
+  if (paragraphs.length >= 3) {
+    paragraphs.splice(2, 0, adHtml)
+    return paragraphs.join('</p>')
+  } else {
+    return content + adHtml
+  }
+})
 </script>
 
 <style scoped>

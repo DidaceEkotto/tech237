@@ -31,25 +31,31 @@
         <!-- Left 8 Columns -->
         <div class="col-lg-8">
           
-          <!-- Top Featured Big Card (Matching screenshot media_1793807317692_a42ca9fc.jpg) -->
+          <!-- Top Featured Big Card (Matching screenshot) -->
           <div v-if="articles.data && articles.data.length" class="mb-4">
             <Link :href="'/article/' + articles.data[0].slug" class="text-decoration-none">
-              <div class="position-relative rounded-3 overflow-hidden shadow-sm" style="height: 380px;">
+              <div class="position-relative rounded-4 overflow-hidden shadow-sm" style="height: 380px;">
                 <img 
                   :src="'/' + (articles.data[0].featured_image || 'storage/images/chatgpt_hero.jpg')" 
                   :alt="articles.data[0].title_fr" 
                   class="w-100 h-100" 
                   style="object-fit: cover;"
                 >
-                <div class="position-absolute inset-0 p-4 d-flex flex-column justify-content-end" style="background: linear-gradient(180deg, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.9) 100%);">
-                  <span class="badge text-dark fw-bold mb-2 align-self-start text-uppercase" style="background-color: #9be106; font-size: 10px;">
+                <!-- Overlay with gradient to overlay title clearly -->
+                <div class="position-absolute top-0 start-0 w-100 h-100 p-4 d-flex flex-column justify-content-end" style="background: linear-gradient(180deg, rgba(0,0,0,0) 25%, rgba(0,0,0,0.5) 60%, rgba(0,0,0,0.9) 100%); z-index: 2;">
+                  <span class="badge text-white fw-bold mb-2 align-self-start text-uppercase px-2 py-1" style="background-color: var(--tech-green, #00A859); font-size: 11px;">
                     {{ currentCategoryName }}
                   </span>
-                  <h3 class="fw-bold text-white mb-2">
+                  <h2 class="fw-bold text-white mb-2 fs-3" style="text-shadow: 0 2px 4px rgba(0,0,0,0.6);">
                     {{ locale === 'en' ? (articles.data[0].title_en || articles.data[0].title_fr) : articles.data[0].title_fr }}
-                  </h3>
-                  <div class="small text-white-50">
-                    {{ articles.data[0].author?.name || 'Carl' }} &bull; {{ articles.data[0].date_formatted }}
+                  </h2>
+                  <p v-if="articles.data[0].summary_fr" class="text-white-50 small mb-2 d-none d-md-block text-truncate" style="max-width: 90%; text-shadow: 0 1px 2px rgba(0,0,0,0.6);">
+                    {{ locale === 'en' ? (articles.data[0].summary_en || articles.data[0].summary_fr) : articles.data[0].summary_fr }}
+                  </p>
+                  <div class="small text-white-50 d-flex align-items-center gap-2">
+                    <span class="fw-semibold text-white">{{ articles.data[0].author?.name || 'Tech237' }}</span>
+                    <span>&bull;</span>
+                    <span>{{ articles.data[0].date_formatted }}</span>
                   </div>
                 </div>
               </div>
@@ -130,6 +136,15 @@
 
         <!-- Right 4 Columns: Sidebar -->
         <div class="col-lg-4">
+          <!-- Sidebar Ad Banner (Pavé 300x250) -->
+          <div v-if="sidebarAd" class="card rounded-4 p-3 mb-4 border-0 shadow-sm text-center bg-light">
+            <div class="extra-small text-muted mb-1 text-uppercase font-monospace" style="font-size: 9px; letter-spacing: 1px;">Sponsor &bull; Partenaire</div>
+            <a v-if="sidebarAd.image" :href="sidebarAd.link_url || '#'" target="_blank" rel="noopener noreferrer">
+              <img :src="'/' + sidebarAd.image" :alt="sidebarAd.title || 'Publicité'" class="img-fluid rounded-3 shadow-sm w-100" style="max-height: 280px; object-fit: cover;">
+            </a>
+            <div v-else-if="sidebarAd.custom_code" v-html="sidebarAd.custom_code"></div>
+          </div>
+
           <!-- Dark Newsletter Card with Lime Green Button -->
           <div class="card bg-dark text-white rounded-3 p-4 mb-4 border-0 shadow-sm">
             <h5 class="fw-bold mb-1">NEWSLETTER</h5>
@@ -194,6 +209,7 @@ const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')
 const siteSettings = computed(() => page.props.siteSettings || {})
 const featuredDossiers = computed(() => page.props.featuredDossiers || [])
+const sidebarAd = computed(() => page.props.adBanners?.sidebar?.[0] || null)
 
 const currentCategoryName = computed(() => {
   return (locale.value === 'en' && props.category.name_en) ? props.category.name_en : props.category.name_fr

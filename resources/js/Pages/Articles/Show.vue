@@ -133,14 +133,6 @@
             <!-- WYSIWYG Content Body with In-Article Ad Integration -->
             <div class="article-body-content py-2" v-html="contentWithInArticleAd"></div>
 
-            <!-- Suivez-nous sur Google News Badge Button -->
-            <div class="my-4">
-              <a href="https://news.google.com" target="_blank" class="btn btn-outline-secondary rounded-pill px-3 py-2 btn-sm d-inline-flex align-items-center gap-2">
-                <img src="/assets/images/google-news-icon.svg" onerror="this.src='/assets/images/logo.svg'" height="20" alt="Google News">
-                <span class="small fw-semibold">Suivez-nous sur Google News</span>
-              </a>
-            </div>
-
             <!-- VOUS AVEZ AIMÉ ? PARTAGEZ ! (Black CTA Box matching screenshot) -->
             <div class="bg-dark text-white p-4 rounded-3 text-center my-4">
               <h5 class="fw-bold text-uppercase mb-3" style="letter-spacing: 1px;">VOUS AVEZ AIMÉ ? PARTAGEZ !</h5>
