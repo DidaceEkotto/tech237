@@ -8,6 +8,7 @@ class Article extends Model
 {
     protected $fillable = [
         'admin_id',
+        'rubrique_id',
         'category_id',
         'dossier_id',
         'title_fr',
@@ -44,6 +45,11 @@ class Article extends Model
     public function reviewer()
     {
         return $this->belongsTo(Admin::class, 'reviewed_by');
+    }
+
+    public function rubrique()
+    {
+        return $this->belongsTo(Rubrique::class);
     }
 
     public function category()

@@ -94,11 +94,12 @@
                 </div>
               </div>
               <div class="col-md-6">
-                <div class="p-3 rounded-4 bg-danger-subtle h-100 border border-danger border-opacity-25">
-                  <h6 class="fw-bold text-danger mb-2">
-                    <i class="bi bi-dash-circle-fill me-1"></i>Points Faibles
+                <div class="p-3 rounded-4 bg-danger bg-opacity-10 h-100 border border-danger">
+                  <h6 class="fw-bold text-danger mb-2 d-flex align-items-center">
+                    <span class="badge bg-danger text-white rounded-pill me-2 px-2 py-1"><i class="bi bi-dash-circle-fill"></i></span>
+                    <span class="text-danger fw-bold fs-6">Points Faibles</span>
                   </h6>
-                  <div class="small text-dark" style="white-space: pre-line;">
+                  <div class="small text-danger fw-semibold" style="white-space: pre-line;">
                     {{ locale === 'en' ? (review.cons_en || review.cons_fr) : review.cons_fr }}
                   </div>
                 </div>

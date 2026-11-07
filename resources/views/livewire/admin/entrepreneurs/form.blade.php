@@ -10,6 +10,16 @@
     </div>
 
     <form wire:submit.prevent="save">
+        @if($errors->any())
+            <div class="alert alert-danger mb-4 shadow-sm">
+                <h6 class="fw-bold mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Erreur lors de l'enregistrement :</h6>
+                <ul class="mb-0 small">
+                    @foreach($errors->all() as $err)
+                        <li>{{ $err }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <div class="row g-4">
             <!-- Left (8 cols): Content, Journey, Challenges, Vision, Video, Gallery -->
             <div class="col-lg-8">
@@ -160,17 +170,26 @@
                                     <option value="{{ $st->id }}">{{ $st->name }} ({{ $st->city ?? 'Cameroun' }})</option>
                                 @endforeach
                             </select>
+                            @error('startup_id') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
 
                         <!-- Photo Principale -->
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Photo Principale / Portrait <span class="text-danger">*</span></label>
-                            @if($existing_photo)
+                            <label class="form-label small fw-bold">Photo Principale / Portrait</label>
+                            @if($photo)
+                                <div class="mb-2 text-center">
+                                    <img src="{{ $photo->temporaryUrl() }}" class="rounded-3 border shadow-sm" style="max-height: 140px; max-width: 100%; object-fit: cover;">
+                                    <div class="badge bg-success mt-1 d-inline-block">Nouvelle photo sélectionnée</div>
+                                </div>
+                            @elseif($existing_photo)
                                 <div class="mb-2 text-center">
                                     <img src="/{{ $existing_photo }}" class="rounded-3 border shadow-sm" style="max-height: 140px; max-width: 100%; object-fit: cover;">
                                 </div>
                             @endif
-                            <input type="file" class="form-control form-control-sm" wire:model="photo" accept="image/*">
+                            <input type="file" class="form-control form-control-sm" wire:model.live="photo" accept="image/*">
+                            <div wire:loading wire:target="photo" class="text-primary small mt-1">
+                                <i class="spinner-border spinner-border-sm me-1"></i> Chargement de la prévisualisation...
+                            </div>
                             @error('photo') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
 
@@ -285,6 +304,17 @@
         initEntrepreneurSummernote('#journey_editor_en', 'journey_en');
         initEntrepreneurSummernote('#challenges_editor_en', 'challenges_en');
         initEntrepreneurSummernote('#vision_editor_en', 'vision_en');
+
+        $('form').on('submit', function() {
+            @this.set('bio_fr', $('#bio_editor_fr').summernote('code'), false);
+            @this.set('journey_fr', $('#journey_editor_fr').summernote('code'), false);
+            @this.set('challenges_fr', $('#challenges_editor_fr').summernote('code'), false);
+            @this.set('vision_fr', $('#vision_editor_fr').summernote('code'), false);
+            @this.set('bio_en', $('#bio_editor_en').summernote('code'), false);
+            @this.set('journey_en', $('#journey_editor_en').summernote('code'), false);
+            @this.set('challenges_en', $('#challenges_editor_en').summernote('code'), false);
+            @this.set('vision_en', $('#vision_editor_en').summernote('code'), false);
+        });
     });
 </script>
 @endpush

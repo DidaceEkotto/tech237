@@ -8,6 +8,7 @@ use Livewire\WithFileUploads;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Article;
+use App\Models\Rubrique;
 use App\Models\Category;
 use App\Models\Dossier;
 use App\Models\Tag;
@@ -21,6 +22,7 @@ class Form extends Component
     public string $title_fr = '';
     public string $title_en = '';
     public string $slug = '';
+    public ?int $rubrique_id = null;
     public ?int $category_id = null;
     public ?int $dossier_id = null;
     public array $selectedTags = [];
@@ -42,7 +44,8 @@ class Form extends Component
             'title_fr' => 'required|string|max:255',
             'title_en' => 'nullable|string|max:255',
             'slug' => 'required|string|unique:articles,slug,' . $this->articleId,
-            'category_id' => 'required|exists:categories,id',
+            'rubrique_id' => 'nullable|exists:rubriques,id',
+            'category_id' => 'nullable|exists:categories,id',
             'dossier_id' => 'nullable|exists:dossiers,id',
             'content_fr' => 'required|string',
             'content_en' => 'nullable|string',
@@ -61,6 +64,7 @@ class Form extends Component
             $this->title_fr = $article->title_fr;
             $this->title_en = $article->title_en ?? '';
             $this->slug = $article->slug;
+            $this->rubrique_id = $article->rubrique_id ?: ($article->category?->rubrique_id ?: null);
             $this->category_id = $article->category_id;
             $this->dossier_id = $article->dossier_id;
             $this->selectedTags = $article->tags->pluck('id')->toArray();
@@ -78,6 +82,17 @@ class Form extends Component
                 $this->status = 'pending_review';
             } else {
                 $this->status = 'published';
+            }
+        }
+    }
+
+    public function updatedRubriqueId($value)
+    {
+        $this->rubrique_id = $value ? (int)$value : null;
+        if ($this->rubrique_id && $this->category_id) {
+            $cat = Category::find($this->category_id);
+            if ($cat && $cat->rubrique_id && $cat->rubrique_id != $this->rubrique_id) {
+                $this->category_id = null;
             }
         }
     }
@@ -114,8 +129,9 @@ class Form extends Component
         }
 
         $data = [
-            'category_id' => $this->category_id,
-            'dossier_id' => $this->dossier_id,
+            'rubrique_id' => $this->rubrique_id ? (int)$this->rubrique_id : null,
+            'category_id' => $this->category_id ? (int)$this->category_id : null,
+            'dossier_id' => $this->dossier_id ? (int)$this->dossier_id : null,
             'title_fr' => $this->title_fr,
             'title_en' => $this->title_en,
             'slug' => $this->slug,
@@ -159,11 +175,16 @@ class Form extends Component
 
     public function render()
     {
-        $categories = Category::whereNull('parent_id')->with('children')->get();
+        $rubriques = Rubrique::where('is_active', true)->orderBy('order')->orderBy('name_fr')->get();
+        $categoriesQuery = Category::whereNull('parent_id')->with('children');
+        if ($this->rubrique_id) {
+            $categoriesQuery->where('rubrique_id', $this->rubrique_id);
+        }
+        $categories = $categoriesQuery->get();
         $dossiers = Dossier::orderBy('title_fr')->get();
         $tags = Tag::orderBy('name_fr')->get();
 
-        return view('livewire.admin.articles.form', compact('categories', 'dossiers', 'tags'))
+        return view('livewire.admin.articles.form', compact('rubriques', 'categories', 'dossiers', 'tags'))
             ->layout('layouts.admin', ['title' => $this->articleId ? 'Modifier l\'article' : 'Rédiger un article']);
     }
 }

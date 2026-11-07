@@ -120,7 +120,7 @@
                 <Link :href="'/article/' + art.slug" class="text-decoration-none">
                   <div class="card border-0 h-100" :class="cardClass">
                     <div class="position-relative overflow-hidden rounded-top-4">
-                      <img :src="'/' + (art.image || 'assets/images/placeholder.jpg')" class="card-img-top article-thumb" style="height: 200px; object-fit: cover;">
+                      <img :src="formatImageUrl(art.featured_image || art.image)" class="card-img-top article-thumb" style="height: 200px; object-fit: cover;">
                       <span v-if="art.category" class="badge position-absolute top-0 start-0 m-2 px-2 py-1 rounded-pill" :style="{ backgroundColor: art.category.color || accentColor, color: 'white' }">
                         {{ art.category.name_fr }}
                       </span>
@@ -140,7 +140,7 @@
               <div v-for="art in articles.data" :key="art.id">
                 <Link :href="'/article/' + art.slug" class="text-decoration-none">
                   <div class="card border-0 overflow-hidden" :class="cardClass">
-                    <img :src="'/' + (art.image || 'assets/images/placeholder.jpg')" class="card-img-top" style="height: 320px; object-fit: cover;">
+                    <img :src="formatImageUrl(art.featured_image || art.image)" class="card-img-top" style="height: 320px; object-fit: cover;">
                     <div class="card-body p-4">
                       <span v-if="art.category" class="badge px-3 py-1 rounded-pill mb-2" :style="{ backgroundColor: art.category.color || accentColor, color: 'white' }">
                         {{ art.category.name_fr }}
@@ -161,7 +161,7 @@
                   <div class="card border-0 p-3" :class="cardClass">
                     <div class="row g-3 align-items-center">
                       <div class="col-sm-4">
-                        <img :src="'/' + (art.image || 'assets/images/placeholder.jpg')" class="img-fluid rounded-3" style="width: 100%; height: 140px; object-fit: cover;">
+                        <img :src="formatImageUrl(art.featured_image || art.image)" class="img-fluid rounded-3" style="width: 100%; height: 140px; object-fit: cover;">
                       </div>
                       <div class="col-sm-8">
                         <span v-if="art.category" class="badge px-2 py-1 rounded-pill mb-1" :style="{ backgroundColor: art.category.color || accentColor, color: 'white' }">
@@ -182,7 +182,7 @@
               <div v-for="(art, idx) in articles.data" :key="art.id" :class="idx % 3 === 0 ? 'col-12' : 'col-md-6'">
                 <Link :href="'/article/' + art.slug" class="text-decoration-none">
                   <div class="card border-0 h-100" :class="cardClass">
-                    <img :src="'/' + (art.image || 'assets/images/placeholder.jpg')" class="card-img-top" :style="{ height: idx % 3 === 0 ? '280px' : '180px', objectFit: 'cover' }">
+                    <img :src="formatImageUrl(art.featured_image || art.image)" class="card-img-top" :style="{ height: idx % 3 === 0 ? '280px' : '180px', objectFit: 'cover' }">
                     <div class="card-body p-3">
                       <span v-if="art.category" class="badge mb-2" :style="{ backgroundColor: art.category.color || accentColor, color: 'white' }">{{ art.category.name_fr }}</span>
                       <h4 class="fw-bold text-dark mb-1" :class="{ 'h3': idx % 3 === 0 }">{{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}</h4>
@@ -252,6 +252,12 @@ const props = defineProps({
 
 const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')
+
+const formatImageUrl = (img) => {
+  if (!img) return '/assets/images/placeholder.jpg'
+  if (img.startsWith('http://') || img.startsWith('https://')) return img
+  return img.startsWith('/') ? img : '/' + img
+}
 
 const options = computed(() => props.rubrique.options || {})
 const layoutStyle = computed(() => options.value.layout || 'grid_standard')

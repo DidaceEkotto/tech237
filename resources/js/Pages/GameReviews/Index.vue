@@ -35,39 +35,21 @@
               <Link :href="'/test-jeu/' + game.slug">
                 <img :src="'/' + (game.cover_image || 'storage/images/game_zelda.jpg')" :alt="game.game_name" class="img-fluid w-100" style="height: 220px; object-fit: cover;">
               </Link>
-              <div class="position-absolute bottom-0 start-0 m-3">
-                <span class="score-badge-20">{{ game.final_score }} / 20</span>
-              </div>
               <span class="badge bg-dark position-absolute top-0 end-0 m-3">
                 <i class="bi" :class="game.platform_logo || 'bi-controller'"></i> {{ game.platform_category }}
               </span>
             </div>
             <div class="card-body p-4 d-flex flex-column">
-              <h4 class="fw-bold mb-2">
-                <Link :href="'/test-jeu/' + game.slug" class="text-dark text-decoration-none">
-                  {{ game.game_name }}
+              <h5 class="fw-bold mb-2">
+                <Link :href="'/test-jeu/' + game.slug" class="text-dark text-decoration-none hover-danger">
+                  {{ truncateText(game.game_name, 59) }}
                 </Link>
-              </h4>
-              <p class="small text-muted flex-grow-1 text-truncate-2">
-                {{ locale === 'en' ? (game.summary_en || game.summary_fr) : game.summary_fr }}
+              </h5>
+              <p class="small text-muted flex-grow-1 mb-3">
+                {{ truncateText(locale === 'en' ? (game.summary_en || game.summary_fr) : game.summary_fr, 99) }}
               </p>
-              
-              <div class="p-2 bg-light rounded-3 small mb-3 border">
-                <div class="d-flex justify-content-between mb-1">
-                  <span class="text-muted">Gameplay</span>
-                  <strong>{{ game.score_gameplay }}/20</strong>
-                </div>
-                <div class="d-flex justify-content-between mb-1">
-                  <span class="text-muted">Graphismes</span>
-                  <strong>{{ game.score_graphics }}/20</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                  <span class="text-muted">Audio</span>
-                  <strong>{{ game.score_soundtrack }}/20</strong>
-                </div>
-              </div>
 
-              <Link :href="'/test-jeu/' + game.slug" class="btn btn-outline-danger w-100 rounded-pill fw-bold btn-sm">
+              <Link :href="'/test-jeu/' + game.slug" class="btn btn-outline-danger w-100 rounded-pill fw-bold btn-sm mt-auto">
                 Lire le test complet <i class="bi bi-arrow-right ms-1"></i>
               </Link>
             </div>
@@ -114,4 +96,11 @@ const filteredReviews = computed(() => {
   if (selectedPlatform.value === 'Toutes') return props.reviews;
   return props.reviews.filter(r => r.platform_category === selectedPlatform.value);
 });
+
+const truncateText = (text, maxLength) => {
+  if (!text) return '';
+  const clean = text.replace(/<[^>]*>?/gm, '').trim();
+  if (clean.length <= maxLength) return clean;
+  return clean.substring(0, maxLength - 3) + '...';
+};
 </script>

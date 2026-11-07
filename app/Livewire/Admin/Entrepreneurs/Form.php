@@ -47,11 +47,11 @@ class Form extends Component
             'startup_id' => 'nullable|exists:startups,id',
             'bio_fr' => 'required|string',
             'bio_en' => 'nullable|string',
-            'journey_fr' => 'required|string',
+            'journey_fr' => 'nullable|string',
             'journey_en' => 'nullable|string',
-            'challenges_fr' => 'required|string',
+            'challenges_fr' => 'nullable|string',
             'challenges_en' => 'nullable|string',
-            'vision_fr' => 'required|string',
+            'vision_fr' => 'nullable|string',
             'vision_en' => 'nullable|string',
             'video_url' => 'nullable|string|max:500',
             'photo' => 'nullable|image|max:10240',
@@ -101,6 +101,8 @@ class Form extends Component
 
     public function save()
     {
+        $this->startup_id = empty($this->startup_id) ? null : (int)$this->startup_id;
+
         $this->validate();
 
         $photoPath = $this->existing_photo;
@@ -140,15 +142,15 @@ class Form extends Component
             'month_year' => $this->month_year,
             'bio_fr' => $this->bio_fr,
             'bio_en' => $this->bio_en ?: null,
-            'journey_fr' => $this->journey_fr,
+            'journey_fr' => $this->journey_fr ?: '',
             'journey_en' => $this->journey_en ?: null,
-            'story_fr' => $this->journey_fr,
+            'story_fr' => $this->journey_fr ?: '',
             'story_en' => $this->journey_en ?: null,
-            'challenges_fr' => $this->challenges_fr,
+            'challenges_fr' => $this->challenges_fr ?: '',
             'challenges_en' => $this->challenges_en ?: null,
-            'difficulties_fr' => $this->challenges_fr,
+            'difficulties_fr' => $this->challenges_fr ?: '',
             'difficulties_en' => $this->challenges_en ?: null,
-            'vision_fr' => $this->vision_fr,
+            'vision_fr' => $this->vision_fr ?: '',
             'vision_en' => $this->vision_en ?: null,
             'video_url' => $this->video_url ?: null,
             'gallery' => $this->gallery,

@@ -164,9 +164,24 @@
                     </div>
                     <div class="card-body">
                         
+                        <!-- Rubrique (Placed before category selection) -->
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Catégorie principale <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm @error('category_id') is-invalid @enderror" wire:model="category_id" required>
+                            <label class="form-label small fw-bold">
+                                <i class="bi bi-collection-fill text-danger me-1"></i>Rubrique associée
+                            </label>
+                            <select class="form-select form-select-sm @error('rubrique_id') is-invalid @enderror" wire:model.live="rubrique_id">
+                                <option value="">-- Sélectionner une rubrique (Optionnel) --</option>
+                                @foreach($rubriques as $rub)
+                                    <option value="{{ $rub->id }}">{{ $rub->name_fr }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted d-block mt-1">L'article apparaîtra directement dans cette rubrique thématique.</small>
+                            @error('rubrique_id') <div class="text-danger small">{{ $message }}</div> @enderror
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Catégorie principale</label>
+                            <select class="form-select form-select-sm @error('category_id') is-invalid @enderror" wire:model="category_id">
                                 <option value="">Sélectionner une catégorie...</option>
                                 @foreach($categories as $cat)
                                     <option value="{{ $cat->id }}">{{ $cat->name_fr }}</option>

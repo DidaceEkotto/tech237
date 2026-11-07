@@ -34,12 +34,12 @@ class ArticleController extends Controller
         $prevArticle = Article::where('id', '<', $article->id)
             ->where('status', 'published')
             ->latest('id')
-            ->first(['id', 'slug', 'title_fr', 'title_en', 'image']);
+            ->first(['id', 'slug', 'title_fr', 'title_en', 'featured_image']);
 
         $nextArticle = Article::where('id', '>', $article->id)
             ->where('status', 'published')
             ->oldest('id')
-            ->first(['id', 'slug', 'title_fr', 'title_en', 'image']);
+            ->first(['id', 'slug', 'title_fr', 'title_en', 'featured_image']);
 
         $relatedArticles = Article::where('category_id', $article->category_id)
             ->where('id', '!=', $article->id)
@@ -135,11 +135,13 @@ class ArticleController extends Controller
         $categoryIds = $rubrique->categories->pluck('id')->toArray();
 
         $query = Article::with(['category', 'author'])
-            ->where('status', 'published');
-
-        if (!empty($categoryIds)) {
-            $query->whereIn('category_id', $categoryIds);
-        }
+            ->where('status', 'published')
+            ->where(function ($q) use ($rubrique, $categoryIds) {
+                $q->where('rubrique_id', $rubrique->id);
+                if (!empty($categoryIds)) {
+                    $q->orWhereIn('category_id', $categoryIds);
+                }
+            });
 
         $articles = $query->latest('published_at')
             ->paginate(12)
@@ -149,6 +151,12 @@ class ArticleController extends Controller
             });
 
         $trendingArticles = Article::where('status', 'published')
+            ->where(function ($q) use ($rubrique, $categoryIds) {
+                $q->where('rubrique_id', $rubrique->id);
+                if (!empty($categoryIds)) {
+                    $q->orWhereIn('category_id', $categoryIds);
+                }
+            })
             ->latest('views_count')
             ->take(5)
             ->get();
