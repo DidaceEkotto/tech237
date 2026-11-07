@@ -296,3 +296,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/banned-admins', AdminBannedIndex::class)->name('banned.index')->middleware('admin.super');
     });
 });
+
+Route::get('/create-symlink', function () {
+    if (is_link(public_path('storage'))) {
+        return 'Le lien symbolique existe déjà !';
+    }
+
+    try {
+        symlink(
+            storage_path('app/public'),
+            public_path('storage')
+        );
+        return 'Lien symbolique créé avec succès !';
+    } catch (\Exception $e) {
+        return 'Erreur : ' . $e->getMessage();
+    }
+});
