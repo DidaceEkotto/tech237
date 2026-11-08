@@ -658,9 +658,9 @@
         </div>
 
         <!-- Live Instant Search Results -->
-        <div v-if="searchResults" class="row justify-content-center">
+        <div v-if="searchResults && hasSearchResults" class="row justify-content-center">
           <div class="col-lg-10 row g-4 text-white">
-            <div v-if="searchResults.articles.length" class="col-md-6 col-lg-4">
+            <div v-if="searchResults.articles && searchResults.articles.length" class="col-md-6 col-lg-4">
               <h6 class="text-danger fw-bold text-uppercase border-bottom border-secondary pb-2">Articles</h6>
               <div class="list-group list-group-flush">
                 <Link 
@@ -675,7 +675,7 @@
               </div>
             </div>
 
-            <div v-if="searchResults.games.length" class="col-md-6 col-lg-4">
+            <div v-if="searchResults.games && searchResults.games.length" class="col-md-6 col-lg-4">
               <h6 class="text-danger fw-bold text-uppercase border-bottom border-secondary pb-2">Jeux Vidéo</h6>
               <div class="list-group list-group-flush">
                 <Link 
@@ -691,13 +691,13 @@
               </div>
             </div>
 
-            <div v-if="searchResults.apps.length" class="col-md-6 col-lg-4">
+            <div v-if="searchResults.apps && searchResults.apps.length" class="col-md-6 col-lg-4">
               <h6 class="text-danger fw-bold text-uppercase border-bottom border-secondary pb-2">Applications</h6>
               <div class="list-group list-group-flush">
                 <Link 
                   v-for="ap in searchResults.apps" 
                   :key="ap.id" 
-                  :href="'/test-app/' + ap.slug" 
+                  :href="'/test-application/' + ap.slug" 
                   @click="closeSearchModal"
                   class="list-group-item list-group-item-action bg-transparent text-white border-secondary px-0 py-2 d-flex justify-content-between align-items-center"
                 >
@@ -706,6 +706,34 @@
                 </Link>
               </div>
             </div>
+
+            <div v-if="searchResults.dossiers && searchResults.dossiers.length" class="col-md-6 col-lg-4">
+              <h6 class="text-danger fw-bold text-uppercase border-bottom border-secondary pb-2">Dossiers</h6>
+              <div class="list-group list-group-flush">
+                <Link 
+                  v-for="d in searchResults.dossiers" 
+                  :key="d.id" 
+                  :href="'/dossier/' + d.slug" 
+                  @click="closeSearchModal"
+                  class="list-group-item list-group-item-action bg-transparent text-white border-secondary px-0 py-2"
+                >
+                  <div class="fw-semibold small">{{ locale === 'en' ? (d.title_en || d.title_fr) : d.title_fr }}</div>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No Results Found Message -->
+        <div v-else-if="searchResults && !hasSearchResults && !isSearching" class="row justify-content-center">
+          <div class="col-lg-8 text-center py-5">
+            <div class="rounded-circle bg-white bg-opacity-10 d-inline-flex align-items-center justify-content-center p-4 mb-3">
+              <i class="bi bi-search fs-1 text-white-50"></i>
+            </div>
+            <h4 class="fw-bold text-white mb-2">Aucun résultats trouvé pour votre recherche</h4>
+            <p class="text-white-50 small mb-0">
+              Aucun article, test ou dossier ne correspond aux termes recherchés. Essayez avec d'autres mots-clés.
+            </p>
           </div>
         </div>
       </div>
@@ -889,6 +917,14 @@ const searchResults = ref(null)
 const isSearching = ref(false)
 const searchInputRef = ref(null)
 let debounceTimeout = null
+
+const hasSearchResults = computed(() => {
+  if (!searchResults.value) return false
+  return (searchResults.value.articles && searchResults.value.articles.length > 0) ||
+         (searchResults.value.games && searchResults.value.games.length > 0) ||
+         (searchResults.value.apps && searchResults.value.apps.length > 0) ||
+         (searchResults.value.dossiers && searchResults.value.dossiers.length > 0)
+})
 
 const trendingSearches = [
   'Fintech Cameroun',

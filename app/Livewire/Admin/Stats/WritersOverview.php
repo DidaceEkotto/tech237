@@ -84,8 +84,8 @@ class WritersOverview extends Component
                     $w->diff_percent = 100;
                 }
 
-                // Estimated payout (1 500 FCFA pour 1 000 lectures uniques)
-                $w->estimated_payout = round(($w->current_period_views / 1000) * 1500);
+                // Estimated payout (1 vue = 5 FCFA)
+                $w->estimated_payout = $w->current_period_views * 5;
 
                 return $w;
             })

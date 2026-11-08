@@ -108,12 +108,12 @@
                     </select>
                 </div>
 
-                <!-- Tarification CPM Config -->
+                <!-- Tarification par Vue Unique Config -->
                 <div class="col-md-3">
-                    <label class="form-label small fw-bold text-muted d-block mb-1">Tarif pour 1 000 lectures :</label>
+                    <label class="form-label small fw-bold text-muted d-block mb-1">Tarif par vue unique :</label>
                     <div class="input-group input-group-sm">
-                        <input type="number" step="50" min="0" class="form-control fw-bold text-end" wire:model.live="ratePerThousand">
-                        <span class="input-group-text bg-white fw-bold">FCFA</span>
+                        <input type="number" step="1" min="1" class="form-control fw-bold text-end" wire:model.live="ratePerView">
+                        <span class="input-group-text bg-white fw-bold">FCFA / vue</span>
                     </div>
                 </div>
             </div>
@@ -145,7 +145,7 @@
                 <div class="card-body p-3">
                     <span class="text-muted small fw-bold text-uppercase d-block mb-1">Rémunération Calculée</span>
                     <h3 class="fw-black text-success mb-0">{{ number_format($calculatedPayout, 0, ',', ' ') }} <span class="fs-6 fw-normal">FCFA</span></h3>
-                    <small class="text-muted mt-1 d-block">Basé sur {{ number_format($ratePerThousand, 0, ',', ' ') }} FCFA / 1k vues</small>
+                    <small class="text-muted mt-1 d-block">Basé sur {{ number_format($ratePerView, 0, ',', ' ') }} FCFA par vue unique (1 vue = 5 FCFA)</small>
                 </div>
             </div>
         </div>
@@ -212,7 +212,7 @@
                 <tbody>
                     @forelse($contents as $idx => $item)
                         @php
-                            $itemEarnings = round(($item->period_views / 1000) * $ratePerThousand);
+                            $itemEarnings = $item->period_views * $ratePerView;
                         @endphp
                         <tr>
                             <td class="text-muted fw-bold">{{ $idx + 1 }}</td>

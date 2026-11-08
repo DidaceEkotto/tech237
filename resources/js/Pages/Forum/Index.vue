@@ -165,7 +165,8 @@
                 <tr v-if="!topics.data || topics.data.length === 0">
                   <td colspan="5" class="text-center py-5 text-muted">
                     <i class="bi bi-chat-square-text fs-1 d-block mb-2 text-danger"></i>
-                    Aucun sujet trouvé. Soyez le premier à lancer une discussion !
+                    <div class="fw-bold fs-6 mb-1" v-if="searchQuery">Aucun résultats trouvé pour votre recherche</div>
+                    <div v-else>Aucun sujet trouvé. Soyez le premier à lancer une discussion !</div>
                   </td>
                 </tr>
               </tbody>

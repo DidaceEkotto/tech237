@@ -123,8 +123,8 @@ class MyStats extends Component
         // Prepare chart points (timeline)
         $chartData = $this->buildChartTimeline($admin->id, $startDate, $endDate);
 
-        // Remuneration simulation (e.g. rate per 1000 views)
-        $estimatedEarnings = round(($periodViewsCount / 1000) * 1500); // 1 500 FCFA pour 1 000 lectures uniques
+        // Remuneration simulation (1 vue = 5 FCFA)
+        $estimatedEarnings = $periodViewsCount * 5; // 5 FCFA par vue unique
 
         return view('livewire.admin.stats.my-stats', [
             'admin' => $admin,

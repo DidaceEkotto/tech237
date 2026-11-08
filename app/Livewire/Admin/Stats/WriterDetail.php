@@ -18,7 +18,7 @@ class WriterDetail extends Component
     public string $selectedDate = '';
     public int $selectedYear = 2026;
     public string $selectedMonth = '11';
-    public int $ratePerThousand = 1500; // 1500 FCFA par 1000 vues uniques
+    public int $ratePerView = 5; // 5 FCFA par vue unique
     public string $contentType = 'all';
 
     public function mount(int $writerId)
@@ -85,8 +85,8 @@ class WriterDetail extends Component
             $diffPercent = 100;
         }
 
-        // Remuneration calculation
-        $calculatedPayout = round(($currentViewsCount / 1000) * $this->ratePerThousand);
+        // Remuneration calculation (5 FCFA par vue unique)
+        $calculatedPayout = $currentViewsCount * $this->ratePerView;
 
         // Fetch writer's contents
         $articles = Article::where('admin_id', $writer->id)
@@ -114,7 +114,7 @@ class WriterDetail extends Component
                 $item->title_fr = $item->game_name;
                 $item->type_label = 'Test Jeu';
                 $item->type_badge = 'bg-danger';
-                $item->url = route('game-reviews.show', $item->slug);
+                $item->url = route('games.show', $item->slug);
                 return $item;
             });
 
@@ -129,7 +129,7 @@ class WriterDetail extends Component
                 $item->title_fr = $item->app_name;
                 $item->type_label = 'Test App';
                 $item->type_badge = 'bg-info text-dark';
-                $item->url = route('app-reviews.show', $item->slug);
+                $item->url = route('apps.show', $item->slug);
                 return $item;
             });
 
@@ -157,6 +157,7 @@ class WriterDetail extends Component
             'diffPercent' => $diffPercent,
             'hasDecrease' => $hasDecrease,
             'calculatedPayout' => $calculatedPayout,
+            'ratePerView' => $this->ratePerView,
             'periodLabel' => $periodLabel,
             'contents' => $contents,
             'chartData' => $chartData,

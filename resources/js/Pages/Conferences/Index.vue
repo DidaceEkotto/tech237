@@ -117,7 +117,8 @@
 
           <div v-if="!conferences.data || conferences.data.length === 0" class="col-12 text-center py-5 bg-white rounded-4 border">
             <i class="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
-            <h5 class="fw-bold text-dark">Aucune conférence ne correspond à vos critères.</h5>
+            <h5 class="fw-bold text-dark" v-if="filterSearch">Aucun résultats trouvé pour votre recherche</h5>
+            <h5 class="fw-bold text-dark" v-else>Aucune conférence ne correspond à vos critères.</h5>
             <p class="text-muted small">Essayez de modifier vos filtres de recherche ou proposez votre événement !</p>
           </div>
         </div>

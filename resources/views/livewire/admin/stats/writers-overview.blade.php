@@ -138,7 +138,7 @@
                 <div class="card-body p-3">
                     <span class="text-muted small fw-bold text-uppercase d-block mb-1">Enveloppe Rémunération</span>
                     <h3 class="fw-black text-success mb-0">{{ number_format($totalEstimatedPayout, 0, ',', ' ') }} <small class="fs-6">FCFA</small></h3>
-                    <small class="text-muted mt-1 d-block">À verser aux rédacteurs</small>
+                    <small class="text-muted mt-1 d-block">Basée sur 5 FCFA par vue unique</small>
                 </div>
             </div>
         </div>

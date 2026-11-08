@@ -120,7 +120,7 @@
                 <div class="card-body p-3">
                     <span class="text-muted small fw-bold text-uppercase d-block mb-1">Rémunération Estimée</span>
                     <h3 class="fw-black text-success mb-0">{{ number_format($estimatedEarnings, 0, ',', ' ') }} <small class="fs-6">FCFA</small></h3>
-                    <small class="text-muted mt-1 d-block">Basée sur les lectures uniques</small>
+                    <small class="text-muted mt-1 d-block">Basée sur 5 FCFA par vue unique (1 vue = 5 FCFA)</small>
                 </div>
             </div>
         </div>
@@ -160,7 +160,7 @@
                 <tbody>
                     @forelse($contents as $idx => $item)
                         @php
-                            $itemEarnings = round(($item->period_views / 1000) * 1500);
+                            $itemEarnings = $item->period_views * 5;
                         @endphp
                         <tr>
                             <td class="text-muted fw-bold">{{ $idx + 1 }}</td>

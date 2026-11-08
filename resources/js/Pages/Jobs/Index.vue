@@ -177,7 +177,8 @@
                 <div class="rounded-circle bg-light d-inline-flex p-4 text-muted mb-3">
                   <i class="bi bi-briefcase fs-1"></i>
                 </div>
-                <h5 class="fw-bold text-dark">Aucune offre ne correspond à vos filtres.</h5>
+                <h5 class="fw-bold text-dark" v-if="filterSearch">Aucun résultats trouvé pour votre recherche</h5>
+                <h5 class="fw-bold text-dark" v-else>Aucune offre ne correspond à vos filtres.</h5>
                 <p class="text-muted small mb-3">Essayez d'élargir votre recherche pour voir toutes les opportunités tech disponibles.</p>
                 <button @click="resetFilters" class="btn btn-light border rounded-pill px-4 btn-sm fw-bold">
                   Réinitialiser les filtres
