@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Front;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use App\Models\Conference;
 use App\Models\ConferenceRegistration;
+use App\Models\SiteSetting;
 use App\Services\ImageService;
 
 class ConferenceController extends Controller
@@ -119,24 +123,44 @@ class ConferenceController extends Controller
             return back()->with('error', 'Vous êtes déjà inscrit(e) à cet événement avec cette adresse email.');
         }
 
-        ConferenceRegistration::create([
+        $fullName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+
+        $registration = ConferenceRegistration::create([
             'conference_id' => $conference->id,
             'user_id' => $userId,
+            'name' => $validated['last_name'] ?: $fullName,
             'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
             'email' => $validated['email'],
             'phone_whatsapp' => $validated['phone_whatsapp'] ?? null,
             'gender' => $validated['gender'],
             'city' => $validated['city'],
             'photo' => $photoPath,
             'bio' => $validated['bio'] ?? null,
-            'status' => 'confirmed',
-            'email_sent_at' => now(), // Mock confirmation sent
+            'is_confirmed' => true,
+            'confirmed_at' => now(),
         ]);
 
-        $conference->increment('current_attendees_count');
+        // Send confirmation email with invitation
+        try {
+            $settings = SiteSetting::current();
+            Mail::send('emails.conference_confirmation', [
+                'conference' => $conference,
+                'registration' => $registration,
+                'settings' => $settings,
+            ], function ($message) use ($registration, $conference) {
+                $recipientName = trim($registration->first_name . ' ' . $registration->name);
+                $message->to($registration->email, $recipientName)
+                    ->subject("Confirmation officielle de votre inscription - {$conference->title_fr}");
+            });
+        } catch (\Throwable $e) {
+            Log::error('Erreur envoi email confirmation inscription conference: ' . $e->getMessage());
+        }
 
-        return back()->with('success', 'Félicitations ! Votre inscription a été validée. Un email de confirmation avec votre billet vous a été transmis.');
+        if (Schema::hasColumn('conferences', 'current_attendees_count')) {
+            $conference->increment('current_attendees_count');
+        }
+
+        return back()->with('success', 'Félicitations ! Votre inscription a été validée avec succès. Un email de confirmation avec votre billet officiel vous a été transmis.');
     }
 
     public function propose(Request $request)
@@ -162,19 +186,19 @@ class ConferenceController extends Controller
 
         Conference::create([
             'user_id' => $request->user('web')->id,
-            'title' => $validated['title'],
+            'title_fr' => $validated['title'],
             'slug' => $slug,
-            'banner_image' => $bannerPath,
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'] ?? $validated['start_date'],
-            'location_type' => $validated['location_type'],
-            'venue_address' => $validated['venue_address'] ?? null,
+            'cover_image' => $bannerPath,
+            'event_date' => substr($validated['start_date'], 0, 10),
+            'end_date' => !empty($validated['end_date']) ? substr($validated['end_date'], 0, 10) : substr($validated['start_date'], 0, 10),
+            'location' => $validated['venue_address'] ?? null,
             'city' => $validated['city'],
-            'max_attendees' => $validated['max_attendees'],
-            'description' => $validated['description'],
-            'is_official' => false,
+            'is_in_person' => $validated['location_type'] !== 'online',
+            'is_free' => true,
+            'description_fr' => $validated['description'],
             'accepts_registrations' => true,
             'status' => 'pending_validation',
+            'is_official_admin' => false,
         ]);
 
         return back()->with('success', 'Votre événement a été soumis et sera validé par l\'équipe Tech237 sous 24h.');

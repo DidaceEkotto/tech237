@@ -178,16 +178,19 @@ Route::middleware('auth:web')->group(function () {
     // Startups dedicated pages
     Route::get('/espace-utilisateur/startups/create', [UserDashboardController::class, 'createStartup'])->name('user.startups.create');
     Route::post('/espace-utilisateur/startup', [UserDashboardController::class, 'storeStartup'])->name('user.startups.store');
+    Route::post('/espace-utilisateur/startups', [UserDashboardController::class, 'storeStartup']);
     Route::get('/espace-utilisateur/startups/{id}/edit', [UserDashboardController::class, 'editStartup'])->name('user.startups.edit');
     Route::post('/espace-utilisateur/startups/{id}', [UserDashboardController::class, 'updateStartup'])->name('user.startups.update');
     
     // Projects dedicated pages
     Route::get('/espace-utilisateur/projets/create', [UserDashboardController::class, 'createProject'])->name('user.projects.create');
     Route::post('/espace-utilisateur/projet', [UserDashboardController::class, 'storeProject'])->name('user.projects.store');
+    Route::post('/espace-utilisateur/projets', [UserDashboardController::class, 'storeProject']);
     Route::get('/espace-utilisateur/projets/{id}/edit', [UserDashboardController::class, 'editProject'])->name('user.projects.edit');
     Route::post('/espace-utilisateur/projets/{id}', [UserDashboardController::class, 'updateProject'])->name('user.projects.update');
     Route::get('/espace-utilisateur/projets/{id}/etapes', [UserDashboardController::class, 'projectTimeline'])->name('user.projects.timeline');
     Route::post('/espace-utilisateur/projet/{id}/timeline', [UserDashboardController::class, 'storeTimeline'])->name('user.timelines.store');
+    Route::post('/espace-utilisateur/projets/{id}/timeline', [UserDashboardController::class, 'storeTimeline']);
     
     // Project Images Dropzone Gallery
     Route::get('/espace-utilisateur/projets/{id}/galerie', [UserDashboardController::class, 'projectGallery'])->name('user.projects.gallery');
@@ -209,6 +212,7 @@ Route::middleware('auth:web')->group(function () {
     // User Conferences & Events Management
     Route::get('/espace-utilisateur/conferences/create', [UserDashboardController::class, 'createConference'])->name('user.conferences.create');
     Route::post('/espace-utilisateur/conferences', [UserDashboardController::class, 'storeConference'])->name('user.conferences.store');
+    Route::post('/espace-utilisateur/conference', [UserDashboardController::class, 'storeConference']);
     Route::get('/espace-utilisateur/conferences/{id}/edit', [UserDashboardController::class, 'editConference'])->name('user.conferences.edit');
     Route::post('/espace-utilisateur/conferences/{id}', [UserDashboardController::class, 'updateConference'])->name('user.conferences.update');
     Route::get('/espace-utilisateur/conferences/{id}/participants', [UserDashboardController::class, 'conferenceParticipants'])->name('user.conferences.participants');

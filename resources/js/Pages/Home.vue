@@ -551,7 +551,7 @@
                 </div>
 
                 <p class="text-secondary small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                  {{ st.description }}
+                  {{ stripHtml(st.description) }}
                 </p>
 
                 <!-- Project currently worked on -->
@@ -696,6 +696,11 @@ const props = defineProps({
 const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')
 const siteSettings = computed(() => page.props.siteSettings || {})
+
+const stripHtml = (text) => {
+  if (!text) return ''
+  return text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+}
 
 // Ad Banners: Home Middle and Sidebar
 const homeMiddleAd = computed(() => page.props.adBanners?.home_middle?.[0] || null)

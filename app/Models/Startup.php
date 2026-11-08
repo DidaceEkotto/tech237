@@ -46,6 +46,20 @@ class Startup extends Model
                 $startup->slug = Str::slug($startup->name) . '-' . Str::random(5);
             }
         });
+
+        static::saving(function ($startup) {
+            if (!empty($startup->description)) {
+                $startup->description = trim(preg_replace('/\s+/', ' ', strip_tags($startup->description)));
+            }
+        });
+    }
+
+    public function getDescriptionAttribute($value)
+    {
+        if (empty($value)) {
+            return $value;
+        }
+        return trim(preg_replace('/\s+/', ' ', strip_tags($value)));
     }
 
     public function user(): BelongsTo

@@ -26,7 +26,7 @@
                   @click="showProposeModal = true" 
                   class="btn btn-melty rounded-pill px-4 py-2 fw-bold"
                 >
-                  <i class="bi bi-calendar-plus me-1"></i> Proposer un événement
+                  <i class="bi bi-calendar-plus me-1"></i> Proposer un Événement
                 </button>
                 <Link 
                   v-else 
@@ -76,12 +76,14 @@
               <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden hover-shadow transition bg-white">
                 <div class="position-relative">
                   <img 
-                    :src="'/' + (conf.banner_image || 'assets/images/default-event.jpg')" 
+                    :src="getConferenceImage(conf)" 
+                    :alt="conf.title_fr || conf.title"
                     class="card-img-top" 
                     style="height: 180px; object-fit: cover;"
+                    @error="handleImgError"
                   >
-                  <span v-if="conf.is_official" class="badge bg-danger position-absolute top-0 start-0 m-2 px-3 py-1 rounded-pill">
-                    <i class="bi bi-patch-check-fill me-1"></i> Officiel Melty
+                  <span v-if="conf.is_official || conf.is_official_admin" class="badge bg-danger position-absolute top-0 start-0 m-2 px-3 py-1 rounded-pill">
+                    <i class="bi bi-patch-check-fill me-1"></i> Officiel Tech237
                   </span>
                   <span class="badge bg-dark position-absolute bottom-0 end-0 m-2 px-2 py-1 rounded-pill text-white">
                     <i class="bi bi-geo-alt me-1"></i>{{ conf.city }}
@@ -91,7 +93,7 @@
                 <div class="card-body p-3 d-flex flex-column">
                   <div class="d-flex align-items-center justify-content-between mb-2">
                     <small class="text-danger fw-bold">
-                      <i class="bi bi-calendar-event me-1"></i>{{ new Date(conf.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) }}
+                      <i class="bi bi-calendar-event me-1"></i>{{ formatConfDate(conf.event_date || conf.start_date) }}
                     </small>
                     <div class="d-flex gap-1 flex-wrap">
                       <span class="badge bg-light text-muted border small">{{ (conf.is_in_person === false || conf.location_type === 'online') ? 'En ligne' : 'Présentiel' }}</span>
@@ -99,14 +101,14 @@
                     </div>
                   </div>
 
-                  <h5 class="fw-bold text-dark mb-2 hover-danger">{{ conf.title }}</h5>
+                  <h5 class="fw-bold text-dark mb-2 hover-danger">{{ conf.title_fr || conf.title }}</h5>
                   <p class="text-muted small mb-3 flex-grow-1" style="max-height: 44px; overflow: hidden;">
-                    {{ conf.description }}
+                    {{ stripHtml(conf.description_fr || conf.description) }}
                   </p>
 
                   <div class="d-flex align-items-center justify-content-between pt-2 border-top text-muted small">
                     <span>
-                      <i class="bi bi-people me-1"></i> {{ conf.registrations_count }} / {{ conf.max_attendees }} inscrits
+                      <i class="bi bi-people me-1"></i> {{ conf.registrations_count || 0 }} {{ conf.max_attendees ? '/ ' + conf.max_attendees + ' inscrits' : 'inscrits' }}
                     </span>
                     <span class="fw-bold text-danger">Voir détails &rarr;</span>
                   </div>
@@ -117,7 +119,7 @@
 
           <div v-if="!conferences.data || conferences.data.length === 0" class="col-12 text-center py-5 bg-white rounded-4 border">
             <i class="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
-            <h5 class="fw-bold text-dark" v-if="filterSearch">Aucun résultats trouvé pour votre recherche</h5>
+            <h5 class="fw-bold text-dark" v-if="filterSearch">Aucun résultat trouvé pour votre recherche</h5>
             <h5 class="fw-bold text-dark" v-else>Aucune conférence ne correspond à vos critères.</h5>
             <p class="text-muted small">Essayez de modifier vos filtres de recherche ou proposez votre événement !</p>
           </div>
@@ -154,12 +156,12 @@
 
               <div class="row g-2 mb-3">
                 <div class="col-6">
-                  <label class="form-label small fw-bold">Date & Heure de début <span class="text-danger">*</span></label>
-                  <input type="datetime-local" v-model="eventForm.start_date" class="form-control form-control-sm" required>
+                  <label class="form-label small fw-bold">Date de début <span class="text-danger">*</span></label>
+                  <input type="date" v-model="eventForm.start_date" class="form-control form-control-sm" required>
                 </div>
                 <div class="col-6">
-                  <label class="form-label small fw-bold">Date & Heure de fin</label>
-                  <input type="datetime-local" v-model="eventForm.end_date" class="form-control form-control-sm">
+                  <label class="form-label small fw-bold">Date de fin</label>
+                  <input type="date" v-model="eventForm.end_date" class="form-control form-control-sm">
                 </div>
               </div>
 
@@ -226,6 +228,29 @@ const authUser = computed(() => page.props.auth?.user || null)
 const filterCity = ref(props.filters?.city || '')
 const filterDate = ref(props.filters?.date || '')
 const filterSearch = ref(props.filters?.search || '')
+
+function formatConfDate(val) {
+  if (!val) return 'Date à confirmer'
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function getConferenceImage(conf) {
+  const img = conf?.cover_image || conf?.banner_image
+  if (!img) return '/assets/images/default-event.jpg'
+  if (img.startsWith('http://') || img.startsWith('https://')) return img
+  return img.startsWith('/') ? img : '/' + img
+}
+
+function handleImgError(e) {
+  e.target.src = '/assets/images/default-event.jpg'
+}
+
+function stripHtml(text) {
+  if (!text) return ''
+  return text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+}
 
 function applyFilters() {
   router.get('/conferences', {

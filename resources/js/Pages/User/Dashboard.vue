@@ -348,7 +348,7 @@
                       </div>
                     </div>
 
-                    <p class="small text-muted mb-3 line-clamp-2">{{ st.description }}</p>
+                    <p class="small text-muted mb-3 line-clamp-2">{{ stripHtml(st.description) }}</p>
 
                     <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-auto">
                       <span 
@@ -1133,6 +1133,11 @@ const props = defineProps({
   activeSection: { type: String, default: 'dashboard' },
   stats: { type: Object, default: () => ({}) },
 })
+
+function stripHtml(text) {
+  if (!text) return ''
+  return text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+}
 
 function formatDate(val) {
   if (!val) return ''

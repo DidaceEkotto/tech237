@@ -32,6 +32,14 @@ class Conference extends Model
         'is_official_admin',
     ];
 
+    protected $appends = [
+        'title',
+        'start_date',
+        'description',
+        'banner_image',
+        'creator_user',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -67,7 +75,7 @@ class Conference extends Model
 
     public function getTitleAttribute()
     {
-        return $this->title_fr;
+        return $this->title_fr ?: $this->title_en;
     }
 
     public function getStartDateAttribute()
@@ -77,7 +85,7 @@ class Conference extends Model
 
     public function getDescriptionAttribute()
     {
-        return $this->description_fr;
+        return $this->description_fr ?: $this->description_en;
     }
 
     public function getBannerImageAttribute()
