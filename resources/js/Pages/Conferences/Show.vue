@@ -51,8 +51,16 @@
                   </span>
 
                   <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-bold">
-                    {{ conference.location_type === 'online' ? '🌐 Webinaire en ligne' : (conference.location_type === 'hybrid' ? '⚡ Hybride' : '📍 Présentiel physique') }}
+                    {{ (conference.is_in_person === false || conference.location_type === 'online') ? '🌐 En ligne (Webinaire)' : '📍 Présentiel physique' }}
                   </span>
+
+                  <span class="badge px-3 py-2 rounded-pill fw-bold" :class="conference.is_free !== false ? 'bg-success text-white' : 'bg-warning text-dark'">
+                    {{ conference.is_free !== false ? '🎁 Entrée Gratuite' : ('💰 Tarif : ' + (conference.price || 'Payant')) }}
+                  </span>
+
+                  <a v-if="conference.website_url" :href="conference.website_url" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                    <i class="bi bi-globe me-1"></i> Site officiel de l'événement
+                  </a>
                 </div>
 
                 <h1 class="display-6 fw-black text-dark mb-4">{{ conference.title }}</h1>

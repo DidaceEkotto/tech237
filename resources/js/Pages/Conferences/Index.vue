@@ -93,7 +93,10 @@
                     <small class="text-danger fw-bold">
                       <i class="bi bi-calendar-event me-1"></i>{{ new Date(conf.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) }}
                     </small>
-                    <span class="badge bg-light text-muted border small">{{ conf.location_type === 'online' ? 'En ligne' : (conf.location_type === 'hybrid' ? 'Hybride' : 'Présentiel') }}</span>
+                    <div class="d-flex gap-1 flex-wrap">
+                      <span class="badge bg-light text-muted border small">{{ (conf.is_in_person === false || conf.location_type === 'online') ? 'En ligne' : 'Présentiel' }}</span>
+                      <span class="badge small" :class="conf.is_free !== false ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-dark'">{{ conf.is_free !== false ? 'Gratuit' : (conf.price || 'Payant') }}</span>
+                    </div>
                   </div>
 
                   <h5 class="fw-bold text-dark mb-2 hover-danger">{{ conf.title }}</h5>

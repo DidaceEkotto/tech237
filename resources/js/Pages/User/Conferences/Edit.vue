@@ -113,6 +113,83 @@
               </div>
             </div>
 
+            <!-- Event Format & Pricing & Website -->
+            <div class="card p-3 border-0 bg-light rounded-3 mb-4">
+              <h6 class="fw-bold text-dark mb-3">
+                <i class="bi bi-geo-alt-fill text-danger me-1"></i>Format, Tarification & Lien Web
+              </h6>
+              <div class="row g-3">
+                <!-- En présentiel ou En ligne -->
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold text-dark">Mode de déroulement <span class="text-danger">*</span></label>
+                  <div class="d-flex gap-3 mt-1">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" id="formatPresential" :value="true" v-model="form.is_in_person">
+                      <label class="form-check-label fw-semibold" for="formatPresential">
+                        <i class="bi bi-building me-1 text-primary"></i> En présentiel
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" id="formatOnline" :value="false" v-model="form.is_in_person">
+                      <label class="form-check-label fw-semibold" for="formatOnline">
+                        <i class="bi bi-camera-video me-1 text-info"></i> En ligne (Webinaire)
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Gratuit ou Payant -->
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold text-dark">Tarification <span class="text-danger">*</span></label>
+                  <div class="d-flex gap-3 mt-1">
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" id="priceFree" :value="true" v-model="form.is_free">
+                      <label class="form-check-label fw-semibold" for="priceFree">
+                        <i class="bi bi-gift-fill me-1 text-success"></i> Gratuit
+                      </label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" id="pricePaid" :value="false" v-model="form.is_free">
+                      <label class="form-check-label fw-semibold" for="pricePaid">
+                        <i class="bi bi-cash-coin me-1 text-warning"></i> Payant
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Price input if paid -->
+                <div v-if="!form.is_free" class="col-md-6">
+                  <label class="form-label small fw-bold text-dark">
+                    Prix de l'entrée / Tarif <span class="text-danger">*</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    v-model="form.price" 
+                    placeholder="ex: 5 000 FCFA ou 10 €" 
+                    :required="!form.is_free"
+                  >
+                  <div class="form-text small">Indiquez le montant de la participation.</div>
+                </div>
+
+                <!-- Optional Website URL -->
+                <div :class="!form.is_free ? 'col-md-6' : 'col-12'">
+                  <label class="form-label small fw-bold text-dark">
+                    Site internet de l'événement (Facultatif)
+                  </label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-globe text-muted"></i></span>
+                    <input 
+                      type="url" 
+                      class="form-control" 
+                      v-model="form.website_url" 
+                      placeholder="https://mon-evenement.com"
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Cover Image -->
             <div class="mb-4">
               <label class="form-label small fw-bold text-dark">
@@ -232,6 +309,10 @@ const form = useForm({
   deadline_registration: props.conference.deadline_registration ? props.conference.deadline_registration.slice(0, 10) : '',
   city: props.conference.city || 'Douala',
   location: props.conference.location || '',
+  is_in_person: props.conference.is_in_person !== false,
+  is_free: props.conference.is_free !== false,
+  price: props.conference.price || '',
+  website_url: props.conference.website_url || '',
   cover_image: null,
   accepts_registrations: Boolean(props.conference.accepts_registrations),
   description_fr: props.conference.description_fr || '',

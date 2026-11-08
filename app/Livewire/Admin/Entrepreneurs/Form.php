@@ -92,10 +92,39 @@ class Form extends Component
         }
     }
 
+    public function uploadGalleryImages()
+    {
+        if (empty($this->newGalleryImages)) {
+            return;
+        }
+
+        $count = 0;
+        foreach ($this->newGalleryImages as $img) {
+            if ($img) {
+                $saved = ImageService::saveImage($img, 'entrepreneur_gallery');
+                if ($saved) {
+                    $this->gallery[] = $saved;
+                    $count++;
+                }
+            }
+        }
+        $this->newGalleryImages = [];
+
+        if ($this->entrepreneurId) {
+            Entrepreneur::where('id', $this->entrepreneurId)->update(['gallery' => $this->gallery]);
+        }
+
+        session()->flash('gallery_success', "{$count} photo(s) ajoutée(s) avec succès à la galerie !");
+    }
+
     public function removeGalleryImage(int $index)
     {
         if (isset($this->gallery[$index])) {
             array_splice($this->gallery, $index, 1);
+            if ($this->entrepreneurId) {
+                Entrepreneur::where('id', $this->entrepreneurId)->update(['gallery' => $this->gallery]);
+            }
+            session()->flash('gallery_success', "Photo retirée de la galerie.");
         }
     }
 

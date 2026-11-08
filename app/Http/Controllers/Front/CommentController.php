@@ -23,6 +23,8 @@ class CommentController extends Controller
         $request->validate([
             'content' => 'required|string|min:2|max:2000',
             'article_id' => 'nullable|exists:articles,id',
+            'game_review_id' => 'nullable|exists:game_reviews,id',
+            'app_review_id' => 'nullable|exists:app_reviews,id',
             'interview_id' => 'nullable|exists:interviews,id',
             'project_id' => 'nullable|exists:projects,id',
             'parent_id' => 'nullable|exists:comments,id',
@@ -31,6 +33,8 @@ class CommentController extends Controller
         $comment = Comment::create([
             'user_id' => $user->id,
             'article_id' => $request->article_id,
+            'game_review_id' => $request->game_review_id,
+            'app_review_id' => $request->app_review_id,
             'interview_id' => $request->interview_id,
             'project_id' => $request->project_id,
             'parent_id' => $request->parent_id,

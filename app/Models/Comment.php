@@ -12,6 +12,8 @@ class Comment extends Model
     protected $fillable = [
         'user_id',
         'article_id',
+        'game_review_id',
+        'app_review_id',
         'interview_id',
         'project_id',
         'parent_id',
@@ -27,6 +29,16 @@ class Comment extends Model
     public function article()
     {
         return $this->belongsTo(Article::class);
+    }
+
+    public function gameReview()
+    {
+        return $this->belongsTo(GameReview::class);
+    }
+
+    public function appReview()
+    {
+        return $this->belongsTo(AppReview::class);
     }
 
     public function interview()

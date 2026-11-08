@@ -13,13 +13,13 @@ use App\Models\Comment;
 
 class ArticleController extends Controller
 {
-    public function show(string $slug)
+    public function show(string $slug, Request $request)
     {
         $article = Article::with(['category', 'author', 'tags', 'dossier'])
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $article->increment('views_count');
+        \App\Services\UniqueViewService::recordView($article, $request);
         $article->date_formatted = $article->published_at ? $article->published_at->translatedFormat('d F Y à H:i') : $article->created_at->translatedFormat('d F Y');
 
         // 4 latest articles by the same author for the author card

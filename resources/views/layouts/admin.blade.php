@@ -45,6 +45,9 @@
             <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <i class="bi bi-grid-1x2"></i> Tableau de bord
             </a>
+            <a href="{{ route('admin.my-stats') }}" class="nav-link {{ request()->routeIs('admin.my-stats') ? 'active' : '' }}">
+                <i class="bi bi-graph-up-arrow text-danger"></i> Mes Statistiques
+            </a>
 
             <div class="nav-heading">Éditorial</div>
             <a href="{{ route('admin.rubriques.index') }}" class="nav-link {{ request()->routeIs('admin.rubriques.*') ? 'active' : '' }}">
@@ -131,6 +134,11 @@
             <a href="{{ route('admin.analytics.index') }}" class="nav-link {{ request()->routeIs('admin.analytics.*') ? 'active' : '' }}">
                 <i class="bi bi-bar-chart-line"></i> Analytics Visiteurs
             </a>
+            @if($admin && $admin->isAdmin())
+                <a href="{{ route('admin.writers.overview') }}" class="nav-link {{ request()->routeIs('admin.writers.*') ? 'active' : '' }}">
+                    <i class="bi bi-cash-stack text-success"></i> Rémunération Rédacteurs
+                </a>
+            @endif
             <a href="{{ route('admin.sliders.index') }}" class="nav-link {{ request()->routeIs('admin.sliders.*') ? 'active' : '' }}">
                 <i class="bi bi-images"></i> Sliders Accueil
             </a>

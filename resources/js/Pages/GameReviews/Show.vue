@@ -43,6 +43,47 @@
               {{ locale === 'en' ? (review.summary_en || review.summary_fr) : review.summary_fr }}
             </p>
 
+            <!-- Audio Narrator (TTS Player) -->
+            <div class="audio-narrator-card p-3 rounded-4 mb-4 border shadow-sm bg-light">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-3">
+                  <button 
+                    @click="toggleAudioSpeech" 
+                    class="btn rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+                    :class="isSpeaking ? 'btn-danger' : 'btn-dark'"
+                    style="width: 48px; height: 48px;"
+                    title="Écouter le test"
+                  >
+                    <i class="bi fs-4" :class="isSpeaking && !isPaused ? 'bi-pause-fill' : 'bi-play-fill'"></i>
+                  </button>
+                  <div>
+                    <div class="fw-bold small text-dark d-flex align-items-center gap-2">
+                      <span>Écouter le test audio</span>
+                      <span class="badge bg-danger-subtle text-danger small">Voix IA {{ locale === 'en' ? 'EN' : 'FR' }}</span>
+                    </div>
+                    <div class="small text-muted" style="font-size: 11px;">
+                      Durée estimée : ~{{ estimatedReadingTime }} min &bull; {{ speechStatusText }}
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="isSpeaking" class="d-flex align-items-center gap-2">
+                  <button @click="stopAudioSpeech" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                    <i class="bi bi-stop-fill me-1"></i> Arrêter
+                  </button>
+                </div>
+              </div>
+
+              <!-- Animated Progress Bar during playback -->
+              <div v-if="isSpeaking" class="progress mt-3" style="height: 4px;">
+                <div 
+                  class="progress-bar bg-danger progress-bar-striped progress-bar-animated" 
+                  role="progressbar" 
+                  :style="{ width: speechProgress + '%' }"
+                ></div>
+              </div>
+            </div>
+
             <!-- Cover Image placed before description -->
             <div v-if="review.cover_image" class="mb-4">
               <img :src="'/' + review.cover_image" :alt="review.game_name" class="img-fluid rounded-4 w-100 shadow-sm" style="max-height: 420px; object-fit: cover;">
@@ -108,6 +149,112 @@
 
           </div>
 
+          <!-- COMMENTS SECTION (With 1-Level Replies & Login Guard Modal) -->
+          <div class="comments-section mt-5 pt-4 border-top">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <h4 class="fw-bold text-dark mb-0">
+                <i class="bi bi-chat-left-text-fill text-danger me-2"></i>
+                Commentaires ({{ totalCommentsCount }})
+              </h4>
+            </div>
+
+            <!-- Flash success message -->
+            <div v-if="commentSuccessMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+              <i class="bi bi-check-circle-fill me-2"></i> {{ commentSuccessMessage }}
+              <button type="button" class="btn-close" @click="commentSuccessMessage = ''"></button>
+            </div>
+
+            <!-- Add Comment Input Box -->
+            <div class="card border-0 shadow-sm bg-light p-3 rounded-4 mb-4">
+              <h6 class="fw-bold text-dark mb-2">Donnez votre avis sur ce test</h6>
+              <div @click="checkAuthForComment">
+                <textarea 
+                  v-model="newCommentContent" 
+                  rows="3" 
+                  class="form-control bg-white border-0 shadow-none mb-2" 
+                  placeholder="Partagez votre retour sur ce jeu vidéo..."
+                  :disabled="!authUser"
+                ></textarea>
+              </div>
+              <div class="d-flex justify-content-end">
+                <button 
+                  @click="submitComment" 
+                  class="btn rounded-pill px-4 fw-bold text-white shadow-sm btn-sm"
+                  style="background-color: var(--tech-green);"
+                  :disabled="isSubmittingComment"
+                >
+                  <i class="bi bi-send me-1"></i> Publier
+                </button>
+              </div>
+            </div>
+
+            <!-- Comments List -->
+            <div v-if="review.comments && review.comments.length" class="comments-list">
+              <div v-for="comment in review.comments" :key="comment.id" class="card border shadow-sm p-3 rounded-4 mb-3 bg-white">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <img 
+                      v-if="comment.user?.avatar" 
+                      :src="'/' + comment.user.avatar" 
+                      :alt="comment.user.name" 
+                      class="rounded-circle object-fit-cover" 
+                      style="width: 38px; height: 38px;"
+                    >
+                    <div v-else class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px; font-size: 13px;">
+                      {{ (comment.user?.name || 'U').charAt(0) }}
+                    </div>
+                    <div>
+                      <div class="fw-bold small text-dark">{{ comment.user?.name || 'Membre de la communauté' }}</div>
+                      <div class="text-muted small" style="font-size: 11px;">{{ new Date(comment.created_at).toLocaleDateString('fr-FR') }}</div>
+                    </div>
+                  </div>
+                  <button 
+                    @click="openReplyForm(comment.id)" 
+                    class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-0"
+                    style="font-size: 12px;"
+                  >
+                    <i class="bi bi-reply me-1"></i> Répondre
+                  </button>
+                </div>
+
+                <p class="text-dark small mb-2 ps-1">{{ comment.content }}</p>
+
+                <!-- 1-Level Reply Box if toggled -->
+                <div v-if="replyingToId === comment.id" class="mt-3 ps-3 border-start border-3 border-danger">
+                  <div class="card p-2 bg-light border-0 rounded-3">
+                    <textarea 
+                      v-model="replyContent" 
+                      rows="2" 
+                      class="form-control form-control-sm bg-white mb-2" 
+                      placeholder="Rédigez votre réponse..."
+                    ></textarea>
+                    <div class="d-flex gap-2 justify-content-end">
+                      <button @click="replyingToId = null" class="btn btn-sm btn-light border py-1">Annuler</button>
+                      <button @click="submitReply(comment.id)" class="btn btn-sm btn-danger py-1 px-3">Envoyer la réponse</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Nested Replies (1-Level) -->
+                <div v-if="comment.replies && comment.replies.length" class="mt-3 ps-3 border-start border-2 border-danger-subtle">
+                  <div v-for="reply in comment.replies" :key="reply.id" class="bg-light p-2 rounded-3 mb-2">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                      <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center fw-bold" style="width: 26px; height: 26px; font-size: 10px;">
+                        {{ (reply.user?.name || 'U').charAt(0) }}
+                      </div>
+                      <span class="fw-semibold small text-dark">{{ reply.user?.name || 'Membre' }}</span>
+                      <span class="text-muted small ms-auto" style="font-size: 10px;">{{ new Date(reply.created_at).toLocaleDateString('fr-FR') }}</span>
+                    </div>
+                    <p class="small text-muted mb-0 ps-4">{{ reply.content }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-center py-4 text-muted small bg-light rounded-4">
+              Soyez le premier à commenter ce test !
+            </div>
+          </div>
+
         </div>
 
         <!-- Sidebar Column: Proposes 2 Related Tests as Requested -->
@@ -155,13 +302,40 @@
       </div>
 
     </div>
+
+    <!-- Static Login Modal when Guest attempts to Comment -->
+    <div v-if="showLoginModal" class="login-modal-backdrop" @click.self="showLoginModal = false">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-4 text-center bg-white">
+          <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+            <i class="bi bi-chat-heart-fill fs-3"></i>
+          </div>
+          <h5 class="fw-bold mb-2">Rejoignez la discussion !</h5>
+          <p class="text-muted small mb-4">
+            Pour publier un commentaire et échanger avec la communauté Tech237, vous devez posséder un compte vérifié.
+          </p>
+          <div class="d-grid gap-2">
+            <Link :href="'/login?redirect=' + encodeURIComponent(currentUrl)" class="btn rounded-pill fw-bold py-2 text-white shadow-sm" style="background-color: var(--tech-green);">
+              <i class="bi bi-box-arrow-in-right me-1"></i> Se connecter
+            </Link>
+            <Link :href="'/register?redirect=' + encodeURIComponent(currentUrl)" class="btn btn-outline-dark rounded-pill fw-bold py-2">
+              Créer un compte
+            </Link>
+          </div>
+          <button @click="showLoginModal = false" class="btn btn-link text-muted small mt-3 text-decoration-none">
+            Continuer la lecture sans commenter
+          </button>
+        </div>
+      </div>
+    </div>
   </FrontLayout>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { Link, Head, usePage } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { Link, Head, usePage, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import { useAudioNarrator } from '@/Composables/useAudioNarrator'
 
 const props = defineProps({
   review: { type: Object, required: true },
@@ -170,12 +344,47 @@ const props = defineProps({
 
 const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')
+const authUser = computed(() => page.props.auth?.user || null)
 
+const currentUrl = computed(() => {
+  return typeof window !== 'undefined' ? window.location.href : ''
+})
+
+const currentContent = computed(() => {
+  return locale.value === 'en' ? (props.review.content_en || props.review.content_fr) : props.review.content_fr
+})
+
+const currentSummary = computed(() => {
+  return locale.value === 'en' ? (props.review.summary_en || props.review.summary_fr) : props.review.summary_fr
+})
+
+// Audio Narrator using robust Composable (Cross-browser, Mobile & Chunked)
+const {
+  isSpeaking,
+  isPaused,
+  speechProgress,
+  statusText: speechStatusText,
+  toggle: toggleNarrator,
+  stop: stopAudioSpeech,
+  calculateEstimatedMinutes
+} = useAudioNarrator()
+
+const estimatedReadingTime = computed(() => {
+  return calculateEstimatedMinutes(currentContent.value)
+})
+
+function toggleAudioSpeech() {
+  const fullText = (props.review.game_name + '. ' + (currentSummary.value || '') + '. ' + (currentContent.value || ''))
+  const lang = locale.value === 'en' ? 'en-US' : 'fr-FR'
+  toggleNarrator(fullText, lang)
+}
+
+// In-Article Ad Banner
 const inArticleAd = computed(() => page.props.adBanners?.in_article?.[0] || null)
 const sidebarAd = computed(() => page.props.adBanners?.sidebar?.[0] || null)
 
 const contentWithInArticleAd = computed(() => {
-  const content = locale.value === 'en' ? (props.review.content_en || props.review.content_fr) : props.review.content_fr
+  const content = currentContent.value
   if (!content) return ''
   if (!inArticleAd.value) return content
 
@@ -209,10 +418,100 @@ const contentWithInArticleAd = computed(() => {
     return content + adHtml
   }
 })
+
+// Comments System
+const showLoginModal = ref(false)
+const newCommentContent = ref('')
+const isSubmittingComment = ref(false)
+const commentSuccessMessage = ref('')
+const replyingToId = ref(null)
+const replyContent = ref('')
+
+const totalCommentsCount = computed(() => {
+  if (!props.review.comments) return 0
+  let count = props.review.comments.length
+  props.review.comments.forEach(c => {
+    if (c.replies) count += c.replies.length
+  })
+  return count
+})
+
+function checkAuthForComment() {
+  if (!authUser.value) {
+    showLoginModal.value = true
+  }
+}
+
+function openReplyForm(commentId) {
+  if (!authUser.value) {
+    showLoginModal.value = true
+    return
+  }
+  replyingToId.value = commentId
+  replyContent.value = ''
+}
+
+async function submitComment() {
+  if (!authUser.value) {
+    showLoginModal.value = true
+    return
+  }
+  if (!newCommentContent.value || newCommentContent.value.trim().length < 2) return
+
+  isSubmittingComment.value = true
+  router.post('/api/comments', {
+    game_review_id: props.review.id,
+    content: newCommentContent.value,
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      newCommentContent.value = ''
+      commentSuccessMessage.value = 'Votre commentaire a été envoyé pour modération par l\'équipe Tech237.'
+    },
+    onFinish: () => {
+      isSubmittingComment.value = false
+    }
+  })
+}
+
+async function submitReply(parentId) {
+  if (!authUser.value) {
+    showLoginModal.value = true
+    return
+  }
+  if (!replyContent.value || replyContent.value.trim().length < 2) return
+
+  router.post('/api/comments', {
+    game_review_id: props.review.id,
+    parent_id: parentId,
+    content: replyContent.value,
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      replyContent.value = ''
+      replyingToId.value = null
+      commentSuccessMessage.value = 'Votre réponse a été soumise avec succès pour modération.'
+    }
+  })
+}
 </script>
 
 <style scoped>
 .hover-danger:hover {
   color: #FF004B !important;
+}
+
+.login-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1055;
+  padding: 1rem;
 }
 </style>

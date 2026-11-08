@@ -123,8 +123,20 @@
                     <div class="card-body p-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold">Ajouter des photos à la galerie</label>
-                            <input type="file" class="form-control" wire:model="newGalleryImages" multiple accept="image/*">
-                            <small class="text-muted">Sélectionnez une ou plusieurs photos (PNG, JPG, WEBP). Elles s'afficheront dans la galerie interactive et la lightbox.</small>
+                            <div class="d-flex gap-2">
+                                <input type="file" class="form-control" wire:model="newGalleryImages" multiple accept="image/*">
+                                <button type="button" wire:click="uploadGalleryImages" wire:loading.attr="disabled" class="btn btn-success text-nowrap">
+                                    <span wire:loading.remove wire:target="uploadGalleryImages"><i class="bi bi-cloud-arrow-up me-1"></i> Ajouter à la galerie</span>
+                                    <span wire:loading wire:target="uploadGalleryImages"><i class="spinner-border spinner-border-sm me-1"></i> Envoi...</span>
+                                </button>
+                            </div>
+                            <small class="text-muted">Sélectionnez une ou plusieurs photos et cliquez sur "Ajouter à la galerie". Elles s'enregistrent immédiatement sans avoir besoin de valider tout le formulaire.</small>
+                            @if(session()->has('gallery_success'))
+                                <div class="alert alert-success alert-dismissible fade show mt-2 py-2 small" role="alert">
+                                    <i class="bi bi-check-circle me-1"></i> {{ session('gallery_success') }}
+                                    <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+                                </div>
+                            @endif
                         </div>
 
                         <!-- Preview Existing Gallery -->

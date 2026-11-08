@@ -58,6 +58,9 @@ use App\Livewire\Admin\Comments\Index as AdminCommentsIndex;
 use App\Livewire\Admin\Users\Index as AdminUsersIndex;
 use App\Livewire\Admin\Banned\Index as AdminBannedIndex;
 use App\Livewire\Admin\Logs\Index as AdminLogsIndex;
+use App\Livewire\Admin\Stats\MyStats as AdminMyStats;
+use App\Livewire\Admin\Stats\WritersOverview as AdminWritersOverview;
+use App\Livewire\Admin\Stats\WriterDetail as AdminWriterDetail;
 use App\Livewire\Admin\Settings\Index as AdminSettingsIndex;
 use App\Livewire\Admin\Profile\Index as AdminProfileIndex;
 
@@ -275,6 +278,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Visitor Analytics (Logs, Graphiques, Sessions, Géoloc)
         Route::get('/analytics', AdminAnalyticsIndex::class)->name('analytics.index');
+
+        // Statistiques & Rémunération Rédacteurs (Lectures uniques)
+        Route::get('/mes-statistiques', AdminMyStats::class)->name('my-stats');
+        Route::get('/statistiques-redacteurs', AdminWritersOverview::class)->name('writers.overview');
+        Route::get('/statistiques-redacteurs/{writerId}', AdminWriterDetail::class)->name('writers.detail');
 
         // Startups & Cameroon Legal Validation
         Route::get('/startups', AdminStartupsIndex::class)->name('startups.index');

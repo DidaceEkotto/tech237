@@ -462,6 +462,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { Link, Head, usePage, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import { useAudioNarrator } from '@/Composables/useAudioNarrator'
 
 const props = defineProps({
   article: { type: Object, required: true },
@@ -537,98 +538,26 @@ const currentUrl = computed(() => {
   return typeof window !== 'undefined' ? window.location.href : ''
 })
 
-// Reading / Listening Time Calculation (~180 words/min)
+// Audio Narrator using robust Composable (Cross-browser, Mobile & Chunked)
+const {
+  isSpeaking,
+  isPaused,
+  speechProgress,
+  statusText: speechStatusText,
+  toggle: toggleNarrator,
+  stop: stopAudioSpeech,
+  calculateEstimatedMinutes
+} = useAudioNarrator()
+
 const estimatedReadingTime = computed(() => {
-  const text = (currentContent.value || '').replace(/<[^>]*>?/gm, '')
-  const words = text.trim().split(/\s+/).length
-  return Math.max(1, Math.round(words / 180))
-})
-
-// Audio Narrator (TTS via browser SpeechSynthesis)
-const isSpeaking = ref(false)
-const isPaused = ref(false)
-const speechProgress = ref(0)
-let progressInterval = null
-
-const speechStatusText = computed(() => {
-  if (!isSpeaking.value) return 'Synthèse vocale disponible'
-  if (isPaused.value) return 'En pause'
-  return 'Lecture audio en cours...'
+  return calculateEstimatedMinutes(currentContent.value)
 })
 
 function toggleAudioSpeech() {
-  if (!('speechSynthesis' in window)) {
-    alert('La synthèse vocale n\'est pas supportée par votre navigateur.')
-    return
-  }
-
-  if (isSpeaking.value && !isPaused.value) {
-    window.speechSynthesis.pause()
-    isPaused.value = true
-    clearInterval(progressInterval)
-    return
-  }
-
-  if (isSpeaking.value && isPaused.value) {
-    window.speechSynthesis.resume()
-    isPaused.value = false
-    startProgress()
-    return
-  }
-
-  // Start fresh playback
-  window.speechSynthesis.cancel()
-  const rawText = (currentTitle.value + '. ' + (currentSummary.value || '') + '. ' + currentContent.value).replace(/<[^>]*>?/gm, '')
-  const utterance = new SpeechSynthesisUtterance(rawText)
-  utterance.lang = locale.value === 'en' ? 'en-US' : 'fr-FR'
-  utterance.rate = 1.0
-
-  utterance.onstart = () => {
-    isSpeaking.value = true
-    isPaused.value = false
-    speechProgress.value = 0
-    startProgress()
-  }
-
-  utterance.onend = () => {
-    isSpeaking.value = false
-    isPaused.value = false
-    speechProgress.value = 100
-    clearInterval(progressInterval)
-  }
-
-  utterance.onerror = () => {
-    isSpeaking.value = false
-    isPaused.value = false
-    clearInterval(progressInterval)
-  }
-
-  window.speechSynthesis.speak(utterance)
+  const fullText = (currentTitle.value + '. ' + (currentSummary.value || '') + '. ' + (currentContent.value || ''))
+  const lang = locale.value === 'en' ? 'en-US' : 'fr-FR'
+  toggleNarrator(fullText, lang)
 }
-
-function startProgress() {
-  clearInterval(progressInterval)
-  const durationSec = estimatedReadingTime.value * 60
-  progressInterval = setInterval(() => {
-    if (speechProgress.value < 98) {
-      speechProgress.value += (100 / durationSec)
-    }
-  }, 1000)
-}
-
-function stopAudioSpeech() {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel()
-  }
-  isSpeaking.value = false
-  isPaused.value = false
-  speechProgress.value = 0
-  clearInterval(progressInterval)
-}
-
-onUnmounted(() => {
-  stopAudioSpeech()
-})
 
 // Comments System
 const showLoginModal = ref(false)
