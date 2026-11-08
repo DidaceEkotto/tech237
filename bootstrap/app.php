@@ -32,6 +32,13 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
 
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException $e, Request $request) {
+            if (str_contains($request->path(), 'update') || str_contains($request->path(), 'livewire')) {
+                return redirect()->back();
+            }
+            return null;
+        });
+
         $exceptions->render(function (\Throwable $e, Request $request) {
             if ($e instanceof \Illuminate\Validation\ValidationException || $e instanceof \Illuminate\Auth\AuthenticationException) {
                 return null;

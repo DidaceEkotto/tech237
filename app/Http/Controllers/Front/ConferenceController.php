@@ -20,20 +20,22 @@ class ConferenceController extends Controller
 
         $query = Conference::where('status', 'approved')
             ->withCount('registrations')
-            ->orderBy('start_date');
+            ->orderBy('event_date', 'asc');
 
         if ($city) {
             $query->where('city', 'like', "%{$city}%");
         }
 
         if ($date) {
-            $query->whereDate('start_date', '>=', $date);
+            $query->whereDate('event_date', '>=', $date);
         }
 
         if ($search) {
             $query->where(function($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%")
+                $q->where('title_fr', 'like', "%{$search}%")
+                  ->orWhere('title_en', 'like', "%{$search}%")
+                  ->orWhere('description_fr', 'like', "%{$search}%")
+                  ->orWhere('description_en', 'like', "%{$search}%")
                   ->orWhere('city', 'like', "%{$search}%");
             });
         }
@@ -70,8 +72,8 @@ class ConferenceController extends Controller
 
         $upcomingConferences = Conference::where('status', 'approved')
             ->where('id', '!=', $conference->id)
-            ->where('start_date', '>=', now())
-            ->orderBy('start_date')
+            ->where('event_date', '>=', now()->toDateString())
+            ->orderBy('event_date', 'asc')
             ->take(3)
             ->get();
 
@@ -88,10 +90,6 @@ class ConferenceController extends Controller
 
         if (!$conference->accepts_registrations) {
             return back()->with('error', 'Les inscriptions ne sont pas ouvertes pour cet événement.');
-        }
-
-        if ($conference->registrations()->count() >= $conference->max_attendees) {
-            return back()->with('error', 'Désolé, cet événement est complet !');
         }
 
         $validated = $request->validate([

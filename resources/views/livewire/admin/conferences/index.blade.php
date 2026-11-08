@@ -196,7 +196,6 @@
                                         <button type="button" wire:click="viewRegistrations({{ $c->id }})" class="btn btn-sm btn-light border me-1" title="Voir les inscrits & billets">
                                             <i class="bi bi-people"></i>
                                         </button>
-                                        <button type="button" wire:click="edit({{ $c->id }})" class="btn btn-sm btn-light border text-primary me-1"><i class="bi bi-pencil"></i></button>
                                         <button type="button" wire:click="delete({{ $c->id }})" class="btn btn-sm btn-light border text-danger" onclick="return confirm('Supprimer cet événement ?')"><i class="bi bi-trash"></i></button>
                                     </td>
                                 </tr>

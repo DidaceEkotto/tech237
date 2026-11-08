@@ -486,7 +486,7 @@
                       <div class="small text-muted d-flex align-items-center gap-3 flex-wrap">
                         <span><i class="bi bi-geo-alt me-1 text-danger"></i>{{ job.city }}</span>
                         <span><i class="bi bi-cash-stack me-1 text-success"></i>{{ job.salary_type === 'fixed' && job.salary_amount ? Number(job.salary_amount).toLocaleString() + ' FCFA' : 'À négocier' }}</span>
-                        <span v-if="job.deadline_date"><i class="bi bi-calendar-event me-1"></i>Date limite : {{ job.deadline_date }}</span>
+                        <span v-if="job.deadline_date"><i class="bi bi-calendar-event me-1"></i>Date limite : {{ formatDate(job.deadline_date) }}</span>
                       </div>
                     </div>
 
@@ -506,6 +506,12 @@
                     </span>
                   </div>
 
+                  <!-- Locked alert if applications received -->
+                  <div v-if="(job.applications_count || 0) > 0" class="alert alert-warning py-2 px-3 small rounded-3 mb-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-lock-fill text-warning fs-5"></i>
+                    <span><strong>Information :</strong> Cette offre a déjà reçu des candidatures ({{ job.applications_count }} candidat{{ job.applications_count > 1 ? 's' : '' }}). Conformément aux règles de recrutement, elle ne peut plus être modifiée afin de garantir l'équité du processus.</span>
+                  </div>
+
                   <p class="small text-muted mb-3 line-clamp-2">{{ job.short_description }}</p>
 
                   <div class="d-flex justify-content-between align-items-center pt-3 border-top flex-wrap gap-2">
@@ -519,11 +525,14 @@
                       </Link>
                     </div>
 
-                    <div class="d-flex gap-1">
+                    <div class="d-flex gap-1 align-items-center">
                       <Link v-if="job.status === 'approved'" :href="'/emploi/' + (job.slug || job.id)" target="_blank" class="btn btn-sm btn-light border rounded-circle" title="Voir l'offre publique">
                         <i class="bi bi-box-arrow-up-right"></i>
                       </Link>
-                      <Link :href="'/espace-utilisateur/jobs/' + job.id + '/edit'" class="btn btn-sm btn-dark rounded-pill px-3">
+                      <button v-if="(job.applications_count || 0) > 0" type="button" class="btn btn-sm btn-secondary rounded-pill px-3 opacity-75" disabled title="Modification impossible : des candidats ont déjà postulé à cette offre">
+                        <i class="bi bi-lock-fill me-1"></i> Non modifiable
+                      </button>
+                      <Link v-else :href="'/espace-utilisateur/jobs/' + job.id + '/edit'" class="btn btn-sm btn-dark rounded-pill px-3">
                         <i class="bi bi-pencil me-1"></i> Modifier
                       </Link>
                     </div>
@@ -1124,6 +1133,17 @@ const props = defineProps({
   activeSection: { type: String, default: 'dashboard' },
   stats: { type: Object, default: () => ({}) },
 })
+
+function formatDate(val) {
+  if (!val) return ''
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  return d.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  })
+}
 
 const currentSection = ref(props.activeSection || 'dashboard')
 const mobileDrawerOpen = ref(false)

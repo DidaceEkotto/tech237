@@ -84,8 +84,8 @@ Route::get('/entrepreneurs', [EntrepreneurController::class, 'showCurrent']);
 
 // Forum Module
 Route::get('/forum', [ForumController::class, 'index'])->name('forum.index');
-Route::get('/forum/{categorySlug}/{topicSlug}', [ForumController::class, 'show'])->name('forum.show');
 Route::get('/forum/auteur/{userId}', [ForumController::class, 'userTopics'])->name('forum.author');
+Route::get('/forum/{categorySlug}/{topicSlug}', [ForumController::class, 'show'])->name('forum.show');
 Route::post('/forum/creer-sujet', [ForumController::class, 'storeTopic'])->name('forum.topics.store')->middleware('auth:web');
 Route::post('/forum/repondre/{topicId}', [ForumController::class, 'reply'])->name('forum.posts.store')->middleware('auth:web');
 Route::post('/forum/topic/{topicId}/resoudre', [ForumController::class, 'toggleSolve'])->name('forum.topics.solve')->middleware('auth:web');
@@ -103,6 +103,7 @@ Route::get('/emplois', [JobController::class, 'index'])->name('jobs.index');
 Route::get('/emploi/{slug}', [JobController::class, 'show'])->name('jobs.show');
 Route::get('/emploi/{slug}/postuler', [JobController::class, 'applyForm'])->name('jobs.apply.form');
 Route::post('/emploi/{id}/postuler', [JobController::class, 'apply'])->name('jobs.apply');
+Route::get('/api/jobs/{id}/check-email', [JobController::class, 'checkAppliedEmail'])->name('api.jobs.check-email');
 
 // Reviews & Interviews
 Route::get('/tests-jeux-video', [GameReviewController::class, 'index'])->name('games.index');
@@ -159,6 +160,20 @@ Route::middleware('guest:web')->group(function () {
 Route::middleware('auth:web')->group(function () {
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
     Route::get('/espace-utilisateur', [UserDashboardController::class, 'index'])->name('user.dashboard');
+    
+    // Quick section aliases
+    Route::get('/espace-utilisateur/projets', function () {
+        return redirect()->route('user.dashboard', ['section' => 'projects']);
+    })->name('user.projects.index');
+    Route::get('/espace-utilisateur/startups', function () {
+        return redirect()->route('user.dashboard', ['section' => 'startups']);
+    })->name('user.startups.index');
+    Route::get('/espace-utilisateur/jobs', function () {
+        return redirect()->route('user.dashboard', ['section' => 'jobs']);
+    })->name('user.jobs.index');
+    Route::get('/espace-utilisateur/conferences', function () {
+        return redirect()->route('user.dashboard', ['section' => 'conferences']);
+    })->name('user.conferences.index');
     
     // Startups dedicated pages
     Route::get('/espace-utilisateur/startups/create', [UserDashboardController::class, 'createStartup'])->name('user.startups.create');
@@ -304,6 +319,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/banned-admins', AdminBannedIndex::class)->name('banned.index')->middleware('admin.super');
     });
 });
+
+Route::match(['get', 'head'], 'livewire-8067d3f9/update', fn() => redirect()->back());
+Route::match(['get', 'head'], 'livewire/update', fn() => redirect()->back());
 
 Route::get('/create-symlink', function () {
     if (is_link(public_path('storage'))) {

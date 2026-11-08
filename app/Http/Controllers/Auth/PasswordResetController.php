@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use App\Models\User;
 use App\Models\CustomPasswordReset;
@@ -53,9 +55,21 @@ class PasswordResetController extends Controller
 
         $resetUrl = route('password.reset', ['token' => $token]);
 
+        try {
+            Mail::send('emails.password_reset', [
+                'resetUrl' => $resetUrl,
+                'email' => $email,
+            ], function ($message) use ($email) {
+                $message->to($email)
+                    ->subject('Tech237 - Réinitialisation de votre mot de passe');
+            });
+        } catch (\Throwable $e) {
+            Log::error('Erreur envoi email réinitialisation mot de passe : ' . $e->getMessage());
+        }
+
         return back()->with([
-            'success' => 'Un lien de réinitialisation sécurisé (valable 10 minutes) a été généré.',
-            'demo_reset_url' => $resetUrl, // Provided in session for local offline testing!
+            'success' => 'Un email contenant le lien sécurisé de réinitialisation vous a été transmis. Veuillez vérifier votre boîte de réception.',
+            'demo_reset_url' => $resetUrl,
         ]);
     }
 

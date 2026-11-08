@@ -87,10 +87,16 @@
                     <input 
                       type="email" 
                       v-model="applyForm.email" 
+                      @input="onEmailInput"
                       class="form-control rounded-3" 
+                      :class="{'is-invalid': emailAlreadyApplied || errors.email}"
                       placeholder="ex: jean.dupont@email.com" 
                       required
                     >
+                    <div v-if="emailAlreadyApplied" class="alert alert-danger py-2 px-3 small mt-2 rounded-3 mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                      <span><strong>Attention :</strong> Vous avez déjà postulé à cette offre d'emploi avec cette adresse email. Une seule candidature par personne est autorisée.</span>
+                    </div>
                     <div v-if="errors.email" class="text-danger extra-small mt-1">{{ errors.email }}</div>
                   </div>
 
@@ -243,7 +249,7 @@
 
                   <button 
                     type="submit" 
-                    :disabled="isSubmitting" 
+                    :disabled="isSubmitting || emailAlreadyApplied || hasApplied" 
                     class="btn btn-danger rounded-pill px-5 py-3 fw-bold shadow-sm d-flex align-items-center gap-2"
                   >
                     <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
@@ -334,6 +340,29 @@ const isSubmitting = ref(false)
 const formError = ref('')
 const cvFileName = ref('')
 const clFileName = ref('')
+const emailAlreadyApplied = ref(false)
+const isEmailChecking = ref(false)
+let emailCheckTimeout = null
+
+function onEmailInput() {
+  emailAlreadyApplied.value = false
+  clearTimeout(emailCheckTimeout)
+  const email = (applyForm.value.email || '').trim()
+  if (!email || !email.includes('@') || !email.includes('.')) return
+
+  isEmailChecking.value = true
+  emailCheckTimeout = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/jobs/${props.job.id}/check-email?email=${encodeURIComponent(email)}`)
+      const data = await res.json()
+      emailAlreadyApplied.value = !!data.applied
+    } catch (e) {
+      console.error(e)
+    } finally {
+      isEmailChecking.value = false
+    }
+  }, 400)
+}
 
 const isDeadlinePassed = computed(() => {
   if (!props.job.deadline_date) return false

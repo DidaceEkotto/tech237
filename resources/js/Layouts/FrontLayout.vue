@@ -610,7 +610,7 @@
     <div v-if="isSearchOpen" class="fullscreen-search-modal" @click.self="closeSearchModal">
       <div class="container py-5">
         <div class="d-flex justify-content-end mb-4">
-          <button @click="closeSearchModal" class="btn btn-outline-light rounded-circle p-2" style="width: 44px; height: 44px;">
+          <button @click="handleSearchCloseOrReset" class="btn btn-outline-light rounded-circle p-2" style="width: 44px; height: 44px;" :title="searchQuery ? 'Réinitialiser la saisie' : 'Fermer'">
             <i class="bi bi-x-lg fs-5"></i>
           </button>
         </div>
@@ -947,6 +947,19 @@ function closeSearchModal() {
   isSearchOpen.value = false
   searchQuery.value = ''
   searchResults.value = null
+}
+
+function handleSearchCloseOrReset() {
+  if (searchQuery.value && searchQuery.value.trim().length > 0) {
+    searchQuery.value = ''
+    searchResults.value = null
+    isSearching.value = false
+    nextTick(() => {
+      if (searchInputRef.value) searchInputRef.value.focus()
+    })
+  } else {
+    closeSearchModal()
+  }
 }
 
 function selectTrendingSearch(term) {

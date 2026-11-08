@@ -134,12 +134,44 @@ class JobController extends Controller
         ]);
     }
 
+    public function checkAppliedEmail(int $id, Request $request)
+    {
+        $email = trim(strtolower((string) $request->input('email', '')));
+        if (!$email || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return response()->json(['applied' => false]);
+        }
+
+        $exists = JobApplication::where('job_offer_id', $id)
+            ->where('email', $email)
+            ->exists();
+
+        return response()->json(['applied' => $exists]);
+    }
+
     public function apply(Request $request, int $id)
     {
         $job = JobOffer::with('questions')->findOrFail($id);
 
         if ($job->deadline_date && $job->deadline_date->isPast() && !$job->deadline_date->isToday()) {
             return back()->withErrors(['error' => 'La date limite de dépôt des candidatures pour cette offre est dépassée.']);
+        }
+
+        $email = trim(strtolower((string) $request->input('email', '')));
+        $userId = $request->user('web')?->id;
+
+        $alreadyApplied = JobApplication::where('job_offer_id', $job->id)
+            ->where(function($q) use ($userId, $email) {
+                if ($userId) {
+                    $q->where('user_id', $userId);
+                }
+                if ($email) {
+                    $q->orWhere('email', $email);
+                }
+            })
+            ->exists();
+
+        if ($alreadyApplied) {
+            return back()->withErrors(['email' => 'Vous avez déjà postulé à cette offre d\'emploi avec cette adresse email. Une seule candidature par personne est autorisée.']);
         }
 
         $rules = [

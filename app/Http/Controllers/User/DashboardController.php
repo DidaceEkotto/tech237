@@ -743,6 +743,10 @@ class DashboardController extends Controller
         $user = Auth::guard('web')->user();
         $job = JobOffer::where('user_id', $user->id)->with('questions')->findOrFail($id);
 
+        if ($job->applications()->count() > 0) {
+            return redirect('/espace-utilisateur?section=jobs')->with('error', 'Cette offre a déjà reçu des candidatures et ne peut plus être modifiée afin de préserver l\'intégrité du processus de recrutement.');
+        }
+
         $domains = [
             'Développement Web & Mobile',
             'Réseaux & Télécommunications',
@@ -778,6 +782,10 @@ class DashboardController extends Controller
     {
         $user = Auth::guard('web')->user();
         $job = JobOffer::where('user_id', $user->id)->findOrFail($id);
+
+        if ($job->applications()->count() > 0) {
+            return redirect('/espace-utilisateur?section=jobs')->with('error', 'Cette offre a déjà reçu des candidatures et ne peut plus être modifiée.');
+        }
 
         $request->validate([
             'title' => 'required|string|max:200',
@@ -920,7 +928,7 @@ class DashboardController extends Controller
             return back()->withErrors(['error' => 'Un entretien a déjà été programmé pour ce candidat.']);
         }
 
-        JobInterview::create([
+        $interview = JobInterview::create([
             'job_application_id' => $application->id,
             'interview_date' => $request->interview_date,
             'interview_time' => $request->interview_time,
@@ -931,7 +939,22 @@ class DashboardController extends Controller
 
         $application->update(['status' => 'interview_scheduled']);
 
-        return back()->with('success', "Entretien physique programmé pour le {$request->interview_date} à {$request->interview_time}. Un email de convocation officiel a été transmis au candidat.");
+        // Send email to candidate
+        try {
+            Mail::send('emails.job_interview', [
+                'job' => $application->jobOffer,
+                'application' => $application,
+                'interview' => $interview,
+                'customMessage' => $request->email_message,
+            ], function ($message) use ($application) {
+                $message->to($application->email, $application->name)
+                    ->subject("Convocation à un entretien - {$application->jobOffer->title} (Tech237)");
+            });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("Erreur envoi email convocation entretien : " . $e->getMessage());
+        }
+
+        return back()->with('success', "Entretien programmé pour le {$request->interview_date} à {$request->interview_time}. Un email de convocation officiel a été transmis à {$application->email}.");
     }
 
     public function rejectApplicant(Request $request, int $applicationId)
