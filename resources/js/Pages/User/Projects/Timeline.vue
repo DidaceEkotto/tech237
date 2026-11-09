@@ -53,10 +53,17 @@
 
           <!-- Add Timeline Step Form -->
           <div v-if="showAddStep" class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-5 bg-white border-top border-4 border-danger">
-            <h5 class="fw-bold text-dark mb-3">
+            <h5 class="fw-bold text-dark mb-2">
               <i class="bi bi-patch-check-fill text-danger me-2"></i>
-              Consigner une Nouvelle Étape ou Résolution de Bug
+              Consigner une Nouvelle Étape ou Résolution de Défi
             </h5>
+
+            <div v-if="!isOwner" class="alert alert-info border-0 rounded-3 p-3 small mb-4 d-flex align-items-center gap-2">
+              <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+              <div>
+                <strong>Espace Collaborateur :</strong> Votre étape Devlog sera soumise à la validation du créateur du projet avant d'apparaître sur la fiche publique.
+              </div>
+            </div>
             
             <form @submit.prevent="submitTimeline">
               <div class="row g-3 mb-3">
@@ -152,10 +159,43 @@
 
               <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
                 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                  <h5 class="fw-bold mb-0 text-dark">{{ step.title }}</h5>
-                  <span class="badge bg-light text-muted border font-monospace">
-                    {{ new Date(step.event_date || step.created_at).toLocaleDateString('fr-FR') }}
-                  </span>
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h5 class="fw-bold mb-0 text-dark">{{ step.title }}</h5>
+                    <span v-if="step.status === 'pending'" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle small">
+                      <i class="bi bi-hourglass-split me-1"></i>En attente de validation
+                    </span>
+                    <span v-else-if="step.status === 'rejected'" class="badge bg-danger-subtle text-danger border border-danger-subtle small">
+                      <i class="bi bi-x-circle me-1"></i>Rejetée
+                    </span>
+                    <span v-else class="badge bg-success-subtle text-success border border-success-subtle small">
+                      <i class="bi bi-check-circle me-1"></i>Validée & Publique
+                    </span>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-muted border font-monospace">
+                      {{ new Date(step.event_date || step.created_at).toLocaleDateString('fr-FR') }}
+                    </span>
+                  </div>
+                </div>
+
+                <div v-if="step.user && step.user.id !== project.user_id" class="small text-muted mb-2">
+                  <i class="bi bi-person-check text-success me-1"></i>Soumis par le collaborateur : <strong>{{ step.user.full_name || step.user.name }}</strong>
+                </div>
+
+                <!-- Owner validation buttons -->
+                <div v-if="isOwner && step.status === 'pending'" class="alert alert-warning p-3 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div class="small text-warning-emphasis">
+                    <i class="bi bi-shield-exclamation me-1"></i>Cette étape a été proposée par un collaborateur et nécessite votre validation.
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button @click="validateStep(step.id, 'approve')" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
+                      <i class="bi bi-check-lg me-1"></i>Valider & Publier
+                    </button>
+                    <button @click="validateStep(step.id, 'reject')" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                      <i class="bi bi-x-lg me-1"></i>Rejeter
+                    </button>
+                  </div>
                 </div>
 
                 <p v-if="step.description" class="small text-muted mb-3">{{ step.description }}</p>
@@ -220,11 +260,12 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useForm, Head, Link } from '@inertiajs/vue3'
+import { useForm, Head, Link, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 
 const props = defineProps({
   project: { type: Object, required: true },
+  isOwner: { type: Boolean, default: true },
 })
 
 const showAddStep = ref(false)
@@ -247,5 +288,9 @@ function submitTimeline() {
       showAddStep.value = false
     }
   })
+}
+
+function validateStep(stepId, action) {
+  router.post(`/espace-utilisateur/timelines/${stepId}/valider`, { action })
 }
 </script>

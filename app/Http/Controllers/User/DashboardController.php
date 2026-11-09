@@ -9,6 +9,9 @@ use App\Models\Startup;
 use App\Models\Project;
 use App\Models\ProjectTimeline;
 use App\Models\ProjectImage;
+use App\Models\ProjectInvitation;
+use App\Models\ProjectCollaborator;
+use App\Models\CollaborationBlock;
 use App\Models\ProgrammingLanguage;
 use App\Models\Framework;
 use App\Models\UserDocument;
@@ -38,7 +41,48 @@ class DashboardController extends Controller
             ->get();
 
         $projects = Project::where('user_id', $user->id)
-            ->with(['startup', 'timelines'])
+            ->with([
+                'startup',
+                'timelines' => fn($q) => $q->with('user')->orderBy('event_date', 'desc'),
+                'activeCollaborators.user',
+                'invitations' => fn($q) => $q->where('status', 'pending')->where('expires_at', '>', now()),
+            ])
+            ->latest()
+            ->get();
+
+        // Collaborative projects where user was invited and accepted
+        $collaborativeProjects = Project::whereHas('activeCollaborators', fn($q) => $q->where('user_id', $user->id))
+            ->with([
+                'user',
+                'startup',
+                'timelines' => fn($q) => $q->where('status', 'approved')->orderBy('event_date', 'desc'),
+                'activeCollaborators.user',
+            ])
+            ->latest()
+            ->get();
+
+        // Pending collaboration invitations received by this user
+        $pendingInvitations = ProjectInvitation::with(['project.user', 'project.startup', 'inviter'])
+            ->where(function($q) use ($user) {
+                $q->where('invited_user_id', $user->id)
+                  ->orWhere('email', strtolower(trim($user->email)));
+            })
+            ->where('status', 'pending')
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->get();
+
+        // Pending validations for owned projects (Devlogs & Images submitted by collaborators)
+        $ownedProjectIds = $projects->pluck('id');
+        $pendingTimelines = ProjectTimeline::whereIn('project_id', $ownedProjectIds)
+            ->where('status', 'pending')
+            ->with(['project', 'user'])
+            ->latest()
+            ->get();
+
+        $pendingImages = ProjectImage::whereIn('project_id', $ownedProjectIds)
+            ->where('status', 'pending')
+            ->with(['project', 'user'])
             ->latest()
             ->get();
 
@@ -107,6 +151,10 @@ class DashboardController extends Controller
             'user' => $user,
             'startups' => $startups,
             'projects' => $projects,
+            'collaborativeProjects' => $collaborativeProjects,
+            'pendingInvitations' => $pendingInvitations,
+            'pendingTimelines' => $pendingTimelines,
+            'pendingImages' => $pendingImages,
             'jobOffers' => $jobOffers,
             'conferences' => $conferences,
             'documents' => $documents,
@@ -530,17 +578,26 @@ class DashboardController extends Controller
     public function projectGallery(int $id)
     {
         $user = Auth::guard('web')->user();
-        $project = Project::where('user_id', $user->id)->with('images')->findOrFail($id);
+        $project = Project::with(['images' => fn($q) => $q->with('user')->orderBy('order')])->findOrFail($id);
+
+        if (!$project->canContribute($user)) {
+            abort(403, "Vous n'avez pas accès à la galerie de ce projet.");
+        }
 
         return Inertia::render('User/Projects/Gallery', [
             'project' => $project,
+            'isOwner' => $project->isOwner($user),
         ]);
     }
 
     public function uploadProjectImages(Request $request, int $id)
     {
         $user = Auth::guard('web')->user();
-        $project = Project::where('user_id', $user->id)->findOrFail($id);
+        $project = Project::findOrFail($id);
+
+        if (!$project->canContribute($user)) {
+            abort(403, "Action non autorisée.");
+        }
 
         $request->validate([
             'image' => 'required|image|max:10240',
@@ -548,15 +605,32 @@ class DashboardController extends Controller
         ]);
 
         $path = ImageService::saveImage($request->file('image'), 'project_gallery');
-
         $order = ProjectImage::where('project_id', $project->id)->count();
+
+        $isOwner = $project->isOwner($user);
+        $status = $isOwner ? 'approved' : 'pending';
 
         $projImage = ProjectImage::create([
             'project_id' => $project->id,
+            'user_id' => $user->id,
             'image_path' => $path,
             'caption' => $request->caption ?: null,
             'order' => $order,
+            'status' => $status,
         ]);
+
+        if (!$isOwner) {
+            try {
+                UserMessage::create([
+                    'user_id' => $project->user_id,
+                    'sender_id' => $user->id,
+                    'subject' => "📸 Nouvelle image en attente sur {$project->name}",
+                    'message' => "Le collaborateur {$user->name} a téléversé une nouvelle image pour votre projet {$project->name}. Vous pouvez la valider depuis votre espace projet.",
+                ]);
+            } catch (\Throwable $e) {}
+
+            return back()->with('success', "Image soumise avec succès ! Elle sera visible dès validation par le propriétaire du projet.");
+        }
 
         return back()->with('success', 'Image ajoutée à la galerie avec succès !');
     }
@@ -564,9 +638,12 @@ class DashboardController extends Controller
     public function deleteProjectImage(int $imageId)
     {
         $user = Auth::guard('web')->user();
-        $img = ProjectImage::whereHas('project', function ($q) use ($user) {
-            $q->where('user_id', $user->id);
-        })->findOrFail($imageId);
+        $img = ProjectImage::with('project')->findOrFail($imageId);
+
+        // Can delete if project owner or if it is collaborator's own pending image
+        if (!$img->project->isOwner($user) && (int)$img->user_id !== (int)$user->id) {
+            abort(403, "Action non autorisée.");
+        }
 
         $img->delete();
 
@@ -576,10 +653,15 @@ class DashboardController extends Controller
     public function projectTimeline(int $id)
     {
         $user = Auth::guard('web')->user();
-        $project = Project::where('user_id', $user->id)->with('timelines')->findOrFail($id);
+        $project = Project::with(['timelines' => fn($q) => $q->with('user')->orderBy('event_date', 'desc')])->findOrFail($id);
+
+        if (!$project->canContribute($user)) {
+            abort(403, "Vous n'avez pas accès au journal de bord de ce projet.");
+        }
 
         return Inertia::render('User/Projects/Timeline', [
             'project' => $project,
+            'isOwner' => $project->isOwner($user),
         ]);
     }
 
@@ -590,7 +672,11 @@ class DashboardController extends Controller
             return back()->withErrors(['error' => 'Votre compte est banni.']);
         }
 
-        $project = Project::where('user_id', $user->id)->findOrFail($projectId);
+        $project = Project::findOrFail($projectId);
+
+        if (!$project->canContribute($user)) {
+            abort(403, "Action non autorisée sur ce projet.");
+        }
 
         $request->validate([
             'title' => 'required|string|max:200',
@@ -608,8 +694,12 @@ class DashboardController extends Controller
             $images[] = ImageService::saveImage($request->file('screenshot'), 'timeline_shot');
         }
 
+        $isOwner = $project->isOwner($user);
+        $status = $isOwner ? 'approved' : 'pending';
+
         ProjectTimeline::create([
             'project_id' => $project->id,
+            'user_id' => $user->id,
             'title' => $request->title,
             'description' => $request->description,
             'problem_encountered' => $request->problem_encountered,
@@ -618,7 +708,21 @@ class DashboardController extends Controller
             'youtube_url' => $request->youtube_url,
             'images' => $images,
             'event_date' => $request->event_date ?: now(),
+            'status' => $status,
         ]);
+
+        if (!$isOwner) {
+            try {
+                UserMessage::create([
+                    'user_id' => $project->user_id,
+                    'sender_id' => $user->id,
+                    'subject' => "📝 Nouvelle étape Devlog en attente sur {$project->name}",
+                    'message' => "Le collaborateur {$user->name} a soumis l'étape Devlog \"{$request->title}\" pour votre projet {$project->name}. Vous pouvez la valider depuis votre tableau de bord pour la publier.",
+                ]);
+            } catch (\Throwable $e) {}
+
+            return redirect()->back(fallback: route('user.dashboard'))->with('success', "Votre étape de Devlog a été soumise avec succès ! Elle sera publiée dès validation par le propriétaire du projet.");
+        }
 
         return redirect()->back(fallback: route('user.dashboard'))->with('success', 'Nouvelle étape / Résolution ajoutée au journal de bord GitHub-style !');
     }

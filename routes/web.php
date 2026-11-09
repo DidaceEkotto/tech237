@@ -122,6 +122,12 @@ Route::get('/startup/{slug}', [ProjectShowcaseController::class, 'showStartup'])
 Route::post('/startups/{id}/contact', [ProjectShowcaseController::class, 'contactStartup'])->name('startups.contact');
 Route::post('/api/report', [ProjectShowcaseController::class, 'report'])->name('api.report');
 
+// Project Collaboration Invitations (Public Token Access & Actions)
+Route::get('/invitations/{token}', [App\Http\Controllers\User\ProjectCollaborationController::class, 'showInvitation'])->name('invitations.show');
+Route::post('/invitations/{token}/accepter', [App\Http\Controllers\User\ProjectCollaborationController::class, 'acceptInvitation'])->name('invitations.accept');
+Route::post('/invitations/{token}/refuser', [App\Http\Controllers\User\ProjectCollaborationController::class, 'declineInvitation'])->name('invitations.decline');
+Route::post('/invitations/{token}/bloquer', [App\Http\Controllers\User\ProjectCollaborationController::class, 'blockCollaboration'])->name('invitations.block');
+
 // Public Author Profile
 Route::get('/auteur/{id}', [AuthorController::class, 'show'])->name('authors.show');
 
@@ -196,6 +202,12 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/espace-utilisateur/projets/{id}/galerie', [UserDashboardController::class, 'projectGallery'])->name('user.projects.gallery');
     Route::post('/espace-utilisateur/projets/{id}/galerie', [UserDashboardController::class, 'uploadProjectImages'])->name('user.projects.gallery.upload');
     Route::delete('/espace-utilisateur/projets/images/{id}', [UserDashboardController::class, 'deleteProjectImage'])->name('user.projects.gallery.delete');
+
+    // Project Collaboration Management
+    Route::post('/espace-utilisateur/projets/{id}/inviter', [App\Http\Controllers\User\ProjectCollaborationController::class, 'invite'])->name('user.projects.invite')->middleware('throttle:15,1');
+    Route::delete('/espace-utilisateur/projets/{projectId}/collaborateurs/{collaboratorId}', [App\Http\Controllers\User\ProjectCollaborationController::class, 'revokeCollaborator'])->name('user.projects.collaborators.revoke');
+    Route::post('/espace-utilisateur/timelines/{timelineId}/valider', [App\Http\Controllers\User\ProjectCollaborationController::class, 'validateTimeline'])->name('user.timelines.validate');
+    Route::post('/espace-utilisateur/images/{imageId}/valider', [App\Http\Controllers\User\ProjectCollaborationController::class, 'validateImage'])->name('user.images.validate');
     
     // User Jobs Management
     Route::get('/espace-utilisateur/jobs/create', [UserDashboardController::class, 'createJobOffer'])->name('user.jobs.create');

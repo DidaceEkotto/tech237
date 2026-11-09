@@ -31,6 +31,14 @@
           <i class="bi bi-check-circle-fill me-1"></i> {{ $page.props.flash.success }}
         </div>
 
+        <!-- Collaborator Information -->
+        <div v-if="!isOwner" class="alert alert-info rounded-4 small p-3 mb-4 d-flex align-items-center gap-2">
+          <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+          <div>
+            <strong>Espace Collaborateur :</strong> Les photos que vous téléversez pour ce projet seront examinées par le créateur du projet avant d'apparaître publiquement dans la galerie.
+          </div>
+        </div>
+
         <!-- Dropzone Upload Card -->
         <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-5 bg-white text-center">
           <div 
@@ -79,16 +87,38 @@
 
         <div class="row g-4 mb-5">
           <div v-for="img in project.images" :key="img.id" class="col-md-4 col-sm-6">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 bg-white">
-              <img :src="'/' + img.image_path" class="card-img-top" style="height: 220px; object-fit: cover;">
-              <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                <div>
-                  <small class="text-dark fw-bold d-block">{{ img.caption || 'Sans légende' }}</small>
-                  <small class="text-muted">Ordre : {{ img.order }}</small>
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden h-100 bg-white position-relative">
+              <div class="position-relative">
+                <img :src="'/' + img.image_path" class="card-img-top" style="height: 220px; object-fit: cover;">
+                <span v-if="img.status === 'pending'" class="badge bg-warning text-dark position-absolute top-0 start-0 m-2 shadow-sm">
+                  <i class="bi bi-hourglass-split me-1"></i>En attente de validation
+                </span>
+                <span v-else-if="img.status === 'rejected'" class="badge bg-danger position-absolute top-0 start-0 m-2 shadow-sm">
+                  <i class="bi bi-x-circle me-1"></i>Rejetée
+                </span>
+              </div>
+              <div class="card-body p-3 d-flex flex-column gap-2">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div>
+                    <small class="text-dark fw-bold d-block">{{ img.caption || 'Sans légende' }}</small>
+                    <small v-if="img.user && img.user.id !== project.user_id" class="text-muted d-block" style="font-size: 11px;">
+                      <i class="bi bi-person me-1"></i>Par {{ img.user.name }}
+                    </small>
+                  </div>
+                  <button @click="confirmDelete(img)" class="btn btn-sm btn-outline-danger rounded-circle p-2" title="Supprimer de la galerie">
+                    <i class="bi bi-trash"></i>
+                  </button>
                 </div>
-                <button @click="confirmDelete(img)" class="btn btn-sm btn-outline-danger rounded-circle p-2" title="Supprimer de la galerie">
-                  <i class="bi bi-trash"></i>
-                </button>
+
+                <!-- Owner validation buttons for pending images -->
+                <div v-if="isOwner && img.status === 'pending'" class="pt-2 border-top d-flex gap-2">
+                  <button @click="validateImg(img.id, 'approve')" class="btn btn-sm btn-success rounded-pill w-100 fw-bold py-1">
+                    <i class="bi bi-check-lg me-1"></i>Valider
+                  </button>
+                  <button @click="validateImg(img.id, 'reject')" class="btn btn-sm btn-outline-danger rounded-pill w-100 py-1">
+                    <i class="bi bi-x-lg me-1"></i>Rejeter
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -135,7 +165,12 @@ import FrontLayout from '@/Layouts/FrontLayout.vue'
 
 const props = defineProps({
   project: Object,
+  isOwner: { type: Boolean, default: true },
 })
+
+function validateImg(imageId, action) {
+  router.post(`/espace-utilisateur/images/${imageId}/valider`, { action })
+}
 
 const fileInput = ref(null)
 const isDragging = ref(false)

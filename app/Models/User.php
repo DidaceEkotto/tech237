@@ -113,4 +113,24 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserDocument::class);
     }
+
+    public function projectCollaborations(): HasMany
+    {
+        return $this->hasMany(ProjectCollaborator::class);
+    }
+
+    public function activeProjectCollaborations(): HasMany
+    {
+        return $this->hasMany(ProjectCollaborator::class)->where('status', 'active');
+    }
+
+    public function receivedProjectInvitations(): HasMany
+    {
+        return $this->hasMany(ProjectInvitation::class, 'invited_user_id');
+    }
+
+    public function sentProjectInvitations(): HasMany
+    {
+        return $this->hasMany(ProjectInvitation::class, 'inviter_id');
+    }
 }

@@ -12,6 +12,7 @@ class ProjectTimeline extends Model
 
     protected $fillable = [
         'project_id',
+        'user_id',
         'title',
         'description',
         'problem_encountered',
@@ -21,6 +22,7 @@ class ProjectTimeline extends Model
         'images',
         'youtube_url',
         'event_date',
+        'status', // approved, pending, rejected
     ];
 
     protected $casts = [
@@ -33,5 +35,10 @@ class ProjectTimeline extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

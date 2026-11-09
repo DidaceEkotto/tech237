@@ -88,4 +88,35 @@ class Project extends Model
     {
         return $this->hasMany(ProjectImage::class)->orderBy('order');
     }
+
+    public function collaborators(): HasMany
+    {
+        return $this->hasMany(ProjectCollaborator::class);
+    }
+
+    public function activeCollaborators(): HasMany
+    {
+        return $this->hasMany(ProjectCollaborator::class)->where('status', 'active');
+    }
+
+    public function invitations(): HasMany
+    {
+        return $this->hasMany(ProjectInvitation::class);
+    }
+
+    public function isOwner(?User $user): bool
+    {
+        return $user && (int) $this->user_id === (int) $user->id;
+    }
+
+    public function isCollaborator(?User $user): bool
+    {
+        if (!$user) return false;
+        return $this->activeCollaborators()->where('user_id', $user->id)->exists();
+    }
+
+    public function canContribute(?User $user): bool
+    {
+        return $this->isOwner($user) || $this->isCollaborator($user);
+    }
 }

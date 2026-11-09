@@ -33,7 +33,15 @@ class ProjectShowcaseController extends Controller
     public function show(string $slug)
     {
         $project = Project::where('slug', $slug)
-            ->with(['user', 'startup', 'timelines', 'images', 'programmingLanguages', 'frameworksList'])
+            ->with([
+                'user',
+                'startup',
+                'timelines' => fn($q) => $q->where('status', 'approved')->with('user')->orderBy('event_date', 'desc'),
+                'images' => fn($q) => $q->where('status', 'approved')->orderBy('order'),
+                'programmingLanguages',
+                'frameworksList',
+                'activeCollaborators.user'
+            ])
             ->firstOrFail();
 
         $project->increment('views_count');

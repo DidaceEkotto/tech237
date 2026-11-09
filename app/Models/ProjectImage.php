@@ -9,10 +9,15 @@ class ProjectImage extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['project_id', 'image_path', 'caption', 'order'];
+    protected $fillable = ['project_id', 'user_id', 'image_path', 'caption', 'order', 'status'];
 
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

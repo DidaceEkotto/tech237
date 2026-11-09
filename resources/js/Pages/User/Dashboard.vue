@@ -383,73 +383,336 @@
             <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
               <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                 <div>
-                  <h4 class="fw-bold mb-1 text-dark">Mes Projets Tech & Produits</h4>
-                  <p class="text-muted small mb-0">Applications web, mobiles, logiciels desktop et jeux vidéo.</p>
+                  <h4 class="fw-bold mb-1 text-dark">Projets Tech & Collaborations</h4>
+                  <p class="text-muted small mb-0">Gérez vos créations, invitez des collaborateurs et contribuez aux projets de l'écosystème.</p>
                 </div>
                 <Link href="/espace-utilisateur/projets/create" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
                   <i class="bi bi-plus-lg me-1"></i> Créer un projet
                 </Link>
               </div>
 
-              <div v-if="projects.length" class="row g-3">
-                <div v-for="proj in projects" :key="proj.id" class="col-md-6">
-                  <div class="card border shadow-sm rounded-4 h-100 p-3 bg-light d-flex flex-column">
-                    <div class="d-flex align-items-center gap-3 mb-2">
-                      <div class="rounded-3 border overflow-hidden p-1 bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; min-width: 52px;">
-                        <img 
-                          v-if="proj.logo" 
-                          :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
-                          :alt="proj.name" 
-                          class="w-100 h-100 object-fit-contain rounded-2"
-                        >
-                        <div v-else class="fw-bold text-primary fs-5">
-                          {{ (proj.name || 'P').charAt(0).toUpperCase() }}
+              <!-- Projects Sub-Tabs Navigation -->
+              <ul class="nav nav-pills mb-4 gap-2 border-bottom pb-3">
+                <li class="nav-item">
+                  <button 
+                    class="nav-link rounded-pill fw-bold px-3 py-2 btn-sm d-flex align-items-center gap-2"
+                    :class="projectSubTab === 'owned' ? 'btn-danger text-white' : 'text-dark bg-light'"
+                    @click="projectSubTab = 'owned'"
+                  >
+                    <i class="bi bi-folder-fill"></i>
+                    <span>Mes Projets Créateur</span>
+                    <span class="badge rounded-pill" :class="projectSubTab === 'owned' ? 'bg-white text-danger' : 'bg-secondary-subtle text-dark'">
+                      {{ projects.length }}
+                    </span>
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button 
+                    class="nav-link rounded-pill fw-bold px-3 py-2 btn-sm d-flex align-items-center gap-2"
+                    :class="projectSubTab === 'collaborative' ? 'btn-danger text-white' : 'text-dark bg-light'"
+                    @click="projectSubTab = 'collaborative'"
+                  >
+                    <i class="bi bi-people-fill"></i>
+                    <span>Projets Collaboratifs</span>
+                    <span class="badge rounded-pill" :class="projectSubTab === 'collaborative' ? 'bg-white text-danger' : 'bg-secondary-subtle text-dark'">
+                      {{ (collaborativeProjects || []).length }}
+                    </span>
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button 
+                    class="nav-link rounded-pill fw-bold px-3 py-2 btn-sm d-flex align-items-center gap-2"
+                    :class="projectSubTab === 'invitations' ? 'btn-danger text-white' : ((pendingInvitations || []).length ? 'btn-outline-warning text-dark' : 'text-dark bg-light')"
+                    @click="projectSubTab = 'invitations'"
+                  >
+                    <i class="bi bi-envelope-paper-fill"></i>
+                    <span>Invitations Reçues</span>
+                    <span v-if="(pendingInvitations || []).length" class="badge rounded-pill bg-warning text-dark fw-bold">
+                      {{ (pendingInvitations || []).length }}
+                    </span>
+                    <span v-else class="badge rounded-pill bg-secondary-subtle text-muted">0</span>
+                  </button>
+                </li>
+                <li class="nav-item" v-if="((pendingTimelines || []).length + (pendingImages || []).length) > 0">
+                  <button 
+                    class="nav-link rounded-pill fw-bold px-3 py-2 btn-sm d-flex align-items-center gap-2"
+                    :class="projectSubTab === 'validations' ? 'btn-danger text-white' : 'btn-outline-danger text-danger'"
+                    @click="projectSubTab = 'validations'"
+                  >
+                    <i class="bi bi-shield-check"></i>
+                    <span>Validations en attente</span>
+                    <span class="badge rounded-pill bg-danger text-white">
+                      {{ (pendingTimelines || []).length + (pendingImages || []).length }}
+                    </span>
+                  </button>
+                </li>
+              </ul>
+
+              <!-- SUBTAB 1: OWNED PROJECTS -->
+              <div v-show="projectSubTab === 'owned'">
+                <div v-if="projects.length" class="row g-3">
+                  <div v-for="proj in projects" :key="proj.id" class="col-md-6">
+                    <div class="card border shadow-sm rounded-4 h-100 p-3 bg-light d-flex flex-column">
+                      <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="rounded-3 border overflow-hidden p-1 bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; min-width: 52px;">
+                          <img 
+                            v-if="proj.logo" 
+                            :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
+                            :alt="proj.name" 
+                            class="w-100 h-100 object-fit-contain rounded-2"
+                          >
+                          <div v-else class="fw-bold text-primary fs-5">
+                            {{ (proj.name || 'P').charAt(0).toUpperCase() }}
+                          </div>
+                        </div>
+                        <div class="flex-grow-1 text-truncate">
+                          <h6 class="fw-bold mb-0 text-dark text-truncate">{{ proj.name }}</h6>
+                          <span class="badge bg-secondary-subtle text-secondary small text-uppercase">{{ proj.project_type }}</span>
+                          <span v-if="proj.startup" class="small text-muted ms-1">({{ proj.startup.name }})</span>
                         </div>
                       </div>
-                      <div class="flex-grow-1 text-truncate">
-                        <h6 class="fw-bold mb-0 text-dark text-truncate">{{ proj.name }}</h6>
-                        <span class="badge bg-secondary-subtle text-secondary small text-uppercase">{{ proj.project_type }}</span>
-                        <span v-if="proj.startup" class="small text-muted ms-1">({{ proj.startup.name }})</span>
-                      </div>
-                    </div>
 
-                    <p class="small text-muted mb-3 line-clamp-2">{{ proj.description }}</p>
+                      <p class="small text-muted mb-3 line-clamp-2">{{ stripHtml(proj.description) }}</p>
 
-                    <div class="d-flex align-items-center gap-3 small text-muted mb-3">
-                      <span><i class="bi bi-eye me-1"></i>{{ proj.views_count || 0 }} vues</span>
-                      <span><i class="bi bi-clock-history me-1"></i><strong>{{ (proj.timelines || []).length }}</strong> étape(s)</span>
-                    </div>
-
-                    <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-auto gap-2 flex-wrap">
-                      <div class="d-flex gap-1 flex-wrap">
-                        <Link :href="'/espace-utilisateur/projets/' + proj.id + '/etapes'" class="btn btn-sm btn-outline-danger rounded-pill px-2">
-                          <i class="bi bi-journal-check me-1"></i> Devlog
-                        </Link>
-                        <Link :href="'/espace-utilisateur/projets/' + proj.id + '/galerie'" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="Galerie photos">
-                          <i class="bi bi-images me-1"></i> Galerie
-                        </Link>
+                      <div class="d-flex align-items-center justify-content-between small text-muted mb-3 flex-wrap gap-2">
+                        <span><i class="bi bi-eye me-1"></i>{{ proj.views_count || 0 }} vues</span>
+                        <span><i class="bi bi-clock-history me-1"></i><strong>{{ (proj.timelines || []).length }}</strong> étape(s)</span>
+                        <span class="text-success"><i class="bi bi-people-fill me-1"></i><strong>{{ (proj.active_collaborators || []).length }}</strong> collab.</span>
                       </div>
 
-                      <div class="d-flex gap-1">
-                        <Link :href="'/projet/' + proj.slug" target="_blank" class="btn btn-sm btn-light border rounded-circle" title="Voir fiche publique">
-                          <i class="bi bi-box-arrow-up-right"></i>
-                        </Link>
-                        <Link :href="'/espace-utilisateur/projets/' + proj.id + '/edit'" class="btn btn-sm btn-dark rounded-pill px-3">
-                          <i class="bi bi-pencil me-1"></i> Modifier
+                      <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-auto gap-2 flex-wrap">
+                        <div class="d-flex gap-1 flex-wrap">
+                          <Link :href="'/espace-utilisateur/projets/' + proj.id + '/etapes'" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Journal Devlog">
+                            <i class="bi bi-journal-check me-1"></i> Devlog
+                          </Link>
+                          <Link :href="'/espace-utilisateur/projets/' + proj.id + '/galerie'" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="Galerie photos">
+                            <i class="bi bi-images me-1"></i> Galerie
+                          </Link>
+                          <button @click="openCollaboratorsModal(proj)" class="btn btn-sm btn-outline-success rounded-pill px-2" title="Inviter & gérer les collaborateurs">
+                            <i class="bi bi-person-plus-fill me-1"></i> Inviter
+                          </button>
+                        </div>
+
+                        <div class="d-flex gap-1">
+                          <Link :href="'/projet/' + proj.slug" target="_blank" class="btn btn-sm btn-light border rounded-circle" title="Voir fiche publique">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                          </Link>
+                          <Link :href="'/espace-utilisateur/projets/' + proj.id + '/edit'" class="btn btn-sm btn-dark rounded-pill px-3">
+                            <i class="bi bi-pencil me-1"></i> Modifier
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-5 text-muted bg-light rounded-4">
+                  <i class="bi bi-rocket-takeoff fs-1 d-block mb-2 text-muted"></i>
+                  <h6 class="fw-bold text-dark">Aucun projet tech créé</h6>
+                  <p class="small mb-3">Publiez votre application web, mobile ou votre jeu vidéo.</p>
+                  <Link href="/espace-utilisateur/projets/create" class="btn btn-danger btn-sm rounded-pill px-4">
+                    Créer mon premier projet
+                  </Link>
+                </div>
+              </div>
+
+              <!-- SUBTAB 2: COLLABORATIVE PROJECTS -->
+              <div v-show="projectSubTab === 'collaborative'">
+                <div v-if="(collaborativeProjects || []).length" class="row g-3">
+                  <div v-for="proj in collaborativeProjects" :key="proj.id" class="col-md-6">
+                    <div class="card border shadow-sm rounded-4 h-100 p-3 bg-light d-flex flex-column border-start border-4 border-success">
+                      <div class="d-flex align-items-center gap-3 mb-2">
+                        <div class="rounded-3 border overflow-hidden p-1 bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 52px; height: 52px; min-width: 52px;">
+                          <img 
+                            v-if="proj.logo" 
+                            :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
+                            :alt="proj.name" 
+                            class="w-100 h-100 object-fit-contain rounded-2"
+                          >
+                          <div v-else class="fw-bold text-success fs-5">
+                            {{ (proj.name || 'P').charAt(0).toUpperCase() }}
+                          </div>
+                        </div>
+                        <div class="flex-grow-1 text-truncate">
+                          <div class="d-flex align-items-center gap-2 mb-1">
+                            <h6 class="fw-bold mb-0 text-dark text-truncate">{{ proj.name }}</h6>
+                            <span class="badge bg-success-subtle text-success small">Collaborateur</span>
+                          </div>
+                          <small class="text-muted">
+                            <i class="bi bi-person-circle me-1"></i>Porté par <strong>{{ proj.user?.full_name || proj.user?.name }}</strong>
+                          </small>
+                        </div>
+                      </div>
+
+                      <p class="small text-muted mb-3 line-clamp-2">{{ stripHtml(proj.description) }}</p>
+
+                      <div class="alert alert-info py-2 px-3 rounded-3 small mb-3 border-0">
+                        <i class="bi bi-shield-lock me-1"></i>Vous pouvez consigner des Devlogs et ajouter des photos. Vos soumissions seront validées par le créateur.
+                      </div>
+
+                      <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-auto gap-2 flex-wrap">
+                        <div class="d-flex gap-2 flex-wrap">
+                          <Link :href="'/espace-utilisateur/projets/' + proj.id + '/etapes'" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                            <i class="bi bi-journal-plus me-1"></i> Ajouter Devlog
+                          </Link>
+                          <Link :href="'/espace-utilisateur/projets/' + proj.id + '/galerie'" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                            <i class="bi bi-images me-1"></i> Galerie Photos
+                          </Link>
+                        </div>
+
+                        <Link :href="'/projet/' + proj.slug" target="_blank" class="btn btn-sm btn-light border rounded-pill px-3" title="Voir la fiche publique">
+                          <i class="bi bi-box-arrow-up-right me-1"></i> Fiche publique
                         </Link>
                       </div>
                     </div>
                   </div>
                 </div>
+                <div v-else class="text-center py-5 text-muted bg-light rounded-4">
+                  <i class="bi bi-people fs-1 d-block mb-2 text-muted"></i>
+                  <h6 class="fw-bold text-dark">Aucun projet collaboratif</h6>
+                  <p class="small mb-0">Lorsqu'un créateur vous invitera à collaborer sur son projet et que vous aurez accepté, il apparaîtra ici.</p>
+                </div>
               </div>
-              <div v-else class="text-center py-5 text-muted bg-light rounded-4">
-                <i class="bi bi-rocket-takeoff fs-1 d-block mb-2 text-muted"></i>
-                <h6 class="fw-bold text-dark">Aucun projet tech publié</h6>
-                <p class="small mb-3">Publiez votre application web, mobile ou votre jeu vidéo.</p>
-                <Link href="/espace-utilisateur/projets/create" class="btn btn-danger btn-sm rounded-pill px-4">
-                  Créer mon premier projet
-                </Link>
+
+              <!-- SUBTAB 3: PENDING INVITATIONS RECEIVED -->
+              <div v-show="projectSubTab === 'invitations'">
+                <div v-if="(pendingInvitations || []).length" class="d-flex flex-column gap-3">
+                  <div v-for="inv in pendingInvitations" :key="inv.id" class="card border shadow-sm rounded-4 p-4 bg-white">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                      <div class="d-flex align-items-start gap-3">
+                        <div class="rounded-3 border overflow-hidden p-1 bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 56px; height: 56px; min-width: 56px;">
+                          <img 
+                            v-if="inv.project?.logo" 
+                            :src="inv.project.logo.startsWith('/') ? inv.project.logo : '/' + inv.project.logo" 
+                            :alt="inv.project.name" 
+                            class="w-100 h-100 object-fit-contain rounded-2"
+                          >
+                          <div v-else class="fw-bold text-primary fs-4">
+                            {{ (inv.project?.name || 'P').charAt(0).toUpperCase() }}
+                          </div>
+                        </div>
+                        <div>
+                          <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                            <h5 class="fw-bold mb-0 text-dark">{{ inv.project?.name }}</h5>
+                            <span class="badge bg-danger-subtle text-danger small text-uppercase">{{ inv.project?.project_type }}</span>
+                            <span class="badge bg-warning-subtle text-warning-emphasis small">
+                              <i class="bi bi-hourglass-split me-1"></i>Expire le {{ formatDateTime(inv.expires_at) }}
+                            </span>
+                          </div>
+                          <div class="small text-muted mb-2">
+                            Invitation envoyée par <strong>{{ inv.inviter?.full_name || inv.inviter?.name }}</strong> ({{ inv.inviter?.email }})
+                            &bull; Rôle proposé : <strong>{{ inv.role || 'Collaborateur' }}</strong>
+                          </div>
+                          <p v-if="inv.message" class="small fst-italic text-secondary mb-0 p-2 bg-light rounded-3 border-start border-3 border-primary">
+                            « {{ inv.message }} »
+                          </p>
+                        </div>
+                      </div>
+
+                      <!-- Action buttons with static modals -->
+                      <div class="d-flex gap-2 flex-wrap align-items-center">
+                        <button @click="openInvitationActionModal(inv, 'accept')" class="btn btn-success btn-sm rounded-pill px-3 fw-bold">
+                          <i class="bi bi-check-lg me-1"></i> Accepter
+                        </button>
+                        <button @click="openInvitationActionModal(inv, 'decline')" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                          <i class="bi bi-x-lg me-1"></i> Refuser
+                        </button>
+                        <button @click="openInvitationActionModal(inv, 'block')" class="btn btn-outline-danger btn-sm rounded-pill px-3" title="Bloquer définitivement">
+                          <i class="bi bi-shield-x me-1"></i> Ne plus jamais collaborer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-5 text-muted bg-light rounded-4">
+                  <i class="bi bi-inbox fs-1 d-block mb-2 text-muted"></i>
+                  <h6 class="fw-bold text-dark">Aucune invitation reçue</h6>
+                  <p class="small mb-0">Vous n'avez aucune invitation en attente pour le moment.</p>
+                </div>
               </div>
+
+              <!-- SUBTAB 4: PENDING VALIDATIONS FOR OWNER -->
+              <div v-show="projectSubTab === 'validations'">
+                <div v-if="((pendingTimelines || []).length + (pendingImages || []).length) > 0" class="d-flex flex-column gap-4">
+                  
+                  <!-- Pending Devlog Steps -->
+                  <div v-if="(pendingTimelines || []).length">
+                    <h5 class="fw-bold text-dark mb-3">
+                      <i class="bi bi-journal-check text-danger me-2"></i>Étapes Devlog en attente de validation ({{ pendingTimelines.length }})
+                    </h5>
+                    <div class="d-flex flex-column gap-3">
+                      <div v-for="t in pendingTimelines" :key="t.id" class="card border rounded-4 p-3 bg-light shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                          <div>
+                            <span class="badge bg-secondary-subtle text-secondary small me-2">Projet : {{ t.project?.name }}</span>
+                            <h6 class="fw-bold mb-0 text-dark d-inline">{{ t.title }}</h6>
+                          </div>
+                          <span class="small text-muted">{{ formatDate(t.event_date || t.created_at) }}</span>
+                        </div>
+                        <div class="small text-muted mb-2">
+                          <i class="bi bi-person-fill text-primary me-1"></i>Soumis par le collaborateur : <strong>{{ t.user?.full_name || t.user?.name }}</strong> ({{ t.user?.email }})
+                        </div>
+                        <p v-if="t.description" class="small text-secondary mb-2">{{ t.description }}</p>
+                        <div v-if="t.problem_encountered || t.solution_applied" class="row g-2 mb-3">
+                          <div v-if="t.problem_encountered" class="col-md-6">
+                            <div class="p-2 bg-white rounded border small">
+                              <strong class="text-danger d-block">Défi :</strong> {{ t.problem_encountered }}
+                            </div>
+                          </div>
+                          <div v-if="t.solution_applied" class="col-md-6">
+                            <div class="p-2 bg-white rounded border small">
+                              <strong class="text-success d-block">Solution :</strong> {{ t.solution_applied }}
+                            </div>
+                          </div>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                          <button @click="validateTimelineAction(t.id, 'approve')" class="btn btn-sm btn-success rounded-pill px-4 fw-bold">
+                            <i class="bi bi-check-lg me-1"></i> Valider & Publier
+                          </button>
+                          <button @click="validateTimelineAction(t.id, 'reject')" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                            <i class="bi bi-x-lg me-1"></i> Rejeter
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Pending Images -->
+                  <div v-if="(pendingImages || []).length">
+                    <h5 class="fw-bold text-dark mb-3">
+                      <i class="bi bi-images text-danger me-2"></i>Photos de galerie en attente ({{ pendingImages.length }})
+                    </h5>
+                    <div class="row g-3">
+                      <div v-for="im in pendingImages" :key="im.id" class="col-md-4">
+                        <div class="card border rounded-4 overflow-hidden bg-white shadow-sm h-100">
+                          <img :src="'/' + im.image_path" class="w-100" style="height: 160px; object-fit: cover;">
+                          <div class="p-3 d-flex flex-column gap-2 flex-grow-1">
+                            <div>
+                              <small class="badge bg-secondary-subtle text-secondary small d-inline-block mb-1">Projet : {{ im.project?.name }}</small>
+                              <div class="fw-bold small text-dark">{{ im.caption || 'Sans légende' }}</div>
+                              <small class="text-muted d-block" style="font-size: 11px;">Par {{ im.user?.name }}</small>
+                            </div>
+                            <div class="d-flex gap-2 mt-auto pt-2 border-top">
+                              <button @click="validateImageAction(im.id, 'approve')" class="btn btn-sm btn-success rounded-pill w-100 fw-bold py-1">
+                                Valider
+                              </button>
+                              <button @click="validateImageAction(im.id, 'reject')" class="btn btn-sm btn-outline-danger rounded-pill w-100 py-1">
+                                Rejeter
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+                <div v-else class="text-center py-5 text-muted bg-light rounded-4">
+                  <i class="bi bi-check2-circle fs-1 d-block mb-2 text-success"></i>
+                  <h6 class="fw-bold text-dark">Tout est à jour !</h6>
+                  <p class="small mb-0">Aucun devlog ni photo n'est en attente de validation.</p>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -1109,6 +1372,279 @@
       </div>
     </div>
 
+    <!-- COLLABORATORS MANAGEMENT MODAL (PROJECT OWNER) -->
+    <div v-if="showCollaboratorsModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1055;" @click.self="showCollaboratorsModal = false">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+          
+          <div class="modal-header bg-dark text-white p-4 border-0">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-3 border overflow-hidden p-1 bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; min-width: 44px;">
+                <img 
+                  v-if="selectedProjectForCollab?.logo" 
+                  :src="selectedProjectForCollab.logo.startsWith('/') ? selectedProjectForCollab.logo : '/' + selectedProjectForCollab.logo" 
+                  class="w-100 h-100 object-fit-contain"
+                >
+                <div v-else class="fw-bold text-dark fs-5">
+                  {{ (selectedProjectForCollab?.name || 'P').charAt(0).toUpperCase() }}
+                </div>
+              </div>
+              <div>
+                <h5 class="modal-title fw-bold mb-0">Collaborateurs &amp; Invitations</h5>
+                <small class="text-white-50">Projet : {{ selectedProjectForCollab?.name }}</small>
+              </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" @click="showCollaboratorsModal = false"></button>
+          </div>
+
+          <div class="modal-body p-4">
+            
+            <!-- Modal Internal Tabs -->
+            <ul class="nav nav-tabs mb-4">
+              <li class="nav-item">
+                <button 
+                  class="nav-link fw-bold" 
+                  :class="{ 'active': collabModalTab === 'invite' }"
+                  @click="collabModalTab = 'invite'"
+                >
+                  <i class="bi bi-person-plus-fill me-1"></i> Inviter une personne
+                </button>
+              </li>
+              <li class="nav-item">
+                <button 
+                  class="nav-link fw-bold" 
+                  :class="{ 'active': collabModalTab === 'collaborators' }"
+                  @click="collabModalTab = 'collaborators'"
+                >
+                  <i class="bi bi-people-fill me-1"></i> Collaborateurs actuels ({{ (selectedProjectForCollab?.active_collaborators || []).length }})
+                </button>
+              </li>
+              <li class="nav-item">
+                <button 
+                  class="nav-link fw-bold" 
+                  :class="{ 'active': collabModalTab === 'invitations' }"
+                  @click="collabModalTab = 'invitations'"
+                >
+                  <i class="bi bi-clock-history me-1"></i> Invitations envoyées ({{ (selectedProjectForCollab?.invitations || []).length }})
+                </button>
+              </li>
+            </ul>
+
+            <!-- TAB 1: INVITE FORM -->
+            <div v-if="collabModalTab === 'invite'">
+              <div class="alert alert-info border-0 rounded-3 p-3 small mb-4">
+                <i class="bi bi-info-circle-fill me-1"></i>
+                La personne recevra un email officiel avec les informations du projet et son logo, ainsi qu'une notification dans son espace membre si elle possède un compte. Le lien d'invitation est valable pendant <strong>48 heures</strong>.
+              </div>
+
+              <form @submit.prevent="submitInvite">
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">Adresse email de la personne à inviter <span class="text-danger">*</span></label>
+                  <input 
+                    type="email" 
+                    class="form-control" 
+                    v-model="inviteForm.email" 
+                    placeholder="ex: developpeur@domaine.cm"
+                    required
+                  >
+                  <div v-if="inviteForm.errors.email" class="text-danger small mt-1">{{ inviteForm.errors.email }}</div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">Rôle / Mission sur le projet</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    v-model="inviteForm.role" 
+                    placeholder="ex: Lead Dev Frontend, Concepteur UI, Game Designer..."
+                  >
+                </div>
+
+                <div class="mb-4">
+                  <label class="form-label small fw-bold">Message personnalisé d'accompagnement (facultatif)</label>
+                  <textarea 
+                    class="form-control" 
+                    rows="3" 
+                    v-model="inviteForm.message" 
+                    placeholder="Bonjour, je t'invite à collaborer sur les fonctionnalités de notre projet..."
+                  ></textarea>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                  <button type="button" class="btn btn-light rounded-pill px-4" @click="showCollaboratorsModal = false">Fermer</button>
+                  <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold" :disabled="inviteForm.processing">
+                    <span v-if="inviteForm.processing" class="spinner-border spinner-border-sm me-1"></span>
+                    <i class="bi bi-send-fill me-1"></i> Envoyer l'invitation (48h)
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- TAB 2: CURRENT COLLABORATORS LIST -->
+            <div v-if="collabModalTab === 'collaborators'">
+              <div v-if="(selectedProjectForCollab?.active_collaborators || []).length" class="d-flex flex-column gap-3">
+                <div 
+                  v-for="c in selectedProjectForCollab.active_collaborators" 
+                  :key="c.id" 
+                  class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light border"
+                >
+                  <div class="d-flex align-items-center gap-3">
+                    <img 
+                      v-if="c.user?.avatar" 
+                      :src="'/' + c.user.avatar" 
+                      class="rounded-circle border" 
+                      style="width: 44px; height: 44px; object-fit: cover;"
+                    >
+                    <div 
+                      v-else 
+                      class="rounded-circle bg-danger text-white fw-bold d-flex align-items-center justify-content-center shadow-sm"
+                      style="width: 44px; height: 44px; min-width: 44px;"
+                    >
+                      {{ (c.user?.name || 'C').charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <strong class="d-block text-dark">{{ c.user?.full_name || c.user?.name }}</strong>
+                      <small class="text-muted">{{ c.user?.email }} &bull; Rôle : <span class="badge bg-secondary-subtle text-dark">{{ c.role || 'Collaborateur' }}</span></small>
+                      <small class="text-muted d-block" style="font-size: 11px;">A rejoint le {{ formatDate(c.joined_at) }}</small>
+                    </div>
+                  </div>
+
+                  <!-- Revoke Button triggers static confirmation modal -->
+                  <button @click="openRevokeModal(c)" class="btn btn-outline-danger btn-sm rounded-pill px-3" title="Annuler la collaboration">
+                    <i class="bi bi-person-x-fill me-1"></i> Révoquer
+                  </button>
+                </div>
+              </div>
+              <div v-else class="text-center py-4 text-muted bg-light rounded-3">
+                <i class="bi bi-people fs-2 d-block mb-1 text-muted"></i>
+                <p class="small mb-0">Aucun collaborateur actif sur ce projet pour l'instant.</p>
+              </div>
+            </div>
+
+            <!-- TAB 3: PENDING INVITATIONS LIST -->
+            <div v-if="collabModalTab === 'invitations'">
+              <div v-if="(selectedProjectForCollab?.invitations || []).length" class="d-flex flex-column gap-3">
+                <div 
+                  v-for="inv in selectedProjectForCollab.invitations" 
+                  :key="inv.id" 
+                  class="p-3 rounded-3 bg-light border d-flex align-items-center justify-content-between flex-wrap gap-2"
+                >
+                  <div>
+                    <strong class="d-block text-dark">{{ inv.email }}</strong>
+                    <small class="text-muted">
+                      Rôle : {{ inv.role }} &bull; Envoyée le {{ formatDate(inv.created_at) }}
+                    </small>
+                    <div class="badge bg-warning-subtle text-warning-emphasis small mt-1 d-block" style="width: fit-content;">
+                      <i class="bi bi-hourglass-split me-1"></i>Expire le {{ formatDateTime(inv.expires_at) }}
+                    </div>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <button @click="copyInviteLink(inv.token)" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                      <i class="bi bi-clipboard me-1"></i> Copier le lien
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-center py-4 text-muted bg-light rounded-3">
+                <i class="bi bi-envelope-check fs-2 d-block mb-1 text-muted"></i>
+                <p class="small mb-0">Aucune invitation en attente pour ce projet.</p>
+              </div>
+            </div>
+
+          </div>
+          
+        </div>
+      </div>
+    </div>
+
+    <!-- STATIC CONFIRMATION MODAL: REVOKE COLLABORATOR -->
+    <div v-if="confirmRevokeModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;" @click.self="confirmRevokeModal = false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-4 text-center bg-white">
+          <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+            <i class="bi bi-person-x-fill fs-2"></i>
+          </div>
+          <h5 class="fw-bold text-dark mb-2">Annuler la collaboration ?</h5>
+          <p class="small text-muted mb-3">
+            Êtes-vous sûr de vouloir retirer <strong>{{ collabToRevoke?.user?.name }}</strong> des collaborateurs de ce projet ?
+          </p>
+          <div class="alert alert-secondary p-2 small mb-4 text-start">
+            <i class="bi bi-info-circle me-1"></i>
+            Le projet disparaîtra immédiatement de son espace membre. Si vous changez d'avis plus tard, vous pourrez lui envoyer une nouvelle invitation et il récupérera tout son historique.
+          </div>
+          <div class="d-flex justify-content-center gap-2">
+            <button type="button" class="btn btn-light rounded-pill px-4" @click="confirmRevokeModal = false">Annuler</button>
+            <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" :disabled="isCollabProcessing" @click="submitRevoke">
+              Confirmer la révocation
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATIC CONFIRMATION MODAL: RECEIVED INVITATION ACTION -->
+    <div v-if="invitationActionModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;" @click.self="invitationActionModal = null">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 p-4 text-center bg-white">
+          
+          <!-- Accept Modal Content -->
+          <div v-if="invitationActionModal === 'accept'">
+            <div class="rounded-circle bg-success-subtle text-success mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+              <i class="bi bi-people-fill fs-2"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-2">Accepter la collaboration ?</h5>
+            <p class="small text-muted mb-4">
+              Vous allez rejoindre le projet <strong>{{ targetInvitation?.project?.name }}</strong> porté par <strong>{{ targetInvitation?.inviter?.name }}</strong>. 
+              Vous pourrez dès lors consigner des étapes Devlog et ajouter des photos.
+            </p>
+            <div class="d-flex justify-content-center gap-2">
+              <button type="button" class="btn btn-light rounded-pill px-4" @click="invitationActionModal = null">Annuler</button>
+              <button type="button" class="btn btn-success rounded-pill px-4 fw-bold" :disabled="isCollabProcessing" @click="submitInvitationAction">
+                Accepter et Rejoindre
+              </button>
+            </div>
+          </div>
+
+          <!-- Decline Modal Content -->
+          <div v-else-if="invitationActionModal === 'decline'">
+            <div class="rounded-circle bg-secondary-subtle text-secondary mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+              <i class="bi bi-x-circle-fill fs-2"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-2">Refuser l'invitation ?</h5>
+            <p class="small text-muted mb-4">
+              Cette invitation deviendra inutilisable. Le créateur pourra toujours vous réinviter à l'avenir si vous changez d'avis.
+            </p>
+            <div class="d-flex justify-content-center gap-2">
+              <button type="button" class="btn btn-light rounded-pill px-4" @click="invitationActionModal = null">Annuler</button>
+              <button type="button" class="btn btn-secondary rounded-pill px-4 fw-bold" :disabled="isCollabProcessing" @click="submitInvitationAction">
+                Refuser l'invitation
+              </button>
+            </div>
+          </div>
+
+          <!-- Block Modal Content -->
+          <div v-else-if="invitationActionModal === 'block'">
+            <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+              <i class="bi bi-shield-slash-fill fs-2"></i>
+            </div>
+            <h5 class="fw-bold text-dark mb-2">Bloquer toute collaboration future ?</h5>
+            <div class="alert alert-danger p-3 small text-start mb-3 border-0 rounded-3">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              <strong>Attention :</strong> Si vous confirmez, <strong>{{ targetInvitation?.inviter?.name }}</strong> ne pourra plus jamais vous envoyer d'invitations sur aucun projet, et vous ne pourrez plus non plus lui en envoyer.
+            </div>
+            <div class="d-flex justify-content-center gap-2">
+              <button type="button" class="btn btn-light rounded-pill px-4" @click="invitationActionModal = null">Annuler</button>
+              <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" :disabled="isCollabProcessing" @click="submitInvitationAction">
+                Ne plus jamais collaborer
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
   </FrontLayout>
 </template>
 
@@ -1121,6 +1657,10 @@ const props = defineProps({
   user: { type: Object, required: true },
   startups: { type: Array, default: () => [] },
   projects: { type: Array, default: () => [] },
+  collaborativeProjects: { type: Array, default: () => [] },
+  pendingInvitations: { type: Array, default: () => [] },
+  pendingTimelines: { type: Array, default: () => [] },
+  pendingImages: { type: Array, default: () => [] },
   jobOffers: { type: Array, default: () => [] },
   conferences: { type: Array, default: () => [] },
   documents: { type: Array, default: () => [] },
@@ -1148,6 +1688,118 @@ function formatDate(val) {
     month: 'short',
     year: 'numeric'
   })
+}
+
+function formatDateTime(val) {
+  if (!val) return ''
+  const d = new Date(val)
+  if (isNaN(d.getTime())) return val
+  return d.toLocaleString('fr-FR', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// --------------------------------------------------------------------------
+// PROJECT COLLABORATION & INVITATION SYSTEM
+// --------------------------------------------------------------------------
+const projectSubTab = ref('owned')
+const showCollaboratorsModal = ref(false)
+const selectedProjectForCollab = ref(null)
+const collabModalTab = ref('invite')
+const confirmRevokeModal = ref(false)
+const collabToRevoke = ref(null)
+const invitationActionModal = ref(null)
+const targetInvitation = ref(null)
+const isCollabProcessing = ref(false)
+
+const inviteForm = useForm({
+  email: '',
+  role: 'Contributeur & Dev',
+  message: '',
+})
+
+function openCollaboratorsModal(proj) {
+  selectedProjectForCollab.value = proj
+  collabModalTab.value = 'invite'
+  inviteForm.reset()
+  showCollaboratorsModal.value = true
+}
+
+function submitInvite() {
+  if (!selectedProjectForCollab.value) return
+  inviteForm.post(`/espace-utilisateur/projets/${selectedProjectForCollab.value.id}/inviter`, {
+    onSuccess: () => {
+      inviteForm.reset()
+      showCollaboratorsModal.value = false
+      alert('Invitation envoyée avec succès ! (Valable pendant 48 heures)')
+    }
+  })
+}
+
+function openRevokeModal(collab) {
+  collabToRevoke.value = collab
+  confirmRevokeModal.value = true
+}
+
+function submitRevoke() {
+  if (!selectedProjectForCollab.value || !collabToRevoke.value) return
+  isCollabProcessing.value = true
+  router.delete(`/espace-utilisateur/projets/${selectedProjectForCollab.value.id}/collaborateurs/${collabToRevoke.value.id}`, {
+    onFinish: () => {
+      isCollabProcessing.value = false
+      confirmRevokeModal.value = false
+      collabToRevoke.value = null
+      showCollaboratorsModal.value = false
+    }
+  })
+}
+
+function copyInviteLink(token) {
+  const url = `${window.location.origin}/invitations/${token}`
+  navigator.clipboard.writeText(url)
+  alert('Lien d\'invitation copié dans le presse-papier !')
+}
+
+function openInvitationActionModal(inv, action) {
+  targetInvitation.value = inv
+  invitationActionModal.value = action
+}
+
+function submitInvitationAction() {
+  if (!targetInvitation.value || !invitationActionModal.value) return
+  isCollabProcessing.value = true
+  const token = targetInvitation.value.token
+  const action = invitationActionModal.value
+
+  const endpointMap = {
+    accept: `/invitations/${token}/accepter`,
+    decline: `/invitations/${token}/refuser`,
+    block: `/invitations/${token}/bloquer`,
+  }
+
+  router.post(endpointMap[action], {}, {
+    onFinish: () => {
+      isCollabProcessing.value = false
+      invitationActionModal.value = null
+      targetInvitation.value = null
+    }
+  })
+}
+
+function validateTimelineAction(timelineId, action) {
+  if (confirm(action === 'approve' ? 'Voulez-vous valider et publier cette étape Devlog sur la fiche publique ?' : 'Voulez-vous rejeter cette proposition ?')) {
+    router.post(`/espace-utilisateur/timelines/${timelineId}/valider`, { action })
+  }
+}
+
+function validateImageAction(imageId, action) {
+  if (confirm(action === 'approve' ? 'Voulez-vous valider et publier cette photo dans la galerie publique ?' : 'Voulez-vous rejeter cette photo ?')) {
+    router.post(`/espace-utilisateur/images/${imageId}/valider`, { action })
+  }
 }
 
 const currentSection = ref(props.activeSection || 'dashboard')

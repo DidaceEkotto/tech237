@@ -107,6 +107,12 @@
                       <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>{{ formatDevlogDate(step.event_date || step.created_at) }}</small>
                     </div>
 
+                    <div v-if="step.user && step.user.id !== project.user_id" class="mb-2">
+                      <span class="badge bg-light text-dark border small">
+                        <i class="bi bi-person-check text-success me-1"></i>Contributeur : {{ step.user.full_name || step.user.name }}
+                      </span>
+                    </div>
+
                     <p v-if="step.description" class="small text-secondary mb-2">{{ step.description }}</p>
 
                     <!-- Associated Features Tagged -->
@@ -247,6 +253,40 @@
             <Link :href="'/startups/' + (project.startup.slug || project.startup.id)" class="btn btn-outline-danger btn-sm rounded-pill w-100 fw-bold">
               <i class="bi bi-box-arrow-up-right me-1"></i> Découvrir la startup
             </Link>
+          </div>
+
+          <!-- Collaborateurs du Projet Section -->
+          <div v-if="project.active_collaborators && project.active_collaborators.length" class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center">
+              <i class="bi bi-people-fill text-danger me-2"></i>
+              Collaborateurs du projet ({{ project.active_collaborators.length }})
+            </h5>
+            <div class="d-flex flex-column gap-3">
+              <div 
+                v-for="collab in project.active_collaborators" 
+                :key="collab.id" 
+                class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border"
+              >
+                <img 
+                  v-if="collab.user?.avatar" 
+                  :src="'/' + collab.user.avatar" 
+                  class="rounded-circle border" 
+                  style="width: 44px; height: 44px; object-fit: cover;"
+                  :alt="collab.user?.name"
+                >
+                <div 
+                  v-else 
+                  class="rounded-circle bg-danger text-white fw-bold d-flex align-items-center justify-content-center shadow-sm" 
+                  style="width: 44px; height: 44px; min-width: 44px; font-size: 1.1rem;"
+                >
+                  {{ (collab.user?.name || 'C').charAt(0).toUpperCase() }}
+                </div>
+                <div class="flex-grow-1 text-truncate">
+                  <div class="fw-bold text-dark text-truncate">{{ collab.user?.full_name || collab.user?.name }}</div>
+                  <small class="badge bg-secondary-subtle text-secondary small">{{ collab.role || 'Contributeur & Dev' }}</small>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
