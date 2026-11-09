@@ -25,6 +25,7 @@ use App\Http\Controllers\Front\PocController;
 use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\User\KanbanController;
 
 // Admin Controllers & Livewire Components
 use App\Http\Controllers\AdminAuthController;
@@ -259,7 +260,28 @@ Route::middleware('auth:web')->group(function () {
     // Retention: Bookmarks & Alerts
     Route::post('/espace-utilisateur/favoris/toggle', [RetentionController::class, 'toggleBookmark'])->name('user.bookmarks.toggle');
     Route::post('/espace-utilisateur/alertes', [RetentionController::class, 'updateAlertPreferences'])->name('user.alerts.update');
+
+    // Kanban Project Management (Trello-style)
+    Route::get('/espace-utilisateur/kanban', [KanbanController::class, 'index'])->name('user.kanban.index');
+    Route::get('/espace-utilisateur/projets/{projectId}/kanban', [KanbanController::class, 'forProject'])->name('user.kanban.project');
+    Route::get('/espace-utilisateur/kanban/{boardId}', [KanbanController::class, 'show'])->name('user.kanban.show');
+    Route::post('/espace-utilisateur/kanban/boards', [KanbanController::class, 'storeBoard'])->name('user.kanban.boards.store');
+    Route::put('/espace-utilisateur/kanban/boards/{boardId}', [KanbanController::class, 'updateBoard'])->name('user.kanban.boards.update');
+    Route::delete('/espace-utilisateur/kanban/boards/{boardId}', [KanbanController::class, 'deleteBoard'])->name('user.kanban.boards.delete');
+
+    Route::post('/espace-utilisateur/kanban/boards/{boardId}/columns', [KanbanController::class, 'storeColumn'])->name('user.kanban.columns.store');
+    Route::put('/espace-utilisateur/kanban/columns/{columnId}', [KanbanController::class, 'updateColumn'])->name('user.kanban.columns.update');
+    Route::delete('/espace-utilisateur/kanban/columns/{columnId}', [KanbanController::class, 'deleteColumn'])->name('user.kanban.columns.delete');
+
+    Route::post('/espace-utilisateur/kanban/columns/{columnId}/cards', [KanbanController::class, 'storeCard'])->name('user.kanban.cards.store');
+    Route::put('/espace-utilisateur/kanban/cards/{cardId}', [KanbanController::class, 'updateCard'])->name('user.kanban.cards.update');
+    Route::post('/espace-utilisateur/kanban/cards/{cardId}/move', [KanbanController::class, 'moveCard'])->name('user.kanban.cards.move');
+    Route::delete('/espace-utilisateur/kanban/cards/{cardId}', [KanbanController::class, 'deleteCard'])->name('user.kanban.cards.delete');
+    Route::post('/espace-utilisateur/kanban/cards/{cardId}/devlog', [KanbanController::class, 'publishToDevlog'])->name('user.kanban.cards.devlog');
 });
+
+// Public Project Roadmap
+Route::get('/projet/{slug}/roadmap', [KanbanController::class, 'publicRoadmap'])->name('projects.roadmap');
 
 // Retention: Upvotes & Daily Tech Polls
 Route::post('/projets/{id}/upvote', [RetentionController::class, 'toggleUpvote'])->name('projects.upvote');

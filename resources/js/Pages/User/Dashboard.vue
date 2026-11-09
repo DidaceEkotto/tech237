@@ -124,12 +124,21 @@
                 class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
                 :class="currentSection === 'projects' ? 'bg-danger text-white' : 'text-dark'"
               >
-                <i class="bi bi-kanban me-2 fs-5"></i>
+                <i class="bi bi-folder2-open me-2 fs-5"></i>
                 <span>Mes Projets</span>
                 <span class="badge rounded-pill ms-auto" :class="currentSection === 'projects' ? 'bg-white text-danger' : 'bg-secondary-subtle text-secondary'">
                   {{ projects.length }}
                 </span>
               </button>
+
+              <Link 
+                href="/espace-utilisateur/kanban" 
+                class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1 text-dark text-decoration-none"
+              >
+                <i class="bi bi-kanban me-2 fs-5 text-primary"></i>
+                <span>Tableaux Kanban</span>
+                <span class="badge bg-primary-subtle text-primary rounded-pill ms-auto extra-small">Trello</span>
+              </Link>
 
               <!-- JOBS MENU (USER REQUEST) -->
               <button 
@@ -421,9 +430,14 @@
                   <h4 class="fw-bold mb-1 text-dark">Projets Tech & Collaborations</h4>
                   <p class="text-muted small mb-0">Gérez vos créations, invitez des collaborateurs et contribuez aux projets de l'écosystème.</p>
                 </div>
-                <Link href="/espace-utilisateur/projets/create" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
-                  <i class="bi bi-plus-lg me-1"></i> Créer un projet
-                </Link>
+                <div class="d-flex align-items-center gap-2">
+                  <Link href="/espace-utilisateur/kanban" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+                    <i class="bi bi-kanban me-1"></i> Tableaux Kanban
+                  </Link>
+                  <Link href="/espace-utilisateur/projets/create" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
+                    <i class="bi bi-plus-lg me-1"></i> Créer un projet
+                  </Link>
+                </div>
               </div>
 
               <!-- Projects Sub-Tabs Navigation -->
@@ -517,6 +531,9 @@
 
                       <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-auto gap-2 flex-wrap">
                         <div class="d-flex gap-1 flex-wrap">
+                          <Link :href="'/espace-utilisateur/projets/' + proj.id + '/kanban'" class="btn btn-sm btn-outline-primary rounded-pill px-2" title="Tableau Kanban">
+                            <i class="bi bi-kanban me-1"></i> Kanban
+                          </Link>
                           <Link :href="'/espace-utilisateur/projets/' + proj.id + '/etapes'" class="btn btn-sm btn-outline-danger rounded-pill px-2" title="Journal Devlog">
                             <i class="bi bi-journal-check me-1"></i> Devlog
                           </Link>
@@ -586,6 +603,9 @@
 
                       <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-auto gap-2 flex-wrap">
                         <div class="d-flex gap-2 flex-wrap">
+                          <Link :href="'/espace-utilisateur/projets/' + proj.id + '/kanban'" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                            <i class="bi bi-kanban me-1"></i> Kanban
+                          </Link>
                           <Link :href="'/espace-utilisateur/projets/' + proj.id + '/etapes'" class="btn btn-sm btn-outline-danger rounded-pill px-3">
                             <i class="bi bi-journal-plus me-1"></i> Ajouter Devlog
                           </Link>

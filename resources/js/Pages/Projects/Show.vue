@@ -76,6 +76,16 @@
                 <span class="d-none d-sm-inline">{{ isBookmarkedState ? 'Suivi (Devlogs)' : 'Suivre (Devlogs)' }}</span>
               </button>
 
+              <!-- Public Roadmap button if available -->
+              <Link v-if="hasPublicRoadmap" :href="'/projet/' + (project.slug || project.id) + '/roadmap'" class="btn btn-outline-success rounded-pill px-3 fw-bold" title="Consulter la Roadmap publique du projet">
+                <i class="bi bi-kanban me-1"></i> Roadmap
+              </Link>
+
+              <!-- Kanban management for owner / collaborator -->
+              <Link v-if="canManageKanban" :href="'/espace-utilisateur/projets/' + project.id + '/kanban'" class="btn btn-outline-primary rounded-pill px-3 fw-bold" title="Gérer le tableau Kanban du projet">
+                <i class="bi bi-trello me-1"></i> Kanban
+              </Link>
+
               <a v-if="project.website_url" :href="project.website_url" target="_blank" class="btn btn-danger rounded-pill px-4 fw-bold">
                 <i class="bi bi-box-arrow-up-right me-1"></i> Voir la Démo
               </a>
@@ -410,6 +420,8 @@ const props = defineProps({
   relatedProjects: Array,
   hasUpvoted: Boolean,
   isBookmarked: Boolean,
+  canManageKanban: Boolean,
+  hasPublicRoadmap: Boolean,
 })
 
 const hasUpvotedState = ref(props.hasUpvoted || false)
