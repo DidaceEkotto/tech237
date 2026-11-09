@@ -19,6 +19,7 @@ use App\Http\Controllers\Front\LocaleController;
 use App\Http\Controllers\Front\ProjectShowcaseController;
 use App\Http\Controllers\Front\AuthorController;
 use App\Http\Controllers\Front\CommentController;
+use App\Http\Controllers\Front\PocController;
 
 // User Auth & Space Controllers
 use App\Http\Controllers\Auth\UserAuthController;
@@ -66,6 +67,7 @@ use App\Livewire\Admin\Profile\Index as AdminProfileIndex;
 use App\Livewire\Admin\Polls\Index as AdminPollsIndex;
 use App\Livewire\Admin\Retention\UpvotesIndex as AdminUpvotesIndex;
 use App\Livewire\Admin\Retention\BadgesIndex as AdminBadgesIndex;
+use App\Livewire\Admin\Pocs\Index as AdminPocsIndex;
 use App\Http\Controllers\User\RetentionController;
 
 /*
@@ -95,6 +97,14 @@ Route::post('/forum/repondre/{topicId}', [ForumController::class, 'reply'])->nam
 Route::post('/forum/topic/{topicId}/resoudre', [ForumController::class, 'toggleSolve'])->name('forum.topics.solve')->middleware('auth:web');
 Route::post('/forum/post/{postId}/like', [ForumController::class, 'toggleLike'])->name('forum.posts.like')->middleware('auth:web');
 Route::post('/forum/signaler', [ForumController::class, 'report'])->name('forum.report');
+
+// Mini-Actualités Communautaires (POCs)
+Route::get('/pocs', [PocController::class, 'index'])->name('pocs.index');
+Route::get('/pocs/proposer', [PocController::class, 'create'])->name('pocs.create');
+Route::post('/pocs', [PocController::class, 'store'])->name('pocs.store');
+Route::get('/pocs/{slug}', [PocController::class, 'show'])->name('pocs.show');
+Route::post('/pocs/{id}/upvote', [PocController::class, 'toggleUpvote'])->name('pocs.upvote');
+Route::post('/pocs/{id}/commentaires', [PocController::class, 'storeComment'])->name('pocs.comment');
 
 // Conférences & Événements
 Route::get('/conferences', [ConferenceController::class, 'index'])->name('conferences.index');
@@ -345,6 +355,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Rétention & Communauté
         Route::get('/polls', AdminPollsIndex::class)->name('polls.index');
+        Route::get('/pocs', AdminPocsIndex::class)->name('pocs.index');
         Route::get('/retention/upvotes', AdminUpvotesIndex::class)->name('retention.upvotes');
         Route::get('/retention/badges', AdminBadgesIndex::class)->name('retention.badges');
 

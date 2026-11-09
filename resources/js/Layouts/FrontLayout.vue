@@ -214,6 +214,11 @@
             </ul>
           </div>
 
+          <!-- POCs (Mini-Actualités Communautaires) -->
+          <Link href="/pocs" class="nav-item-link" :class="{ 'active': $page.url.startsWith('/poc') }">
+            <i class="bi bi-lightning-charge-fill me-1 text-warning"></i> POCs
+          </Link>
+
           <!-- Forum Link -->
           <Link href="/forum" class="nav-item-link" :class="{ 'active': $page.url.startsWith('/forum') }">
             <i class="bi bi-chat-dots-fill me-1 text-danger"></i> Forum
@@ -354,6 +359,9 @@
               </Link>
 
               <!-- Additional Modules -->
+              <Link href="/pocs" class="list-group-item list-group-item-action py-2 fw-bold border-0" @click="isMobileMenuOpen = false">
+                <i class="bi bi-lightning-charge-fill me-2 text-warning"></i> POCs (Mini-Actus)
+              </Link>
               <Link href="/forum" class="list-group-item list-group-item-action py-2 fw-bold border-0" @click="isMobileMenuOpen = false">
                 <i class="bi bi-chat-dots-fill me-2 text-danger"></i> Forum Communautaire
               </Link>
@@ -493,6 +501,7 @@
               <li class="mb-2"><Link href="/projets" class="text-decoration-none">Showcase Startups</Link></li>
               <li class="mb-2"><Link href="/emplois" class="text-decoration-none">Offres d'Emploi IT</Link></li>
               <li class="mb-2"><Link href="/conferences" class="text-decoration-none">Événements & Meetups</Link></li>
+              <li class="mb-2"><Link href="/pocs" class="text-decoration-none">POCs &amp; Mini-Actualités</Link></li>
               <li class="mb-2"><Link href="/forum" class="text-decoration-none">Forum Communautaire</Link></li>
               <li class="mb-2"><Link href="/entrepreneur-du-mois" class="text-decoration-none">Entrepreneurs du mois</Link></li>
             </ul>

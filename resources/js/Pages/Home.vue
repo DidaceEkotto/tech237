@@ -669,6 +669,69 @@
         </div>
       </section>
 
+      <!-- SECTION: POCS & MINI-ACTUALITÉS DE LA COMMUNAUTÉ -->
+      <section v-if="latestPocs && latestPocs.length > 0" class="mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+          <div>
+            <span class="badge px-3 py-1 rounded-pill fw-bold text-uppercase text-white mb-1" style="background-color: var(--tech-green, #00A859); font-size: 11px;">
+              <i class="bi bi-lightning-charge-fill me-1"></i> MINI-ACTUALITÉS EN DIRECT
+            </span>
+            <h3 class="fw-bold text-dark mb-0">Les Derniers POCs de la Communauté</h3>
+          </div>
+          <div class="d-flex gap-2">
+            <Link href="/pocs/proposer" class="btn btn-sm rounded-pill px-3 fw-bold text-white shadow-sm" style="background-color: var(--tech-green, #00A859);">
+              <i class="bi bi-plus-circle me-1"></i> Proposer un POC
+            </Link>
+            <Link href="/pocs" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-bold">
+              Voir tout le flux &rarr;
+            </Link>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div v-for="poc in latestPocs" :key="poc.id" class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white tech237-hover-lift d-flex flex-column justify-content-between p-3">
+              <div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <span class="badge bg-light text-dark border px-2 py-1 rounded-pill small">
+                    #{{ poc.tag }}
+                  </span>
+                  <small class="text-muted extra-small">
+                    {{ new Date(poc.published_at || poc.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) }}
+                  </small>
+                </div>
+                <h6 class="fw-bold text-dark mb-2" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 40px;">
+                  <Link :href="'/pocs/' + (poc.slug || poc.id)" class="text-dark text-decoration-none hover-danger">
+                    {{ poc.title }}
+                  </Link>
+                </h6>
+                <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px;">
+                  {{ poc.summary || 'Découvrez cette mise à jour partagée par la communauté tech.' }}
+                </p>
+              </div>
+
+              <div class="border-top pt-2 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-1 small text-muted">
+                  <div v-if="poc.user?.avatar" class="rounded-circle overflow-hidden border" style="width: 22px; height: 22px;">
+                    <img :src="'/' + poc.user.avatar" class="w-100 h-100 object-fit-cover">
+                  </div>
+                  <div v-else class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold" style="width: 22px; height: 22px; font-size: 10px;">
+                    {{ (poc.user?.name || poc.author_name || 'U').charAt(0).toUpperCase() }}
+                  </div>
+                  <span class="text-truncate extra-small" style="max-width: 90px;">{{ poc.user?.name || poc.author_name || 'Contributeur' }}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="text-danger extra-small fw-bold"><i class="bi bi-heart-fill me-1"></i>{{ poc.upvotes_count }}</span>
+                  <Link :href="'/pocs/' + (poc.slug || poc.id)" class="btn btn-sm btn-outline-dark rounded-pill py-0 px-2" style="font-size: 11px;">
+                    Voir
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- 3. DARK BLOCK: "DOSSIERS THÉMATIQUES & INNOVATIONS" -->
       <section v-if="dossiers && dossiers.length" class="p-4 p-md-5 rounded-4 text-white mb-5 shadow" style="background: linear-gradient(135deg, #06152D 0%, #0B2559 100%);">
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -712,6 +775,7 @@ import DailyTechPoll from '@/Components/DailyTechPoll.vue'
 
 const props = defineProps({
   activePoll: Object,
+  latestPocs: Array,
   sliders: Array,
   entrepreneurOfMonth: Object,
   mostReadArticle: Object,

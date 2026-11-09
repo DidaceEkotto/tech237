@@ -150,6 +150,11 @@
             </a>
 
             <div class="nav-heading">Rétention & Communauté</div>
+            <a href="{{ route('admin.pocs.index') }}" class="nav-link {{ request()->routeIs('admin.pocs.*') ? 'active' : '' }}">
+                <i class="bi bi-lightning-charge-fill text-warning"></i> Mini-Actus (POCs)
+                @php $totalPocsAdminCount = \App\Models\Poc::count(); @endphp
+                <span class="badge bg-secondary ms-auto">{{ $totalPocsAdminCount }}</span>
+            </a>
             <a href="{{ route('admin.polls.index') }}" class="nav-link {{ request()->routeIs('admin.polls.*') ? 'active' : '' }}">
                 <i class="bi bi-pie-chart-fill text-primary"></i> Sondages Tech (Polls)
             </a>

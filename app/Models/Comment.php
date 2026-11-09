@@ -16,6 +16,7 @@ class Comment extends Model
         'app_review_id',
         'interview_id',
         'project_id',
+        'poc_id',
         'parent_id',
         'content',
         'status',
@@ -49,6 +50,11 @@ class Comment extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function poc()
+    {
+        return $this->belongsTo(Poc::class);
     }
 
     public function parent()

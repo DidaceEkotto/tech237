@@ -157,8 +157,15 @@ class HomeController extends Controller
             $activePoll->user_has_voted = $activePoll->hasUserVoted(auth()->id(), request()->ip(), request()->cookie('tech237_guest_token'));
         }
 
+        $latestPocs = \App\Models\Poc::published()
+            ->with('user')
+            ->latest('published_at')
+            ->take(4)
+            ->get();
+
         return Inertia::render('Home', [
             'activePoll' => $activePoll,
+            'latestPocs' => $latestPocs,
             'sliders' => $sliders,
             'entrepreneurOfMonth' => $entrepreneurOfMonth,
             'mostReadArticle' => $mostReadArticle,
