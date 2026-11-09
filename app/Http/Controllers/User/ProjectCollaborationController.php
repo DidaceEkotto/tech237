@@ -21,6 +21,85 @@ use App\Models\UserMessage;
 class ProjectCollaborationController extends Controller
 {
     /**
+     * Dedicated page to manage project collaborators and invitations
+     */
+    public function manageCollaborators(Request $request, int $id)
+    {
+        $user = Auth::guard('web')->user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $project = Project::with([
+            'startup',
+            'activeCollaborators.user',
+            'invitations' => function ($q) {
+                $q->orderBy('created_at', 'desc');
+            }
+        ])->findOrFail($id);
+
+        if ((int)$project->user_id !== (int)$user->id) {
+            abort(403, "Vous n'êtes pas autorisé à gérer les collaborateurs de ce projet.");
+        }
+
+        // Auto-update expired invitations if needed
+        foreach ($project->invitations as $inv) {
+            if ($inv->status === 'pending' && $inv->isExpired()) {
+                $inv->update(['status' => 'expired']);
+            }
+        }
+
+        return Inertia::render('User/Projects/Collaborators', [
+            'project' => $project,
+            'collaborators' => $project->activeCollaborators,
+            'invitations' => $project->invitations,
+        ]);
+    }
+
+    /**
+     * Search registered users for email autocompletion
+     */
+    public function searchUsers(Request $request)
+    {
+        $user = Auth::guard('web')->user();
+        if (!$user) {
+            return response()->json([], 401);
+        }
+
+        $query = trim((string)$request->input('q', ''));
+        if (mb_strlen($query) < 1) {
+            return response()->json([]);
+        }
+
+        $users = User::where('id', '!=', $user->id)
+            ->where(function ($q) use ($query) {
+                $q->where('email', 'like', "%{$query}%")
+                  ->orWhere('name', 'like', "%{$query}%")
+                  ->orWhere('first_name', 'like', "%{$query}%");
+            })
+            ->select('id', 'name', 'first_name', 'email', 'avatar')
+            ->limit(10)
+            ->get();
+
+        $results = $users->filter(function ($u) use ($user) {
+            return !CollaborationBlock::isBlocked($user->id, $u->id, $u->email);
+        })->map(function ($u) {
+            $avatar = $u->avatar;
+            if ($avatar && !str_starts_with($avatar, 'http') && !str_starts_with($avatar, '/')) {
+                $avatar = '/' . $avatar;
+            }
+            return [
+                'id' => $u->id,
+                'name' => trim(($u->first_name ?? '') . ' ' . ($u->name ?? '')),
+                'email' => $u->email,
+                'avatar' => $avatar,
+            ];
+        })->values();
+
+        return response()->json($results);
+    }
+
+    /**
      * Send a collaboration invitation to an email address (48h validity)
      */
     public function invite(Request $request, int $projectId)

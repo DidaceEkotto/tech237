@@ -488,9 +488,9 @@
                           <Link :href="'/espace-utilisateur/projets/' + proj.id + '/galerie'" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="Galerie photos">
                             <i class="bi bi-images me-1"></i> Galerie
                           </Link>
-                          <button @click="openCollaboratorsModal(proj)" class="btn btn-sm btn-outline-success rounded-pill px-2" title="Inviter & gérer les collaborateurs">
+                          <Link :href="'/espace-utilisateur/projets/' + proj.id + '/collaborateurs'" class="btn btn-sm btn-outline-success rounded-pill px-2" title="Inviter &amp; gérer les collaborateurs">
                             <i class="bi bi-person-plus-fill me-1"></i> Inviter
-                          </button>
+                          </Link>
                         </div>
 
                         <div class="d-flex gap-1">
@@ -1372,216 +1372,9 @@
       </div>
     </div>
 
-    <!-- COLLABORATORS MANAGEMENT MODAL (PROJECT OWNER) -->
-    <div v-if="showCollaboratorsModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1055;" @click.self="showCollaboratorsModal = false">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-          
-          <div class="modal-header bg-dark text-white p-4 border-0">
-            <div class="d-flex align-items-center gap-3">
-              <div class="rounded-3 border overflow-hidden p-1 bg-white shadow-sm d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; min-width: 44px;">
-                <img 
-                  v-if="selectedProjectForCollab?.logo" 
-                  :src="selectedProjectForCollab.logo.startsWith('/') ? selectedProjectForCollab.logo : '/' + selectedProjectForCollab.logo" 
-                  class="w-100 h-100 object-fit-contain"
-                >
-                <div v-else class="fw-bold text-dark fs-5">
-                  {{ (selectedProjectForCollab?.name || 'P').charAt(0).toUpperCase() }}
-                </div>
-              </div>
-              <div>
-                <h5 class="modal-title fw-bold mb-0">Collaborateurs &amp; Invitations</h5>
-                <small class="text-white-50">Projet : {{ selectedProjectForCollab?.name }}</small>
-              </div>
-            </div>
-            <button type="button" class="btn-close btn-close-white" @click="showCollaboratorsModal = false"></button>
-          </div>
 
-          <div class="modal-body p-4">
-            
-            <!-- Modal Internal Tabs -->
-            <ul class="nav nav-tabs mb-4">
-              <li class="nav-item">
-                <button 
-                  class="nav-link fw-bold" 
-                  :class="{ 'active': collabModalTab === 'invite' }"
-                  @click="collabModalTab = 'invite'"
-                >
-                  <i class="bi bi-person-plus-fill me-1"></i> Inviter une personne
-                </button>
-              </li>
-              <li class="nav-item">
-                <button 
-                  class="nav-link fw-bold" 
-                  :class="{ 'active': collabModalTab === 'collaborators' }"
-                  @click="collabModalTab = 'collaborators'"
-                >
-                  <i class="bi bi-people-fill me-1"></i> Collaborateurs actuels ({{ (selectedProjectForCollab?.active_collaborators || []).length }})
-                </button>
-              </li>
-              <li class="nav-item">
-                <button 
-                  class="nav-link fw-bold" 
-                  :class="{ 'active': collabModalTab === 'invitations' }"
-                  @click="collabModalTab = 'invitations'"
-                >
-                  <i class="bi bi-clock-history me-1"></i> Invitations envoyées ({{ (selectedProjectForCollab?.invitations || []).length }})
-                </button>
-              </li>
-            </ul>
 
-            <!-- TAB 1: INVITE FORM -->
-            <div v-if="collabModalTab === 'invite'">
-              <div class="alert alert-info border-0 rounded-3 p-3 small mb-4">
-                <i class="bi bi-info-circle-fill me-1"></i>
-                La personne recevra un email officiel avec les informations du projet et son logo, ainsi qu'une notification dans son espace membre si elle possède un compte. Le lien d'invitation est valable pendant <strong>48 heures</strong>.
-              </div>
 
-              <form @submit.prevent="submitInvite">
-                <div class="mb-3">
-                  <label class="form-label small fw-bold">Adresse email de la personne à inviter <span class="text-danger">*</span></label>
-                  <input 
-                    type="email" 
-                    class="form-control" 
-                    v-model="inviteForm.email" 
-                    placeholder="ex: developpeur@domaine.cm"
-                    required
-                  >
-                  <div v-if="inviteForm.errors.email" class="text-danger small mt-1">{{ inviteForm.errors.email }}</div>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label small fw-bold">Rôle / Mission sur le projet</label>
-                  <input 
-                    type="text" 
-                    class="form-control" 
-                    v-model="inviteForm.role" 
-                    placeholder="ex: Lead Dev Frontend, Concepteur UI, Game Designer..."
-                  >
-                </div>
-
-                <div class="mb-4">
-                  <label class="form-label small fw-bold">Message personnalisé d'accompagnement (facultatif)</label>
-                  <textarea 
-                    class="form-control" 
-                    rows="3" 
-                    v-model="inviteForm.message" 
-                    placeholder="Bonjour, je t'invite à collaborer sur les fonctionnalités de notre projet..."
-                  ></textarea>
-                </div>
-
-                <div class="d-flex justify-content-end gap-2">
-                  <button type="button" class="btn btn-light rounded-pill px-4" @click="showCollaboratorsModal = false">Fermer</button>
-                  <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold" :disabled="inviteForm.processing">
-                    <span v-if="inviteForm.processing" class="spinner-border spinner-border-sm me-1"></span>
-                    <i class="bi bi-send-fill me-1"></i> Envoyer l'invitation (48h)
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            <!-- TAB 2: CURRENT COLLABORATORS LIST -->
-            <div v-if="collabModalTab === 'collaborators'">
-              <div v-if="(selectedProjectForCollab?.active_collaborators || []).length" class="d-flex flex-column gap-3">
-                <div 
-                  v-for="c in selectedProjectForCollab.active_collaborators" 
-                  :key="c.id" 
-                  class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light border"
-                >
-                  <div class="d-flex align-items-center gap-3">
-                    <img 
-                      v-if="c.user?.avatar" 
-                      :src="'/' + c.user.avatar" 
-                      class="rounded-circle border" 
-                      style="width: 44px; height: 44px; object-fit: cover;"
-                    >
-                    <div 
-                      v-else 
-                      class="rounded-circle bg-danger text-white fw-bold d-flex align-items-center justify-content-center shadow-sm"
-                      style="width: 44px; height: 44px; min-width: 44px;"
-                    >
-                      {{ (c.user?.name || 'C').charAt(0).toUpperCase() }}
-                    </div>
-                    <div>
-                      <strong class="d-block text-dark">{{ c.user?.full_name || c.user?.name }}</strong>
-                      <small class="text-muted">{{ c.user?.email }} &bull; Rôle : <span class="badge bg-secondary-subtle text-dark">{{ c.role || 'Collaborateur' }}</span></small>
-                      <small class="text-muted d-block" style="font-size: 11px;">A rejoint le {{ formatDate(c.joined_at) }}</small>
-                    </div>
-                  </div>
-
-                  <!-- Revoke Button triggers static confirmation modal -->
-                  <button @click="openRevokeModal(c)" class="btn btn-outline-danger btn-sm rounded-pill px-3" title="Annuler la collaboration">
-                    <i class="bi bi-person-x-fill me-1"></i> Révoquer
-                  </button>
-                </div>
-              </div>
-              <div v-else class="text-center py-4 text-muted bg-light rounded-3">
-                <i class="bi bi-people fs-2 d-block mb-1 text-muted"></i>
-                <p class="small mb-0">Aucun collaborateur actif sur ce projet pour l'instant.</p>
-              </div>
-            </div>
-
-            <!-- TAB 3: PENDING INVITATIONS LIST -->
-            <div v-if="collabModalTab === 'invitations'">
-              <div v-if="(selectedProjectForCollab?.invitations || []).length" class="d-flex flex-column gap-3">
-                <div 
-                  v-for="inv in selectedProjectForCollab.invitations" 
-                  :key="inv.id" 
-                  class="p-3 rounded-3 bg-light border d-flex align-items-center justify-content-between flex-wrap gap-2"
-                >
-                  <div>
-                    <strong class="d-block text-dark">{{ inv.email }}</strong>
-                    <small class="text-muted">
-                      Rôle : {{ inv.role }} &bull; Envoyée le {{ formatDate(inv.created_at) }}
-                    </small>
-                    <div class="badge bg-warning-subtle text-warning-emphasis small mt-1 d-block" style="width: fit-content;">
-                      <i class="bi bi-hourglass-split me-1"></i>Expire le {{ formatDateTime(inv.expires_at) }}
-                    </div>
-                  </div>
-
-                  <div class="d-flex gap-2">
-                    <button @click="copyInviteLink(inv.token)" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                      <i class="bi bi-clipboard me-1"></i> Copier le lien
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div v-else class="text-center py-4 text-muted bg-light rounded-3">
-                <i class="bi bi-envelope-check fs-2 d-block mb-1 text-muted"></i>
-                <p class="small mb-0">Aucune invitation en attente pour ce projet.</p>
-              </div>
-            </div>
-
-          </div>
-          
-        </div>
-      </div>
-    </div>
-
-    <!-- STATIC CONFIRMATION MODAL: REVOKE COLLABORATOR -->
-    <div v-if="confirmRevokeModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;" @click.self="confirmRevokeModal = false">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 p-4 text-center bg-white">
-          <div class="rounded-circle bg-danger-subtle text-danger mx-auto mb-3 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-            <i class="bi bi-person-x-fill fs-2"></i>
-          </div>
-          <h5 class="fw-bold text-dark mb-2">Annuler la collaboration ?</h5>
-          <p class="small text-muted mb-3">
-            Êtes-vous sûr de vouloir retirer <strong>{{ collabToRevoke?.user?.name }}</strong> des collaborateurs de ce projet ?
-          </p>
-          <div class="alert alert-secondary p-2 small mb-4 text-start">
-            <i class="bi bi-info-circle me-1"></i>
-            Le projet disparaîtra immédiatement de son espace membre. Si vous changez d'avis plus tard, vous pourrez lui envoyer une nouvelle invitation et il récupérera tout son historique.
-          </div>
-          <div class="d-flex justify-content-center gap-2">
-            <button type="button" class="btn btn-light rounded-pill px-4" @click="confirmRevokeModal = false">Annuler</button>
-            <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" :disabled="isCollabProcessing" @click="submitRevoke">
-              Confirmer la révocation
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- STATIC CONFIRMATION MODAL: RECEIVED INVITATION ACTION -->
     <div v-if="invitationActionModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;" @click.self="invitationActionModal = null">
@@ -1707,56 +1500,9 @@ function formatDateTime(val) {
 // PROJECT COLLABORATION & INVITATION SYSTEM
 // --------------------------------------------------------------------------
 const projectSubTab = ref('owned')
-const showCollaboratorsModal = ref(false)
-const selectedProjectForCollab = ref(null)
-const collabModalTab = ref('invite')
-const confirmRevokeModal = ref(false)
-const collabToRevoke = ref(null)
 const invitationActionModal = ref(null)
 const targetInvitation = ref(null)
 const isCollabProcessing = ref(false)
-
-const inviteForm = useForm({
-  email: '',
-  role: 'Contributeur & Dev',
-  message: '',
-})
-
-function openCollaboratorsModal(proj) {
-  selectedProjectForCollab.value = proj
-  collabModalTab.value = 'invite'
-  inviteForm.reset()
-  showCollaboratorsModal.value = true
-}
-
-function submitInvite() {
-  if (!selectedProjectForCollab.value) return
-  inviteForm.post(`/espace-utilisateur/projets/${selectedProjectForCollab.value.id}/inviter`, {
-    onSuccess: () => {
-      inviteForm.reset()
-      showCollaboratorsModal.value = false
-      alert('Invitation envoyée avec succès ! (Valable pendant 48 heures)')
-    }
-  })
-}
-
-function openRevokeModal(collab) {
-  collabToRevoke.value = collab
-  confirmRevokeModal.value = true
-}
-
-function submitRevoke() {
-  if (!selectedProjectForCollab.value || !collabToRevoke.value) return
-  isCollabProcessing.value = true
-  router.delete(`/espace-utilisateur/projets/${selectedProjectForCollab.value.id}/collaborateurs/${collabToRevoke.value.id}`, {
-    onFinish: () => {
-      isCollabProcessing.value = false
-      confirmRevokeModal.value = false
-      collabToRevoke.value = null
-      showCollaboratorsModal.value = false
-    }
-  })
-}
 
 function copyInviteLink(token) {
   const url = `${window.location.origin}/invitations/${token}`

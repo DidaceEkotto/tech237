@@ -233,4 +233,46 @@ class ProjectCollaborationTest extends TestCase
         $this->assertEquals('revoked', $collab->status);
         $this->assertFalse($project->isCollaborator($collaborator));
     }
+
+    public function test_owner_can_access_dedicated_collaborators_page()
+    {
+        $owner = User::factory()->create();
+        $project = $this->createProject($owner);
+
+        $response = $this->actingAs($owner, 'web')->get("/espace-utilisateur/projets/{$project->id}/collaborateurs");
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn ($page) => $page
+            ->component('User/Projects/Collaborators')
+            ->has('project')
+            ->has('collaborators')
+            ->has('invitations')
+        );
+    }
+
+    public function test_non_owner_cannot_access_collaborators_page()
+    {
+        $owner = User::factory()->create();
+        $stranger = User::factory()->create();
+        $project = $this->createProject($owner);
+
+        $response = $this->actingAs($stranger, 'web')->get("/espace-utilisateur/projets/{$project->id}/collaborateurs");
+
+        $response->assertStatus(403);
+    }
+
+    public function test_user_search_autocompletion_returns_matching_users()
+    {
+        $owner = User::factory()->create(['name' => 'John', 'email' => 'john@tech237.cm']);
+        $dev1 = User::factory()->create(['name' => 'Alice Dev', 'first_name' => 'Alice', 'email' => 'alice@gmail.com']);
+        $dev2 = User::factory()->create(['name' => 'Bob Coder', 'first_name' => 'Bob', 'email' => 'bob@yahoo.com']);
+
+        $response = $this->actingAs($owner, 'web')->getJson('/api/users/search?q=alice');
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(1);
+        $response->assertJsonFragment([
+            'email' => 'alice@gmail.com',
+        ]);
+    }
 }

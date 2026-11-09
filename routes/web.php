@@ -204,6 +204,9 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/espace-utilisateur/projets/images/{id}', [UserDashboardController::class, 'deleteProjectImage'])->name('user.projects.gallery.delete');
 
     // Project Collaboration Management
+    Route::get('/espace-utilisateur/projets/{id}/collaborateurs', [App\Http\Controllers\User\ProjectCollaborationController::class, 'manageCollaborators'])->name('user.projects.collaborators');
+    Route::get('/api/users/search', [App\Http\Controllers\User\ProjectCollaborationController::class, 'searchUsers'])->name('api.users.search');
+    Route::get('/espace-utilisateur/projets/collaborateurs/search-users', [App\Http\Controllers\User\ProjectCollaborationController::class, 'searchUsers'])->name('user.projects.collaborators.search');
     Route::post('/espace-utilisateur/projets/{id}/inviter', [App\Http\Controllers\User\ProjectCollaborationController::class, 'invite'])->name('user.projects.invite')->middleware('throttle:15,1');
     Route::delete('/espace-utilisateur/projets/{projectId}/collaborateurs/{collaboratorId}', [App\Http\Controllers\User\ProjectCollaborationController::class, 'revokeCollaborator'])->name('user.projects.collaborators.revoke');
     Route::post('/espace-utilisateur/timelines/{timelineId}/valider', [App\Http\Controllers\User\ProjectCollaborationController::class, 'validateTimeline'])->name('user.timelines.validate');
