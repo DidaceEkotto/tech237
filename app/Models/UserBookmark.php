@@ -29,6 +29,20 @@ class UserBookmark extends Model
             'app_review' => AppReview::find($this->bookmarkable_id),
             'project' => Project::find($this->bookmarkable_id),
             'job' => JobOffer::find($this->bookmarkable_id),
+            'rubrique' => Rubrique::find($this->bookmarkable_id),
+            'category' => Category::find($this->bookmarkable_id),
+            'games_rubrique' => (object)[
+                'id' => 0,
+                'name' => 'Tests Jeux Vidéo',
+                'title' => 'Tests Jeux Vidéo',
+                'route' => route('games.index'),
+            ],
+            'apps_rubrique' => (object)[
+                'id' => 0,
+                'name' => 'Tests Applications',
+                'title' => 'Tests Applications',
+                'route' => route('apps.index'),
+            ],
             default => null,
         };
     }

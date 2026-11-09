@@ -17,36 +17,77 @@
           class="rubrique-hero-gradient p-4 p-md-5 rounded-4 text-white mb-4 position-relative overflow-hidden shadow-sm"
           :style="rubriqueHeroStyle"
         >
-          <div class="position-relative z-1">
-            <span class="badge px-3 py-2 rounded-pill mb-2 fw-bold text-uppercase" :style="{ backgroundColor: accentColor }">
-              <i v-if="rubrique.icon" :class="'bi ' + rubrique.icon + ' me-1'"></i>
-              Rubrique Éditoriale
-            </span>
-            <h1 class="display-5 fw-black text-white mb-2">{{ rubriqueTitle }}</h1>
-            <p class="lead text-light mb-0" style="max-width: 650px;">
-              {{ locale === 'en' ? 'Explore all news, articles, and updates about ' + rubriqueTitle + '.' : 'Retrouvez toutes les actualités, décryptages et dossiers exclusifs sur ' + rubriqueTitle + '.' }}
-            </p>
+          <div class="position-relative z-1 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+            <div>
+              <span class="badge px-3 py-2 rounded-pill mb-2 fw-bold text-uppercase" :style="{ backgroundColor: accentColor }">
+                <i v-if="rubrique.icon" :class="'bi ' + rubrique.icon + ' me-1'"></i>
+                Rubrique Éditoriale
+              </span>
+              <h1 class="display-5 fw-black text-white mb-2">{{ rubriqueTitle }}</h1>
+              <p class="lead text-light mb-0" style="max-width: 650px;">
+                {{ locale === 'en' ? 'Explore all news, articles, and updates about ' + rubriqueTitle + '.' : 'Retrouvez toutes les actualités, décryptages et dossiers exclusifs sur ' + rubriqueTitle + '.' }}
+              </p>
+            </div>
+            <div>
+              <button 
+                @click="toggleBookmark" 
+                :disabled="isBookmarking"
+                class="btn rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm text-nowrap transition"
+                :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-light text-dark'"
+                :title="isBookmarkedState ? 'Rubrique suivie : alertes email actives' : 'Recevoir un email lors de chaque nouvel article'"
+              >
+                <i :class="isBookmarkedState ? 'bi bi-bell-fill text-dark' : 'bi bi-bell'"></i>
+                <span>{{ isBookmarkedState ? 'Rubrique suivie (Email)' : 'Suivre cette rubrique' }}</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- BANNER STYLE 2: Boxed with Giant Badge -->
-        <div v-else-if="bannerStyle === 'boxed_badge'" class="p-4 rounded-4 bg-white border mb-4 shadow-sm d-flex align-items-center gap-3">
-          <div class="rounded-4 p-3 d-flex align-items-center justify-content-center text-white" :style="{ backgroundColor: accentColor, width: '64px', height: '64px' }">
-            <i :class="'bi ' + (rubrique.icon || 'bi-collection-play') + ' fs-2'"></i>
+        <div v-else-if="bannerStyle === 'boxed_badge'" class="p-4 rounded-4 bg-white border mb-4 shadow-sm d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-4 p-3 d-flex align-items-center justify-content-center text-white" :style="{ backgroundColor: accentColor, width: '64px', height: '64px' }">
+              <i :class="'bi ' + (rubrique.icon || 'bi-collection-play') + ' fs-2'"></i>
+            </div>
+            <div>
+              <h1 class="h2 fw-black text-dark mb-1">{{ rubriqueTitle }}</h1>
+              <small class="text-muted">{{ articles.total }} article(s) publié(s) dans cette rubrique</small>
+            </div>
           </div>
           <div>
-            <h1 class="h2 fw-black text-dark mb-1">{{ rubriqueTitle }}</h1>
-            <small class="text-muted">{{ articles.total }} article(s) publié(s) dans cette rubrique</small>
+            <button 
+              @click="toggleBookmark" 
+              :disabled="isBookmarking"
+              class="btn rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm text-nowrap transition"
+              :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-outline-dark'"
+              :title="isBookmarkedState ? 'Rubrique suivie : alertes email actives' : 'Recevoir un email lors de chaque nouvel article'"
+            >
+              <i :class="isBookmarkedState ? 'bi bi-bell-fill text-dark' : 'bi bi-bell'"></i>
+              <span>{{ isBookmarkedState ? 'Rubrique suivie (Email)' : 'Suivre cette rubrique' }}</span>
+            </button>
           </div>
         </div>
 
         <!-- BANNER STYLE 3: Minimalist Bold Typo -->
-        <div v-else class="border-bottom pb-3 mb-4">
-          <div class="d-flex align-items-center gap-2 mb-1">
-            <span class="badge rounded-pill px-3 py-1 text-white" :style="{ backgroundColor: accentColor }">Rubrique</span>
-            <span class="text-muted small">&bull; Actualités & Tendances</span>
+        <div v-else class="border-bottom pb-3 mb-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge rounded-pill px-3 py-1 text-white" :style="{ backgroundColor: accentColor }">Rubrique</span>
+              <span class="text-muted small">&bull; Actualités & Tendances</span>
+            </div>
+            <h1 class="fw-black display-6 text-dark mb-0">{{ rubriqueTitle }}</h1>
           </div>
-          <h1 class="fw-black display-6 text-dark mb-0">{{ rubriqueTitle }}</h1>
+          <div>
+            <button 
+              @click="toggleBookmark" 
+              :disabled="isBookmarking"
+              class="btn rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm text-nowrap transition"
+              :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-outline-dark'"
+            >
+              <i :class="isBookmarkedState ? 'bi bi-bell-fill text-dark' : 'bi bi-bell'"></i>
+              <span>{{ isBookmarkedState ? 'Rubrique suivie (Email)' : 'Suivre cette rubrique' }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- 2. Audio Narrator (TTS) on Rubrique -->
@@ -261,7 +302,43 @@ const props = defineProps({
   rubrique: Object,
   articles: Object,
   trendingArticles: Array,
+  isBookmarked: Boolean,
 })
+
+const isBookmarkedState = ref(props.isBookmarked || false)
+const isBookmarking = ref(false)
+
+function toggleBookmark() {
+  if (isBookmarking.value) return
+  isBookmarking.value = true
+
+  fetch('/espace-utilisateur/favoris/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: JSON.stringify({
+      item_type: 'rubrique',
+      item_id: props.rubrique.id,
+    })
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login'
+      return
+    }
+    return r.json()
+  }).then(data => {
+    if (data && data.success) {
+      isBookmarkedState.value = data.bookmarked
+    }
+  }).catch(err => {
+    console.error('Bookmark error:', err)
+  }).finally(() => {
+    isBookmarking.value = false
+  })
+}
 
 const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')

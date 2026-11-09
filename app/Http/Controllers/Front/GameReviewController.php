@@ -18,8 +18,17 @@ class GameReviewController extends Controller
             ->latest()
             ->get();
 
+        $user = \Illuminate\Support\Facades\Auth::guard('web')->user();
+        $isBookmarked = false;
+        if ($user) {
+            $isBookmarked = \App\Models\UserBookmark::where('user_id', $user->id)
+                ->where('bookmarkable_type', 'games_rubrique')
+                ->exists();
+        }
+
         return Inertia::render('GameReviews/Index', [
             'reviews' => $reviews,
+            'isBookmarked' => $isBookmarked,
         ]);
     }
 

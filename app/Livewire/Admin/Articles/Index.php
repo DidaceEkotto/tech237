@@ -50,6 +50,8 @@ class Index extends Component
             'reviewed_by' => $currentAdmin->id,
         ]);
 
+        \App\Services\BookmarkNotificationService::notifyArticlePublished($article);
+
         AdminLog::record('article_validated', "Validation et publication de l'article '{$article->title_fr}'", $currentAdmin);
         session()->flash('success', "L'article '{$article->title_fr}' a été validé et publié avec succès.");
     }

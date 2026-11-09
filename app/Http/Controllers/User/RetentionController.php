@@ -184,7 +184,7 @@ class RetentionController extends Controller
             'type' => $type,
             'id' => $id,
         ], [
-            'type' => 'required|in:article,game_review,app_review,project,job',
+            'type' => 'required|in:article,game_review,app_review,project,job,rubrique,category,games_rubrique,apps_rubrique',
             'id' => 'required|integer',
         ]);
 
@@ -209,7 +209,13 @@ class RetentionController extends Controller
                 'bookmarkable_id' => $id,
             ]);
             $bookmarked = true;
-            $message = 'Ajouté à vos favoris avec succès !';
+            $message = match ($type) {
+                'project' => 'Projet ajouté à vos favoris ! Vous recevrez les nouveaux devlogs par email.',
+                'games_rubrique' => 'Rubrique Tests Jeux Vidéo ajoutée à vos favoris ! Vous recevrez chaque nouveau test par email.',
+                'apps_rubrique' => 'Rubrique Tests Applications ajoutée à vos favoris ! Vous recevrez chaque nouveau test par email.',
+                'rubrique', 'category' => 'Ajouté à vos favoris ! Vous recevrez les nouveaux articles par email.',
+                default => 'Ajouté à vos favoris avec succès !',
+            };
             $user->addXp(1);
         }
 

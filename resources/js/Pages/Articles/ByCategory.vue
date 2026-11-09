@@ -19,11 +19,25 @@
       </nav>
 
       <!-- Category Big Header -->
-      <div class="mb-4">
-        <h1 class="display-5 fw-bold text-dark mb-1">{{ currentCategoryName }}</h1>
-        <p class="text-muted small mb-0" v-if="currentDescription">
-          {{ currentDescription }}
-        </p>
+      <div class="mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div>
+          <h1 class="display-5 fw-bold text-dark mb-1">{{ currentCategoryName }}</h1>
+          <p class="text-muted small mb-0" v-if="currentDescription">
+            {{ currentDescription }}
+          </p>
+        </div>
+        <div>
+          <button 
+            @click="toggleBookmark"
+            :disabled="isBookmarking"
+            class="btn rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm text-nowrap transition"
+            :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-outline-dark'"
+            :title="isBookmarkedState ? 'Catégorie suivie : alertes email actives' : 'Recevoir un email lors de chaque nouvel article dans cette catégorie'"
+          >
+            <i :class="isBookmarkedState ? 'bi bi-bell-fill text-dark' : 'bi bi-bell'"></i>
+            <span>{{ isBookmarkedState ? 'Catégorie suivie (Email)' : 'Suivre cette catégorie' }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="row g-4">
@@ -207,7 +221,43 @@ import DailyTechPoll from '@/Components/DailyTechPoll.vue'
 const props = defineProps({
   category: { type: Object, required: true },
   articles: { type: Object, required: true },
+  isBookmarked: { type: Boolean, default: false },
 })
+
+const isBookmarkedState = ref(props.isBookmarked || false)
+const isBookmarking = ref(false)
+
+function toggleBookmark() {
+  if (isBookmarking.value) return
+  isBookmarking.value = true
+
+  fetch('/espace-utilisateur/favoris/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: JSON.stringify({
+      item_type: 'category',
+      item_id: props.category.id,
+    })
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login'
+      return
+    }
+    return r.json()
+  }).then(data => {
+    if (data && data.success) {
+      isBookmarkedState.value = data.bookmarked
+    }
+  }).catch(err => {
+    console.error('Bookmark error:', err)
+  }).finally(() => {
+    isBookmarking.value = false
+  })
+}
 
 const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')

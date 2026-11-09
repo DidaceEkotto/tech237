@@ -166,6 +166,7 @@ class Form extends Component
             if ($this->status === 'pending_review') {
                 session()->flash('success', "Votre article a été soumis avec succès pour validation auprès d'un administrateur.");
             } else {
+                \App\Services\BookmarkNotificationService::notifyArticlePublished($article);
                 session()->flash('success', "L'article a été publié directement avec succès.");
             }
         }

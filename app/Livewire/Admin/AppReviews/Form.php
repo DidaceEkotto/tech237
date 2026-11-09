@@ -139,6 +139,7 @@ class Form extends Component
             $data['admin_id'] = Auth::guard('admin')->id();
             $r = AppReview::create($data);
             AdminLog::record('app_review_created', "Création du test d'application '{$r->app_name}' (Note: {$r->final_score}/20)");
+            \App\Services\BookmarkNotificationService::notifyAppReview($r);
             session()->flash('success', "Le test de l'application '{$r->app_name}' a été enregistré.");
         }
 

@@ -4,13 +4,29 @@
       
       <!-- Header -->
       <div class="p-4 p-md-5 rounded-4 mb-4 text-white shadow-sm" style="background: linear-gradient(135deg, #1f0b20 0%, #4a0e4e 100%);">
-        <span class="badge bg-danger mb-2 text-uppercase px-3 py-1 fw-bold">Gaming Labs</span>
-        <h1 class="display-5 fw-bold mb-2">
-          <i class="bi bi-controller me-2"></i>{{ locale === 'en' ? 'Video Game Reviews & Verdicts' : 'Tests Jeux Vidéo & Verdicts (/20)' }}
-        </h1>
-        <p class="lead text-white-50 mb-0">
-          {{ locale === 'en' ? 'In-depth analysis of gameplay, graphics, accessibility and soundtrack across all major gaming platforms.' : 'Analyses complètes du gameplay, des graphismes, de l\'accessibilité et de la bande son sur toutes les plateformes.' }}
-        </p>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+          <div>
+            <span class="badge bg-danger mb-2 text-uppercase px-3 py-1 fw-bold">Gaming Labs</span>
+            <h1 class="display-5 fw-bold mb-2">
+              <i class="bi bi-controller me-2"></i>{{ locale === 'en' ? 'Video Game Reviews & Verdicts' : 'Tests Jeux Vidéo & Verdicts (/20)' }}
+            </h1>
+            <p class="lead text-white-50 mb-0">
+              {{ locale === 'en' ? 'In-depth analysis of gameplay, graphics, accessibility and soundtrack across all major gaming platforms.' : 'Analyses complètes du gameplay, des graphismes, de l\'accessibilité et de la bande son sur toutes les plateformes.' }}
+            </p>
+          </div>
+          <div>
+            <button 
+              @click="toggleBookmark"
+              :disabled="isBookmarking"
+              class="btn rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm text-nowrap transition"
+              :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-outline-light'"
+              :title="isBookmarkedState ? 'Rubrique suivie : alertes email actives' : 'Recevoir un email avec le résumé et l\'image à chaque nouveau test de jeu vidéo'"
+            >
+              <i :class="isBookmarkedState ? 'bi bi-bell-fill text-dark' : 'bi bi-bell'"></i>
+              <span>{{ isBookmarkedState ? 'Rubrique suivie (Email)' : 'Suivre cette rubrique' }}</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Platform Filter Pills -->
@@ -73,7 +89,43 @@ import FrontLayout from '@/Layouts/FrontLayout.vue';
 
 const props = defineProps({
   reviews: { type: Array, default: () => [] },
+  isBookmarked: { type: Boolean, default: false },
 });
+
+const isBookmarkedState = ref(props.isBookmarked || false);
+const isBookmarking = ref(false);
+
+function toggleBookmark() {
+  if (isBookmarking.value) return;
+  isBookmarking.value = true;
+
+  fetch('/espace-utilisateur/favoris/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: JSON.stringify({
+      item_type: 'games_rubrique',
+      item_id: 0,
+    })
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login';
+      return;
+    }
+    return r.json();
+  }).then(data => {
+    if (data && data.success) {
+      isBookmarkedState.value = data.bookmarked;
+    }
+  }).catch(err => {
+    console.error('Bookmark error:', err);
+  }).finally(() => {
+    isBookmarking.value = false;
+  });
+}
 
 const page = usePage();
 const locale = computed(() => page.props.currentLocale || 'fr');

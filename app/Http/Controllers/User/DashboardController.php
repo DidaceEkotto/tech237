@@ -752,7 +752,7 @@ class DashboardController extends Controller
         $isOwner = $project->isOwner($user);
         $status = $isOwner ? 'approved' : 'pending';
 
-        ProjectTimeline::create([
+        $timeline = ProjectTimeline::create([
             'project_id' => $project->id,
             'user_id' => $user->id,
             'title' => $request->title,
@@ -766,7 +766,9 @@ class DashboardController extends Controller
             'status' => $status,
         ]);
 
-        if (!$isOwner) {
+        if ($isOwner) {
+            \App\Services\BookmarkNotificationService::notifyProjectDevlog($project, $timeline);
+        } else {
             try {
                 UserMessage::create([
                     'user_id' => $project->user_id,

@@ -161,6 +161,7 @@ class Form extends Component
             $data['admin_id'] = Auth::guard('admin')->id();
             $gr = GameReview::create($data);
             AdminLog::record('game_review_created', "Création du test jeu vidéo '{$gr->game_name}' (Note: {$gr->final_score}/20)");
+            \App\Services\BookmarkNotificationService::notifyGameReview($gr);
             session()->flash('success', "Le test du jeu '{$gr->game_name}' a été publié.");
         }
 

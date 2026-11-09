@@ -436,6 +436,7 @@ class ProjectCollaborationController extends Controller
 
         if ($action === 'approve') {
             $timeline->update(['status' => 'approved']);
+            \App\Services\BookmarkNotificationService::notifyProjectDevlog($timeline->project, $timeline);
             return back()->with('success', "L'étape du Devlog a été validée et est désormais visible publiquement !");
         } else {
             $timeline->update(['status' => 'rejected']);

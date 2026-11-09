@@ -64,16 +64,16 @@
                 <span class="badge bg-white text-dark rounded-pill shadow-xs">{{ upvotesCount }}</span>
               </button>
 
-              <!-- Bookmark Button -->
+              <!-- Bookmark & Devlog Alerts Button -->
               <button 
                 @click="toggleBookmark" 
                 class="btn rounded-pill px-3 fw-bold d-flex align-items-center gap-1 shadow-sm"
                 :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-outline-secondary'"
                 :disabled="isBookmarking"
-                :title="isBookmarkedState ? 'Retirer des favoris' : 'Sauvegarder dans mes favoris'"
+                :title="isBookmarkedState ? 'Projet suivi : vous recevez les devlogs par email. Cliquer pour retirer.' : 'Suivre ce projet et recevoir les futurs devlogs par email'"
               >
-                <i :class="isBookmarkedState ? 'bi bi-bookmark-fill' : 'bi bi-bookmark'"></i>
-                <span class="d-none d-sm-inline">{{ isBookmarkedState ? 'Sauvegardé' : 'Favoris' }}</span>
+                <i :class="isBookmarkedState ? 'bi bi-bell-fill text-dark' : 'bi bi-bell'"></i>
+                <span class="d-none d-sm-inline">{{ isBookmarkedState ? 'Suivi (Devlogs)' : 'Suivre (Devlogs)' }}</span>
               </button>
 
               <a v-if="project.website_url" :href="project.website_url" target="_blank" class="btn btn-danger rounded-pill px-4 fw-bold">

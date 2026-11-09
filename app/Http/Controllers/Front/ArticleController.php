@@ -105,9 +105,19 @@ class ArticleController extends Controller
                 return $art;
             });
 
+        $user = \Illuminate\Support\Facades\Auth::guard('web')->user();
+        $isBookmarked = false;
+        if ($user) {
+            $isBookmarked = \App\Models\UserBookmark::where('user_id', $user->id)
+                ->where('bookmarkable_type', 'category')
+                ->where('bookmarkable_id', $category->id)
+                ->exists();
+        }
+
         return Inertia::render('Articles/ByCategory', [
             'category' => $category,
             'articles' => $articles,
+            'isBookmarked' => $isBookmarked,
         ]);
     }
 
@@ -167,10 +177,20 @@ class ArticleController extends Controller
             ->take(5)
             ->get();
 
+        $user = \Illuminate\Support\Facades\Auth::guard('web')->user();
+        $isBookmarked = false;
+        if ($user) {
+            $isBookmarked = \App\Models\UserBookmark::where('user_id', $user->id)
+                ->where('bookmarkable_type', 'rubrique')
+                ->where('bookmarkable_id', $rubrique->id)
+                ->exists();
+        }
+
         return Inertia::render('Articles/ByRubrique', [
             'rubrique' => $rubrique,
             'articles' => $articles,
             'trendingArticles' => $trendingArticles,
+            'isBookmarked' => $isBookmarked,
         ]);
     }
 

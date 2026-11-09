@@ -25,7 +25,7 @@
                 <i class="bi bi-lightning-charge-fill me-1"></i> Espace Communautaire
               </span>
               <h1 class="h3 fw-bold text-dark mb-1">Partager un POC ou une Mini-Actualité</h1>
-              <p class="text-muted small mb-0">Partagez une sortie de projet, une annonce tech, un tutoriel ou une découverte utile pour l'écosystème.</p>
+              <p class="text-muted small mb-0">Partagez de courtes actualités dans le domaine de la tech avec les autres membres de la communauté.</p>
             </div>
             <Link href="/pocs" class="btn btn-outline-secondary rounded-pill btn-sm px-3">
               <i class="bi bi-arrow-left me-1"></i> Retour aux POCs
