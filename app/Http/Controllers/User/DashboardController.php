@@ -25,6 +25,7 @@ use App\Models\Conference;
 use App\Models\ConferenceRegistration;
 use App\Models\SiteSetting;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use App\Services\ImageService;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
@@ -767,9 +768,58 @@ class DashboardController extends Controller
     {
         $user = Auth::guard('web')->user();
         $message = UserMessage::where('user_id', $user->id)->findOrFail($id);
-        $message->update(['is_read' => true]);
+        $message->update([
+            'is_read' => true,
+            'read_at' => $message->read_at ?? now(),
+        ]);
 
         return back()->with('success', 'Message marqué comme lu.');
+    }
+
+    public function toggleReaction(Request $request, int $id)
+    {
+        $user = Auth::guard('web')->user();
+        $message = UserMessage::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('sender_id', $user->id);
+        })->findOrFail($id);
+
+        $emoji = $request->input('emoji');
+        $validEmojis = ['👍', '❤️', '🚀', '🔥', '👏'];
+        if (!in_array($emoji, $validEmojis)) {
+            return back()->withErrors(['error' => 'Emoji invalide.']);
+        }
+
+        $reactions = $message->reactions ?? [];
+        if (!isset($reactions[$emoji]) || !is_array($reactions[$emoji])) {
+            $reactions[$emoji] = [];
+        }
+
+        if (in_array($user->id, $reactions[$emoji])) {
+            $reactions[$emoji] = array_values(array_diff($reactions[$emoji], [$user->id]));
+            if (empty($reactions[$emoji])) {
+                unset($reactions[$emoji]);
+            }
+        } else {
+            $reactions[$emoji][] = $user->id;
+        }
+
+        $message->update(['reactions' => $reactions]);
+
+        return back();
+    }
+
+    public function deleteMessage(Request $request, int $id)
+    {
+        $user = Auth::guard('web')->user();
+        $message = UserMessage::findOrFail($id);
+
+        if ((int)$message->sender_id !== (int)$user->id) {
+            abort(403, "Action non autorisée.");
+        }
+
+        $message->delete();
+
+        return back()->with('success', 'Message supprimé.');
     }
 
     public function deleteDocument(int $id)
@@ -1340,11 +1390,29 @@ class DashboardController extends Controller
             'recipient_id' => 'nullable|exists:users,id',
             'subject' => 'required|string|max:200',
             'message' => 'required|string|max:5000',
+            'attachment' => 'nullable|file|max:10240|mimes:jpeg,png,jpg,webp,gif,pdf,doc,docx,txt,zip',
+        ], [
+            'subject.required' => 'Le sujet est requis.',
+            'message.required' => 'Le message ne peut pas être vide.',
+            'attachment.max' => 'La pièce jointe ne doit pas dépasser 10 Mo.',
+            'attachment.mimes' => 'Format de pièce jointe non autorisé (images, PDF, Word, TXT, ZIP autorisés).',
         ]);
 
         $recipientId = $validated['recipient_id'] ?? null;
-        if (!$recipientId || $recipientId === $sender->id) {
+        if (!$recipientId || (int)$recipientId === (int)$sender->id) {
             $recipientId = \App\Models\User::where('id', '!=', $sender->id)->value('id') ?? $sender->id;
+        }
+
+        $attachmentPath = null;
+        $attachmentName = null;
+        $attachmentType = null;
+
+        if ($request->hasFile('attachment')) {
+            $file = $request->file('attachment');
+            $attachmentName = $file->getClientOriginalName();
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'dat');
+            $attachmentType = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif']) ? 'image' : 'document';
+            $attachmentPath = ImageService::saveImage($file, 'msg_att');
         }
 
         UserMessage::create([
@@ -1352,8 +1420,30 @@ class DashboardController extends Controller
             'sender_id' => $sender->id,
             'subject' => $validated['subject'],
             'message' => $validated['message'],
+            'attachment_path' => $attachmentPath,
+            'attachment_name' => $attachmentName,
+            'attachment_type' => $attachmentType,
             'is_read' => false,
         ]);
+
+        // Send notification email to the recipient
+        $recipient = \App\Models\User::find($recipientId);
+        if ($recipient && $recipient->email && filter_var($recipient->email, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::send('emails.new_message_notification', [
+                    'recipient' => $recipient,
+                    'sender' => $sender,
+                    'msgSubject' => $validated['subject'],
+                    'msgContent' => $validated['message'],
+                    'replyUrl' => route('user.dashboard', ['section' => 'messages']),
+                ], function ($m) use ($recipient, $sender) {
+                    $m->to($recipient->email)
+                      ->subject("💬 Nouveau message privé de {$sender->name} sur Tech237");
+                });
+            } catch (\Throwable $e) {
+                Log::error("Erreur envoi notification email message: " . $e->getMessage());
+            }
+        }
 
         return back()->with('success', 'Votre message privé a été envoyé avec succès !');
     }

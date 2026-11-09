@@ -15,13 +15,20 @@ class UserMessage extends Model
         'admin_id',
         'subject',
         'message',
+        'attachment_path',
+        'attachment_name',
+        'attachment_type',
+        'reactions',
         'is_read',
+        'read_at',
     ];
 
     protected function casts(): array
     {
         return [
             'is_read' => 'boolean',
+            'reactions' => 'array',
+            'read_at' => 'datetime',
         ];
     }
 

@@ -238,6 +238,8 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/profil', [UserDashboardController::class, 'updateProfile'])->name('user.profile.update');
     Route::post('/espace-utilisateur/messages/envoyer', [UserDashboardController::class, 'sendMessage'])->name('user.messages.send');
     Route::post('/espace-utilisateur/messages/{id}/read', [UserDashboardController::class, 'markMessageRead'])->name('user.messages.read');
+    Route::post('/espace-utilisateur/messages/{id}/reaction', [UserDashboardController::class, 'toggleReaction'])->name('user.messages.reaction');
+    Route::delete('/espace-utilisateur/messages/{id}', [UserDashboardController::class, 'deleteMessage'])->name('user.messages.delete');
     Route::delete('/espace-utilisateur/documents/{id}', [UserDashboardController::class, 'deleteDocument'])->name('user.documents.delete');
 });
 

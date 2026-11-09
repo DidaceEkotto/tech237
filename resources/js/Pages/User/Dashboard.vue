@@ -955,38 +955,130 @@
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
               
               <!-- Header -->
-              <div class="p-4 border-bottom bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div class="p-3 p-md-4 border-bottom bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                   <h4 class="fw-bold mb-1 text-dark d-flex align-items-center">
                     <i class="bi bi-chat-left-text-fill text-success me-2"></i>Messagerie Privée &amp; Échanges
                   </h4>
                   <p class="text-muted small mb-0">Discutez en continu avec les fondateurs, recruteurs et l'équipe Tech237.</p>
                 </div>
-                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
-                  {{ conversations.length }} conversation(s)
-                </span>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">
+                    {{ conversations.length }} discussion(s)
+                  </span>
+                  <button 
+                    type="button" 
+                    @click="openNewMessageModal" 
+                    class="btn btn-sm btn-success rounded-pill px-3 fw-bold shadow-sm"
+                  >
+                    <i class="bi bi-pencil-square me-1"></i> Nouveau message
+                  </button>
+                </div>
               </div>
 
               <div v-if="conversations.length" class="row g-0">
                 <!-- Left: Conversations List -->
-                <div class="col-md-5 col-lg-4 border-end bg-light" style="max-height: 650px; overflow-y: auto;">
+                <div 
+                  class="col-md-5 col-lg-4 border-end bg-light" 
+                  :class="{ 'd-none d-md-block': mobileShowThread && activeConversation }"
+                  style="max-height: 680px; overflow-y: auto;"
+                >
+                  <!-- Search & Filter bar -->
+                  <div class="p-2 border-bottom bg-white sticky-top shadow-xs">
+                    <div class="input-group input-group-sm mb-2">
+                      <span class="input-group-text bg-light border-end-0 text-muted">
+                        <i class="bi bi-search"></i>
+                      </span>
+                      <input 
+                        type="text" 
+                        v-model="conversationSearch" 
+                        class="form-control border-start-0 bg-light" 
+                        placeholder="Rechercher une discussion..."
+                      >
+                      <button 
+                        v-if="conversationSearch" 
+                        type="button" 
+                        @click="conversationSearch = ''" 
+                        class="btn btn-light border border-start-0 text-muted"
+                      >
+                        <i class="bi bi-x"></i>
+                      </button>
+                    </div>
+
+                    <!-- Filter pills -->
+                    <div class="d-flex gap-1 overflow-x-auto pb-1" style="scrollbar-width: none;">
+                      <button 
+                        type="button" 
+                        @click="conversationFilterTab = 'all'" 
+                        class="btn btn-xs rounded-pill py-0 px-2 extra-small text-nowrap"
+                        :class="conversationFilterTab === 'all' ? 'btn-dark' : 'btn-light text-muted border'"
+                      >
+                        Toutes ({{ conversations.length }})
+                      </button>
+                      <button 
+                        type="button" 
+                        @click="conversationFilterTab = 'unread'" 
+                        class="btn btn-xs rounded-pill py-0 px-2 extra-small text-nowrap"
+                        :class="conversationFilterTab === 'unread' ? 'btn-warning text-dark fw-bold' : 'btn-light text-muted border'"
+                      >
+                        Non lues ({{ unreadConversationsCount }})
+                      </button>
+                      <button 
+                        type="button" 
+                        @click="conversationFilterTab = 'admin'" 
+                        class="btn btn-xs rounded-pill py-0 px-2 extra-small text-nowrap"
+                        :class="conversationFilterTab === 'admin' ? 'btn-danger text-white' : 'btn-light text-muted border'"
+                      >
+                        Support Tech237
+                      </button>
+                      <button 
+                        type="button" 
+                        @click="conversationFilterTab = 'user'" 
+                        class="btn btn-xs rounded-pill py-0 px-2 extra-small text-nowrap"
+                        :class="conversationFilterTab === 'user' ? 'btn-success text-white' : 'btn-light text-muted border'"
+                      >
+                        Membres
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Conversations list items -->
                   <div class="list-group list-group-flush">
                     <button 
-                      v-for="c in conversations" 
+                      v-for="c in filteredConversations" 
                       :key="c.key"
                       type="button"
                       @click="selectConversation(c)"
                       class="list-group-item list-group-item-action p-3 border-bottom d-flex align-items-center gap-3 transition-all"
                       :class="activeConversation?.key === c.key ? 'bg-white border-start border-4 border-success shadow-sm' : ''"
                     >
+                      <!-- Avatar with Initials Fallback -->
                       <div class="position-relative flex-shrink-0">
-                        <img 
-                          :src="'/' + c.avatar" 
-                          class="rounded-circle border" 
-                          style="width: 46px; height: 46px; object-fit: cover;"
-                          alt="Avatar"
+                        <div 
+                          v-if="hasCustomAvatar(c.avatar)"
+                          class="rounded-circle border overflow-hidden" 
+                          style="width: 46px; height: 46px; min-width: 46px;"
                         >
-                        <span v-if="c.type === 'admin'" class="position-absolute bottom-0 end-0 badge rounded-pill bg-danger p-1" style="font-size: 8px;">
+                          <img 
+                            :src="c.avatar.startsWith('/') ? c.avatar : '/' + c.avatar" 
+                            class="w-100 h-100 object-fit-cover" 
+                            :alt="c.name"
+                          >
+                        </div>
+                        <div 
+                          v-else 
+                          class="rounded-circle fw-bold text-white d-flex align-items-center justify-content-center shadow-sm"
+                          :style="{
+                            width: '46px',
+                            height: '46px',
+                            minWidth: '46px',
+                            backgroundColor: getAvatarBg(c.name),
+                            fontSize: '15px'
+                          }"
+                        >
+                          {{ getInitials(c.name) }}
+                        </div>
+                        <span v-if="c.type === 'admin'" class="position-absolute bottom-0 end-0 badge rounded-pill bg-danger p-1" style="font-size: 8px;" title="Administrateur">
                           <i class="bi bi-shield-fill"></i>
                         </span>
                       </div>
@@ -994,10 +1086,16 @@
                       <div class="flex-grow-1 text-truncate text-start">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                           <strong class="text-dark small text-truncate">{{ c.name }}</strong>
-                          <small class="text-muted extra-small ms-1">{{ c.lastMessage?.created_at ? c.lastMessage.created_at.substring(0, 10) : '' }}</small>
+                          <small class="text-muted extra-small ms-1">
+                            {{ c.lastMessage?.created_at ? new Date(c.lastMessage.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '' }}
+                          </small>
                         </div>
-                        <div class="text-muted extra-small text-truncate">
-                          {{ c.lastMessage?.subject || c.lastMessage?.message }}
+                        <div class="text-muted extra-small text-truncate d-flex align-items-center gap-1">
+                          <span v-if="c.lastMessage?.sender_id === user.id" class="text-muted">
+                            <i v-if="c.lastMessage.is_read" class="bi bi-check-all text-success"></i>
+                            <i v-else class="bi bi-check"></i>
+                          </span>
+                          <span>{{ c.lastMessage?.subject || c.lastMessage?.message }}</span>
                         </div>
                       </div>
 
@@ -1005,17 +1103,60 @@
                         {{ c.unreadCount }}
                       </span>
                     </button>
+
+                    <div v-if="filteredConversations.length === 0" class="text-center py-4 text-muted small">
+                      <i class="bi bi-search d-block mb-1 fs-5"></i>
+                      Aucune discussion ne correspond à ce filtre.
+                    </div>
                   </div>
                 </div>
 
-                <!-- Right: Active Chat Thread & WYSIWYG Composer -->
-                <div class="col-md-7 col-lg-8 d-flex flex-column bg-white" style="height: 650px;">
-                  
+                <!-- Right: Active Chat Thread & Composer -->
+                <div 
+                  class="col-md-7 col-lg-8 d-flex flex-column bg-white" 
+                  :class="{ 'd-none d-md-flex': !mobileShowThread && !activeConversation }"
+                  style="height: 680px;"
+                >
                   <div v-if="activeConversation" class="d-flex flex-column h-100">
+                    
                     <!-- Partner Top Header -->
-                    <div class="p-3 border-bottom bg-light d-flex align-items-center justify-content-between">
+                    <div class="p-3 border-bottom bg-light d-flex align-items-center justify-content-between flex-wrap gap-2">
                       <div class="d-flex align-items-center gap-2">
-                        <img :src="'/' + activeConversation.avatar" class="rounded-circle border" style="width: 38px; height: 38px; object-fit: cover;">
+                        <!-- Mobile back button -->
+                        <button 
+                          type="button" 
+                          @click="mobileShowThread = false" 
+                          class="btn btn-sm btn-outline-secondary rounded-pill d-md-none me-1"
+                        >
+                          <i class="bi bi-arrow-left"></i>
+                        </button>
+
+                        <!-- Avatar with Initials Fallback -->
+                        <div 
+                          v-if="hasCustomAvatar(activeConversation.avatar)"
+                          class="rounded-circle border overflow-hidden" 
+                          style="width: 40px; height: 40px; min-width: 40px;"
+                        >
+                          <img 
+                            :src="activeConversation.avatar.startsWith('/') ? activeConversation.avatar : '/' + activeConversation.avatar" 
+                            class="w-100 h-100 object-fit-cover" 
+                            :alt="activeConversation.name"
+                          >
+                        </div>
+                        <div 
+                          v-else 
+                          class="rounded-circle fw-bold text-white d-flex align-items-center justify-content-center shadow-sm"
+                          :style="{
+                            width: '40px',
+                            height: '40px',
+                            minWidth: '40px',
+                            backgroundColor: getAvatarBg(activeConversation.name),
+                            fontSize: '14px'
+                          }"
+                        >
+                          {{ getInitials(activeConversation.name) }}
+                        </div>
+
                         <div>
                           <div class="fw-bold text-dark small mb-0">{{ activeConversation.name }}</div>
                           <span class="badge extra-small" :class="activeConversation.type === 'admin' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'">
@@ -1023,9 +1164,12 @@
                           </span>
                         </div>
                       </div>
-                      <small class="text-muted extra-small">
-                        {{ activeConversation.messages.length }} message(s) échangé(s)
-                      </small>
+
+                      <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted extra-small">
+                          {{ activeConversation.messages.length }} message(s) échangé(s)
+                        </small>
+                      </div>
                     </div>
 
                     <!-- Message Bubble Stream -->
@@ -1033,32 +1177,114 @@
                       <div 
                         v-for="m in activeConversation.messages" 
                         :key="m.id"
-                        class="d-flex"
-                        :class="m.sender_id === user.id ? 'justify-content-end' : 'justify-content-start'"
+                        class="d-flex flex-column"
+                        :class="m.sender_id === user.id ? 'align-items-end' : 'align-items-start'"
                       >
                         <div 
-                          class="rounded-4 p-3 shadow-sm"
+                          class="rounded-4 p-3 shadow-sm position-relative group-bubble"
                           :style="{
                             maxWidth: '78%',
                             backgroundColor: m.sender_id === user.id ? 'var(--tech-green)' : '#F3F4F6',
                             color: m.sender_id === user.id ? '#FFFFFF' : '#1F2937'
                           }"
                         >
-                          <div class="d-flex align-items-center justify-content-between gap-2 mb-1 border-bottom pb-1" :style="{ borderColor: m.sender_id === user.id ? 'rgba(255,255,255,0.2)' : '#E5E7EB' }">
+                          <!-- Bubble Header -->
+                          <div 
+                            class="d-flex align-items-center justify-content-between gap-3 mb-1 border-bottom pb-1" 
+                            :style="{ borderColor: m.sender_id === user.id ? 'rgba(255,255,255,0.2)' : '#E5E7EB' }"
+                          >
                             <strong class="extra-small">{{ m.sender_id === user.id ? 'Moi' : activeConversation.name }}</strong>
-                            <small class="extra-small opacity-75">{{ m.created_at ? new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '' }}</small>
+                            
+                            <div class="d-flex align-items-center gap-1 extra-small opacity-75">
+                              <span>{{ m.created_at ? new Date(m.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '' }}</span>
+                              
+                              <!-- Read Status Checkmark (WhatsApp style) -->
+                              <span v-if="m.sender_id === user.id" class="ms-1" :title="m.is_read ? 'Message lu par le destinataire' : 'Message envoyé (en attente de lecture)'">
+                                <i v-if="m.is_read" class="bi bi-check-all text-info fs-6 fw-bold"></i>
+                                <i v-else class="bi bi-check fs-6"></i>
+                              </span>
+
+                              <!-- Delete message button for sender -->
+                              <button 
+                                v-if="m.sender_id === user.id"
+                                type="button"
+                                @click="confirmDeleteMessage(m.id)"
+                                class="btn btn-link btn-sm p-0 ms-1 text-white opacity-50 hover-opacity-100"
+                                title="Supprimer ce message"
+                              >
+                                <i class="bi bi-trash3" style="font-size: 11px;"></i>
+                              </button>
+                            </div>
                           </div>
                           
+                          <!-- Subject -->
                           <div v-if="m.subject" class="fw-bold extra-small mb-1" :style="{ color: m.sender_id === user.id ? '#D1FAE5' : '#0B2559' }">
                             {{ m.subject }}
                           </div>
 
+                          <!-- Text message -->
                           <div class="small leading-relaxed" style="white-space: pre-line;">{{ m.message || m.content }}</div>
+
+                          <!-- Attachment Preview -->
+                          <div v-if="m.attachment_path" class="mt-2 pt-2 border-top" :style="{ borderColor: m.sender_id === user.id ? 'rgba(255,255,255,0.2)' : '#E5E7EB' }">
+                            <!-- Image Attachment -->
+                            <div v-if="m.attachment_type === 'image'" class="rounded-3 overflow-hidden border">
+                              <a :href="'/' + m.attachment_path" target="_blank" title="Agrandir l'image">
+                                <img :src="'/' + m.attachment_path" class="img-fluid w-100" style="max-height: 240px; object-fit: cover;" alt="Photo jointe">
+                              </a>
+                            </div>
+
+                            <!-- Document Attachment -->
+                            <a 
+                              v-else 
+                              :href="'/' + m.attachment_path" 
+                              target="_blank" 
+                              class="d-flex align-items-center gap-2 p-2 rounded-3 text-decoration-none shadow-xs"
+                              :class="m.sender_id === user.id ? 'bg-white text-dark' : 'bg-white text-dark border'"
+                            >
+                              <i class="bi bi-file-earmark-arrow-down-fill fs-3 text-primary"></i>
+                              <div class="overflow-hidden">
+                                <strong class="extra-small d-block text-truncate">{{ m.attachment_name || 'Document joint' }}</strong>
+                                <small class="text-muted" style="font-size: 11px;">Cliquer pour télécharger</small>
+                              </div>
+                            </a>
+                          </div>
+
+                          <!-- Reactions display -->
+                          <div v-if="m.reactions && Object.keys(m.reactions).length > 0" class="d-flex flex-wrap gap-1 mt-2">
+                            <button
+                              type="button"
+                              v-for="(userIds, emoji) in m.reactions"
+                              :key="emoji"
+                              @click="toggleReaction(m.id, emoji)"
+                              class="btn btn-xs rounded-pill py-0 px-2 extra-small d-inline-flex align-items-center gap-1 border shadow-xs"
+                              :class="userIds.includes(user.id) ? 'btn-light border-success text-success fw-bold' : 'btn-light text-dark'"
+                              style="font-size: 11px;"
+                            >
+                              <span>{{ emoji }}</span>
+                              <span>{{ userIds.length }}</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <!-- Quick Reactions Toolbar underneath message bubble -->
+                        <div class="d-flex align-items-center gap-1 mt-1 px-1">
+                          <button 
+                            type="button" 
+                            v-for="em in ['👍', '❤️', '🚀', '🔥', '👏']" 
+                            :key="em"
+                            @click="toggleReaction(m.id, em)"
+                            class="btn btn-link btn-sm p-0 extra-small text-decoration-none opacity-75 hover-opacity-100"
+                            style="font-size: 13px;"
+                            :title="'Réagir avec ' + em"
+                          >
+                            {{ em }}
+                          </button>
                         </div>
                       </div>
                     </div>
 
-                    <!-- Thread Reply Composer (WYSIWYG tools) -->
+                    <!-- Thread Reply Composer -->
                     <div class="p-3 border-top bg-light">
                       <form @submit.prevent="sendThreadReply">
                         <div class="input-group input-group-sm mb-2">
@@ -1066,28 +1292,62 @@
                           <input type="text" class="form-control form-control-sm border-0" v-model="threadReplySubject" placeholder="Sujet de votre réponse..." required>
                         </div>
 
-                        <!-- WYSIWYG quick toolbar -->
-                        <div class="d-flex align-items-center gap-1 mb-2">
-                          <button type="button" @click="insertThreadFormat('**', '**')" class="btn btn-sm btn-white border extra-small px-2 py-0" title="Gras"><strong>B</strong></button>
-                          <button type="button" @click="insertThreadFormat('*', '*')" class="btn btn-sm btn-white border extra-small px-2 py-0" title="Italique"><em>I</em></button>
-                          <button type="button" @click="insertThreadFormat('`', '`')" class="btn btn-sm btn-white border extra-small px-2 py-0" title="Code"><code>&lt;&gt;</code></button>
-                          <button type="button" @click="insertThreadFormat('> ', '')" class="btn btn-sm btn-white border extra-small px-2 py-0" title="Citation"><i class="bi bi-quote"></i></button>
+                        <!-- WYSIWYG quick toolbar + Attachment paperclip -->
+                        <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                          <div class="d-flex align-items-center gap-1">
+                            <button type="button" @click="insertThreadFormat('**', '**')" class="btn btn-sm btn-white border extra-small px-2 py-0" title="Gras"><strong>B</strong></button>
+                            <button type="button" @click="insertThreadFormat('*', '*')" class="btn btn-sm btn-white border extra-small px-2 py-0" title="Italique"><em>I</em></button>
+                            <button type="button" @click="insertThreadFormat('`', '`')" class="btn btn-sm btn-white border extra-small px-2 py-0" title="Code"><code>&lt;&gt;</code></button>
+                            <button type="button" @click="insertThreadFormat('> ', '')" class="btn btn-sm btn-white border extra-small px-2 py-0" title="Citation"><i class="bi bi-quote"></i></button>
+                          </div>
+
+                          <!-- Attachment trigger -->
+                          <div class="d-flex align-items-center gap-2">
+                            <button 
+                              type="button" 
+                              @click="triggerReplyFileInput" 
+                              class="btn btn-sm btn-white border extra-small px-2 py-1 text-muted d-flex align-items-center gap-1"
+                              title="Joindre un fichier ou une capture d'écran"
+                            >
+                              <i class="bi bi-paperclip"></i>
+                              <span>Joindre un fichier</span>
+                            </button>
+                            <input 
+                              type="file" 
+                              ref="replyFileInput" 
+                              @change="onReplyFileSelect" 
+                              accept="image/*,.pdf,.doc,.docx,.txt,.zip" 
+                              class="d-none"
+                            >
+                          </div>
                         </div>
 
+                        <!-- Attachment preview chip -->
+                        <div v-if="replyAttachment" class="alert alert-success p-2 small mb-2 d-flex align-items-center justify-content-between rounded-3">
+                          <div class="d-flex align-items-center gap-2 text-truncate">
+                            <i class="bi bi-paperclip fs-5 text-success"></i>
+                            <span class="text-truncate fw-bold">{{ replyAttachment.name }}</span>
+                            <small class="text-muted">({{ (replyAttachment.size / 1024 / 1024).toFixed(2) }} Mo)</small>
+                          </div>
+                          <button type="button" @click="cancelReplyAttachment" class="btn-close btn-sm"></button>
+                        </div>
+
+                        <!-- Textarea with Enter to submit -->
                         <div class="mb-2">
                           <textarea 
                             id="threadReplyInput"
                             v-model="threadReplyText"
+                            @keydown.enter.exact.prevent="sendThreadReply"
                             class="form-control" 
                             rows="3" 
-                            placeholder="Rédigez votre réponse ici. Vous pouvez échanger indéfiniment..."
+                            placeholder="Rédigez votre réponse ici... (Appuyez sur Entrée pour envoyer, Shift+Entrée pour nouvelle ligne)"
                             required
                           ></textarea>
                         </div>
 
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                           <small class="text-muted extra-small">
-                            <i class="bi bi-arrow-repeat me-1"></i> Réponse instantanée enregistrée dans le fil
+                            <i class="bi bi-keyboard me-1"></i> <strong>Entrée</strong> pour envoyer &bull; <strong>Shift+Entrée</strong> pour saut de ligne
                           </small>
                           <button 
                             type="submit" 
@@ -1116,7 +1376,10 @@
               <div v-else class="text-center py-5 text-muted bg-light rounded-4 m-4">
                 <i class="bi bi-chat-heart fs-1 d-block mb-2 text-success"></i>
                 <h5 class="fw-bold text-dark">Aucune conversation en cours</h5>
-                <p class="small text-muted mb-0">Les messages reçus ou envoyés aux startups et membres apparaîtront ici.</p>
+                <p class="small text-muted mb-3">Les messages reçus ou envoyés aux startups et membres apparaîtront ici.</p>
+                <button type="button" @click="openNewMessageModal" class="btn btn-success rounded-pill px-4 btn-sm fw-bold shadow-sm">
+                  <i class="bi bi-pencil-square me-1"></i> Écrire un message
+                </button>
               </div>
 
             </div>
@@ -1438,11 +1701,201 @@
       </div>
     </div>
 
+    <!-- MODAL: NOUVEAU MESSAGE PRIVE -->
+    <div 
+      v-if="showNewMessageModal" 
+      class="modal fade show d-block" 
+      tabindex="-1" 
+      style="background-color: rgba(0,0,0,0.6); z-index: 1060;" 
+      @click.self="showNewMessageModal = false"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden bg-white">
+          <div class="modal-header bg-dark text-white p-3 p-md-4 border-0">
+            <div class="d-flex align-items-center gap-2">
+              <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                <i class="bi bi-pencil-square fs-6"></i>
+              </div>
+              <div>
+                <h5 class="modal-title fw-bold mb-0">Nouveau message privé</h5>
+                <small class="text-white-50">Écrivez à un membre ou contactez l'équipe Tech237</small>
+              </div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" @click="showNewMessageModal = false"></button>
+          </div>
+
+          <div class="modal-body p-4">
+            <form @submit.prevent="submitNewMessage">
+              
+              <!-- Recipient Selector with Autocomplete -->
+              <div class="mb-3 position-relative" ref="newMsgAutocompleteContainer">
+                <label class="form-label small fw-bold text-dark">Destinataire <span class="text-danger">*</span></label>
+                
+                <!-- If recipient already selected -->
+                <div v-if="newMsgSelectedRecipient" class="p-2 border rounded-3 bg-light d-flex align-items-center justify-content-between mb-2">
+                  <div class="d-flex align-items-center gap-2">
+                    <div 
+                      v-if="hasCustomAvatar(newMsgSelectedRecipient.avatar)"
+                      class="rounded-circle border overflow-hidden" 
+                      style="width: 36px; height: 36px;"
+                    >
+                      <img :src="newMsgSelectedRecipient.avatar.startsWith('/') ? newMsgSelectedRecipient.avatar : '/' + newMsgSelectedRecipient.avatar" class="w-100 h-100 object-fit-cover">
+                    </div>
+                    <div 
+                      v-else 
+                      class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-xs"
+                      :style="{ width: '36px', height: '36px', backgroundColor: getAvatarBg(newMsgSelectedRecipient.name), fontSize: '13px' }"
+                    >
+                      {{ getInitials(newMsgSelectedRecipient.name) }}
+                    </div>
+                    <div>
+                      <strong class="d-block small text-dark">{{ newMsgSelectedRecipient.name }}</strong>
+                      <small class="text-muted" style="font-size: 11px;">{{ newMsgSelectedRecipient.email }}</small>
+                    </div>
+                  </div>
+                  <button type="button" @click="newMsgSelectedRecipient = null" class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0 extra-small">
+                    Changer
+                  </button>
+                </div>
+
+                <!-- Recipient Search input -->
+                <div v-else>
+                  <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                    <input 
+                      type="text" 
+                      class="form-control border-start-0" 
+                      v-model="newMsgSearchQuery" 
+                      @input="handleNewMsgSearch"
+                      @focus="handleNewMsgFocus"
+                      placeholder="Tapez le nom ou l'email d'un membre..."
+                      autocomplete="off"
+                    >
+                    <button 
+                      type="button" 
+                      @click="selectSupportRecipient" 
+                      class="btn btn-outline-danger btn-sm px-3"
+                      title="Contacter le support Tech237 directement"
+                    >
+                      <i class="bi bi-shield-fill me-1"></i> Support Tech237
+                    </button>
+                  </div>
+
+                  <!-- Autocomplete results dropdown -->
+                  <div 
+                    v-if="showNewMsgDropdown && newMsgSearchResults.length > 0" 
+                    class="autocomplete-dropdown shadow-lg rounded-3 border bg-white mt-1 py-1 position-absolute w-100"
+                    style="z-index: 1070; max-height: 220px; overflow-y: auto;"
+                  >
+                    <div class="px-3 py-1 small text-muted text-uppercase fw-bold border-bottom" style="font-size: 10px;">
+                      Membres trouvés (cliquez pour sélectionner)
+                    </div>
+                    <button
+                      type="button"
+                      v-for="u in newMsgSearchResults"
+                      :key="u.id"
+                      class="dropdown-item px-3 py-2 d-flex align-items-center gap-3 text-start border-0 bg-transparent w-100 cursor-pointer"
+                      @click="selectNewMsgRecipient(u)"
+                    >
+                      <div 
+                        v-if="hasCustomAvatar(u.avatar)"
+                        class="rounded-circle border overflow-hidden flex-shrink-0" 
+                        style="width: 32px; height: 32px;"
+                      >
+                        <img :src="u.avatar.startsWith('/') ? u.avatar : '/' + u.avatar" class="w-100 h-100 object-fit-cover">
+                      </div>
+                      <div 
+                        v-else 
+                        class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 shadow-xs"
+                        :style="{ width: '32px', height: '32px', backgroundColor: getAvatarBg(u.name), fontSize: '12px' }"
+                      >
+                        {{ getInitials(u.name) }}
+                      </div>
+                      <div class="flex-grow-1 overflow-hidden">
+                        <strong class="d-block small text-dark text-truncate mb-0">{{ u.name }}</strong>
+                        <small class="text-muted text-truncate d-block" style="font-size: 11px;">{{ u.email }}</small>
+                      </div>
+                      <i class="bi bi-plus-circle text-success small"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Subject -->
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-dark">Sujet du message <span class="text-danger">*</span></label>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  v-model="newMsgSubject" 
+                  placeholder="ex: Question sur le projet Tech Pay, opportunité..."
+                  required
+                >
+              </div>
+
+              <!-- Message Text -->
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-dark">Message <span class="text-danger">*</span></label>
+                <textarea 
+                  class="form-control" 
+                  rows="4" 
+                  v-model="newMsgText" 
+                  placeholder="Écrivez votre message..."
+                  required
+                ></textarea>
+              </div>
+
+              <!-- Optional Attachment -->
+              <div class="mb-4">
+                <label class="form-label small fw-bold text-dark mb-1">Pièce jointe (facultatif)</label>
+                <div class="d-flex align-items-center gap-2">
+                  <button 
+                    type="button" 
+                    @click="triggerNewMsgFileInput" 
+                    class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                  >
+                    <i class="bi bi-paperclip me-1"></i> Choisir un fichier
+                  </button>
+                  <span v-if="newMsgAttachment" class="badge bg-light text-dark border p-2 d-flex align-items-center gap-2">
+                    <span class="text-truncate" style="max-width: 200px;">{{ newMsgAttachment.name }}</span>
+                    <button type="button" @click="newMsgAttachment = null" class="btn-close btn-sm" style="font-size: 8px;"></button>
+                  </span>
+                  <input 
+                    type="file" 
+                    ref="newMsgFileInput" 
+                    @change="onNewMsgFileSelect" 
+                    accept="image/*,.pdf,.doc,.docx,.txt,.zip" 
+                    class="d-none"
+                  >
+                </div>
+                <small class="text-muted d-block mt-1" style="font-size: 11px;">Images, PDF, Word, TXT, ZIP jusqu'à 10 Mo.</small>
+              </div>
+
+              <!-- Footer Buttons -->
+              <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                <button type="button" class="btn btn-light rounded-pill px-4" @click="showNewMessageModal = false">Annuler</button>
+                <button 
+                  type="submit" 
+                  class="btn btn-success rounded-pill px-4 fw-bold shadow-sm"
+                  :disabled="isSendingNewMsg || (!newMsgSelectedRecipient && !newMsgIsSupport)"
+                >
+                  <span v-if="isSendingNewMsg" class="spinner-border spinner-border-sm me-1"></span>
+                  <i v-else class="bi bi-send-fill me-1"></i>
+                  Envoyer le message
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </FrontLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Head, Link, useForm, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 
@@ -1741,11 +2194,64 @@ function markAsRead(id) {
   })
 }
 
-// Interactive Messaging Threads (Continuous two-way messaging)
+// --------------------------------------------------------------------------
+// INTERACTIVE MESSAGING & DISCUSSION THREADS (Enhanced)
+// --------------------------------------------------------------------------
+const conversationSearch = ref('')
+const conversationFilterTab = ref('all') // 'all', 'unread', 'admin', 'user'
 const activeConversationKey = ref(null)
+const mobileShowThread = ref(false)
 const threadReplyText = ref('')
 const threadReplySubject = ref('')
+const replyAttachment = ref(null)
+const replyFileInput = ref(null)
 const isSendingReply = ref(false)
+
+// New Message Modal State
+const showNewMessageModal = ref(false)
+const newMsgSearchQuery = ref('')
+const newMsgSearchResults = ref([])
+const showNewMsgDropdown = ref(false)
+const newMsgSelectedRecipient = ref(null)
+const newMsgIsSupport = ref(false)
+const newMsgSubject = ref('')
+const newMsgText = ref('')
+const newMsgAttachment = ref(null)
+const newMsgFileInput = ref(null)
+const isSendingNewMsg = ref(false)
+const newMsgAutocompleteContainer = ref(null)
+let newMsgDebounceTimer = null
+
+// Avatar fallback helpers
+function hasCustomAvatar(avatar) {
+  if (!avatar) return false
+  if (typeof avatar !== 'string') return false
+  const lower = avatar.toLowerCase()
+  if (lower.includes('default-avatar') || lower.includes('default.jpg') || lower.includes('placeholder')) return false
+  return true
+}
+
+function getInitials(name) {
+  if (!name) return 'U'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase()
+  }
+  return name.substring(0, 2).toUpperCase()
+}
+
+function getAvatarBg(name) {
+  const colors = [
+    '#00A859', '#10B981', '#059669', '#3B82F6', '#2563EB',
+    '#6366F1', '#8B5CF6', '#EC4899', '#F59E0B', '#EF4444', '#14B8A6'
+  ]
+  if (!name) return colors[0]
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colors[Math.abs(hash) % colors.length]
+}
 
 const conversations = computed(() => {
   const map = {}
@@ -1754,24 +2260,24 @@ const conversations = computed(() => {
   ;(props.messages || []).forEach(msg => {
     let partnerKey = null
     let partnerName = 'Membre Tech237'
-    let partnerAvatar = 'assets/images/default-avatar.png'
+    let partnerAvatar = null
     let partnerType = 'user'
     let rawPartnerId = null
 
     if (msg.admin) {
       partnerKey = 'admin_' + msg.admin.id
       partnerName = msg.admin.name || 'Support Tech237'
-      partnerAvatar = msg.admin.avatar || 'assets/images/author-default.png'
+      partnerAvatar = msg.admin.avatar || null
       partnerType = 'admin'
     } else if (msg.sender && msg.sender.id !== authId) {
       partnerKey = 'user_' + msg.sender.id
       partnerName = msg.sender.name
-      partnerAvatar = msg.sender.avatar || 'assets/images/default-avatar.png'
+      partnerAvatar = msg.sender.avatar || null
       rawPartnerId = msg.sender.id
     } else if (msg.user && msg.user.id !== authId) {
       partnerKey = 'user_' + msg.user.id
       partnerName = msg.user.name
-      partnerAvatar = msg.user.avatar || 'assets/images/default-avatar.png'
+      partnerAvatar = msg.user.avatar || null
       rawPartnerId = msg.user.id
     } else {
       partnerKey = 'support_general'
@@ -1804,6 +2310,40 @@ const conversations = computed(() => {
     c.lastMessage = c.messages[c.messages.length - 1]
   })
 
+  // Sort by latest message date descending
+  list.sort((a, b) => {
+    const timeA = a.lastMessage?.created_at ? new Date(a.lastMessage.created_at).getTime() : 0
+    const timeB = b.lastMessage?.created_at ? new Date(b.lastMessage.created_at).getTime() : 0
+    return timeB - timeA
+  })
+
+  return list
+})
+
+const unreadConversationsCount = computed(() => {
+  return conversations.value.filter(c => c.unreadCount > 0).length
+})
+
+const filteredConversations = computed(() => {
+  let list = conversations.value
+
+  if (conversationFilterTab.value === 'unread') {
+    list = list.filter(c => c.unreadCount > 0)
+  } else if (conversationFilterTab.value === 'admin') {
+    list = list.filter(c => c.type === 'admin')
+  } else if (conversationFilterTab.value === 'user') {
+    list = list.filter(c => c.type === 'user')
+  }
+
+  const q = conversationSearch.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter(c => 
+      c.name.toLowerCase().includes(q) ||
+      (c.lastMessage?.subject && c.lastMessage.subject.toLowerCase().includes(q)) ||
+      (c.lastMessage?.message && c.lastMessage.message.toLowerCase().includes(q))
+    )
+  }
+
   return list
 })
 
@@ -1816,6 +2356,7 @@ const activeConversation = computed(() => {
 
 function selectConversation(c) {
   activeConversationKey.value = c.key
+  mobileShowThread.value = true
   const lastSub = c.lastMessage?.subject || 'Message Tech237'
   threadReplySubject.value = lastSub.startsWith('Re:') ? lastSub : ('Re: ' + lastSub)
   
@@ -1824,21 +2365,57 @@ function selectConversation(c) {
       markAsRead(m.id)
     }
   })
+
+  scrollToBottom()
+}
+
+function scrollToBottom() {
+  nextTick(() => {
+    const box = document.getElementById('chatStreamBox')
+    if (box) {
+      box.scrollTop = box.scrollHeight
+    }
+  })
+}
+
+// Reply Attachment Handlers
+function triggerReplyFileInput() {
+  if (replyFileInput.value) replyFileInput.value.click()
+}
+
+function onReplyFileSelect(e) {
+  if (e.target.files && e.target.files.length > 0) {
+    replyAttachment.value = e.target.files[0]
+  }
+}
+
+function cancelReplyAttachment() {
+  replyAttachment.value = null
+  if (replyFileInput.value) replyFileInput.value.value = ''
 }
 
 function sendThreadReply() {
   if (!threadReplyText.value.trim() || !activeConversation.value) return
   isSendingReply.value = true
 
-  router.post('/espace-utilisateur/messages/envoyer', {
-    recipient_id: activeConversation.value.rawId || undefined,
-    subject: threadReplySubject.value || 'Re: Message Tech237',
-    message: threadReplyText.value,
-  }, {
+  const formData = new FormData()
+  if (activeConversation.value.rawId) {
+    formData.append('recipient_id', activeConversation.value.rawId)
+  }
+  formData.append('subject', threadReplySubject.value || 'Re: Message Tech237')
+  formData.append('message', threadReplyText.value)
+  if (replyAttachment.value) {
+    formData.append('attachment', replyAttachment.value)
+  }
+
+  router.post('/espace-utilisateur/messages/envoyer', formData, {
     preserveScroll: true,
+    forceFormData: true,
     onSuccess: () => {
       threadReplyText.value = ''
+      cancelReplyAttachment()
       isSendingReply.value = false
+      scrollToBottom()
     },
     onError: () => {
       isSendingReply.value = false
@@ -1855,6 +2432,161 @@ function insertThreadFormat(before, after) {
   threadReplyText.value = threadReplyText.value.substring(0, start) + before + selected + after + threadReplyText.value.substring(end)
 }
 
+function toggleReaction(msgId, emoji) {
+  router.post(`/espace-utilisateur/messages/${msgId}/reaction`, { emoji }, {
+    preserveScroll: true,
+  })
+}
+
+function confirmDeleteMessage(msgId) {
+  if (confirm('Voulez-vous vraiment supprimer ce message ?')) {
+    router.delete(`/espace-utilisateur/messages/${msgId}`, {
+      preserveScroll: true,
+    })
+  }
+}
+
+// New Message Modal Handlers
+function openNewMessageModal() {
+  newMsgSearchQuery.value = ''
+  newMsgSearchResults.value = []
+  newMsgSelectedRecipient.value = null
+  newMsgIsSupport.value = false
+  newMsgSubject.value = ''
+  newMsgText.value = ''
+  newMsgAttachment.value = null
+  showNewMessageModal.value = true
+}
+
+function handleNewMsgSearch() {
+  const q = newMsgSearchQuery.value.trim()
+  if (newMsgDebounceTimer) clearTimeout(newMsgDebounceTimer)
+  if (q.length < 2) {
+    newMsgSearchResults.value = []
+    showNewMsgDropdown.value = false
+    return
+  }
+  newMsgDebounceTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      if (res.ok) {
+        newMsgSearchResults.value = await res.json()
+        showNewMsgDropdown.value = true
+      }
+    } catch (e) {}
+  }, 250)
+}
+
+function handleNewMsgFocus() {
+  if (newMsgSearchResults.value.length > 0) {
+    showNewMsgDropdown.value = true
+  }
+}
+
+function selectNewMsgRecipient(u) {
+  newMsgSelectedRecipient.value = u
+  newMsgIsSupport.value = false
+  showNewMsgDropdown.value = false
+}
+
+function selectSupportRecipient() {
+  newMsgSelectedRecipient.value = {
+    id: null,
+    name: 'Support Tech237 (Admin)',
+    email: 'admin@tech237.cm',
+    avatar: null
+  }
+  newMsgIsSupport.value = true
+  showNewMsgDropdown.value = false
+}
+
+function triggerNewMsgFileInput() {
+  if (newMsgFileInput.value) newMsgFileInput.value.click()
+}
+
+function onNewMsgFileSelect(e) {
+  if (e.target.files && e.target.files.length > 0) {
+    newMsgAttachment.value = e.target.files[0]
+  }
+}
+
+function submitNewMessage() {
+  if (!newMsgSubject.value.trim() || !newMsgText.value.trim()) return
+  isSendingNewMsg.value = true
+
+  const formData = new FormData()
+  if (newMsgSelectedRecipient.value?.id) {
+    formData.append('recipient_id', newMsgSelectedRecipient.value.id)
+  }
+  formData.append('subject', newMsgSubject.value)
+  formData.append('message', newMsgText.value)
+  if (newMsgAttachment.value) {
+    formData.append('attachment', newMsgAttachment.value)
+  }
+
+  router.post('/espace-utilisateur/messages/envoyer', formData, {
+    preserveScroll: true,
+    forceFormData: true,
+    onSuccess: () => {
+      showNewMessageModal.value = false
+      isSendingNewMsg.value = false
+      if (newMsgSelectedRecipient.value?.id) {
+        activeConversationKey.value = 'user_' + newMsgSelectedRecipient.value.id
+      }
+      mobileShowThread.value = true
+      scrollToBottom()
+    },
+    onError: () => {
+      isSendingNewMsg.value = false
+    }
+  })
+}
+
+// Background soft polling when viewing messages section
+let messagesPollingInterval = null
+
+onMounted(() => {
+  if (props.activeSection === 'messages') {
+    startMessagesPolling()
+    scrollToBottom()
+  }
+})
+
+watch(() => currentSection.value, (newSec) => {
+  if (newSec === 'messages') {
+    startMessagesPolling()
+    scrollToBottom()
+  } else {
+    stopMessagesPolling()
+  }
+})
+
+function startMessagesPolling() {
+  stopMessagesPolling()
+  messagesPollingInterval = setInterval(() => {
+    if (currentSection.value === 'messages' && !isSendingReply.value && !isSendingNewMsg.value) {
+      router.reload({
+        only: ['messages', 'unreadMessagesCount'],
+        preserveScroll: true,
+      })
+    }
+  }, 12000)
+}
+
+function stopMessagesPolling() {
+  if (messagesPollingInterval) {
+    clearInterval(messagesPollingInterval)
+    messagesPollingInterval = null
+  }
+}
+
+onBeforeUnmount(() => {
+  stopMessagesPolling()
+  if (newMsgDebounceTimer) clearTimeout(newMsgDebounceTimer)
+})
+
 function deleteDoc(id) {
   if (confirm('Confirmer la suppression de ce document ?')) {
     router.delete(`/espace-utilisateur/documents/${id}`, {
@@ -1863,3 +2595,18 @@ function deleteDoc(id) {
   }
 }
 </script>
+
+<style scoped>
+.shadow-xs {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.hover-opacity-100:hover {
+  opacity: 1 !important;
+}
+.extra-small {
+  font-size: 11px;
+}
+</style>
