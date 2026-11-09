@@ -14,6 +14,14 @@ class KanbanTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_authenticated_user_can_access_kanban_index_page()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user, 'web')->get('/espace-utilisateur/kanban');
+        $response->assertStatus(200);
+    }
+
     public function test_authenticated_user_can_create_kanban_board_with_default_columns()
     {
         $user = User::factory()->create();

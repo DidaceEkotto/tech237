@@ -65,17 +65,7 @@ class KanbanBoard extends Model
 
         if ($this->project_id) {
             $project = $this->project;
-            if ($project && (int)$project->user_id === (int)$user->id) {
-                return true;
-            }
-
-            // Check if user is accepted collaborator
-            $isCollab = ProjectCollaboration::where('project_id', $this->project_id)
-                ->where('user_id', $user->id)
-                ->where('status', 'accepted')
-                ->exists();
-
-            if ($isCollab) {
+            if ($project && $project->canContribute($user)) {
                 return true;
             }
         }
@@ -98,14 +88,9 @@ class KanbanBoard extends Model
 
         if ($this->project_id) {
             $project = $this->project;
-            if ($project && (int)$project->user_id === (int)$user->id) {
+            if ($project && $project->canContribute($user)) {
                 return true;
             }
-
-            return ProjectCollaboration::where('project_id', $this->project_id)
-                ->where('user_id', $user->id)
-                ->where('status', 'accepted')
-                ->exists();
         }
 
         return false;

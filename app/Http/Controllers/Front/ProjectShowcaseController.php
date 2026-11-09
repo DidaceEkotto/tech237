@@ -63,10 +63,7 @@ class ProjectShowcaseController extends Controller
             ->where('bookmarkable_id', $project->id)
             ->exists() : false;
 
-        $canManageKanban = false;
-        if ($user) {
-            $canManageKanban = ((int)$project->user_id === (int)$user->id) || \App\Models\ProjectCollaboration::where('project_id', $project->id)->where('user_id', $user->id)->where('status', 'accepted')->exists();
-        }
+        $canManageKanban = $project->canContribute($user);
         $hasPublicRoadmap = \App\Models\KanbanBoard::where('project_id', $project->id)->where('is_public', true)->exists();
 
         return Inertia::render('Projects/Show', [

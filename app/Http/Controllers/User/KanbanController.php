@@ -7,7 +7,7 @@ use App\Models\KanbanBoard;
 use App\Models\KanbanCard;
 use App\Models\KanbanColumn;
 use App\Models\Project;
-use App\Models\ProjectCollaboration;
+use App\Models\ProjectCollaborator;
 use App\Models\ProjectTimeline;
 use App\Models\User;
 use App\Services\BookmarkNotificationService;
@@ -24,9 +24,9 @@ class KanbanController extends Controller
     {
         $user = Auth::guard('web')->user();
 
-        // Project IDs where user is accepted collaborator
-        $collabProjectIds = ProjectCollaboration::where('user_id', $user->id)
-            ->where('status', 'accepted')
+        // Project IDs where user is active collaborator
+        $collabProjectIds = ProjectCollaborator::where('user_id', $user->id)
+            ->where('status', 'active')
             ->pluck('project_id');
 
         // Own projects
@@ -73,11 +73,8 @@ class KanbanController extends Controller
         $project = Project::findOrFail($projectId);
 
         // Security check
-        $isOwner = (int)$project->user_id === (int)$user->id;
-        $isCollab = ProjectCollaboration::where('project_id', $project->id)
-            ->where('user_id', $user->id)
-            ->where('status', 'accepted')
-            ->exists();
+        $isOwner = $project->isOwner($user);
+        $isCollab = $project->isCollaborator($user);
 
         if (!$isOwner && !$isCollab) {
             return redirect()->route('user.dashboard')->withErrors(['error' => "Accès non autorisé à ce projet."]);
@@ -151,9 +148,9 @@ class KanbanController extends Controller
             }
 
             // Project collaborators
-            $collabs = ProjectCollaboration::with('user')
+            $collabs = ProjectCollaborator::with('user')
                 ->where('project_id', $board->project_id)
-                ->where('status', 'accepted')
+                ->where('status', 'active')
                 ->get();
 
             foreach ($collabs as $c) {
@@ -190,11 +187,8 @@ class KanbanController extends Controller
 
         if (!empty($validated['project_id'])) {
             $project = Project::findOrFail($validated['project_id']);
-            $isOwner = (int)$project->user_id === (int)$user->id;
-            $isCollab = ProjectCollaboration::where('project_id', $project->id)
-                ->where('user_id', $user->id)
-                ->where('status', 'accepted')
-                ->exists();
+            $isOwner = $project->isOwner($user);
+            $isCollab = $project->isCollaborator($user);
 
             if (!$isOwner && !$isCollab) {
                 return back()->withErrors(['error' => "Action non autorisée pour ce projet."]);
@@ -504,11 +498,8 @@ class KanbanController extends Controller
         }
 
         $project = $card->board->project;
-        $isOwner = (int)$project->user_id === (int)$user->id;
-        $isCollab = ProjectCollaboration::where('project_id', $project->id)
-            ->where('user_id', $user->id)
-            ->where('status', 'accepted')
-            ->exists();
+        $isOwner = $project->isOwner($user);
+        $isCollab = $project->isCollaborator($user);
 
         if (!$isOwner && !$isCollab) {
             abort(403);
