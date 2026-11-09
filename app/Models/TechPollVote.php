@@ -14,6 +14,7 @@ class TechPollVote extends Model
         'tech_poll_id',
         'tech_poll_option_id',
         'user_id',
+        'guest_token',
         'ip_address',
         'user_agent',
     ];

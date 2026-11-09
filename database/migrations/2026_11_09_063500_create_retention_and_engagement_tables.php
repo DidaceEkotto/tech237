@@ -56,6 +56,7 @@ return new class extends Migration
                 $table->foreignId('tech_poll_option_id')->constrained('tech_poll_options')->cascadeOnDelete();
                 $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
                 $table->string('ip_address', 45)->nullable();
+                $table->string('guest_token', 64)->nullable()->index();
                 $table->text('user_agent')->nullable();
                 $table->timestamps();
                 $table->index(['tech_poll_id', 'ip_address']);

@@ -187,4 +187,56 @@ class RetentionSystemTest extends TestCase
             'alert_newsletter' => true,
         ]);
     }
+
+    public function test_guest_can_vote_in_active_daily_poll_and_cannot_vote_twice()
+    {
+        $poll = TechPoll::create([
+            'question' => 'Quel OS mobile préférez-vous ?',
+            'is_active' => true,
+        ]);
+
+        $option1 = TechPollOption::create([
+            'tech_poll_id' => $poll->id,
+            'label' => 'Android',
+            'votes_count' => 0,
+        ]);
+
+        $option2 = TechPollOption::create([
+            'tech_poll_id' => $poll->id,
+            'label' => 'iOS',
+            'votes_count' => 0,
+        ]);
+
+        $guestToken = 'g_test_token_12345';
+
+        // 1. Guest can vote without authentication
+        $response = $this->postJson("/sondages/{$poll->id}/vote", [
+            'option_id' => $option1->id,
+            'guest_token' => $guestToken,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+            'poll' => [
+                'has_voted' => true,
+            ],
+        ]);
+        $response->assertCookie('voted_poll_' . $poll->id, '1');
+
+        $option1->refresh();
+        $this->assertEquals(1, $option1->votes_count);
+
+        // 2. Guest cannot vote twice with same guest token or session
+        $dupResponse = $this->postJson("/sondages/{$poll->id}/vote", [
+            'option_id' => $option2->id,
+            'guest_token' => $guestToken,
+        ]);
+
+        $dupResponse->assertStatus(422);
+        $dupResponse->assertJson(['error' => 'Vous avez déjà voté pour ce sondage.']);
+
+        $option2->refresh();
+        $this->assertEquals(0, $option2->votes_count);
+    }
 }

@@ -154,7 +154,7 @@ class HomeController extends Controller
             ->first();
 
         if ($activePoll) {
-            $activePoll->user_has_voted = $activePoll->hasUserVoted(auth()->id(), request()->ip());
+            $activePoll->user_has_voted = $activePoll->hasUserVoted(auth()->id(), request()->ip(), request()->cookie('tech237_guest_token'));
         }
 
         return Inertia::render('Home', [

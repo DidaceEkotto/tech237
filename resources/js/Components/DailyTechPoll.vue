@@ -64,6 +64,9 @@
         <span v-if="isSubmitting" class="spinner-border spinner-border-sm"></span>
         <span v-else><i class="bi bi-send-fill me-1"></i> Voter &amp; Découvrir les résultats</span>
       </button>
+      <div class="text-center text-white-50 extra-small mt-1" style="font-size: 11px;">
+        <i class="bi bi-shield-check me-1"></i> 1 seul vote par personne &bull; Ouvert à tous
+      </div>
     </div>
 
     <!-- Results view if already voted -->
@@ -90,7 +93,7 @@
       </div>
 
       <div class="text-center text-white-50 small mt-2">
-        <i class="bi bi-check-circle-fill text-success me-1"></i> Merci pour votre participation !
+        <i class="bi bi-check-circle-fill text-success me-1"></i> Votre vote est comptabilisé. Merci pour votre participation !
       </div>
     </div>
   </div>
@@ -113,22 +116,49 @@ const successMsg = ref('')
 const errorMsg = ref('')
 const livePoll = ref(props.poll ? JSON.parse(JSON.stringify(props.poll)) : null)
 
+function getGuestToken() {
+  if (typeof window === 'undefined') return ''
+  let token = localStorage.getItem('tech237_poll_guest_token')
+  if (!token) {
+    token = 'g_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + Date.now().toString(36)
+    localStorage.setItem('tech237_poll_guest_token', token)
+  }
+  return token
+}
+
+function checkIfVotedLocally(pollId) {
+  if (typeof window === 'undefined' || !pollId) return false
+  return localStorage.getItem(`tech237_poll_voted_${pollId}`) === '1'
+}
+
 watch(() => props.poll, (newPoll) => {
   if (newPoll) {
     livePoll.value = JSON.parse(JSON.stringify(newPoll))
-    hasVoted.value = newPoll.user_has_voted || newPoll.has_voted || false
+    hasVoted.value = newPoll.user_has_voted || newPoll.has_voted || checkIfVotedLocally(newPoll.id) || false
   }
 }, { deep: true })
 
 onMounted(async () => {
+  const token = getGuestToken()
+  if (livePoll.value?.id && checkIfVotedLocally(livePoll.value.id)) {
+    hasVoted.value = true
+  }
+
   if (!livePoll.value) {
     try {
-      const res = await fetch('/api/sondage-actif')
+      const res = await fetch(`/api/sondage-actif?guest_token=${encodeURIComponent(token)}`, {
+        headers: {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        }
+      })
       if (res.ok) {
         const data = await res.json()
         if (data && data.poll) {
           livePoll.value = data.poll
-          hasVoted.value = data.poll.has_voted || false
+          if (data.poll.has_voted || checkIfVotedLocally(data.poll.id)) {
+            hasVoted.value = true
+          }
         }
       }
     } catch (e) {
@@ -166,36 +196,88 @@ async function submitVote() {
   errorMsg.value = ''
   successMsg.value = ''
 
+  const guestToken = getGuestToken()
+
   try {
     const res = await fetch(`/sondages/${livePoll.value.id}/vote`, {
       method: 'POST',
       headers: {
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
       },
       body: JSON.stringify({
         option_id: selectedOption.value,
+        guest_token: guestToken,
       }),
     })
 
-    const data = await res.json()
+    let data = null
+    const contentType = res.headers.get('content-type') || ''
+    if (contentType.includes('application/json')) {
+      data = await res.json()
+    } else {
+      const text = await res.text()
+      try {
+        data = JSON.parse(text)
+      } catch (err) {
+        if (res.ok) {
+          data = { success: true }
+        }
+      }
+    }
 
     if (!res.ok) {
-      errorMsg.value = data.error || 'Erreur lors de la prise en compte de votre vote.'
+      errorMsg.value = data?.error || 'Erreur lors de la prise en compte de votre vote.'
+      if (res.status === 422 && data?.error?.includes('déjà voté')) {
+        hasVoted.value = true
+        localStorage.setItem(`tech237_poll_voted_${livePoll.value.id}`, '1')
+      }
     } else {
       hasVoted.value = true
-      successMsg.value = data.message || 'Votre vote a bien été enregistré !'
-      if (data.poll) {
+      localStorage.setItem(`tech237_poll_voted_${livePoll.value.id}`, '1')
+      successMsg.value = data?.message || 'Votre vote a bien été enregistré !'
+      
+      if (data?.poll) {
         livePoll.value = data.poll
       } else {
-        // Fallback: increment locally
-        const opt = livePoll.value.options.find(o => o.id === selectedOption.value)
-        if (opt) opt.votes_count = (opt.votes_count || 0) + 1
+        // Fetch fresh results
+        try {
+          const freshRes = await fetch(`/api/sondage-actif?guest_token=${encodeURIComponent(guestToken)}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+          })
+          if (freshRes.ok) {
+            const freshData = await freshRes.json()
+            if (freshData?.poll) {
+              livePoll.value = freshData.poll
+            }
+          }
+        } catch (fetchErr) {
+          const opt = livePoll.value.options.find(o => o.id === selectedOption.value)
+          if (opt) opt.votes_count = (opt.votes_count || 0) + 1
+        }
       }
     }
   } catch (e) {
-    errorMsg.value = 'Erreur réseau lors de l\'enregistrement de votre vote.'
+    console.error('Poll submit error:', e)
+    // Probe /api/sondage-actif to see if vote actually succeeded
+    try {
+      const probeRes = await fetch(`/api/sondage-actif?guest_token=${encodeURIComponent(guestToken)}`, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      if (probeRes.ok) {
+        const probeData = await probeRes.json()
+        if (probeData?.poll?.has_voted) {
+          hasVoted.value = true
+          localStorage.setItem(`tech237_poll_voted_${livePoll.value.id}`, '1')
+          livePoll.value = probeData.poll
+          successMsg.value = 'Votre vote a bien été enregistré !'
+          return
+        }
+      }
+    } catch (_) {}
+    errorMsg.value = 'Erreur lors de l\'enregistrement de votre vote. Veuillez réessayer.'
   } finally {
     isSubmitting.value = false
   }

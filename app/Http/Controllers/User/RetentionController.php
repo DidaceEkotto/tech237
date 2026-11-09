@@ -82,28 +82,42 @@ class RetentionController extends Controller
 
         $validated = $request->validate([
             'option_id' => 'required|exists:tech_poll_options,id',
+            'guest_token' => 'nullable|string|max:64',
         ]);
 
         $option = TechPollOption::where('tech_poll_id', $poll->id)->findOrFail($validated['option_id']);
 
         $user = Auth::guard('web')->user();
         $ip = $request->ip();
+        $guestToken = $validated['guest_token'] ?? $request->cookie('tech237_guest_token');
 
         // Check if already voted
-        if ($poll->hasUserVoted($user?->id, $ip)) {
-            if ($request->wantsJson()) {
+        if ($poll->hasUserVoted($user?->id, $ip, $guestToken)) {
+            if ($request->expectsJson() || $request->wantsJson() || $request->ajax() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
                 return response()->json(['error' => 'Vous avez déjà voté pour ce sondage.'], 422);
             }
             return back()->withErrors(['error' => 'Vous avez déjà voté pour ce sondage.']);
         }
 
-        TechPollVote::create([
+        if (!$guestToken) {
+            $guestToken = bin2hex(random_bytes(16));
+        }
+
+        $voteData = [
             'tech_poll_id' => $poll->id,
             'tech_poll_option_id' => $option->id,
             'user_id' => $user?->id,
             'ip_address' => $ip,
             'user_agent' => substr((string)$request->userAgent(), 0, 500),
-        ]);
+        ];
+
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('tech_poll_votes', 'guest_token')) {
+                $voteData['guest_token'] = $guestToken;
+            }
+        } catch (\Throwable $e) {}
+
+        TechPollVote::create($voteData);
 
         $option->increment('votes_count');
 
@@ -111,17 +125,43 @@ class RetentionController extends Controller
             $user->addXp(3);
         }
 
-        $poll->load('options');
+        try {
+            session()->put('voted_poll_' . $poll->id, true);
+        } catch (\Throwable $e) {}
 
-        if ($request->wantsJson()) {
+        $poll->load('options');
+        $totalVotes = (int)$poll->options->sum('votes_count');
+
+        $pollFormatted = [
+            'id' => $poll->id,
+            'question' => $poll->question,
+            'description' => $poll->description,
+            'total_votes' => $totalVotes,
+            'has_voted' => true,
+            'options' => $poll->options->map(function ($opt) use ($totalVotes) {
+                return [
+                    'id' => $opt->id,
+                    'label' => $opt->label,
+                    'votes_count' => $opt->votes_count,
+                    'percentage' => $totalVotes > 0 ? round(($opt->votes_count / $totalVotes) * 100) : 0,
+                ];
+            }),
+        ];
+
+        $responseMessage = 'Votre vote a bien été enregistré !' . ($user ? ' +3 XP gagnés 🎯' : '');
+
+        $cookiePoll = cookie('voted_poll_' . $poll->id, '1', 60 * 24 * 365, null, null, false, false);
+        $cookieGuest = cookie('tech237_guest_token', $guestToken, 60 * 24 * 365, null, null, false, false);
+
+        if ($request->expectsJson() || $request->wantsJson() || $request->ajax() || $request->isJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
             return response()->json([
                 'success' => true,
-                'message' => 'Votre vote a été pris en compte !' . ($user ? ' +3 XP gagnés 🎯' : ''),
-                'poll' => $poll,
-            ]);
+                'message' => $responseMessage,
+                'poll' => $pollFormatted,
+            ])->withCookie($cookiePoll)->withCookie($cookieGuest);
         }
 
-        return back()->with('success', 'Votre vote a bien été enregistré !');
+        return back()->with('success', $responseMessage)->withCookie($cookiePoll)->withCookie($cookieGuest);
     }
 
     /**
@@ -230,7 +270,8 @@ class RetentionController extends Controller
 
         $user = Auth::guard('web')->user();
         $ip = $request->ip();
-        $hasVoted = $poll->hasUserVoted($user?->id, $ip);
+        $guestToken = $request->input('guest_token') ?? $request->cookie('tech237_guest_token');
+        $hasVoted = $poll->hasUserVoted($user?->id, $ip, $guestToken);
 
         $totalVotes = (int)$poll->options->sum('votes_count');
 
