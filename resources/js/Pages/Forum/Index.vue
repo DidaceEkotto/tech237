@@ -123,12 +123,21 @@
                   <td>
                     <div class="d-flex align-items-start gap-3">
                       <!-- Author avatar -->
-                      <Link :href="'/forum/auteur/' + topic.user?.id" class="text-decoration-none">
+                      <Link :href="'/forum/auteur/' + topic.user?.id" class="text-decoration-none flex-shrink-0">
                         <img 
-                          :src="'/' + (topic.user?.avatar || 'assets/images/default-avatar.png')" 
+                          v-if="topic.user?.avatar"
+                          :src="'/' + topic.user.avatar" 
                           class="rounded-circle" 
                           style="width: 40px; height: 40px; object-fit: cover;"
+                          :alt="topic.user?.name || 'Avatar'"
                         >
+                        <div 
+                          v-else 
+                          class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                          style="width: 40px; height: 40px; font-size: 1.1rem; min-width: 40px;"
+                        >
+                          {{ (topic.user?.name || topic.user?.full_name || 'U').charAt(0).toUpperCase() }}
+                        </div>
                       </Link>
                       <div>
                         <div class="d-flex align-items-center gap-2 flex-wrap mb-1">

@@ -35,10 +35,14 @@
                 <img :src="'/' + project.logo" class="w-100 h-100 object-fit-contain rounded-2" :alt="project.name">
               </div>
               <div>
-                <span class="badge bg-danger text-uppercase mb-2">{{ project.project_type }}</span>
+                <span class="badge bg-danger text-uppercase mb-2">{{ formatProjectType(project.project_type) }}</span>
                 <h1 class="fw-bold display-6 mb-2">{{ project.name }}</h1>
                 <div class="d-flex align-items-center gap-2 text-muted small flex-wrap">
-                  <span v-if="project.startup"><i class="bi bi-building me-1"></i>{{ project.startup.name }} ({{ project.startup.legal_type }})</span>
+                  <span v-if="project.startup">
+                    <Link :href="'/startups/' + (project.startup.slug || project.startup.id)" class="text-secondary text-decoration-none hover-danger">
+                      <i class="bi bi-building me-1"></i>{{ project.startup.name }} ({{ project.startup.legal_type }})
+                    </Link>
+                  </span>
                   <span v-if="project.user">&bull; Porté par {{ project.user.full_name || project.user.name }}</span>
                   <span v-if="project.development_duration">&bull; Durée : {{ project.development_duration }}</span>
                   <span>&bull; {{ project.views_count }} vues</span>
@@ -100,7 +104,7 @@
                   <div class="card border-0 shadow-sm rounded-3 p-3 bg-light">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                       <h6 class="fw-bold text-dark mb-0">{{ step.title }}</h6>
-                      <small class="text-muted">{{ step.event_date || 'Étape validée' }}</small>
+                      <small class="text-muted"><i class="bi bi-calendar-event me-1"></i>{{ formatDevlogDate(step.event_date || step.created_at) }}</small>
                     </div>
 
                     <p v-if="step.description" class="small text-secondary mb-2">{{ step.description }}</p>
@@ -211,25 +215,38 @@
             </div>
 
             <label class="small text-muted fw-bold d-block mb-1">Catégorie :</label>
-            <span class="badge bg-danger-subtle text-danger">{{ project.project_type }}</span>
+            <div class="d-flex flex-wrap gap-1">
+              <span class="badge bg-danger-subtle text-danger">{{ formatProjectType(project.project_type) }}</span>
+              <span v-for="sub in (project.app_types || project.game_types || [])" :key="sub" class="badge bg-secondary-subtle text-dark">
+                {{ sub }}
+              </span>
+            </div>
           </div>
 
           <!-- Startup Card -->
           <div v-if="project.startup" class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
             <h5 class="fw-bold mb-3"><i class="bi bi-building text-danger me-2"></i>Startup Porteuse</h5>
             <div class="d-flex align-items-center gap-2 mb-2">
-              <img v-if="project.startup.logo" :src="'/' + project.startup.logo" class="rounded border p-1" style="width: 40px; height: 40px; object-fit: contain;">
+              <Link :href="'/startups/' + (project.startup.slug || project.startup.id)" class="text-decoration-none">
+                <img v-if="project.startup.logo" :src="'/' + project.startup.logo" class="rounded border p-1" style="width: 48px; height: 48px; object-fit: contain;">
+              </Link>
               <div>
-                <div class="fw-bold text-dark fs-6 mb-0">{{ project.startup.name }}</div>
+                <Link :href="'/startups/' + (project.startup.slug || project.startup.id)" class="fw-bold text-dark fs-6 mb-0 text-decoration-none hover-danger d-block">
+                  {{ project.startup.name }}
+                </Link>
                 <div class="small text-muted">{{ project.startup.legal_type }} &bull; {{ project.startup.city }}</div>
               </div>
             </div>
             <div class="small text-secondary mb-3">{{ project.startup.description }}</div>
             
-            <div v-if="project.startup.needs_funding" class="alert alert-info py-2 px-3 small mb-0">
+            <div v-if="project.startup.needs_funding" class="alert alert-info py-2 px-3 small mb-3">
               <i class="bi bi-cash-coin me-1"></i> Recherche investissement : 
               <strong>{{ Number(project.startup.funding_amount).toLocaleString() }} FCFA</strong>
             </div>
+
+            <Link :href="'/startups/' + (project.startup.slug || project.startup.id)" class="btn btn-outline-danger btn-sm rounded-pill w-100 fw-bold">
+              <i class="bi bi-box-arrow-up-right me-1"></i> Découvrir la startup
+            </Link>
           </div>
         </div>
       </div>
@@ -381,18 +398,69 @@ function prevImage() {
   }
 }
 
+function formatProjectType(type) {
+  if (!type) return 'Non spécifié'
+  const map = {
+    web: 'Application Web',
+    mobile: 'Application Mobile',
+    desktop: 'Logiciel Desktop',
+    game: 'Jeu Vidéo',
+    ia: 'Intelligence Artificielle',
+    iot: 'IoT / Embarqué',
+    saas: 'Solution SaaS',
+    api: 'API / Backend',
+  }
+  const key = String(type).toLowerCase().trim()
+  return map[key] || type
+}
+
+function formatDevlogDate(dateStr) {
+  if (!dateStr) return 'Étape validée'
+  try {
+    const d = new Date(dateStr)
+    if (isNaN(d.getTime())) return dateStr
+    return d.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    })
+  } catch (e) {
+    return dateStr
+  }
+}
+
 const displayedLanguages = computed(() => {
   if (props.project.programming_languages && props.project.programming_languages.length) {
-    return props.project.programming_languages.map(l => l.name)
+    return props.project.programming_languages.map(l => l.name || l)
   }
-  return props.project.languages || []
+  if (Array.isArray(props.project.languages)) {
+    return props.project.languages.map(l => (typeof l === 'object' && l ? l.name : l)).filter(Boolean)
+  }
+  if (typeof props.project.languages === 'string' && props.project.languages.trim()) {
+    try {
+      const parsed = JSON.parse(props.project.languages)
+      if (Array.isArray(parsed)) return parsed.map(l => (typeof l === 'object' && l ? l.name : l)).filter(Boolean)
+    } catch(e) {}
+    return [props.project.languages]
+  }
+  return []
 })
 
 const displayedFrameworks = computed(() => {
   if (props.project.frameworks_list && props.project.frameworks_list.length) {
-    return props.project.frameworks_list.map(f => f.name)
+    return props.project.frameworks_list.map(f => f.name || f)
   }
-  return props.project.frameworks_engines || []
+  if (Array.isArray(props.project.frameworks_engines)) {
+    return props.project.frameworks_engines.map(f => (typeof f === 'object' && f ? f.name : f)).filter(Boolean)
+  }
+  if (typeof props.project.frameworks_engines === 'string' && props.project.frameworks_engines.trim()) {
+    try {
+      const parsed = JSON.parse(props.project.frameworks_engines)
+      if (Array.isArray(parsed)) return parsed.map(f => (typeof f === 'object' && f ? f.name : f)).filter(Boolean)
+    } catch(e) {}
+    return [props.project.frameworks_engines]
+  }
+  return []
 })
 
 const youtubeEmbedUrl = computed(() => {
@@ -427,6 +495,9 @@ function submitReport() {
 }
 .cursor-pointer {
   cursor: pointer;
+}
+.hover-danger:hover {
+  color: #dc3545 !important;
 }
 :deep(.project-wysiwyg-content table) {
   width: 100%;

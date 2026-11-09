@@ -69,68 +69,135 @@
           
           <!-- LEFT COLUMN (8 cols): In-depth Story, Bio, Parcours, Difficultés, Vision, Video Player -->
           <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
-              
-              <!-- Video Player Embed (if YouTube URL provided) -->
-              <div v-if="youtubeEmbedUrl" class="mb-5">
-                <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm border">
-                  <iframe 
-                    :src="youtubeEmbedUrl" 
-                    title="Interview vidéo de l'entrepreneur" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen
-                  ></iframe>
-                </div>
-                <div class="extra-small text-muted mt-2 d-flex align-items-center">
-                  <i class="bi bi-play-circle-fill text-danger me-1"></i>
-                  <span>Interview vidéo &amp; vision entrepreneuriale de {{ entrepreneur.name }}</span>
+
+            <!-- Video Player Embed (if YouTube URL provided) -->
+            <div v-if="youtubeEmbedUrl" class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="badge bg-danger rounded-pill px-3 py-1">
+                  <i class="bi bi-play-circle-fill me-1"></i> Interview Vidéo
+                </span>
+                <span class="text-muted small">Regardez les moments forts de l'entretien</span>
+              </div>
+              <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm border">
+                <iframe 
+                  :src="youtubeEmbedUrl" 
+                  title="Interview vidéo de l'entrepreneur" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowfullscreen
+                ></iframe>
+              </div>
+              <div class="extra-small text-muted mt-2 d-flex align-items-center">
+                <i class="bi bi-camera-reels text-danger me-1"></i>
+                <span>Vision entrepreneuriale et témoignage exclusif de {{ entrepreneur.name }}</span>
+              </div>
+            </div>
+
+            <!-- Story Navigation Pills -->
+            <div class="d-flex gap-2 overflow-x-auto pb-2 mb-4 custom-scrollbar">
+              <a href="#bio" class="btn btn-sm btn-light border rounded-pill px-3 py-2 fw-semibold text-nowrap d-flex align-items-center gap-2 chapter-nav-link">
+                <span class="badge bg-primary rounded-circle p-1" style="width: 18px; height: 18px; font-size: 10px;">1</span>
+                <span>Biographie</span>
+              </a>
+              <a href="#parcours" class="btn btn-sm btn-light border rounded-pill px-3 py-2 fw-semibold text-nowrap d-flex align-items-center gap-2 chapter-nav-link">
+                <span class="badge bg-success rounded-circle p-1" style="width: 18px; height: 18px; font-size: 10px;">2</span>
+                <span>Le Déclic Tech</span>
+              </a>
+              <a href="#defis" class="btn btn-sm btn-light border rounded-pill px-3 py-2 fw-semibold text-nowrap d-flex align-items-center gap-2 chapter-nav-link">
+                <span class="badge bg-danger rounded-circle p-1" style="width: 18px; height: 18px; font-size: 10px;">3</span>
+                <span>Les Épreuves</span>
+              </a>
+              <a href="#vision" class="btn btn-sm btn-light border rounded-pill px-3 py-2 fw-semibold text-nowrap d-flex align-items-center gap-2 chapter-nav-link">
+                <span class="badge bg-warning text-dark rounded-circle p-1" style="width: 18px; height: 18px; font-size: 10px;">4</span>
+                <span>Vision &amp; Conseils</span>
+              </a>
+            </div>
+
+            <!-- CHAPTER 1: BIOGRAPHIE & ORIGINES -->
+            <div id="bio" class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4 position-relative overflow-hidden chapter-card border-top border-4 border-primary">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 pb-3 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="rounded-4 text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+                    <i class="bi bi-person-vcard-fill fs-5"></i>
+                  </div>
+                  <div>
+                    <span class="badge bg-primary-subtle text-primary fw-bold text-uppercase px-3 py-1 rounded-pill small mb-1">
+                      Chapitre 01 &bull; Les Racines
+                    </span>
+                    <h3 class="fw-bold text-dark mb-0 fs-4">Biographie &amp; Origines</h3>
+                  </div>
                 </div>
               </div>
+              <p class="text-muted small fst-italic mb-4">
+                <i class="bi bi-quote fs-4 text-primary align-middle"></i>
+                L'histoire personnelle, le socle familial et l'environnement qui ont forgé la détermination de {{ entrepreneur.name }}.
+              </p>
+              <div class="wysiwyg-content text-secondary leading-relaxed" v-html="currentBio"></div>
+            </div>
 
-              <!-- 1. Bio & Présentation -->
-              <div class="mb-5">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                  <span class="rounded-circle d-inline-flex p-2 text-white" style="background-color: var(--tech-navy); width: 36px; height: 36px; align-items: center; justify-content: center;">
-                    <i class="bi bi-person-badge"></i>
-                  </span>
-                  <h3 class="fw-bold text-dark mb-0">Biographie &amp; Origines</h3>
+            <!-- CHAPTER 2: LE PARCOURS & LE DÉCLIC TECH -->
+            <div id="parcours" class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4 position-relative overflow-hidden chapter-card border-top border-4 border-success">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 pb-3 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="rounded-4 text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                    <i class="bi bi-rocket-takeoff-fill fs-5"></i>
+                  </div>
+                  <div>
+                    <span class="badge bg-success-subtle text-success fw-bold text-uppercase px-3 py-1 rounded-pill small mb-1">
+                      Chapitre 02 &bull; L'Ascension
+                    </span>
+                    <h3 class="fw-bold text-dark mb-0 fs-4">Le Parcours &amp; Le Déclic Tech</h3>
+                  </div>
                 </div>
-                <div class="wysiwyg-content text-secondary leading-relaxed" v-html="currentBio"></div>
               </div>
+              <p class="text-muted small fst-italic mb-4">
+                <i class="bi bi-quote fs-4 text-success align-middle"></i>
+                La découverte de la technologie, les débuts du projet et le tournant qui a tout accéléré.
+              </p>
+              <div class="wysiwyg-content text-secondary leading-relaxed" v-html="currentJourney"></div>
+            </div>
 
-              <!-- 2. Le Parcours & Les Débuts -->
-              <div class="mb-5 pt-4 border-top">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                  <span class="rounded-circle d-inline-flex p-2 text-white" style="background-color: var(--tech-green); width: 36px; height: 36px; align-items: center; justify-content: center;">
-                    <i class="bi bi-compass"></i>
-                  </span>
-                  <h3 class="fw-bold text-dark mb-0">Le Parcours &amp; Le Déclic Tech</h3>
+            <!-- CHAPTER 3: LES ÉPREUVES & OBSTACLES SURMONTÉS -->
+            <div id="defis" class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4 position-relative overflow-hidden chapter-card border-top border-4 border-danger">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 pb-3 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="rounded-4 text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #dc2626 0%, #f43f5e 100%);">
+                    <i class="bi bi-shield-fill-exclamation fs-5"></i>
+                  </div>
+                  <div>
+                    <span class="badge bg-danger-subtle text-danger fw-bold text-uppercase px-3 py-1 rounded-pill small mb-1">
+                      Chapitre 03 &bull; La Résilience
+                    </span>
+                    <h3 class="fw-bold text-dark mb-0 fs-4">Les Épreuves &amp; Obstacles Surmontés</h3>
+                  </div>
                 </div>
-                <div class="wysiwyg-content text-secondary leading-relaxed" v-html="currentJourney"></div>
               </div>
+              <p class="text-muted small fst-italic mb-4">
+                <i class="bi bi-quote fs-4 text-danger align-middle"></i>
+                Les moments de doute, le manque de financement, les barrières logistiques et les clés de la résistance.
+              </p>
+              <div class="wysiwyg-content text-secondary leading-relaxed" v-html="currentChallenges"></div>
+            </div>
 
-              <!-- 3. Les Difficultés & Obstacles Surmontés -->
-              <div class="mb-5 pt-4 border-top">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                  <span class="rounded-circle d-inline-flex p-2 text-white bg-danger" style="width: 36px; height: 36px; align-items: center; justify-content: center;">
-                    <i class="bi bi-lightning-charge"></i>
-                  </span>
-                  <h3 class="fw-bold text-dark mb-0">Les Épreuves &amp; Obstacles Surmontés</h3>
+            <!-- CHAPTER 4: VISION D'AVENIR & CONSEILS CLÉS -->
+            <div id="vision" class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4 position-relative overflow-hidden chapter-card border-top border-4 border-warning">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 pb-3 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="rounded-4 text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px; background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);">
+                    <i class="bi bi-lightbulb-fill fs-5"></i>
+                  </div>
+                  <div>
+                    <span class="badge bg-warning-subtle text-warning-emphasis fw-bold text-uppercase px-3 py-1 rounded-pill small mb-1">
+                      Chapitre 04 &bull; Le Futur
+                    </span>
+                    <h3 class="fw-bold text-dark mb-0 fs-4">Vision d'Avenir &amp; Conseils Clés</h3>
+                  </div>
                 </div>
-                <div class="wysiwyg-content text-secondary leading-relaxed" v-html="currentChallenges"></div>
               </div>
-
-              <!-- 4. Vision & Conseils aux Jeunes Bâtisseurs -->
-              <div class="pt-4 border-top">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                  <span class="rounded-circle d-inline-flex p-2 text-white bg-warning text-dark" style="width: 36px; height: 36px; align-items: center; justify-content: center;">
-                    <i class="bi bi-lightbulb"></i>
-                  </span>
-                  <h3 class="fw-bold text-dark mb-0">Vision d'Avenir &amp; Conseils Clés</h3>
-                </div>
-                <div class="wysiwyg-content text-secondary leading-relaxed" v-html="currentVision"></div>
-              </div>
-
+              <p class="text-muted small fst-italic mb-4">
+                <i class="bi bi-quote fs-4 text-warning align-middle"></i>
+                Le regard tourné vers demain, les opportunités tech à saisir en Afrique et les leçons pour la relève.
+              </p>
+              <div class="wysiwyg-content text-secondary leading-relaxed" v-html="currentVision"></div>
             </div>
 
             <!-- Startup Spotlight Card (if linked) -->
@@ -416,6 +483,26 @@ function stripHtml(html) {
 }
 .transition-all {
   transition: all 0.2s ease;
+}
+.chapter-card {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.chapter-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08) !important;
+}
+.chapter-nav-link {
+  transition: all 0.2s ease;
+  color: #333;
+}
+.chapter-nav-link:hover {
+  background-color: #00A859 !important;
+  color: #fff !important;
+  border-color: #00A859 !important;
+}
+.chapter-nav-link:hover .badge {
+  background-color: #fff !important;
+  color: #00A859 !important;
 }
 .cursor-pointer {
   cursor: pointer;

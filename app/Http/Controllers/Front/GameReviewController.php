@@ -37,6 +37,26 @@ class GameReviewController extends Controller
             ->take(2)
             ->get();
 
+        $prevReview = GameReview::where('status', 'published')
+            ->where('id', '<', $review->id)
+            ->latest('id')
+            ->first();
+
+        $nextReview = GameReview::where('status', 'published')
+            ->where('id', '>', $review->id)
+            ->oldest('id')
+            ->first();
+
+        $authorReviews = [];
+        if ($review->admin_id) {
+            $authorReviews = GameReview::where('admin_id', $review->admin_id)
+                ->where('status', 'published')
+                ->where('id', '!=', $review->id)
+                ->latest()
+                ->take(4)
+                ->get();
+        }
+
         // Approved comments with replies
         $comments = Comment::where('game_review_id', $review->id)
             ->whereNull('parent_id')
@@ -50,6 +70,9 @@ class GameReviewController extends Controller
         return Inertia::render('GameReviews/Show', [
             'review' => $review,
             'relatedReviews' => $relatedReviews,
+            'prevReview' => $prevReview,
+            'nextReview' => $nextReview,
+            'authorReviews' => $authorReviews,
             'comments' => $comments,
         ]);
     }

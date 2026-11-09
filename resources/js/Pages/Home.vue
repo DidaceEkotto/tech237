@@ -600,16 +600,30 @@
             <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden bg-white tech237-hover-lift">
               <div class="position-relative" style="height: 140px;">
                 <img 
-                  :src="'/' + (proj.banner || proj.logo || 'assets/images/default-project.jpg')" 
+                  :src="'/' + (proj.banner || 'assets/images/default-event.jpg')" 
                   class="w-100 h-100 object-fit-cover"
                 >
-                <span class="badge position-absolute top-0 end-0 m-2 rounded-pill text-white shadow-sm" style="background-color: var(--tech-navy); font-size: 10px;">
-                  {{ proj.project_type?.toUpperCase() || 'TECH' }}
+                <span class="badge position-absolute top-0 end-0 m-2 rounded-pill text-white shadow-sm" style="background-color: var(--tech-green, #00A859); font-size: 10px;">
+                  {{ formatProjectType(proj) }}
                 </span>
+                <!-- Logo superposé sur la bannière -->
+                <div class="position-absolute" style="bottom: -18px; left: 16px; z-index: 3;">
+                  <div class="rounded-3 border border-2 border-white shadow-sm overflow-hidden bg-white d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                    <img 
+                      v-if="proj.logo" 
+                      :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
+                      :alt="proj.name" 
+                      class="w-100 h-100 object-fit-contain p-1"
+                    >
+                    <div v-else class="fw-bold text-success fs-6">
+                      {{ (proj.name || 'P').charAt(0).toUpperCase() }}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="card-body p-3 d-flex flex-column justify-content-between">
+              <div class="card-body p-3 pt-4 d-flex flex-column justify-content-between">
                 <div>
-                  <h6 class="fw-bold text-dark mb-1 text-truncate">
+                  <h6 class="fw-bold text-dark mb-1 text-truncate mt-1">
                     <Link :href="'/projet/' + (proj.slug || proj.id)" class="text-dark text-decoration-none">
                       {{ proj.name }}
                     </Link>
@@ -617,8 +631,8 @@
                   <p class="text-muted extra-small mb-2" v-if="proj.startup">
                     Par <strong class="text-dark">{{ proj.startup.name }}</strong>
                   </p>
-                  <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                    {{ proj.description?.replace(/<[^>]*>/g, '') }}
+                  <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 38px;">
+                    {{ formatCardDescription(proj.description) }}
                   </p>
                 </div>
                 <div class="border-top pt-2">
@@ -700,6 +714,34 @@ const siteSettings = computed(() => page.props.siteSettings || {})
 const stripHtml = (text) => {
   if (!text) return ''
   return text.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+}
+
+const formatCardDescription = (text) => {
+  if (!text) return ''
+  const clean = text
+    .replace(/<br\s*[\/]?>/gi, ' ')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return clean.length > 95 ? clean.substring(0, 95) + '...' : clean
+}
+
+const formatProjectType = (proj) => {
+  if (!proj) return 'Application Web'
+  if (Array.isArray(proj.app_types) && proj.app_types.length) {
+    return proj.app_types[0]
+  }
+  if (Array.isArray(proj.game_types) && proj.game_types.length) {
+    return proj.game_types[0]
+  }
+  const map = {
+    web: 'Application Web',
+    mobile: 'Application Mobile',
+    desktop: 'Logiciel Desktop',
+    game: 'Jeu Vidéo',
+  }
+  return map[proj.project_type] || proj.project_type || 'Application Web'
 }
 
 // Ad Banners: Home Middle and Sidebar

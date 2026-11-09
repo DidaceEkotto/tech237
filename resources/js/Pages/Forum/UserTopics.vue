@@ -22,10 +22,19 @@
           <div class="col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 p-4 bg-white text-center sticky-top" style="top: 90px;">
               <img 
-                :src="'/' + (author.avatar || 'assets/images/default-avatar.png')" 
+                v-if="author.avatar"
+                :src="'/' + author.avatar" 
                 class="rounded-circle mx-auto mb-3 border border-3 border-success shadow-sm"
                 style="width: 100px; height: 100px; object-fit: cover;"
+                :alt="author.name"
               >
+              <div 
+                v-else 
+                class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold shadow-sm mx-auto mb-3 border border-3 border-white"
+                style="width: 100px; height: 100px; font-size: 2.5rem;"
+              >
+                {{ (author.name || 'U').charAt(0).toUpperCase() }}
+              </div>
               <h4 class="fw-bold text-dark mb-1">{{ author.name }}</h4>
               <p class="text-muted small mb-3">Membre de la communauté Tech237</p>
 

@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Inertia\Inertia;
 use App\Models\Admin;
 use App\Models\Article;
+use App\Models\GameReview;
+use App\Models\AppReview;
 
 class AuthorController extends Controller
 {
@@ -23,6 +25,16 @@ class AuthorController extends Controller
                 return $art;
             });
 
+        $gameReviews = GameReview::where('admin_id', $author->id)
+            ->where('status', 'published')
+            ->latest()
+            ->get();
+
+        $appReviews = AppReview::where('admin_id', $author->id)
+            ->where('status', 'published')
+            ->latest()
+            ->get();
+
         return Inertia::render('Authors/Show', [
             'author' => [
                 'id' => $author->id,
@@ -37,8 +49,11 @@ class AuthorController extends Controller
                 'social_facebook' => $author->social_facebook,
                 'social_instagram' => $author->social_instagram,
                 'social_tiktok' => $author->social_tiktok,
+                'website' => $author->website ?? null,
             ],
             'articles' => $articles,
+            'gameReviews' => $gameReviews,
+            'appReviews' => $appReviews,
         ]);
     }
 }

@@ -506,3 +506,27 @@ body.melty-body, body.tech237-body {
 .search-input-lg::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }
+
+/* --------------------------------------------------------------------------
+   GLOBAL SMOOTH IMAGE HOVER ZOOM EFFECT
+   -------------------------------------------------------------------------- */
+.card .card-img-top,
+.card img.object-fit-cover,
+.article-card-hover img,
+.tech237-hover-lift img,
+.overflow-hidden > img:not(.no-zoom) {
+  transition: transform 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.card:hover .card-img-top,
+.card:hover img.object-fit-cover,
+.article-card-hover:hover img,
+.tech237-hover-lift:hover img,
+.overflow-hidden:hover > img:not(.no-zoom) {
+  transform: scale(1.05);
+}
+
+.card-img-wrapper,
+.card .position-relative.overflow-hidden {
+  overflow: hidden;
+}

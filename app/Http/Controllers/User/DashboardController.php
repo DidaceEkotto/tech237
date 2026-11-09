@@ -369,6 +369,10 @@ class DashboardController extends Controller
 
         // Sync or create Programming Languages
         $langIds = $request->input('language_ids', []);
+        $langNames = [];
+        if (!empty($langIds)) {
+            $langNames = ProgrammingLanguage::whereIn('id', $langIds)->pluck('name')->toArray();
+        }
         if ($request->filled('custom_languages')) {
             $customLangs = array_map('trim', explode(',', $request->custom_languages));
             foreach ($customLangs as $langName) {
@@ -378,15 +382,22 @@ class DashboardController extends Controller
                         ['slug' => Str::slug($langName), 'color' => '#00A859']
                     );
                     $langIds[] = $langObj->id;
+                    $langNames[] = $langName;
                 }
             }
         }
+        $langNames = array_values(array_unique(array_filter($langNames)));
+        $project->update(['languages' => $langNames]);
         if (!empty($langIds) || $request->has('language_ids')) {
             $project->programmingLanguages()->sync(array_unique(array_filter($langIds)));
         }
 
         // Sync or create Frameworks
         $fwIds = $request->input('framework_ids', []);
+        $fwNames = [];
+        if (!empty($fwIds)) {
+            $fwNames = Framework::whereIn('id', $fwIds)->pluck('name')->toArray();
+        }
         if ($request->filled('custom_frameworks')) {
             $customFws = array_map('trim', explode(',', $request->custom_frameworks));
             $defaultLang = ProgrammingLanguage::first() ?? ProgrammingLanguage::create(['name' => 'General', 'slug' => 'general', 'color' => '#00A859']);
@@ -397,9 +408,12 @@ class DashboardController extends Controller
                         ['slug' => Str::slug($fwName), 'programming_language_id' => $defaultLang->id]
                     );
                     $fwIds[] = $fwObj->id;
+                    $fwNames[] = $fwName;
                 }
             }
         }
+        $fwNames = array_values(array_unique(array_filter($fwNames)));
+        $project->update(['frameworks_engines' => $fwNames]);
         if (!empty($fwIds) || $request->has('framework_ids')) {
             $project->frameworksList()->sync(array_unique(array_filter($fwIds)));
         }
@@ -461,6 +475,10 @@ class DashboardController extends Controller
 
         // Sync or create Programming Languages
         $langIds = $request->input('language_ids', []);
+        $langNames = [];
+        if (!empty($langIds)) {
+            $langNames = ProgrammingLanguage::whereIn('id', $langIds)->pluck('name')->toArray();
+        }
         if ($request->filled('custom_languages')) {
             $customLangs = array_map('trim', explode(',', $request->custom_languages));
             foreach ($customLangs as $langName) {
@@ -470,15 +488,22 @@ class DashboardController extends Controller
                         ['slug' => Str::slug($langName), 'color' => '#00A859']
                     );
                     $langIds[] = $langObj->id;
+                    $langNames[] = $langName;
                 }
             }
         }
+        $langNames = array_values(array_unique(array_filter($langNames)));
+        $project->update(['languages' => $langNames]);
         if (!empty($langIds) || $request->has('language_ids')) {
             $project->programmingLanguages()->sync(array_unique(array_filter($langIds)));
         }
 
         // Sync or create Frameworks
         $fwIds = $request->input('framework_ids', []);
+        $fwNames = [];
+        if (!empty($fwIds)) {
+            $fwNames = Framework::whereIn('id', $fwIds)->pluck('name')->toArray();
+        }
         if ($request->filled('custom_frameworks')) {
             $customFws = array_map('trim', explode(',', $request->custom_frameworks));
             $defaultLang = ProgrammingLanguage::first() ?? ProgrammingLanguage::create(['name' => 'General', 'slug' => 'general', 'color' => '#00A859']);
@@ -489,9 +514,12 @@ class DashboardController extends Controller
                         ['slug' => Str::slug($fwName), 'programming_language_id' => $defaultLang->id]
                     );
                     $fwIds[] = $fwObj->id;
+                    $fwNames[] = $fwName;
                 }
             }
         }
+        $fwNames = array_values(array_unique(array_filter($fwNames)));
+        $project->update(['frameworks_engines' => $fwNames]);
         if (!empty($fwIds) || $request->has('framework_ids')) {
             $project->frameworksList()->sync(array_unique(array_filter($fwIds)));
         }

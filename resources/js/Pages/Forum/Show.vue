@@ -60,12 +60,21 @@
                 <!-- Author info -->
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-2 border-top">
                   <div class="d-flex align-items-center gap-3">
-                    <Link :href="'/forum/auteur/' + topic.user?.id">
+                    <Link :href="'/forum/auteur/' + topic.user?.id" class="text-decoration-none">
                       <img 
-                        :src="'/' + (topic.user?.avatar || 'assets/images/default-avatar.png')" 
+                        v-if="topic.user?.avatar"
+                        :src="'/' + topic.user.avatar" 
                         class="rounded-circle border" 
                         style="width: 44px; height: 44px; object-fit: cover;"
+                        :alt="topic.user?.name || 'Avatar'"
                       >
+                      <div 
+                        v-else 
+                        class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                        style="width: 44px; height: 44px; font-size: 1.2rem; min-width: 44px;"
+                      >
+                        {{ (topic.user?.name || topic.user?.full_name || 'U').charAt(0).toUpperCase() }}
+                      </div>
                     </Link>
                     <div>
                       <div class="fw-bold text-dark">
@@ -134,12 +143,21 @@
                 <!-- Post Author Header -->
                 <div class="d-flex align-items-center justify-content-between mb-3">
                   <div class="d-flex align-items-center gap-3">
-                    <Link :href="'/forum/auteur/' + post.user?.id">
+                    <Link :href="'/forum/auteur/' + post.user?.id" class="text-decoration-none">
                       <img 
-                        :src="'/' + (post.user?.avatar || 'assets/images/default-avatar.png')" 
+                        v-if="post.user?.avatar"
+                        :src="'/' + post.user.avatar" 
                         class="rounded-circle border" 
                         style="width: 38px; height: 38px; object-fit: cover;"
+                        :alt="post.user?.name || 'Avatar'"
                       >
+                      <div 
+                        v-else 
+                        class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold shadow-sm"
+                        style="width: 38px; height: 38px; font-size: 1rem; min-width: 38px;"
+                      >
+                        {{ (post.user?.name || post.user?.full_name || 'U').charAt(0).toUpperCase() }}
+                      </div>
                     </Link>
                     <div>
                       <div class="fw-bold text-dark">
@@ -242,10 +260,19 @@
             <!-- Author Card -->
             <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white text-center">
               <img 
-                :src="'/' + (topic.user?.avatar || 'assets/images/default-avatar.png')" 
+                v-if="topic.user?.avatar"
+                :src="'/' + topic.user.avatar" 
                 class="rounded-circle mx-auto mb-3 border border-2 border-danger shadow-sm" 
                 style="width: 72px; height: 72px; object-fit: cover;"
+                :alt="topic.user?.name || 'Auteur'"
               >
+              <div 
+                v-else 
+                class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold shadow-sm mx-auto mb-3 border border-2 border-white"
+                style="width: 72px; height: 72px; font-size: 2rem;"
+              >
+                {{ (topic.user?.name || topic.user?.full_name || 'U').charAt(0).toUpperCase() }}
+              </div>
               <h5 class="fw-bold text-dark mb-1">{{ topic.user?.name || 'Auteur' }}</h5>
               <p class="text-muted small mb-3">Membre de la communauté Tech237</p>
               

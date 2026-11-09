@@ -147,6 +147,76 @@
               </div>
             </div>
 
+            <!-- À PROPOS DE L'AUTEUR (Author Card with Real Avatar & Link to Public Author Profile) -->
+            <div class="author-box p-4 rounded-3 text-white mb-4 bg-dark shadow-sm">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <img 
+                  v-if="review.author?.avatar" 
+                  :src="'/' + review.author.avatar" 
+                  :alt="review.author.name" 
+                  class="rounded-circle object-fit-cover border border-2 border-white"
+                  style="width: 56px; height: 56px;"
+                >
+                <div v-else class="rounded-circle bg-secondary text-white fw-bold d-flex align-items-center justify-content-center fs-4 border border-2 border-white" style="width: 56px; height: 56px;">
+                  {{ (review.author?.name || 'M').charAt(0) }}
+                </div>
+                <div>
+                  <div class="d-flex align-items-center gap-2">
+                    <h6 class="fw-bold mb-0 text-white fs-5">{{ review.author?.name || 'Rédaction Tech237' }}</h6>
+                    <span class="badge bg-secondary small">{{ review.author?.role || 'Auteur' }}</span>
+                  </div>
+                  <p class="small text-white-50 mb-0 mt-1">
+                    {{ review.author?.bio || 'Journaliste tech & pop culture passionné par les nouvelles technologies, le cinéma et les jeux vidéo.' }}
+                  </p>
+                  <Link v-if="review.author?.id" :href="'/auteur/' + review.author.id" class="small text-danger fw-bold text-decoration-none mt-1 d-inline-block">
+                    Voir la page de l'auteur &rarr;
+                  </Link>
+                </div>
+              </div>
+
+              <!-- Author's Other Game Reviews -->
+              <div v-if="authorReviews && authorReviews.length" class="border-top border-secondary pt-3 mt-2">
+                <span class="small fw-bold text-white-50 text-uppercase d-block mb-2">Autres tests de cet auteur :</span>
+                <ul class="list-unstyled small mb-0">
+                  <li v-for="autRev in authorReviews" :key="autRev.id" class="mb-1 text-truncate">
+                    <Link :href="'/test-jeu/' + autRev.slug" class="text-white text-decoration-none hover-underline">
+                      &rarr; {{ autRev.game_name }} ({{ autRev.final_score }}/20)
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Previous and Next Game Review Navigation -->
+            <div class="row g-3 my-4">
+              <div class="col-md-6" v-if="prevReview">
+                <Link :href="'/test-jeu/' + prevReview.slug" class="card h-100 p-3 text-decoration-none border shadow-sm rounded-3 article-nav-card">
+                  <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-arrow-left-circle fs-3 text-danger"></i>
+                    <div>
+                      <span class="small text-muted text-uppercase fw-bold d-block" style="font-size: 10px;">Test précédent</span>
+                      <h6 class="fw-bold text-dark mb-0 small text-truncate" style="max-width: 240px;">
+                        {{ prevReview.game_name }}
+                      </h6>
+                    </div>
+                  </div>
+                </Link>
+              </div>
+              <div class="col-md-6" :class="{ 'offset-md-6': !prevReview }" v-if="nextReview">
+                <Link :href="'/test-jeu/' + nextReview.slug" class="card h-100 p-3 text-decoration-none border shadow-sm rounded-3 article-nav-card text-end">
+                  <div class="d-flex align-items-center justify-content-end gap-3">
+                    <div>
+                      <span class="small text-muted text-uppercase fw-bold d-block" style="font-size: 10px;">Test suivant</span>
+                      <h6 class="fw-bold text-dark mb-0 small text-truncate" style="max-width: 240px;">
+                        {{ nextReview.game_name }}
+                      </h6>
+                    </div>
+                    <i class="bi bi-arrow-right-circle fs-3 text-danger"></i>
+                  </div>
+                </Link>
+              </div>
+            </div>
+
           </div>
 
           <!-- COMMENTS SECTION (With 1-Level Replies & Login Guard Modal) -->
@@ -340,6 +410,9 @@ import { useAudioNarrator } from '@/Composables/useAudioNarrator'
 const props = defineProps({
   review: { type: Object, required: true },
   relatedReviews: { type: Array, default: () => [] },
+  prevReview: { type: Object, default: null },
+  nextReview: { type: Object, default: null },
+  authorReviews: { type: Array, default: () => [] },
 })
 
 const page = usePage()
@@ -499,6 +572,18 @@ async function submitReply(parentId) {
 <style scoped>
 .hover-danger:hover {
   color: #FF004B !important;
+}
+
+.article-nav-card {
+  transition: all 0.2s ease-in-out;
+}
+.article-nav-card:hover {
+  border-color: #FF004B !important;
+  background-color: #fffafb;
+  transform: translateY(-2px);
+}
+.hover-underline:hover {
+  text-decoration: underline !important;
 }
 
 .login-modal-backdrop {
