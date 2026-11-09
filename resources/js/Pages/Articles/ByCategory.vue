@@ -136,6 +136,9 @@
 
         <!-- Right 4 Columns: Sidebar -->
         <div class="col-lg-4">
+          <!-- Sondage Tech du Jour -->
+          <DailyTechPoll />
+
           <!-- Sidebar Ad Banner (Pavé 300x250) -->
           <div v-if="sidebarAd" class="card rounded-4 p-3 mb-4 border-0 shadow-sm text-center bg-light">
             <div class="extra-small text-muted mb-1 text-uppercase font-monospace" style="font-size: 9px; letter-spacing: 1px;">Sponsor &bull; Partenaire</div>
@@ -199,6 +202,7 @@
 import { ref, computed } from 'vue'
 import { Link, Head, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import DailyTechPoll from '@/Components/DailyTechPoll.vue'
 
 const props = defineProps({
   category: { type: Object, required: true },

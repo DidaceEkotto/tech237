@@ -252,6 +252,9 @@
               </div>
             </div>
 
+            <!-- Sondage Tech du Jour -->
+            <DailyTechPoll class="mt-4" />
+
           </div>
         </div>
 
@@ -334,6 +337,7 @@
 import { ref } from 'vue'
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import DailyTechPoll from '@/Components/DailyTechPoll.vue'
 
 const props = defineProps({
   startup: { type: Object, required: true },

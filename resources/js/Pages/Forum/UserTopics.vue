@@ -63,6 +63,9 @@
                 <i class="bi bi-chat-left-dots-fill"></i> Contacter en message privé
               </button>
             </div>
+
+            <!-- Sondage Tech du Jour -->
+            <DailyTechPoll class="mt-4" />
           </div>
 
           <!-- Right Column: Topics & Replies Tabs (8 cols) -->
@@ -257,6 +260,7 @@
 import { ref, computed } from 'vue'
 import { Head, Link, usePage, useForm } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import DailyTechPoll from '@/Components/DailyTechPoll.vue'
 
 const props = defineProps({
   author: Object,

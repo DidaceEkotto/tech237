@@ -60,6 +60,9 @@
               Interview réalisée par l'équipe éditoriale Tech237.
             </div>
           </div>
+
+          <!-- Sondage Tech du Jour -->
+          <DailyTechPoll class="mt-4" />
         </div>
       </div>
 
@@ -71,6 +74,7 @@
 import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import FrontLayout from '@/Layouts/FrontLayout.vue';
+import DailyTechPoll from '@/Components/DailyTechPoll.vue';
 
 const props = defineProps({
   interview: { type: Object, required: true },

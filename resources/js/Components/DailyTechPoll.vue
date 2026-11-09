@@ -1,5 +1,5 @@
 <template>
-  <div v-if="poll" class="card border-0 rounded-4 shadow-sm p-4 text-white overflow-hidden position-relative mb-4" style="background: linear-gradient(135deg, #0B2559 0%, #06152D 100%);">
+  <div v-if="livePoll" class="card border-0 rounded-4 shadow-sm p-4 text-white overflow-hidden position-relative mb-4" style="background: linear-gradient(135deg, #0B2559 0%, #06152D 100%);">
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <span class="badge px-3 py-1 rounded-pill fw-bold text-uppercase text-white shadow-sm" style="background-color: var(--tech-green, #00A859); font-size: 11px;">
@@ -12,10 +12,10 @@
 
     <!-- Question -->
     <h5 class="fw-bold text-white mb-2" style="font-size: 1.05rem; line-height: 1.4;">
-      {{ poll.question }}
+      {{ livePoll.question }}
     </h5>
-    <p v-if="poll.description" class="text-white-50 small mb-3">
-      {{ poll.description }}
+    <p v-if="livePoll.description" class="text-white-50 small mb-3">
+      {{ livePoll.description }}
     </p>
 
     <!-- Success Message if just voted -->
@@ -32,25 +32,27 @@
     <!-- Form: Options to vote -->
     <div v-if="!hasVoted" class="d-flex flex-column gap-2 mb-3">
       <label 
-        v-for="opt in poll.options" 
+        v-for="opt in livePoll.options" 
         :key="opt.id"
-        class="poll-option-label p-3 rounded-3 border d-flex align-items-center justify-content-between cursor-pointer transition-all"
-        :class="selectedOption === opt.id ? 'border-success bg-white bg-opacity-15 shadow-sm' : 'border-white border-opacity-10 bg-white bg-opacity-5'"
+        class="poll-option-label p-3 rounded-3 d-flex align-items-center justify-content-between cursor-pointer"
+        :class="selectedOption === opt.id ? 'poll-option-selected' : 'poll-option-default'"
         style="cursor: pointer;"
         @click="selectedOption = opt.id"
       >
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-3 flex-grow-1">
           <input 
             type="radio" 
-            :name="'poll_' + poll.id" 
+            :name="'poll_' + livePoll.id" 
             :value="opt.id" 
-            v-model="selectedOption" 
-            class="form-check-input mt-0"
-            style="cursor: pointer;"
+            :checked="selectedOption === opt.id"
+            class="form-check-input mt-0 flex-shrink-0"
+            style="cursor: pointer; width: 18px; height: 18px;"
           >
-          <span class="fw-semibold small text-white">{{ opt.label || opt.title }}</span>
+          <span class="fw-bold small" style="color: #0B2559 !important; font-size: 0.92rem; line-height: 1.35;">
+            {{ getOptionText(opt) }}
+          </span>
         </div>
-        <i v-if="selectedOption === opt.id" class="bi bi-check-circle-fill text-success"></i>
+        <i v-if="selectedOption === opt.id" class="bi bi-check-circle-fill text-success fs-5 ms-2 flex-shrink-0"></i>
       </label>
 
       <button 
@@ -65,29 +67,29 @@
     </div>
 
     <!-- Results view if already voted -->
-    <div v-else class="d-flex flex-column gap-3 mb-2">
+    <div v-else class="d-flex flex-column gap-2 mb-2">
       <div 
         v-for="opt in calculatedOptions" 
         :key="opt.id" 
-        class="p-3 rounded-3 bg-white bg-opacity-10 border border-white border-opacity-10"
+        class="p-3 rounded-3 bg-white shadow-sm border border-light"
       >
         <div class="d-flex justify-content-between align-items-center small fw-bold mb-1">
-          <span class="text-white">{{ opt.label || opt.title }}</span>
-          <span class="text-success">{{ opt.percentage }}%</span>
+          <span style="color: #0B2559 !important;">{{ getOptionText(opt) }}</span>
+          <span class="text-success fw-bold">{{ opt.percentage }}%</span>
         </div>
-        <div class="progress" style="height: 8px; background-color: rgba(255,255,255,0.15);">
+        <div class="progress" style="height: 10px; background-color: #e2e8f0; border-radius: 999px;">
           <div 
             class="progress-bar rounded-pill" 
             role="progressbar" 
-            :style="{ width: opt.percentage + '%', backgroundColor: 'var(--tech-green, #00A859)' }"
+            :style="{ width: opt.percentage + '%', backgroundColor: '#00A859' }"
           ></div>
         </div>
-        <div class="text-end text-white-50 extra-small mt-1" style="font-size: 10px;">
+        <div class="text-end text-muted extra-small mt-1" style="font-size: 11px;">
           {{ opt.votes_count }} {{ opt.votes_count > 1 ? 'votes' : 'vote' }}
         </div>
       </div>
 
-      <div class="text-center text-white-50 small mt-1">
+      <div class="text-center text-white-50 small mt-2">
         <i class="bi bi-check-circle-fill text-success me-1"></i> Merci pour votre participation !
       </div>
     </div>
@@ -95,7 +97,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 const props = defineProps({
   poll: {
@@ -106,10 +108,39 @@ const props = defineProps({
 
 const selectedOption = ref(null)
 const isSubmitting = ref(false)
-const hasVoted = ref(props.poll?.user_has_voted || false)
+const hasVoted = ref(props.poll?.user_has_voted || props.poll?.has_voted || false)
 const successMsg = ref('')
 const errorMsg = ref('')
 const livePoll = ref(props.poll ? JSON.parse(JSON.stringify(props.poll)) : null)
+
+watch(() => props.poll, (newPoll) => {
+  if (newPoll) {
+    livePoll.value = JSON.parse(JSON.stringify(newPoll))
+    hasVoted.value = newPoll.user_has_voted || newPoll.has_voted || false
+  }
+}, { deep: true })
+
+onMounted(async () => {
+  if (!livePoll.value) {
+    try {
+      const res = await fetch('/api/sondage-actif')
+      if (res.ok) {
+        const data = await res.json()
+        if (data && data.poll) {
+          livePoll.value = data.poll
+          hasVoted.value = data.poll.has_voted || false
+        }
+      }
+    } catch (e) {
+      // Quiet fail if network error
+    }
+  }
+})
+
+function getOptionText(opt) {
+  if (!opt) return ''
+  return opt.label || opt.title || opt.option_text || opt.name || opt.text || ''
+}
 
 const totalVotes = computed(() => {
   if (!livePoll.value || !livePoll.value.options) return 0
@@ -174,8 +205,20 @@ async function submitVote() {
 <style scoped>
 .poll-option-label {
   transition: all 0.2s ease;
+  user-select: none;
 }
-.poll-option-label:hover {
-  background-color: rgba(255, 255, 255, 0.12) !important;
+.poll-option-default {
+  background-color: #ffffff !important;
+  border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
+}
+.poll-option-default:hover {
+  background-color: #f8fafc !important;
+  border-color: #00A859 !important;
+  transform: translateY(-1px);
+}
+.poll-option-selected {
+  background-color: #f0fdf4 !important;
+  border: 2px solid #00A859 !important;
+  box-shadow: 0 4px 12px rgba(0, 168, 89, 0.15) !important;
 }
 </style>

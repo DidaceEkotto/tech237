@@ -160,6 +160,9 @@
                 </div>
               </div>
             </div>
+
+            <!-- Daily Tech Poll -->
+            <DailyTechPoll class="mt-4" />
           </div>
         </div>
 
@@ -172,6 +175,7 @@
 import { ref, computed } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import DailyTechPoll from '@/Components/DailyTechPoll.vue'
 
 const props = defineProps({
   job: Object,

@@ -215,6 +215,9 @@
 
           <!-- Sidebar Column (Trending / Top read) -->
           <div v-if="options.show_trending_sidebar !== false" class="col-lg-4">
+            <!-- Sondage Tech du Jour -->
+            <DailyTechPoll />
+
             <div class="card border-0 shadow-sm rounded-4 p-3 bg-white sticky-top" style="top: 80px;">
               <h6 class="fw-bold text-dark mb-3 d-flex align-items-center">
                 <i class="bi bi-fire text-danger me-2"></i>Les Plus Lus du Moment
@@ -252,6 +255,7 @@
 import { computed, ref, onUnmounted } from 'vue'
 import { Head, Link, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import DailyTechPoll from '@/Components/DailyTechPoll.vue'
 
 const props = defineProps({
   rubrique: Object,
