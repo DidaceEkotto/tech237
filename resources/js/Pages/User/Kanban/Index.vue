@@ -136,15 +136,25 @@
     <!-- Create Board Modal -->
     <div v-if="showModal" class="modal-backdrop fade show" style="background: rgba(15, 23, 42, 0.65);"></div>
     <div v-if="showModal" class="modal fade show d-block" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow-lg">
-          <div class="modal-header border-0 pb-0 pt-4 px-4">
-            <h5 class="modal-title fw-bold text-dark">
-              <i class="bi bi-kanban-fill text-primary me-2"></i>Nouveau Tableau Kanban
-            </h5>
-            <button type="button" class="btn-close" @click="showModal = false"></button>
-          </div>
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
           <form @submit.prevent="submitCreateBoard">
+            <div class="modal-header border-bottom py-3 px-4 bg-light d-flex align-items-center justify-content-between">
+              <h5 class="modal-title fw-bold text-dark mb-0">
+                <i class="bi bi-kanban-fill text-primary me-2"></i>Nouveau Tableau Kanban
+              </h5>
+              <div class="d-flex align-items-center gap-2">
+                <button 
+                  type="submit" 
+                  class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold text-white shadow-sm text-nowrap" 
+                  :disabled="isSubmitting"
+                >
+                  <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
+                  Créer
+                </button>
+                <button type="button" class="btn-close" @click="showModal = false"></button>
+              </div>
+            </div>
             <div class="modal-body p-4">
               <!-- Title -->
               <div class="mb-3">
@@ -197,11 +207,11 @@
               </div>
 
             </div>
-            <div class="modal-footer border-0 pt-0 px-4 pb-4">
-              <button type="button" class="btn btn-light rounded-pill px-4 fw-semibold" @click="showModal = false">
+            <div class="modal-footer border-top bg-light py-2 px-4 d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-sm btn-light rounded-pill px-4 fw-semibold" @click="showModal = false">
                 Annuler
               </button>
-              <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold text-white" :disabled="isSubmitting">
+              <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-bold text-white shadow-sm" :disabled="isSubmitting">
                 <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1"></span>
                 Créer le Tableau
               </button>

@@ -109,20 +109,23 @@
         </div>
       </header>
 
-      <!-- Kanban Canvas (Horizontally Scrollable) -->
-      <main class="kanban-canvas flex-grow-1 p-4 overflow-auto">
-        <div class="d-flex align-items-start gap-4 pb-4" style="min-height: calc(100vh - 160px);">
+      <!-- Kanban Canvas (Responsive Wrap: never exceeds screen width, wraps to next line) -->
+      <main class="kanban-canvas flex-grow-1 p-3 p-md-4">
+        <div class="row g-4 align-items-start">
           
           <!-- Column Item -->
           <div 
             v-for="column in board.columns" 
             :key="column.id" 
-            class="kanban-column rounded-4 bg-white shadow-xs d-flex flex-column border"
-            :class="{ 'border-success border-2': column.is_done_column }"
-            style="width: 320px; min-width: 320px; max-height: calc(100vh - 190px);"
-            @dragover.prevent="onDragOverColumn($event, column)"
-            @drop="onDropOnColumn($event, column)"
+            class="col-12 col-md-6 col-lg-4 col-xl-3"
           >
+            <div 
+              class="kanban-column rounded-4 bg-white shadow-xs d-flex flex-column border h-100"
+              :class="{ 'border-success border-2': column.is_done_column }"
+              style="min-height: 240px;"
+              @dragover.prevent="onDragOverColumn($event, column)"
+              @drop="onDropOnColumn($event, column)"
+            >
             <!-- Column Header -->
             <div class="column-header p-3 border-bottom d-flex align-items-center justify-content-between bg-white rounded-top-4">
               <div class="d-flex align-items-center gap-2">
@@ -154,7 +157,7 @@
             </div>
 
             <!-- Cards Container -->
-            <div class="cards-list p-2 flex-grow-1 overflow-auto d-flex flex-column gap-2" style="min-height: 80px;">
+            <div class="cards-list p-2 flex-grow-1 overflow-auto d-flex flex-column gap-2" style="min-height: 80px; max-height: 540px;">
               
               <!-- Kanban Card Item -->
               <div 
@@ -263,33 +266,35 @@
 
             </div>
           </div>
-
-          <!-- Add Column Inline Card -->
-          <div v-if="canEdit" class="kanban-add-column" style="width: 280px; min-width: 280px;">
-            <button 
-              @click="showAddColumnModal = true" 
-              class="btn btn-white bg-white border border-dashed rounded-4 p-4 text-center w-100 text-muted hover-dark shadow-xs"
-            >
-              <i class="bi bi-plus-circle fs-3 d-block mb-1 text-primary"></i>
-              <span class="fw-bold">Ajouter une nouvelle colonne</span>
-            </button>
-          </div>
-
         </div>
-      </main>
+
+        <!-- Add Column Inline Card -->
+        <div v-if="canEdit" class="col-12 col-md-6 col-lg-4 col-xl-3">
+          <button 
+            @click="showAddColumnModal = true" 
+            class="btn btn-white bg-white border border-dashed rounded-4 p-4 text-center w-100 text-muted hover-dark shadow-xs h-100 d-flex flex-column align-items-center justify-content-center"
+            style="min-height: 180px;"
+          >
+            <i class="bi bi-plus-circle fs-2 d-block mb-2 text-primary"></i>
+            <span class="fw-bold">Ajouter une nouvelle colonne</span>
+          </button>
+        </div>
+
+      </div>
+    </main>
 
     </div>
 
     <!-- 1. Card Detail & Edit Modal -->
     <div v-if="activeCard" class="modal-backdrop fade show" style="background: rgba(15, 23, 42, 0.65); z-index: 1050;"></div>
     <div v-if="activeCard" class="modal fade show d-block" style="z-index: 1055;" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
           
-          <!-- Modal Header with Title & Column Info -->
-          <div class="modal-header border-bottom py-3 px-4 bg-light">
-            <div class="d-flex align-items-center gap-2 flex-grow-1">
-              <i class="bi bi-credit-card-2-front text-primary fs-5"></i>
+          <!-- Modal Header with Title & Sticky Accessible Save Button -->
+          <div class="modal-header border-bottom py-3 px-4 bg-light d-flex align-items-center justify-content-between gap-3 sticky-top">
+            <div class="d-flex align-items-center gap-2 flex-grow-1 min-w-0">
+              <i class="bi bi-credit-card-2-front text-primary fs-5 flex-shrink-0"></i>
               <input 
                 v-if="canEdit"
                 type="text" 
@@ -297,9 +302,23 @@
                 class="form-control form-control-lg fw-bold border-0 bg-transparent p-0 fs-5 text-dark"
                 placeholder="Titre de la tâche..."
               />
-              <span v-else class="fs-5 fw-bold text-dark">{{ activeCard.title }}</span>
+              <span v-else class="fs-5 fw-bold text-dark text-truncate">{{ activeCard.title }}</span>
             </div>
-            <button type="button" class="btn-close" @click="closeCardModal"></button>
+
+            <!-- Header Action: Always visible save button without scrolling -->
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+              <button 
+                v-if="canEdit" 
+                type="button" 
+                class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold d-flex align-items-center gap-1 shadow-sm text-nowrap" 
+                @click="saveCardChanges" 
+                :disabled="isSavingCard"
+              >
+                <i class="bi bi-check2-circle fs-6"></i>
+                <span>{{ isSavingCard ? 'Enregistrement...' : 'Enregistrer' }}</span>
+              </button>
+              <button type="button" class="btn-close" @click="closeCardModal"></button>
+            </div>
           </div>
 
           <div class="modal-body p-4">
@@ -514,8 +533,8 @@
               <button type="button" class="btn btn-sm btn-light rounded-pill px-3" @click="closeCardModal">
                 Fermer
               </button>
-              <button v-if="canEdit" type="button" class="btn btn-sm btn-dark rounded-pill px-4 fw-bold" @click="saveCardChanges" :disabled="isSavingCard">
-                Enregistrer
+              <button v-if="canEdit" type="button" class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm" @click="saveCardChanges" :disabled="isSavingCard">
+                {{ isSavingCard ? 'Enregistrement...' : 'Enregistrer' }}
               </button>
             </div>
           </div>
@@ -527,15 +546,20 @@
     <!-- 2. Add / Edit Column Modal -->
     <div v-if="showAddColumnModal || editingColumn" class="modal-backdrop fade show" style="background: rgba(15, 23, 42, 0.65); z-index: 1050;"></div>
     <div v-if="showAddColumnModal || editingColumn" class="modal fade show d-block" style="z-index: 1055;" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow-lg">
-          <div class="modal-header border-0 pb-0 pt-4 px-4">
-            <h5 class="modal-title fw-bold text-dark">
-              {{ editingColumn ? 'Modifier la colonne' : 'Ajouter une colonne' }}
-            </h5>
-            <button type="button" class="btn-close" @click="closeColumnModal"></button>
-          </div>
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
           <form @submit.prevent="submitColumnForm">
+            <div class="modal-header border-bottom py-3 px-4 bg-light d-flex align-items-center justify-content-between">
+              <h5 class="modal-title fw-bold text-dark mb-0">
+                {{ editingColumn ? 'Modifier la colonne' : 'Ajouter une colonne' }}
+              </h5>
+              <div class="d-flex align-items-center gap-2">
+                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold shadow-sm">
+                  Enregistrer
+                </button>
+                <button type="button" class="btn-close" @click="closeColumnModal"></button>
+              </div>
+            </div>
             <div class="modal-body p-4">
               <div class="mb-3">
                 <label class="form-label small fw-bold text-dark">Nom de la colonne <span class="text-danger">*</span></label>
@@ -570,9 +594,9 @@
               </div>
 
             </div>
-            <div class="modal-footer border-0 pt-0 px-4 pb-4">
-              <button type="button" class="btn btn-light rounded-pill px-3" @click="closeColumnModal">Annuler</button>
-              <button type="submit" class="btn btn-dark rounded-pill px-4 fw-bold">Enregistrer</button>
+            <div class="modal-footer border-top bg-light py-2 px-4 d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-sm btn-light rounded-pill px-3" @click="closeColumnModal">Annuler</button>
+              <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm">Enregistrer</button>
             </div>
           </form>
         </div>
@@ -582,13 +606,18 @@
     <!-- 3. Board Settings Modal -->
     <div v-if="showBoardSettingsModal" class="modal-backdrop fade show" style="background: rgba(15, 23, 42, 0.65); z-index: 1050;"></div>
     <div v-if="showBoardSettingsModal" class="modal fade show d-block" style="z-index: 1055;" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 shadow-lg">
-          <div class="modal-header border-0 pb-0 pt-4 px-4">
-            <h5 class="modal-title fw-bold text-dark">Paramètres du Tableau</h5>
-            <button type="button" class="btn-close" @click="showBoardSettingsModal = false"></button>
-          </div>
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
           <form @submit.prevent="submitBoardSettings">
+            <div class="modal-header border-bottom py-3 px-4 bg-light d-flex align-items-center justify-content-between">
+              <h5 class="modal-title fw-bold text-dark mb-0">Paramètres du Tableau</h5>
+              <div class="d-flex align-items-center gap-2">
+                <button type="submit" class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold shadow-sm">
+                  Enregistrer
+                </button>
+                <button type="button" class="btn-close" @click="showBoardSettingsModal = false"></button>
+              </div>
+            </div>
             <div class="modal-body p-4">
               <div class="mb-3">
                 <label class="form-label small fw-bold text-dark">Titre du tableau <span class="text-danger">*</span></label>
@@ -610,13 +639,13 @@
                 </div>
               </div>
             </div>
-            <div class="modal-footer border-0 pt-0 px-4 pb-4 d-flex justify-content-between">
+            <div class="modal-footer border-top bg-light py-2 px-4 d-flex justify-content-between">
               <button type="button" @click="deleteBoard" class="btn btn-outline-danger btn-sm rounded-pill px-3">
                 <i class="bi bi-trash me-1"></i>Supprimer le tableau
               </button>
               <div class="d-flex gap-2">
-                <button type="button" class="btn btn-light rounded-pill px-3" @click="showBoardSettingsModal = false">Annuler</button>
-                <button type="submit" class="btn btn-dark rounded-pill px-4 fw-bold">Enregistrer</button>
+                <button type="button" class="btn btn-sm btn-light rounded-pill px-3" @click="showBoardSettingsModal = false">Annuler</button>
+                <button type="submit" class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm">Enregistrer</button>
               </div>
             </div>
           </form>

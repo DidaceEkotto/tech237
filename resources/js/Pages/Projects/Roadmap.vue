@@ -48,68 +48,69 @@
           </div>
         </div>
 
-        <!-- Roadmap Kanban View -->
+        <!-- Roadmap Kanban View (Responsive Wrap: never exceeds screen width) -->
         <div v-if="board && board.columns && board.columns.length > 0">
-          <div class="d-flex align-items-start gap-4 overflow-auto pb-4">
+          <div class="row g-4 align-items-stretch">
             
             <div 
               v-for="col in board.columns" 
               :key="col.id" 
-              class="card border-0 rounded-4 shadow-sm bg-white p-3 flex-shrink-0"
-              style="width: 320px; min-width: 320px;"
+              class="col-12 col-md-6 col-lg-4 col-xl-3"
             >
-              <!-- Column Header -->
-              <div class="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
-                <div class="d-flex align-items-center gap-2">
-                  <span class="rounded-circle d-inline-block" :style="{ width: '10px', height: '10px', backgroundColor: col.color || '#3b82f6' }"></span>
-                  <h3 class="h6 fw-bold text-dark mb-0">{{ col.title }}</h3>
+              <div class="card border-0 rounded-4 shadow-sm bg-white p-3 h-100">
+                <!-- Column Header -->
+                <div class="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="rounded-circle d-inline-block" :style="{ width: '10px', height: '10px', backgroundColor: col.color || '#3b82f6' }"></span>
+                    <h3 class="h6 fw-bold text-dark mb-0">{{ col.title }}</h3>
+                  </div>
+                  <span class="badge bg-light text-muted rounded-pill px-2 py-1 extra-small">
+                    {{ col.cards ? col.cards.length : 0 }}
+                  </span>
                 </div>
-                <span class="badge bg-light text-muted rounded-pill px-2 py-1 extra-small">
-                  {{ col.cards ? col.cards.length : 0 }}
-                </span>
+
+                <!-- Cards list -->
+                <div class="d-flex flex-column gap-3">
+                  <div 
+                    v-for="card in col.cards" 
+                    :key="card.id"
+                    class="card rounded-3 border p-3 bg-light shadow-2xs"
+                  >
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="badge rounded-pill px-2 py-0 extra-small fw-bold" :class="getPriorityClass(card.priority)">
+                        {{ getPriorityLabel(card.priority) }}
+                      </span>
+                      <span v-if="card.devlog_published" class="badge bg-success-subtle text-success extra-small rounded-pill">
+                        <i class="bi bi-check-circle-fill me-1"></i>En Devlog
+                      </span>
+                    </div>
+
+                    <h4 class="h6 fw-bold text-dark mb-2" style="font-size: 0.9rem;">
+                      {{ card.title }}
+                    </h4>
+
+                    <p v-if="card.description" class="extra-small text-muted mb-2 line-clamp-2">
+                      {{ card.description }}
+                    </p>
+
+                    <div v-if="card.checklist && card.checklist.length > 0" class="progress rounded-pill mb-2" style="height: 4px;">
+                      <div class="progress-bar rounded-pill bg-success" :style="{ width: getChecklistPercentage(card) + '%' }"></div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between extra-small text-muted pt-2 border-top">
+                      <span>{{ card.due_date ? formatDateShort(card.due_date) : 'En continu' }}</span>
+                      <span v-if="card.assignee" class="fw-semibold text-dark">
+                        {{ card.assignee.name }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-if="!col.cards || col.cards.length === 0" class="text-center py-4 text-muted extra-small">
+                    Aucune tâche dans cette colonne.
+                  </div>
+                </div>
+
               </div>
-
-              <!-- Cards list -->
-              <div class="d-flex flex-column gap-3">
-                <div 
-                  v-for="card in col.cards" 
-                  :key="card.id"
-                  class="card rounded-3 border p-3 bg-light shadow-2xs"
-                >
-                  <div class="d-flex align-items-center justify-content-between mb-2">
-                    <span class="badge rounded-pill px-2 py-0 extra-small fw-bold" :class="getPriorityClass(card.priority)">
-                      {{ getPriorityLabel(card.priority) }}
-                    </span>
-                    <span v-if="card.devlog_published" class="badge bg-success-subtle text-success extra-small rounded-pill">
-                      <i class="bi bi-check-circle-fill me-1"></i>En Devlog
-                    </span>
-                  </div>
-
-                  <h4 class="h6 fw-bold text-dark mb-2" style="font-size: 0.9rem;">
-                    {{ card.title }}
-                  </h4>
-
-                  <p v-if="card.description" class="extra-small text-muted mb-2 line-clamp-2">
-                    {{ card.description }}
-                  </p>
-
-                  <div v-if="card.checklist && card.checklist.length > 0" class="progress rounded-pill mb-2" style="height: 4px;">
-                    <div class="progress-bar rounded-pill bg-success" :style="{ width: getChecklistPercentage(card) + '%' }"></div>
-                  </div>
-
-                  <div class="d-flex align-items-center justify-content-between extra-small text-muted pt-2 border-top">
-                    <span>{{ card.due_date ? formatDateShort(card.due_date) : 'En continu' }}</span>
-                    <span v-if="card.assignee" class="fw-semibold text-dark">
-                      {{ card.assignee.name }}
-                    </span>
-                  </div>
-                </div>
-
-                <div v-if="!col.cards || col.cards.length === 0" class="text-center py-4 text-muted extra-small">
-                  Aucune tâche dans cette colonne.
-                </div>
-              </div>
-
             </div>
 
           </div>
