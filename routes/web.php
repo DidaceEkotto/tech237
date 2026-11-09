@@ -63,6 +63,10 @@ use App\Livewire\Admin\Stats\WritersOverview as AdminWritersOverview;
 use App\Livewire\Admin\Stats\WriterDetail as AdminWriterDetail;
 use App\Livewire\Admin\Settings\Index as AdminSettingsIndex;
 use App\Livewire\Admin\Profile\Index as AdminProfileIndex;
+use App\Livewire\Admin\Polls\Index as AdminPollsIndex;
+use App\Livewire\Admin\Retention\UpvotesIndex as AdminUpvotesIndex;
+use App\Livewire\Admin\Retention\BadgesIndex as AdminBadgesIndex;
+use App\Http\Controllers\User\RetentionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -241,7 +245,16 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/messages/{id}/reaction', [UserDashboardController::class, 'toggleReaction'])->name('user.messages.reaction');
     Route::delete('/espace-utilisateur/messages/{id}', [UserDashboardController::class, 'deleteMessage'])->name('user.messages.delete');
     Route::delete('/espace-utilisateur/documents/{id}', [UserDashboardController::class, 'deleteDocument'])->name('user.documents.delete');
+
+    // Retention: Bookmarks & Alerts
+    Route::post('/espace-utilisateur/favoris/toggle', [RetentionController::class, 'toggleBookmark'])->name('user.bookmarks.toggle');
+    Route::post('/espace-utilisateur/alertes', [RetentionController::class, 'updateAlertPreferences'])->name('user.alerts.update');
 });
+
+// Retention: Upvotes & Daily Tech Polls
+Route::post('/projets/{id}/upvote', [RetentionController::class, 'toggleUpvote'])->name('projects.upvote');
+Route::post('/sondages/{id}/vote', [RetentionController::class, 'votePoll'])->name('polls.vote');
+Route::get('/api/sondage-actif', [RetentionController::class, 'getActivePoll'])->name('api.polls.active');
 
 /*
 |--------------------------------------------------------------------------
@@ -329,6 +342,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Content Moderation, Comments & Disputes
         Route::get('/comments', AdminCommentsIndex::class)->name('comments.index');
         Route::get('/disputes', AdminDisputesIndex::class)->name('disputes.index');
+
+        // Rétention & Communauté
+        Route::get('/polls', AdminPollsIndex::class)->name('polls.index');
+        Route::get('/retention/upvotes', AdminUpvotesIndex::class)->name('retention.upvotes');
+        Route::get('/retention/badges', AdminBadgesIndex::class)->name('retention.badges');
 
         // Administration, Security & Users
         Route::get('/users', AdminUsersIndex::class)->name('users.index');

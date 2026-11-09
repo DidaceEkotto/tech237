@@ -24,9 +24,13 @@ class ProjectShowcaseController extends Controller
             ->latest()
             ->paginate(12);
 
+        $user = Auth::guard('web')->user();
+        $userUpvotedProjectIds = $user ? \App\Models\ProjectUpvote::where('user_id', $user->id)->pluck('project_id')->toArray() : [];
+
         return Inertia::render('Projects/Index', [
             'projects' => $projects,
             'selectedType' => $type,
+            'userUpvotedProjectIds' => $userUpvotedProjectIds,
         ]);
     }
 
@@ -52,9 +56,18 @@ class ProjectShowcaseController extends Controller
             ->take(3)
             ->get();
 
+        $user = Auth::guard('web')->user();
+        $hasUpvoted = $user ? $project->hasUserUpvoted($user->id) : false;
+        $isBookmarked = $user ? \App\Models\UserBookmark::where('user_id', $user->id)
+            ->where('bookmarkable_type', 'project')
+            ->where('bookmarkable_id', $project->id)
+            ->exists() : false;
+
         return Inertia::render('Projects/Show', [
             'project' => $project,
             'relatedProjects' => $relatedProjects,
+            'hasUpvoted' => $hasUpvoted,
+            'isBookmarked' => $isBookmarked,
         ]);
     }
 

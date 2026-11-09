@@ -24,6 +24,9 @@ use App\Models\JobInterview;
 use App\Models\Conference;
 use App\Models\ConferenceRegistration;
 use App\Models\SiteSetting;
+use App\Models\UserBookmark;
+use App\Models\UserBadge;
+use App\Models\UserAlertPreference;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 use App\Services\ImageService;
@@ -123,6 +126,54 @@ class DashboardController extends Controller
         $totalProjectViews = $projects->sum('views_count');
         $totalProjectComments = Comment::whereIn('project_id', $projects->pluck('id'))->count();
 
+        // Bookmarks (Reading List)
+        $rawBookmarks = UserBookmark::where('user_id', $user->id)->latest()->get();
+        $bookmarks = [];
+        foreach ($rawBookmarks as $b) {
+            $item = $b->target_item;
+            if ($item) {
+                $title = $item->title_fr ?? $item->name ?? $item->game_name ?? $item->app_name ?? 'Élément';
+                $slug = $item->slug ?? null;
+                $url = match ($b->bookmarkable_type) {
+                    'article' => route('article.show', $slug ?: $item->id),
+                    'game_review' => route('game-reviews.show', $slug ?: $item->id),
+                    'app_review' => route('app-reviews.show', $slug ?: $item->id),
+                    'project' => route('projects.show', $slug ?: $item->id),
+                    'job' => route('jobs.show', $slug ?: $item->id),
+                    default => '#',
+                };
+                $image = $item->image_path ?? $item->image ?? $item->logo ?? $item->featured_image ?? null;
+                $bookmarks[] = [
+                    'id' => $b->id,
+                    'type' => $b->bookmarkable_type,
+                    'type_label' => match($b->bookmarkable_type) {
+                        'article' => 'Article',
+                        'game_review' => 'Test Jeu',
+                        'app_review' => 'Test App',
+                        'project' => 'Projet Tech',
+                        'job' => 'Emploi IT',
+                        default => 'Autre',
+                    },
+                    'item_id' => $b->bookmarkable_id,
+                    'title' => $title,
+                    'url' => $url,
+                    'image' => $image,
+                    'created_at' => $b->created_at->format('d/m/Y'),
+                ];
+            }
+        }
+
+        $badges = UserBadge::where('user_id', $user->id)->latest()->get();
+        $alertPreference = UserAlertPreference::firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'alert_jobs' => true,
+                'alert_conferences' => true,
+                'alert_projects' => true,
+                'alert_newsletter' => true,
+            ]
+        );
+
         // Analytics curves for Day, Week, Month
         $stats = [
             'project_views' => $totalProjectViews,
@@ -163,6 +214,9 @@ class DashboardController extends Controller
             'unreadMessagesCount' => $unreadMessagesCount,
             'comments' => $comments,
             'unreadCommentsCount' => $unreadCommentsCount,
+            'bookmarks' => $bookmarks,
+            'badges' => $badges,
+            'alertPreference' => $alertPreference,
             'stats' => $stats,
             'isBanned' => $user->isBanned(),
             'banReason' => $user->ban_reason,

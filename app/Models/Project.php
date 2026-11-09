@@ -37,6 +37,7 @@ class Project extends Model
         'repo_url',
         'status',
         'views_count',
+        'upvotes_count',
     ];
 
     protected $casts = [
@@ -48,6 +49,7 @@ class Project extends Model
         'gallery' => 'array',
         'youtube_videos' => 'array',
         'views_count' => 'integer',
+        'upvotes_count' => 'integer',
     ];
 
     protected static function booted()
@@ -67,6 +69,17 @@ class Project extends Model
     public function startup(): BelongsTo
     {
         return $this->belongsTo(Startup::class);
+    }
+
+    public function upvotes(): HasMany
+    {
+        return $this->hasMany(ProjectUpvote::class);
+    }
+
+    public function hasUserUpvoted(?User $user): bool
+    {
+        if (!$user) return false;
+        return $this->upvotes()->where('user_id', $user->id)->exists();
     }
 
     public function timelines(): HasMany

@@ -77,9 +77,20 @@
                 </span>
               </div>
 
-              <Link :href="'/projet/' + proj.slug" class="btn btn-outline-success w-100 rounded-pill fw-bold" style="border-color: #00A859; color: #00A859;">
-                Découvrir le projet <i class="bi bi-arrow-right ms-1"></i>
-              </Link>
+              <div class="d-flex align-items-center gap-2 mt-auto">
+                <button 
+                  @click.prevent="upvoteProject(proj)" 
+                  class="btn rounded-pill px-3 py-2 fw-bold d-flex align-items-center gap-1 border shadow-sm"
+                  :class="isUpvoted(proj.id) ? 'btn-success text-white' : 'btn-outline-success'"
+                  title="Upvoter ce projet"
+                >
+                  <i class="bi bi-caret-up-fill fs-6"></i>
+                  <span>{{ proj.upvotes_count || 0 }}</span>
+                </button>
+                <Link :href="'/projet/' + proj.slug" class="btn btn-outline-success flex-grow-1 rounded-pill fw-bold" style="border-color: #00A859; color: #00A859;">
+                  Découvrir le projet <i class="bi bi-arrow-right ms-1"></i>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -89,13 +100,50 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 
-defineProps({
+const props = defineProps({
   projects: Object,
   selectedType: String,
+  userUpvotedProjectIds: {
+    type: Array,
+    default: () => [],
+  }
 })
+
+const upvotedIds = ref(new Set(props.userUpvotedProjectIds || []))
+
+function isUpvoted(id) {
+  return upvotedIds.value.has(id)
+}
+
+function upvoteProject(proj) {
+  fetch(`/projets/${proj.id}/upvote`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    }
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login'
+      return
+    }
+    return r.json()
+  }).then(data => {
+    if (data && data.success) {
+      proj.upvotes_count = data.upvotes_count
+      if (data.upvoted) {
+        upvotedIds.value.add(proj.id)
+      } else {
+        upvotedIds.value.delete(proj.id)
+      }
+    }
+  }).catch(() => {})
+}
 
 function formatCardDescription(text) {
   if (!text) return ''

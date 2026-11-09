@@ -101,9 +101,15 @@ class JobController extends Controller
             ->take(3)
             ->get();
 
+        $isBookmarked = $userId ? \App\Models\UserBookmark::where('user_id', $userId)
+            ->where('bookmarkable_type', 'job')
+            ->where('bookmarkable_id', $job->id)
+            ->exists() : false;
+
         return Inertia::render('Jobs/Show', [
             'job' => $job,
             'hasApplied' => $hasApplied,
+            'isBookmarked' => $isBookmarked,
             'similarJobs' => $similarJobs,
         ]);
     }

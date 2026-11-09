@@ -24,6 +24,8 @@ class User extends Authenticatable
         'bio',
         'status',
         'ban_reason',
+        'xp',
+        'rank_title',
         'birth_date',
         'marital_status',
         'registered_at',
@@ -132,5 +134,42 @@ class User extends Authenticatable
     public function sentProjectInvitations(): HasMany
     {
         return $this->hasMany(ProjectInvitation::class, 'inviter_id');
+    }
+
+    public function upvotes(): HasMany
+    {
+        return $this->hasMany(ProjectUpvote::class);
+    }
+
+    public function bookmarks(): HasMany
+    {
+        return $this->hasMany(UserBookmark::class)->latest();
+    }
+
+    public function badges(): HasMany
+    {
+        return $this->hasMany(UserBadge::class)->latest();
+    }
+
+    public function alertPreference(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(UserAlertPreference::class);
+    }
+
+    public function addXp(int $points): void
+    {
+        $newXp = max(0, ($this->xp ?? 0) + $points);
+        $rank = match (true) {
+            $newXp >= 1000 => 'Légende Tech237 👑',
+            $newXp >= 400 => 'Tech Lead 🚀',
+            $newXp >= 150 => 'Tech Builder 🛠️',
+            $newXp >= 50 => 'Codeur Actif ⚡',
+            default => 'Novice Tech 🌱',
+        };
+
+        $this->update([
+            'xp' => $newXp,
+            'rank_title' => $rank,
+        ]);
     }
 }

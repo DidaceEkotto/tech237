@@ -149,6 +149,17 @@
                 <i class="bi bi-envelope-paper"></i> Newsletters & Inscrits
             </a>
 
+            <div class="nav-heading">Rétention & Communauté</div>
+            <a href="{{ route('admin.polls.index') }}" class="nav-link {{ request()->routeIs('admin.polls.*') ? 'active' : '' }}">
+                <i class="bi bi-pie-chart-fill text-primary"></i> Sondages Tech (Polls)
+            </a>
+            <a href="{{ route('admin.retention.upvotes') }}" class="nav-link {{ request()->routeIs('admin.retention.upvotes*') ? 'active' : '' }}">
+                <i class="bi bi-arrow-up-circle-fill text-success"></i> Upvotes Projets Tech
+            </a>
+            <a href="{{ route('admin.retention.badges') }}" class="nav-link {{ request()->routeIs('admin.retention.badges*') ? 'active' : '' }}">
+                <i class="bi bi-award-fill text-warning"></i> Badges & Gamification
+            </a>
+
             <div class="nav-heading">Gestion & Sécurité</div>
             <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                 <i class="bi bi-people"></i> Admins & Rôles

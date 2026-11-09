@@ -39,16 +39,30 @@
           <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
               
-              <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-                <span class="badge bg-danger text-uppercase px-3 py-2 rounded-pill fw-bold">
-                  {{ job.contract_type }}
-                </span>
-                <span class="badge bg-dark text-white px-3 py-2 rounded-pill">
-                  <i class="bi bi-geo-alt-fill me-1"></i> {{ job.city }}
-                </span>
-                <span v-if="job.has_online_test" class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
-                  <i class="bi bi-patch-question-fill me-1"></i>Test d'évaluation technique
-                </span>
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-3 flex-wrap">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <span class="badge bg-danger text-uppercase px-3 py-2 rounded-pill fw-bold">
+                    {{ job.contract_type }}
+                  </span>
+                  <span class="badge bg-dark text-white px-3 py-2 rounded-pill">
+                    <i class="bi bi-geo-alt-fill me-1"></i> {{ job.city }}
+                  </span>
+                  <span v-if="job.has_online_test" class="badge bg-primary-subtle text-primary border border-primary px-3 py-2 rounded-pill fw-bold">
+                    <i class="bi bi-patch-question-fill me-1"></i>Test d'évaluation technique
+                  </span>
+                </div>
+
+                <!-- Bookmark Button -->
+                <button 
+                  @click="toggleBookmark" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+                  :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-outline-secondary'"
+                  :disabled="isBookmarking"
+                  :title="isBookmarkedState ? 'Retirer des favoris' : 'Sauvegarder cette offre (+2 XP)'"
+                >
+                  <i :class="isBookmarkedState ? 'bi bi-bookmark-fill' : 'bi bi-bookmark'"></i>
+                  <span>{{ isBookmarkedState ? 'Offre sauvegardée' : 'Sauvegarder l\'offre' }}</span>
+                </button>
               </div>
 
               <!-- Domains Badges -->
@@ -155,7 +169,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 
@@ -163,7 +177,41 @@ const props = defineProps({
   job: Object,
   hasApplied: Boolean,
   similarJobs: Array,
+  isBookmarked: Boolean,
 })
+
+const isBookmarkedState = ref(props.isBookmarked || false)
+const isBookmarking = ref(false)
+
+function toggleBookmark() {
+  if (isBookmarking.value) return
+  isBookmarking.value = true
+
+  fetch('/espace-utilisateur/favoris/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: JSON.stringify({
+      item_type: 'job',
+      item_id: props.job.id,
+    })
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login'
+      return
+    }
+    return r.json()
+  }).then(data => {
+    if (data && data.success) {
+      isBookmarkedState.value = data.bookmarked
+    }
+  }).finally(() => {
+    isBookmarking.value = false
+  })
+}
 
 const isDeadlinePassed = computed(() => {
   if (!props.job.deadline_date) return false

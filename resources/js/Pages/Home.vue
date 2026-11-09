@@ -391,6 +391,9 @@
             </form>
           </div>
 
+          <!-- Daily Tech Poll (Sondage Quotidien) -->
+          <DailyTechPoll v-if="activePoll" :poll="activePoll" />
+
           <!-- 2. "En ce moment" Trending Box -->
           <div class="card rounded-4 p-4 mb-4 border shadow-sm bg-white">
             <div class="d-flex align-items-center justify-content-between mb-3">
@@ -603,9 +606,6 @@
                   :src="'/' + (proj.banner || 'assets/images/default-event.jpg')" 
                   class="w-100 h-100 object-fit-cover"
                 >
-                <span class="badge position-absolute top-0 end-0 m-2 rounded-pill text-white shadow-sm" style="background-color: var(--tech-green, #00A859); font-size: 10px;">
-                  {{ formatProjectType(proj) }}
-                </span>
                 <!-- Logo superposé sur la bannière -->
                 <div class="position-absolute" style="bottom: -18px; left: 16px; z-index: 3;">
                   <div class="rounded-3 border border-2 border-white shadow-sm overflow-hidden bg-white d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
@@ -623,6 +623,21 @@
               </div>
               <div class="card-body p-3 pt-4 d-flex flex-column justify-content-between">
                 <div>
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="badge text-uppercase px-2 py-1 rounded-pill fw-bold text-white" style="background-color: var(--tech-green, #00A859); font-size: 10px;">
+                      {{ formatProjectType(proj) }}
+                    </span>
+                    <button 
+                      @click.prevent="upvoteProject(proj)" 
+                      class="btn btn-sm rounded-pill px-2 py-0 border d-flex align-items-center gap-1 shadow-sm fw-bold"
+                      :class="proj.has_upvoted ? 'btn-success text-white' : 'btn-outline-success'"
+                      style="font-size: 11px;"
+                      title="Voter pour ce projet"
+                    >
+                      <i class="bi bi-caret-up-fill"></i>
+                      <span>{{ proj.upvotes_count || 0 }}</span>
+                    </button>
+                  </div>
                   <h6 class="fw-bold text-dark mb-1 text-truncate mt-1">
                     <Link :href="'/projet/' + (proj.slug || proj.id)" class="text-dark text-decoration-none">
                       {{ proj.name }}
@@ -685,8 +700,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head, Link, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import DailyTechPoll from '@/Components/DailyTechPoll.vue'
 
 const props = defineProps({
+  activePoll: Object,
   sliders: Array,
   entrepreneurOfMonth: Object,
   mostReadArticle: Object,
@@ -742,6 +759,28 @@ const formatProjectType = (proj) => {
     game: 'Jeu Vidéo',
   }
   return map[proj.project_type] || proj.project_type || 'Application Web'
+}
+
+function upvoteProject(proj) {
+  fetch(`/projets/${proj.id}/upvote`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    }
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login'
+      return
+    }
+    return r.json()
+  }).then(data => {
+    if (data && data.success) {
+      proj.upvotes_count = data.upvotes_count
+      proj.has_upvoted = data.upvoted
+    }
+  }).catch(() => {})
 }
 
 // Ad Banners: Home Middle and Sidebar

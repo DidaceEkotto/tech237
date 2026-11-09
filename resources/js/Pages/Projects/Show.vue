@@ -50,7 +50,32 @@
               </div>
             </div>
 
-            <div class="d-flex gap-2 flex-wrap">
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+              <!-- Upvote Button (Product Hunt style) -->
+              <button 
+                @click="toggleUpvote" 
+                class="btn rounded-pill px-3 fw-bold d-flex align-items-center gap-2 shadow-sm"
+                :class="hasUpvotedState ? 'btn-success text-white' : 'btn-outline-success'"
+                :disabled="isUpvoting"
+                title="Voter pour ce projet (+2 XP)"
+              >
+                <i class="bi bi-caret-up-fill fs-5"></i>
+                <span>{{ hasUpvotedState ? 'Upvoté' : 'Upvote' }}</span>
+                <span class="badge bg-white text-dark rounded-pill shadow-xs">{{ upvotesCount }}</span>
+              </button>
+
+              <!-- Bookmark Button -->
+              <button 
+                @click="toggleBookmark" 
+                class="btn rounded-pill px-3 fw-bold d-flex align-items-center gap-1 shadow-sm"
+                :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-outline-secondary'"
+                :disabled="isBookmarking"
+                :title="isBookmarkedState ? 'Retirer des favoris' : 'Sauvegarder dans mes favoris'"
+              >
+                <i :class="isBookmarkedState ? 'bi bi-bookmark-fill' : 'bi bi-bookmark'"></i>
+                <span class="d-none d-sm-inline">{{ isBookmarkedState ? 'Sauvegardé' : 'Favoris' }}</span>
+              </button>
+
               <a v-if="project.website_url" :href="project.website_url" target="_blank" class="btn btn-danger rounded-pill px-4 fw-bold">
                 <i class="bi bi-box-arrow-up-right me-1"></i> Voir la Démo
               </a>
@@ -379,7 +404,73 @@ import FrontLayout from '@/Layouts/FrontLayout.vue'
 const props = defineProps({
   project: Object,
   relatedProjects: Array,
+  hasUpvoted: Boolean,
+  isBookmarked: Boolean,
 })
+
+const hasUpvotedState = ref(props.hasUpvoted || false)
+const upvotesCount = ref(props.project.upvotes_count || 0)
+const isUpvoting = ref(false)
+
+const isBookmarkedState = ref(props.isBookmarked || false)
+const isBookmarking = ref(false)
+
+function toggleUpvote() {
+  if (isUpvoting.value) return
+  isUpvoting.value = true
+
+  fetch(`/projets/${props.project.id}/upvote`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    }
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login'
+      return
+    }
+    return r.json()
+  }).then(data => {
+    if (data && data.success) {
+      hasUpvotedState.value = data.upvoted
+      upvotesCount.value = data.upvotes_count
+    }
+  }).finally(() => {
+    isUpvoting.value = false
+  })
+}
+
+function toggleBookmark() {
+  if (isBookmarking.value) return
+  isBookmarking.value = true
+
+  fetch('/espace-utilisateur/favoris/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: JSON.stringify({
+      item_type: 'project',
+      item_id: props.project.id,
+    })
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login'
+      return
+    }
+    return r.json()
+  }).then(data => {
+    if (data && data.success) {
+      isBookmarkedState.value = data.bookmarked
+    }
+  }).finally(() => {
+    isBookmarking.value = false
+  })
+}
 
 const showReportModal = ref(false)
 const lightboxOpen = ref(false)

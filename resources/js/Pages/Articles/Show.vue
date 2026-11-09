@@ -48,18 +48,32 @@
               {{ currentTitle }}
             </h1>
 
-            <!-- Publication Date, Author, Reading time -->
-            <div class="d-flex align-items-center gap-2 small text-muted mb-3 flex-wrap">
-              <span>Publié le {{ article.date_formatted || 'récemment' }}</span>
-              <span>&bull;</span>
-              <span>Par 
-                <Link v-if="article.author" :href="'/auteur/' + article.author.id" class="text-dark fw-bold text-decoration-underline">
-                  {{ article.author.name }}
-                </Link>
-                <strong v-else class="text-dark">Rédaction Tech237</strong>
-              </span>
-              <span>&bull;</span>
-              <span><i class="bi bi-clock me-1"></i>{{ estimatedReadingTime }} min de lecture</span>
+            <!-- Publication Date, Author, Reading time & Bookmark -->
+            <div class="d-flex align-items-center justify-content-between gap-2 small text-muted mb-3 flex-wrap">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span>Publié le {{ article.date_formatted || 'récemment' }}</span>
+                <span>&bull;</span>
+                <span>Par 
+                  <Link v-if="article.author" :href="'/auteur/' + article.author.id" class="text-dark fw-bold text-decoration-underline">
+                    {{ article.author.name }}
+                  </Link>
+                  <strong v-else class="text-dark">Rédaction Tech237</strong>
+                </span>
+                <span>&bull;</span>
+                <span><i class="bi bi-clock me-1"></i>{{ estimatedReadingTime }} min de lecture</span>
+              </div>
+
+              <!-- Bookmark Button -->
+              <button 
+                @click="toggleBookmark" 
+                class="btn btn-sm rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+                :class="isBookmarkedState ? 'btn-warning text-dark' : 'btn-outline-secondary'"
+                :disabled="isBookmarking"
+                :title="isBookmarkedState ? 'Retirer de mes favoris' : 'Enregistrer dans mes favoris (+2 XP)'"
+              >
+                <i :class="isBookmarkedState ? 'bi bi-bookmark-fill' : 'bi bi-bookmark'"></i>
+                <span>{{ isBookmarkedState ? 'Sauvegardé' : 'Lire plus tard' }}</span>
+              </button>
             </div>
 
             <!-- Audio Narrator (TTS Player) -->
@@ -471,7 +485,41 @@ const props = defineProps({
   nextArticle: { type: Object, default: null },
   relatedArticles: { type: Array, default: () => [] },
   comments: { type: Array, default: () => [] },
+  isBookmarked: { type: Boolean, default: false },
 })
+
+const isBookmarkedState = ref(props.isBookmarked || false)
+const isBookmarking = ref(false)
+
+function toggleBookmark() {
+  if (isBookmarking.value) return
+  isBookmarking.value = true
+
+  fetch('/espace-utilisateur/favoris/toggle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: JSON.stringify({
+      item_type: 'article',
+      item_id: props.article.id,
+    })
+  }).then(r => {
+    if (r.status === 401) {
+      window.location.href = '/login'
+      return
+    }
+    return r.json()
+  }).then(data => {
+    if (data && data.success) {
+      isBookmarkedState.value = data.bookmarked
+    }
+  }).finally(() => {
+    isBookmarking.value = false
+  })
+}
 
 const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')

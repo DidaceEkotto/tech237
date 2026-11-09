@@ -58,8 +58,14 @@ class ArticleController extends Controller
             ->latest()
             ->get();
 
+        $isBookmarked = auth()->check() ? \App\Models\UserBookmark::where('user_id', auth()->id())
+            ->where('bookmarkable_type', 'article')
+            ->where('bookmarkable_id', $article->id)
+            ->exists() : false;
+
         return Inertia::render('Articles/Show', [
             'article' => $article,
+            'isBookmarked' => $isBookmarked,
             'authorArticles' => $authorArticles,
             'prevArticle' => $prevArticle,
             'nextArticle' => $nextArticle,

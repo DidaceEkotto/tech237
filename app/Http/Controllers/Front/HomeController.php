@@ -148,7 +148,17 @@ class HomeController extends Controller
             ->take(4)
             ->get();
 
+        $activePoll = \App\Models\TechPoll::where('is_active', true)
+            ->with('options')
+            ->latest()
+            ->first();
+
+        if ($activePoll) {
+            $activePoll->user_has_voted = $activePoll->hasUserVoted(auth()->id(), request()->ip());
+        }
+
         return Inertia::render('Home', [
+            'activePoll' => $activePoll,
             'sliders' => $sliders,
             'entrepreneurOfMonth' => $entrepreneurOfMonth,
             'mostReadArticle' => $mostReadArticle,

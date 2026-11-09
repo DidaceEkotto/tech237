@@ -67,8 +67,14 @@ class GameReviewController extends Controller
             ->latest()
             ->get();
 
+        $isBookmarked = auth()->check() ? \App\Models\UserBookmark::where('user_id', auth()->id())
+            ->where('bookmarkable_type', 'game_review')
+            ->where('bookmarkable_id', $review->id)
+            ->exists() : false;
+
         return Inertia::render('GameReviews/Show', [
             'review' => $review,
+            'isBookmarked' => $isBookmarked,
             'relatedReviews' => $relatedReviews,
             'prevReview' => $prevReview,
             'nextReview' => $nextReview,

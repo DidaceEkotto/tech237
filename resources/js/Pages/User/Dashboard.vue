@@ -70,7 +70,30 @@
                 </div>
               </div>
               <h5 class="fw-bold mb-1 text-white">{{ user.first_name }} {{ user.name }}</h5>
-              <div class="small text-white-50 text-truncate">{{ user.email }}</div>
+              <div class="small text-white-50 text-truncate mb-2">{{ user.email }}</div>
+
+              <!-- Gamification Rank & XP -->
+              <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-2">
+                <span class="badge rounded-pill px-2 py-1 bg-warning text-dark fw-bold" style="font-size: 11px;">
+                  <i class="bi bi-award-fill me-1"></i>{{ user.rank_title || 'Novice' }}
+                </span>
+                <span class="badge rounded-pill px-2 py-1 bg-light text-dark fw-bold border" style="font-size: 11px;">
+                  ⚡ {{ user.xp || 0 }} XP
+                </span>
+              </div>
+
+              <!-- Mini Badges preview if any -->
+              <div v-if="badges && badges.length" class="d-flex justify-content-center gap-1 flex-wrap pt-1">
+                <span 
+                  v-for="b in badges.slice(0, 4)" 
+                  :key="b.id" 
+                  class="badge bg-white text-warning border p-1 rounded-circle"
+                  :title="b.badge_name + ' : ' + b.description"
+                  style="width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;"
+                >
+                  <i :class="b.badge_icon || 'bi bi-award'"></i>
+                </span>
+              </div>
             </div>
 
             <!-- Vertical Navigation Menu Links -->
@@ -167,6 +190,18 @@
                 <span>Documents & CNI</span>
                 <span class="badge rounded-pill ms-auto" :class="currentSection === 'documents' ? 'bg-white text-danger' : 'bg-secondary-subtle text-secondary'">
                   {{ documents.length }}
+                </span>
+              </button>
+
+              <button 
+                @click="setSection('bookmarks')" 
+                class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+                :class="currentSection === 'bookmarks' ? 'bg-danger text-white' : 'text-dark'"
+              >
+                <i class="bi bi-bookmark-heart me-2 fs-5"></i>
+                <span>Mes Favoris</span>
+                <span class="badge rounded-pill ms-auto" :class="currentSection === 'bookmarks' ? 'bg-white text-danger' : 'bg-secondary-subtle text-secondary'">
+                  {{ (bookmarks || []).length }}
                 </span>
               </button>
 
@@ -1527,6 +1562,234 @@
                 </div>
               </form>
             </div>
+
+            <!-- Préférences d'Alertes & Opportunités -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-4 bg-white">
+              <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-bell-fill text-danger fs-4"></i>
+                <h4 class="fw-bold mb-0 text-dark">Préférences d'Alertes & Opportunités</h4>
+              </div>
+              <p class="text-muted small mb-4">Recevez automatiquement des alertes ciblées pour ne manquer aucune opportunité tech au Cameroun.</p>
+
+              <form @submit.prevent="updateAlertsSubmit">
+                <div class="row g-3 mb-4">
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                      <div>
+                        <div class="fw-bold text-dark small"><i class="bi bi-briefcase text-success me-2"></i>Alertes Offres d'Emploi IT</div>
+                        <div class="text-muted extra-small">Notification dès qu'un poste correspond à vos compétences.</div>
+                      </div>
+                      <div class="form-check form-switch fs-5 mb-0">
+                        <input class="form-check-input" type="checkbox" v-model="alertForm.alert_jobs">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                      <div>
+                        <div class="fw-bold text-dark small"><i class="bi bi-calendar-event text-danger me-2"></i>Conférences & Événements</div>
+                        <div class="text-muted extra-small">Rappels des webinaires, hackathons et meetups Tech237.</div>
+                      </div>
+                      <div class="form-check form-switch fs-5 mb-0">
+                        <input class="form-check-input" type="checkbox" v-model="alertForm.alert_conferences">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                      <div>
+                        <div class="fw-bold text-dark small"><i class="bi bi-rocket-takeoff text-primary me-2"></i>Lancements de Projets Tech</div>
+                        <div class="text-muted extra-small">Restez informé des innovations des startups camerounaises.</div>
+                      </div>
+                      <div class="form-check form-switch fs-5 mb-0">
+                        <input class="form-check-input" type="checkbox" v-model="alertForm.alert_projects">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                      <div>
+                        <div class="fw-bold text-dark small"><i class="bi bi-newspaper text-warning me-2"></i>Newsletter Hebdomadaire</div>
+                        <div class="text-muted extra-small">Le condensé hebdomadaire des levées de fonds et analyses tech.</div>
+                      </div>
+                      <div class="form-check form-switch fs-5 mb-0">
+                        <input class="form-check-input" type="checkbox" v-model="alertForm.alert_newsletter">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <span v-if="alertSavedMessage" class="text-success small fw-bold">
+                    <i class="bi bi-check-circle-fill me-1"></i> Préférences enregistrées avec succès !
+                  </span>
+                  <div class="ms-auto">
+                    <button type="submit" class="btn btn-dark rounded-pill px-4 fw-bold shadow-sm" :disabled="alertForm.processing">
+                      <span v-if="alertForm.processing" class="spinner-border spinner-border-sm me-1"></span>
+                      Enregistrer mes préférences
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Badges Communautaires & Progression -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-4 bg-white">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-trophy-fill text-warning fs-4"></i>
+                  <h4 class="fw-bold mb-0 text-dark">Badges Communautaires &amp; Niveau Tech237</h4>
+                </div>
+                <div class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold fs-6">
+                  {{ user.rank_title || 'Novice' }} &bull; {{ user.xp || 0 }} XP
+                </div>
+              </div>
+              <p class="text-muted small mb-4">Gagnez des points d'XP en publiant des projets, en votant aux sondages quotidiens, en commentant et en contribuant activement à l'écosystème numérique camerounais.</p>
+
+              <div v-if="badges && badges.length > 0" class="row g-3">
+                <div v-for="b in badges" :key="b.id" class="col-sm-6 col-md-4">
+                  <div class="p-3 bg-light rounded-4 border text-center h-100 d-flex flex-column justify-content-center align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-20 text-warning d-flex align-items-center justify-content-center mb-2" style="width: 52px; height: 52px; font-size: 24px;">
+                      <i :class="b.badge_icon || 'bi bi-award-fill'"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">{{ b.badge_name }}</h6>
+                    <small class="text-muted">{{ b.description }}</small>
+                    <span class="badge bg-white text-secondary border rounded-pill mt-2 extra-small">
+                      Obtenu le {{ formatDate(b.awarded_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-center py-4 bg-light rounded-4 border">
+                <i class="bi bi-star text-muted fs-2 mb-2 d-block opacity-50"></i>
+                <div class="fw-bold text-dark mb-1">Aucun badge débloqué pour l'instant</div>
+                <p class="text-muted small mb-0">Participez aux discussions, upvotez les projets et répondez aux sondages pour débloquer vos premiers badges !</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 9. MES FAVORIS -->
+          <div v-else-if="currentSection === 'bookmarks'">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-4 bg-white">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <div>
+                  <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                    <i class="bi bi-bookmark-heart text-danger"></i> Mes Favoris & Sauvegardes
+                  </h4>
+                  <p class="text-muted small mb-0">Retrouvez facilement les articles, tests, projets tech et opportunités d'emploi que vous avez mis de côté.</p>
+                </div>
+                <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill fw-bold">
+                  {{ (bookmarks || []).length }} élément(s)
+                </span>
+              </div>
+
+              <!-- Filter pills -->
+              <div class="d-flex flex-wrap gap-2 mb-4 pb-2 border-bottom">
+                <button 
+                  @click="bookmarkFilter = 'all'" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold"
+                  :class="bookmarkFilter === 'all' ? 'btn-danger' : 'btn-outline-secondary'"
+                >
+                  Tous ({{ (bookmarks || []).length }})
+                </button>
+                <button 
+                  @click="bookmarkFilter = 'article'" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold"
+                  :class="bookmarkFilter === 'article' ? 'btn-danger' : 'btn-outline-secondary'"
+                >
+                  Articles
+                </button>
+                <button 
+                  @click="bookmarkFilter = 'project'" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold"
+                  :class="bookmarkFilter === 'project' ? 'btn-danger' : 'btn-outline-secondary'"
+                >
+                  Projets Tech
+                </button>
+                <button 
+                  @click="bookmarkFilter = 'job'" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold"
+                  :class="bookmarkFilter === 'job' ? 'btn-danger' : 'btn-outline-secondary'"
+                >
+                  Offres d'emploi
+                </button>
+                <button 
+                  @click="bookmarkFilter = 'game_review'" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold"
+                  :class="bookmarkFilter === 'game_review' ? 'btn-danger' : 'btn-outline-secondary'"
+                >
+                  Tests Jeux
+                </button>
+                <button 
+                  @click="bookmarkFilter = 'app_review'" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold"
+                  :class="bookmarkFilter === 'app_review' ? 'btn-danger' : 'btn-outline-secondary'"
+                >
+                  Tests Apps
+                </button>
+              </div>
+
+              <!-- Bookmarks List -->
+              <div v-if="filteredBookmarks.length > 0" class="row g-3">
+                <div v-for="b in filteredBookmarks" :key="b.id" class="col-md-6">
+                  <div class="card h-100 border rounded-4 shadow-xs overflow-hidden p-3 bg-light bg-opacity-50 d-flex flex-column justify-content-between">
+                    <div>
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge rounded-pill px-2 py-1 text-uppercase fw-bold" :class="getBookmarkBadgeClass(b.type)" style="font-size: 10px;">
+                          {{ b.type_label }}
+                        </span>
+                        <small class="text-muted extra-small">Ajouté le {{ b.created_at }}</small>
+                      </div>
+
+                      <div class="d-flex gap-3 align-items-start my-2">
+                        <div v-if="b.image" class="rounded-3 overflow-hidden border bg-white flex-shrink-0" style="width: 60px; height: 60px;">
+                          <img :src="b.image.startsWith('/') ? b.image : '/' + b.image" class="w-100 h-100 object-fit-cover" :alt="b.title">
+                        </div>
+                        <div v-else class="rounded-3 bg-white border d-flex align-items-center justify-content-center text-muted flex-shrink-0" style="width: 60px; height: 60px;">
+                          <i :class="getBookmarkIcon(b.type)" class="fs-4 text-secondary"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                          <h6 class="fw-bold mb-1 text-dark line-clamp-2">
+                            <a :href="b.url" class="text-dark text-decoration-none hover-danger">{{ b.title }}</a>
+                          </h6>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
+                      <a :href="b.url" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold">
+                        Consulter <i class="bi bi-arrow-right ms-1"></i>
+                      </a>
+                      <button 
+                        @click="removeBookmark(b)" 
+                        class="btn btn-sm btn-link text-danger text-decoration-none p-0 d-flex align-items-center gap-1"
+                        title="Retirer des favoris"
+                      >
+                        <i class="bi bi-trash3"></i>
+                        <span>Retirer</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Empty State -->
+              <div v-else class="text-center py-5">
+                <div class="rounded-circle bg-light d-inline-flex p-4 text-muted mb-3">
+                  <i class="bi bi-bookmark-x fs-1 text-danger opacity-50"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Aucun favori dans cette catégorie</h5>
+                <p class="text-muted small mb-4" style="max-width: 480px; margin: 0 auto;">
+                  Explorez les articles, les applications, les projets tech et les offres d'emploi sur Tech237 et cliquez sur "Sauvegarder" pour les retrouver ici en un clic.
+                </p>
+                <Link href="/" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm">
+                  Découvrir les actualités
+                </Link>
+              </div>
+            </div>
           </div>
 
         </div>
@@ -1624,6 +1887,13 @@
           :class="currentSection === 'documents' ? 'bg-danger text-white' : 'text-dark'"
         >
           <i class="bi bi-file-earmark-lock me-2"></i> Documents & CNI
+        </button>
+        <button 
+          @click="selectMobileSection('bookmarks')" 
+          class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+          :class="currentSection === 'bookmarks' ? 'bg-danger text-white' : 'text-dark'"
+        >
+          <i class="bi bi-bookmark-heart me-2"></i> Mes Favoris ({{ (bookmarks || []).length }})
         </button>
         <button 
           @click="selectMobileSection('profile')" 
@@ -1914,11 +2184,71 @@ const props = defineProps({
   unreadMessagesCount: { type: Number, default: 0 },
   comments: { type: Array, default: () => [] },
   unreadCommentsCount: { type: Number, default: 0 },
+  bookmarks: { type: Array, default: () => [] },
+  badges: { type: Array, default: () => [] },
+  alertPreference: { type: Object, default: () => ({}) },
   isBanned: { type: Boolean, default: false },
   banReason: { type: String, default: null },
   activeSection: { type: String, default: 'dashboard' },
   stats: { type: Object, default: () => ({}) },
 })
+
+// Bookmarks Logic
+const bookmarkFilter = ref('all')
+const filteredBookmarks = computed(() => {
+  if (bookmarkFilter.value === 'all') return props.bookmarks || []
+  return (props.bookmarks || []).filter(b => b.type === bookmarkFilter.value)
+})
+
+function getBookmarkBadgeClass(type) {
+  return {
+    'article': 'bg-primary text-white',
+    'project': 'bg-success text-white',
+    'job': 'bg-danger text-white',
+    'game_review': 'bg-info text-dark',
+    'app_review': 'bg-secondary text-white',
+  }[type] || 'bg-secondary text-white'
+}
+
+function getBookmarkIcon(type) {
+  return {
+    'article': 'bi bi-file-text',
+    'project': 'bi bi-rocket-takeoff',
+    'job': 'bi bi-briefcase',
+    'game_review': 'bi bi-controller',
+    'app_review': 'bi bi-phone',
+  }[type] || 'bi bi-bookmark'
+}
+
+function removeBookmark(bookmark) {
+  router.post('/espace-utilisateur/favoris/toggle', {
+    item_type: bookmark.type,
+    item_id: bookmark.item_id,
+  }, {
+    preserveScroll: true,
+  })
+}
+
+// Alert Preferences Logic
+const alertSavedMessage = ref(false)
+const alertForm = useForm({
+  alert_jobs: props.alertPreference?.alert_jobs ?? true,
+  alert_conferences: props.alertPreference?.alert_conferences ?? true,
+  alert_projects: props.alertPreference?.alert_projects ?? true,
+  alert_newsletter: props.alertPreference?.alert_newsletter ?? true,
+})
+
+function updateAlertsSubmit() {
+  alertForm.post('/espace-utilisateur/alertes', {
+    preserveScroll: true,
+    onSuccess: () => {
+      alertSavedMessage.value = true
+      setTimeout(() => {
+        alertSavedMessage.value = false
+      }, 4000)
+    }
+  })
+}
 
 function stripHtml(text) {
   if (!text) return ''
