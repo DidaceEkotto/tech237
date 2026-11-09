@@ -76,10 +76,18 @@ class Project extends Model
         return $this->hasMany(ProjectUpvote::class);
     }
 
-    public function hasUserUpvoted(?User $user): bool
+    public function hasUserUpvoted(\App\Models\User|int|null $user = null): bool
     {
-        if (!$user) return false;
-        return $this->upvotes()->where('user_id', $user->id)->exists();
+        if ($user === null) {
+            $user = \Illuminate\Support\Facades\Auth::guard('web')->user();
+        }
+
+        if (!$user) {
+            return false;
+        }
+
+        $userId = $user instanceof User ? $user->id : (int) $user;
+        return $this->upvotes()->where('user_id', $userId)->exists();
     }
 
     public function timelines(): HasMany

@@ -57,7 +57,7 @@ class ProjectShowcaseController extends Controller
             ->get();
 
         $user = Auth::guard('web')->user();
-        $hasUpvoted = $user ? $project->hasUserUpvoted($user->id) : false;
+        $hasUpvoted = $user ? $project->hasUserUpvoted($user) : false;
         $isBookmarked = $user ? \App\Models\UserBookmark::where('user_id', $user->id)
             ->where('bookmarkable_type', 'project')
             ->where('bookmarkable_id', $project->id)

@@ -89,11 +89,19 @@
                 <div class="text-center my-3">
                   <div class="position-relative d-inline-block">
                     <img 
-                      :src="'/' + (entrepreneurOfMonth.photo || 'assets/images/author-default.png')" 
+                      v-if="entrepreneurOfMonth.photo && !entrepreneurOfMonth.photo.includes('author-default.png')"
+                      :src="'/' + entrepreneurOfMonth.photo" 
                       :alt="entrepreneurOfMonth.name" 
                       class="rounded-circle shadow-lg border border-3 border-success"
                       style="width: 105px; height: 105px; object-fit: cover;"
                     >
+                    <div 
+                      v-else 
+                      class="rounded-circle shadow-lg border border-3 border-success bg-danger text-white fw-bold d-flex align-items-center justify-content-center mx-auto"
+                      style="width: 105px; height: 105px; font-size: 38px;"
+                    >
+                      {{ (entrepreneurOfMonth.name || 'E').trim().charAt(0).toUpperCase() }}
+                    </div>
                     <span class="badge position-absolute bottom-0 end-0 px-2 py-1 rounded-pill fw-bold text-white shadow" style="background-color: var(--tech-green); font-size: 10px;">
                       <i class="bi bi-award-fill"></i>
                     </span>

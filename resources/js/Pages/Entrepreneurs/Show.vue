@@ -31,11 +31,19 @@
             <div class="row align-items-center g-4">
               <div class="col-md-auto text-center">
                 <img 
-                  :src="'/' + (entrepreneur.photo || 'assets/images/author-default.png')" 
+                  v-if="entrepreneur.photo && !entrepreneur.photo.includes('author-default.png')"
+                  :src="'/' + entrepreneur.photo" 
                   :alt="entrepreneur.name" 
                   class="rounded-circle shadow-lg border border-4" 
                   style="width: 130px; height: 130px; object-fit: cover; border-color: var(--tech-green) !important;"
                 >
+                <div 
+                  v-else 
+                  class="rounded-circle shadow-lg border border-4 bg-danger text-white fw-bold d-flex align-items-center justify-content-center mx-auto"
+                  style="width: 130px; height: 130px; font-size: 48px; border-color: var(--tech-green) !important;"
+                >
+                  {{ (entrepreneur.name || 'E').trim().charAt(0).toUpperCase() }}
+                </div>
               </div>
               <div class="col">
                 <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
@@ -319,10 +327,19 @@
                   <div>
                     <div class="d-flex align-items-center gap-3 mb-3">
                       <img 
-                        :src="'/' + (prev.photo || 'assets/images/author-default.png')" 
+                        v-if="prev.photo && !prev.photo.includes('author-default.png')"
+                        :src="'/' + prev.photo" 
                         class="rounded-circle border border-2 border-success shadow-sm" 
                         style="width: 68px; height: 68px; object-fit: cover;"
+                        :alt="prev.name"
                       >
+                      <div 
+                        v-else 
+                        class="rounded-circle border border-2 border-success shadow-sm bg-danger text-white fw-bold d-flex align-items-center justify-content-center"
+                        style="width: 68px; height: 68px; font-size: 26px;"
+                      >
+                        {{ (prev.name || 'E').trim().charAt(0).toUpperCase() }}
+                      </div>
                       <div>
                         <span class="badge bg-light text-muted border mb-1">{{ prev.month_year }}</span>
                         <h5 class="fw-bold text-dark mb-0">{{ prev.name }}</h5>

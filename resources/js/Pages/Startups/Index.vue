@@ -70,36 +70,51 @@
           <div v-for="st in startups.data" :key="st.id" class="col-md-6 col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 h-100 bg-white overflow-hidden d-flex flex-column justify-content-between hover-shadow transition">
               
-              <!-- Header / Banner preview -->
-              <div class="position-relative" style="height: 120px; background-color: var(--tech-navy);">
+              <!-- Header / Banner preview with superimposed logo -->
+              <div class="position-relative" style="height: 140px; background: linear-gradient(135deg, #0B2559 0%, #06152D 100%);">
                 <img 
                   v-if="st.banner" 
-                  :src="'/' + st.banner" 
-                  class="w-100 h-100 object-fit-cover opacity-75"
+                  :src="st.banner.startsWith('/') ? st.banner : '/' + st.banner" 
+                  class="w-100 h-100 object-fit-cover"
+                  :alt="st.name"
                 >
-                <span class="badge position-absolute top-0 end-0 m-3 px-3 py-1 rounded-pill text-white shadow-sm" style="background-color: var(--tech-green); font-size: 11px;">
+                <div v-else class="w-100 h-100 d-flex align-items-center justify-content-center text-white-50">
+                  <i class="bi bi-building fs-1 opacity-25"></i>
+                </div>
+                <span class="badge position-absolute top-0 end-0 m-3 px-3 py-1 rounded-pill text-white shadow-sm" style="background-color: var(--tech-green, #00A859); font-size: 11px;">
                   {{ st.legal_type || 'SARL' }}
                 </span>
+
+                <!-- Logo superposé sur la bannière -->
+                <div class="position-absolute" style="bottom: -22px; left: 20px; z-index: 3;">
+                  <div class="rounded-3 border border-2 border-white shadow-sm overflow-hidden bg-white d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                    <img 
+                      v-if="st.logo" 
+                      :src="st.logo.startsWith('/') ? st.logo : '/' + st.logo" 
+                      :alt="st.name" 
+                      class="w-100 h-100 object-fit-contain p-1"
+                    >
+                    <div v-else class="fw-bold text-success fs-5">
+                      {{ (st.name || 'S').charAt(0).toUpperCase() }}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <!-- Body with Logo Overlap -->
-              <div class="p-4 pt-0">
-                <div class="d-flex align-items-end justify-content-between mb-3" style="margin-top: -36px;">
-                  <img 
-                    :src="'/' + (st.logo || 'assets/images/default-startup.png')" 
-                    class="rounded-4 bg-white p-1 border shadow-sm" 
-                    style="width: 72px; height: 72px; object-fit: contain;"
-                  >
-                  <span class="badge bg-light text-muted border extra-small">
-                    <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ st.city || 'Cameroun' }}
-                  </span>
-                </div>
+              <!-- Body with spacing for superimposed logo -->
+              <div class="p-4 pt-4 d-flex flex-column flex-grow-1 justify-content-between" style="margin-top: 10px;">
+                <div>
+                  <div class="d-flex justify-content-end mb-2">
+                    <span class="badge bg-light text-muted border extra-small rounded-pill px-2 py-1">
+                      <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ st.city || 'Cameroun' }}
+                    </span>
+                  </div>
 
-                <h4 class="fw-bold text-dark mb-1">
-                  <Link :href="'/startups/' + (st.slug || st.id)" class="text-dark text-decoration-none hover-success">
-                    {{ st.name }}
-                  </Link>
-                </h4>
+                  <h4 class="fw-bold text-dark mb-1">
+                    <Link :href="'/startups/' + (st.slug || st.id)" class="text-dark text-decoration-none hover-success">
+                      {{ st.name }}
+                    </Link>
+                  </h4>
 
                 <p class="text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 60px;">
                   {{ st.description?.replace(/<[^>]*>/g, '') }}
@@ -123,8 +138,9 @@
                 </div>
 
               </div>
+            </div>
 
-              <!-- Footer CTA -->
+            <!-- Footer CTA -->
               <div class="p-4 pt-0 d-flex gap-2">
                 <Link :href="'/startups/' + (st.slug || st.id)" class="btn btn-outline-dark rounded-pill flex-grow-1 fw-bold btn-sm py-2">
                   Consulter la fiche &rarr;

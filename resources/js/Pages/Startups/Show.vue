@@ -31,29 +31,45 @@
           <div class="position-relative" style="height: 220px; background: linear-gradient(135deg, #0B2559 0%, #061533 100%);">
             <img 
               v-if="startup.banner" 
-              :src="'/' + startup.banner" 
+              :src="startup.banner.startsWith('/') ? startup.banner : '/' + startup.banner" 
               class="w-100 h-100 object-fit-cover opacity-75"
+              :alt="startup.name"
             >
+            <div v-else class="w-100 h-100 d-flex align-items-center justify-content-center text-white-50">
+              <i class="bi bi-building fs-1 opacity-25"></i>
+            </div>
+
+            <!-- Top Right Badges -->
             <div class="position-absolute top-0 end-0 m-3 d-flex gap-2">
-              <span class="badge px-3 py-2 rounded-pill fw-bold text-white shadow" style="background-color: var(--tech-green);">
+              <span class="badge px-3 py-2 rounded-pill fw-bold text-white shadow" style="background-color: var(--tech-green, #00A859);">
                 <i class="bi bi-patch-check-fill me-1"></i> Entreprise Enregistrée
               </span>
               <span v-if="startup.needs_funding" class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold shadow">
                 <i class="bi bi-cash-coin me-1"></i> Recherche de Financement
               </span>
             </div>
+
+            <!-- Logo superposé sur la bannière -->
+            <div class="position-absolute" style="bottom: -45px; left: 30px; z-index: 5;">
+              <div class="rounded-4 border border-3 border-white shadow bg-white p-2 d-flex align-items-center justify-content-center overflow-hidden" style="width: 95px; height: 95px;">
+                <img 
+                  v-if="startup.logo" 
+                  :src="startup.logo.startsWith('/') ? startup.logo : '/' + startup.logo" 
+                  class="w-100 h-100 object-fit-contain" 
+                  :alt="startup.name"
+                >
+                <div v-else class="fw-bold text-success display-6">
+                  {{ (startup.name || 'S').charAt(0).toUpperCase() }}
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Main Info Bar -->
-          <div class="p-4 pt-0">
-            <div class="row align-items-end g-3" style="margin-top: -50px;">
-              <div class="col-auto">
-                <img 
-                  :src="'/' + (startup.logo || 'assets/images/default-startup.png')" 
-                  class="rounded-4 bg-white p-2 border shadow-sm" 
-                  style="width: 100px; height: 100px; object-fit: contain;"
-                >
-              </div>
+          <div class="card-body p-4 pt-5 pt-sm-4 bg-white">
+            <div class="row align-items-center g-3">
+              <!-- Spacer for logo on desktop -->
+              <div class="col-auto d-none d-sm-block" style="width: 105px;"></div>
               <div class="col">
                 <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
                   <h2 class="fw-bold text-dark mb-0">{{ startup.name }}</h2>
@@ -193,11 +209,20 @@
             <!-- Founder Card -->
             <div v-if="startup.user" class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white text-center">
               <img 
-                :src="'/' + (startup.user.avatar || 'assets/images/author-default.png')" 
+                v-if="hasCustomAvatar(startup.user.avatar)"
+                :src="startup.user.avatar.startsWith('/') ? startup.user.avatar : '/' + startup.user.avatar" 
                 class="rounded-circle mx-auto mb-2 border border-2 border-success shadow-sm" 
                 style="width: 72px; height: 72px; object-fit: cover;"
+                :alt="startup.user.first_name || startup.user.name"
               >
-              <h5 class="fw-bold text-dark mb-1">{{ startup.user.first_name || startup.user.name }}</h5>
+              <div 
+                v-else 
+                class="rounded-circle mx-auto mb-2 border border-2 border-success shadow-sm bg-danger text-white fw-bold d-flex align-items-center justify-content-center"
+                style="width: 72px; height: 72px; font-size: 26px;"
+              >
+                {{ getUserInitial(startup.user) }}
+              </div>
+              <h5 class="fw-bold text-dark mb-1">{{ startup.user.first_name ? startup.user.first_name + ' ' + (startup.user.name || '') : startup.user.name }}</h5>
               <p class="text-muted small mb-3">Fondateur / Représentant Légal</p>
               
               <button 
@@ -317,6 +342,17 @@ const props = defineProps({
 
 const page = usePage()
 const authUser = page.props.auth?.user
+
+function hasCustomAvatar(avatar) {
+  if (!avatar) return false
+  return !avatar.includes('author-default.png') && !avatar.includes('default-avatar.png')
+}
+
+function getUserInitial(user) {
+  if (!user) return 'U'
+  const name = user.first_name || user.name || 'U'
+  return name.trim().charAt(0).toUpperCase()
+}
 
 const showContactModal = ref(false)
 const contactSuccess = ref('')
