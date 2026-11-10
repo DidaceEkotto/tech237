@@ -16,6 +16,7 @@ use App\Models\Project;
 use App\Models\Comment;
 use App\Models\VisitLog;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class Dashboard extends Component
 {
