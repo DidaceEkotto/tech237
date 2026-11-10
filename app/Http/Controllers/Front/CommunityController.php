@@ -63,6 +63,7 @@ class CommunityController extends Controller
             'totalXp' => $totalXp,
             'totalPlayers' => $users->count(),
             'topThree' => $users->take(3),
+            'allUsers' => $users,
         ]);
     }
 

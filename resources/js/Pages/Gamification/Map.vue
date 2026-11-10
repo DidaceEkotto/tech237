@@ -1,305 +1,531 @@
 <template>
-  <FrontLayout>
-    <Head title="La Map des Champions & Gagnants • Candy Map Tech237" />
+  <div class="champions-arena-root min-vh-100 d-flex flex-column">
+    <Head title="La Map des Champions & Gagnants • Tech237" />
 
-    <div class="candy-world-wrapper py-4 position-relative overflow-hidden">
-      
-      <!-- Top Candy HUD Navigation Bar matching screenshots -->
-      <div class="container mb-4" style="max-width: 900px;">
-        <div class="candy-top-hud p-2 px-3 rounded-pill d-flex align-items-center justify-content-between shadow-lg mb-3">
-          <Link href="/" class="btn btn-sm candy-hud-btn rounded-pill px-3 py-1 fw-bold text-white d-flex align-items-center gap-1">
-            <i class="bi bi-arrow-left"></i>
-            <span class="d-none d-sm-inline">Accueil</span>
+    <!-- Top Navigation Bar (Logo + Site Stats + Back to Home) -->
+    <header class="arena-header sticky-top">
+      <div class="container-fluid px-3 px-md-4 py-2 d-flex align-items-center justify-content-between">
+        
+        <!-- Site Logo & Arena Brand -->
+        <div class="d-flex align-items-center gap-3">
+          <Link href="/" class="d-inline-flex align-items-center text-decoration-none" title="Retour au site Tech237">
+            <img 
+              :src="logoUrl" 
+              alt="Tech237 Logo" 
+              class="arena-logo" 
+            />
+          </Link>
+          <div class="vr d-none d-sm-block opacity-25" style="height: 28px;"></div>
+          <div class="d-none d-md-flex flex-column">
+            <span class="arena-badge-tag">
+              <span class="pulse-dot"></span>
+              CAMPUS &bull; GAMIFICATION
+            </span>
+            <span class="arena-tagline">La Carte des Champions Tech237</span>
+          </div>
+        </div>
+
+        <!-- Center Global Stats Pill -->
+        <div class="d-none d-lg-flex align-items-center gap-3 bg-white bg-opacity-75 rounded-pill px-4 py-2 shadow-2xs border border-amber-200">
+          <div class="d-flex align-items-center gap-2" title="Total XP distribué sur le site">
+            <span class="stat-icon-coin">⚡</span>
+            <div class="lh-1">
+              <strong class="d-block text-dark fw-bold small">{{ Number(totalXp).toLocaleString() }} XP</strong>
+              <span class="text-muted extra-small" style="font-size: 10px;">Énergie Totale</span>
+            </div>
+          </div>
+          <div class="vr opacity-25" style="height: 22px;"></div>
+          <div class="d-flex align-items-center gap-2" title="Membres enregistrés">
+            <span class="stat-icon-coin">👥</span>
+            <div class="lh-1">
+              <strong class="d-block text-dark fw-bold small">{{ totalPlayers }} Joueurs</strong>
+              <span class="text-muted extra-small" style="font-size: 10px;">Communauté</span>
+            </div>
+          </div>
+          <div v-if="currentUserRank" class="vr opacity-25" style="height: 22px;"></div>
+          <div v-if="currentUserRank" class="d-flex align-items-center gap-2" title="Votre rang actuel">
+            <span class="stat-icon-coin">🥇</span>
+            <div class="lh-1">
+              <strong class="d-block text-emerald-700 fw-bold small">Rang #{{ currentUserRank.position }}</strong>
+              <span class="text-muted extra-small" style="font-size: 10px;">{{ currentUserRank.xp }} XP</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Action: Return to Home Button -->
+        <div class="d-flex align-items-center gap-2">
+          <!-- User Profile shortcut if logged in -->
+          <Link 
+            v-if="$page.props.auth?.user" 
+            :href="'/communaute/profil/' + $page.props.auth.user.id" 
+            class="d-none d-sm-inline-flex align-items-center gap-2 btn btn-sm btn-light rounded-pill px-3 py-2 border shadow-2xs text-decoration-none"
+            title="Mon Profil Public"
+          >
+            <img 
+              v-if="$page.props.auth.user.avatar" 
+              :src="$page.props.auth.user.avatar.startsWith('/') ? $page.props.auth.user.avatar : '/' + $page.props.auth.user.avatar" 
+              class="rounded-circle" 
+              style="width: 22px; height: 22px; object-fit: cover;"
+            />
+            <span v-else class="rounded-circle bg-emerald-600 text-white fw-bold d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; font-size: 10px;">
+              {{ getInitials($page.props.auth.user.name) }}
+            </span>
+            <span class="fw-semibold text-dark small text-truncate" style="max-width: 120px;">
+              {{ $page.props.auth.user.name }}
+            </span>
           </Link>
 
-          <!-- Lives / Hearts & Gold Ingot Stats (Candy Style) -->
-          <div class="d-flex align-items-center gap-2 gap-sm-3">
-            <!-- Heart Badge -->
-            <div class="candy-stat-pill bg-danger text-white rounded-pill px-2 py-1 d-flex align-items-center gap-1 shadow-xs" title="Énergie Communautaire">
-              <span class="fs-6">❤️</span>
-              <strong class="small">Plein</strong>
-            </div>
-
-            <!-- Gold Bar XP Badge -->
-            <div class="candy-stat-pill rounded-pill px-2 py-1 d-flex align-items-center gap-1 shadow-xs" style="background: linear-gradient(180deg, #FDE68A 0%, #D97706 100%); color: #78350F;" :title="'Total XP du site : ' + totalXp">
-              <span class="fs-6">🏆</span>
-              <strong class="small">{{ totalXp }} XP</strong>
-            </div>
-
-            <!-- Players count -->
-            <div class="candy-stat-pill bg-primary text-white rounded-pill px-2 py-1 d-flex align-items-center gap-1 shadow-xs">
-              <span class="fs-6">👥</span>
-              <strong class="small">{{ totalPlayers }}</strong>
-            </div>
-          </div>
-
-          <!-- Trophy Button -->
-          <button @click="showRankingModal = true" class="btn btn-sm candy-hud-trophy rounded-pill px-3 py-1 fw-bold text-dark d-flex align-items-center gap-1 shadow-xs">
-            <span class="fs-6">🥇</span>
-            <span class="d-none d-md-inline">Classement</span>
-          </button>
+          <!-- Retour à l'accueil button -->
+          <Link 
+            href="/" 
+            class="btn-return-home d-inline-flex align-items-center gap-2 text-decoration-none"
+          >
+            <i class="bi bi-arrow-left"></i>
+            <span>Retour à l'accueil</span>
+          </Link>
         </div>
 
-        <!-- Banner Title Ribbon -->
-        <div class="text-center my-3 position-relative">
-          <div class="candy-ribbon-title mx-auto px-4 py-2 text-white fw-bolder shadow-md">
-            🍬 LA MAP DES GAGNANTS &bull; TECH237 🚀
-          </div>
-          <p class="text-dark fw-bold small mt-2 mb-0" style="text-shadow: 0 1px 2px rgba(255,255,255,0.8);">
-            Franchissez les étapes en publiant des POCs, commentant et résolvant des défis !
-          </p>
-        </div>
       </div>
+    </header>
 
-      <!-- Main Game Map Container -->
-      <div class="container position-relative" style="max-width: 860px;">
-        
-        <!-- Floating User Status Pin (If Logged In) -->
-        <div v-if="currentUserRank" class="card border-0 rounded-4 shadow-md p-3 mb-4 bg-white bg-opacity-95 text-dark" style="border: 2px solid #F472B6 !important; backdrop-filter: blur(8px);">
-          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-3">
-              <div class="position-relative">
-                <img 
-                  v-if="$page.props.auth?.user?.avatar" 
-                  :src="$page.props.auth?.user?.avatar.startsWith('/') ? $page.props.auth?.user?.avatar : '/' + $page.props.auth?.user?.avatar" 
-                  class="rounded-circle border border-2 border-warning shadow-sm" 
-                  style="width: 48px; height: 48px; object-fit: cover;"
-                />
-                <div v-else class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center fs-5 shadow-sm" style="width: 48px; height: 48px;">
-                  {{ ($page.props.auth?.user?.name || 'Moi').substring(0, 2).toUpperCase() }}
-                </div>
-                <span class="position-absolute -top-1 -end-1 badge rounded-pill bg-danger p-1" style="font-size: 9px;" title="Vous êtes ici !">
-                  📍
-                </span>
-              </div>
-              <div>
-                <div class="d-flex align-items-center gap-2">
-                  <strong class="fs-6 text-dark mb-0">{{ $page.props.auth?.user?.name }}</strong>
-                  <span class="badge bg-warning text-dark rounded-pill extra-small fw-bold">
-                    Rang #{{ currentUserRank.position }}
-                  </span>
-                </div>
-                <div class="d-flex align-items-center gap-2 mt-1">
-                  <span class="badge rounded-pill extra-small px-2 py-0 fw-bold text-white shadow-xs" :style="{ backgroundColor: currentUserRank.tier?.color || '#00A859' }">
-                    <i class="bi" :class="currentUserRank.tier?.badge_icon || 'bi-award'"></i> {{ currentUserRank.tier?.name || 'Novice Tech' }}
-                  </span>
-                  <span class="extra-small text-muted fw-semibold">{{ currentUserRank.xp }} XP</span>
-                </div>
-              </div>
-            </div>
+    <!-- Main Split-Screen Workspace -->
+    <main class="arena-main flex-grow-1 container-fluid px-3 px-md-4 py-4">
+      <div class="row g-4 h-100">
 
-            <!-- Next Milestone preview -->
-            <div v-if="currentUserRank.nextTier" class="text-end">
-              <div class="extra-small text-muted mb-1">
-                Prochain palier : <strong class="text-dark">{{ currentUserRank.nextTier.name }}</strong> (+{{ currentUserRank.xpNeeded }} XP)
-              </div>
-              <div class="progress" style="height: 8px; width: 140px; background-color: #E2E8F0; border-radius: 999px;">
-                <div 
-                  class="progress-bar progress-bar-striped progress-bar-animated bg-success rounded-pill" 
-                  role="progressbar" 
-                  :style="{ width: currentUserRank.progressPercent + '%' }"
-                ></div>
-              </div>
-            </div>
-            <div v-else class="text-end">
-              <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold">
-                👑 Niveau Maximal Atteint !
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Serpentine Candy Winding Trail -->
-        <div class="candy-board-path position-relative py-5 px-2 px-md-5 rounded-5 shadow-lg overflow-hidden">
-          
-          <!-- Animated Background Clouds & Castle Elements -->
-          <div class="candy-decor cloud-1">☁️</div>
-          <div class="candy-decor cloud-2">☁️</div>
-          <div class="candy-decor cloud-3">🍬</div>
-          <div class="candy-decor cloud-4">🍭</div>
-          <div class="candy-decor castle-decor">🏰</div>
-          <div class="candy-decor tree-decor">🌳</div>
-
-          <!-- Winding Levels List -->
-          <div class="levels-trail-container d-flex flex-column gap-5 position-relative" style="z-index: 5;">
+        <!-- PART 1: The Winding Champions Journey Map (Largest Section: ~62-65% width) -->
+        <section class="col-12 col-lg-7 col-xl-8 d-flex flex-column">
+          <div class="map-card-wrapper position-relative rounded-5 shadow-sm p-4 p-md-5 flex-grow-1 overflow-hidden">
             
-            <div 
-              v-for="(tier, index) in tiersWithProgress" 
-              :key="tier.id"
-              class="candy-level-row d-flex align-items-center position-relative"
-              :class="getRowAlignmentClass(index)"
-            >
-              <!-- Milestone Candy Node -->
-              <div 
-                class="candy-milestone-node text-center position-relative transition hover-scale-sm"
-                :class="{ 'is-current-tier': isCurrentUserAtTier(tier), 'is-unlocked': isTierUnlocked(tier) }"
+            <!-- Atmospheric Ambient Floating Elements -->
+            <div class="bg-island island-top-right"></div>
+            <div class="bg-island island-bottom-left"></div>
+            <div class="cloud-float cloud-pos-1">☁️</div>
+            <div class="cloud-float cloud-pos-2">☁️</div>
+            <div class="cloud-float cloud-pos-3">✨</div>
+            <div class="cloud-float cloud-pos-4">🚀</div>
+
+            <!-- Top Summit Banner: Highest Level -->
+            <div class="summit-crest-box text-center mb-5 position-relative z-2">
+              <div class="summit-crown-badge mx-auto mb-2">
+                👑
+              </div>
+              <h1 class="summit-heading mb-1">
+                Le Sommet des Champions
+              </h1>
+              <p class="summit-lead mb-0 text-muted">
+                Grimpez les échelons du savoir : chaque POC publié, problème résolu et projet partagé vous rapproche de la Légende.
+              </p>
+              <div class="mt-2 d-inline-flex align-items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-pill text-amber-900 extra-small fw-semibold">
+                <span>💡 Cliquez sur un palier XP pour afficher tous ses champions dans le panneau de droite</span>
+              </div>
+            </div>
+
+            <!-- Visual Vertical Serpent Roadmap from Top (Highest XP) to Bottom (0 XP) -->
+            <div class="roadmap-serpentine-track position-relative mx-auto my-3" style="max-width: 680px;">
+              
+              <!-- Curved SVG Connecting Line winding between nodes -->
+              <svg 
+                class="roadmap-connecting-svg position-absolute w-100 h-100 pointer-events-none" 
+                viewBox="0 0 680 1400" 
+                preserveAspectRatio="none"
               >
-                <!-- Crown on Top for highest tiers -->
-                <div v-if="index === tiersWithProgress.length - 1" class="candy-crown-icon position-absolute" style="top: -24px; left: 50%; transform: translateX(-50%); font-size: 24px;">
-                  👑
-                </div>
+                <!-- Outer glow curve -->
+                <path 
+                  :d="computedCurvedSvgPath" 
+                  fill="none" 
+                  stroke="rgba(251, 191, 36, 0.4)" 
+                  stroke-width="16" 
+                  stroke-linecap="round"
+                />
+                <!-- Striped Candy-style dashed core curve -->
+                <path 
+                  :d="computedCurvedSvgPath" 
+                  fill="none" 
+                  stroke="#F59E0B" 
+                  stroke-width="6" 
+                  stroke-dasharray="14 12" 
+                  stroke-linecap="round"
+                  class="svg-dash-animated"
+                />
+              </svg>
 
-                <!-- Three Stars Rating (Candy Style) -->
-                <div class="candy-stars mb-1 d-flex justify-content-center gap-1" style="font-size: 11px;">
-                  <span :class="isTierUnlocked(tier) ? 'star-gold' : 'star-dim'">⭐</span>
-                  <span :class="isTierUnlocked(tier) ? 'star-gold' : 'star-dim'">⭐</span>
-                  <span :class="isTierUnlocked(tier) ? 'star-gold' : 'star-dim'">⭐</span>
-                </div>
-
-                <!-- The Circular Level Button Disk -->
+              <!-- List of XP Tiers ordered from Top (Highest XP) to Bottom (0 XP) -->
+              <div class="tiers-nodes-list d-flex flex-column position-relative z-2">
                 <div 
-                  class="candy-disk-button rounded-circle d-flex flex-column align-items-center justify-content-center shadow-lg mx-auto position-relative"
-                  :style="getTierDiskStyle(tier, index)"
+                  v-for="(tier, index) in sortedLevels" 
+                  :key="tier.id"
+                  class="tier-node-row d-flex align-items-center my-4 position-relative"
+                  :class="getSerpentineAlignment(index, sortedLevels.length)"
                 >
-                  <span class="candy-node-num fw-bolder">{{ tier.min_xp }}</span>
-                  <span class="candy-node-unit extra-small">XP</span>
+                  <!-- The Interactive XP Disc & Pod -->
+                  <div 
+                    class="tier-milestone-pod text-center position-relative"
+                    :class="{ 
+                      'is-selected': selectedTier && selectedTier.id === tier.id,
+                      'is-current-user': isCurrentUserTier(tier)
+                    }"
+                    @click="selectTier(tier)"
+                    :title="'Cliquer pour explorer les champions du palier ' + tier.name"
+                  >
+                    <!-- Halo Ripple when selected -->
+                    <div v-if="selectedTier && selectedTier.id === tier.id" class="pod-selected-halo"></div>
 
-                  <!-- Active User Pin overlay if current user is at this level -->
-                  <div v-if="isCurrentUserAtTier(tier)" class="current-user-pin-bubble position-absolute">
-                    <div class="pin-pulse-halo"></div>
-                    <div class="pin-badge-tag text-nowrap">Vous êtes ici ! 📍</div>
-                  </div>
-                </div>
-
-                <!-- Level Name Ribbon Under Node -->
-                <div class="candy-node-label mt-2 px-3 py-1 rounded-pill fw-bold text-nowrap shadow-xs" :style="getTierLabelStyle(tier)">
-                  <i class="bi" :class="tier.badge_icon || 'bi-award'"></i>
-                  <span class="ms-1">{{ tier.name }}</span>
-                </div>
-
-                <!-- Players Perched at this Level (Avatar stack) -->
-                <div v-if="tier.players && tier.players.length" class="players-at-node-stack d-flex justify-content-center align-items-center mt-2">
-                  <div class="d-flex align-items-center -space-x-2">
-                    <Link 
-                      v-for="player in tier.players.slice(0, 4)" 
-                      :key="player.id"
-                      :href="'/communaute/profil/' + player.id"
-                      class="player-pin-avatar rounded-circle border border-2 border-white shadow-sm position-relative text-decoration-none"
-                      :title="player.name + ' (' + (player.xp || 0) + ' XP) • Voir profil'"
-                    >
-                      <img 
-                        v-if="player.avatar" 
-                        :src="player.avatar.startsWith('/') ? player.avatar : '/' + player.avatar" 
-                        :alt="player.name" 
-                        class="w-100 h-100 rounded-circle object-fit-cover"
-                      />
-                      <div 
-                        v-else 
-                        class="w-100 h-100 rounded-circle text-white fw-bold d-flex align-items-center justify-content-center"
-                        :style="{ backgroundColor: getPlayerColor(player.name), fontSize: '10px' }"
-                      >
-                        {{ getInitials(player.name) }}
-                      </div>
-                    </Link>
-
-                    <!-- More indicator -->
-                    <span 
-                      v-if="tier.players.length > 4" 
-                      class="player-pin-avatar bg-white text-dark rounded-circle border border-2 border-white shadow-sm fw-bold extra-small d-flex align-items-center justify-content-center"
-                      style="font-size: 10px; width: 26px; height: 26px;"
-                      :title="'+' + (tier.players.length - 4) + ' autres champions'"
-                    >
-                      +{{ tier.players.length - 4 }}
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Bottom Finish / Start Island -->
-          <div class="text-center mt-5 position-relative z-1">
-            <div class="candy-start-island p-3 px-4 rounded-pill d-inline-block text-white fw-bold shadow-md">
-              🏁 DÉPART DU PARCOURS &bull; NIVEAU 0 XP
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
-      <!-- Ranking Modal / Right Side Slide-out -->
-      <div v-if="showRankingModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-          <div class="modal-content rounded-4 border-0 shadow-2xl overflow-hidden">
-            <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%);">
-              <div class="d-flex align-items-center gap-2">
-                <span class="fs-4">🏆</span>
-                <div>
-                  <h5 class="modal-title fw-bolder text-dark mb-0">Classement des Champions</h5>
-                  <small class="text-dark opacity-75">Hall of Fame Tech237</small>
-                </div>
-              </div>
-              <button type="button" class="btn-close" @click="showRankingModal = false"></button>
-            </div>
-            
-            <div class="modal-body p-3 bg-light">
-              <div class="d-flex flex-column gap-2">
-                <Link 
-                  v-for="(user, uIdx) in allRankedUsers" 
-                  :key="user.id"
-                  :href="'/communaute/profil/' + user.id"
-                  class="d-flex align-items-center justify-content-between p-2 px-3 rounded-3 bg-white border text-decoration-none text-dark transition hover-shadow-sm"
-                  :style="uIdx === 0 ? 'background-color: #FEF9C3 !important; border-color: #FEF08A !important;' : ''"
-                >
-                  <div class="d-flex align-items-center gap-3 min-w-0">
-                    <span class="fw-bold fs-6 text-center" style="width: 26px;">
-                      <span v-if="uIdx === 0">🥇</span>
-                      <span v-else-if="uIdx === 1">🥈</span>
-                      <span v-else-if="uIdx === 2">🥉</span>
-                      <span v-else class="text-muted small">#{{ uIdx + 1 }}</span>
-                    </span>
-
-                    <img 
-                      v-if="user.avatar" 
-                      :src="user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar" 
-                      class="rounded-circle border" 
-                      style="width: 40px; height: 40px; object-fit: cover;"
-                    />
-                    <div 
-                      v-else 
-                      class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-xs"
-                      :style="{ width: '40px', height: '40px', backgroundColor: getPlayerColor(user.name), fontSize: '13px' }"
-                    >
-                      {{ getInitials(user.name) }}
+                    <!-- Milestone Crown or Flag for the Summit node -->
+                    <div v-if="index === 0" class="summit-star-trophy position-absolute">
+                      <span class="trophy-bounce">🏆</span>
                     </div>
 
-                    <div class="text-truncate">
-                      <strong class="d-block text-truncate text-dark small">{{ user.name }}</strong>
-                      <span class="badge rounded-pill extra-small px-2 py-0" style="background-color: #FEF3C7; color: #92400E; font-size: 10px;">
-                        {{ user.rank_title || 'Novice Tech 🌱' }}
+                    <!-- Interactive 3D Candy XP Disc -->
+                    <div 
+                      class="candy-xp-disc d-flex flex-column align-items-center justify-content-center mx-auto"
+                      :style="getTierDiscStyle(tier, index)"
+                    >
+                      <div class="disc-gloss-shine"></div>
+                      
+                      <!-- Disc Content -->
+                      <span class="disc-xp-val fw-bolder">{{ tier.min_xp }}</span>
+                      <span class="disc-xp-label">XP</span>
+
+                      <!-- Selected Checkmark / Arrow indicator -->
+                      <div v-if="selectedTier && selectedTier.id === tier.id" class="active-check-badge">
+                        <i class="bi bi-eye-fill"></i>
+                      </div>
+
+                      <!-- Current User "Vous êtes ici !" Floating Pin -->
+                      <div v-if="isCurrentUserTier(tier)" class="current-user-pin-chip position-absolute">
+                        <div class="pin-ring-pulse"></div>
+                        <span class="pin-label text-nowrap">Vous êtes ici ! 📍</span>
+                      </div>
+                    </div>
+
+                    <!-- Tier Name Ribbon / Pill Under Disc -->
+                    <div 
+                      class="tier-label-capsule mt-2 px-3 py-1 rounded-pill fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+                      :style="getTierCapsuleStyle(tier)"
+                    >
+                      <i class="bi" :class="tier.badge_icon || 'bi-award-fill'"></i>
+                      <span>{{ tier.name }}</span>
+                    </div>
+
+                    <!-- Quick Champions Counter Badge -->
+                    <div class="mt-1">
+                      <span 
+                        class="badge rounded-pill extra-small px-2 py-1 shadow-2xs fw-semibold"
+                        :class="(tier.players && tier.players.length) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
+                      >
+                        {{ (tier.players && tier.players.length) ? tier.players.length + ' champion(s)' : 'En attente' }}
                       </span>
                     </div>
-                  </div>
 
-                  <div class="text-end ps-2 flex-shrink-0">
-                    <span class="badge rounded-pill fw-bold extra-small px-2 py-1 shadow-2xs" style="background-color: #D1FAE5; color: #065F46;">
-                      {{ user.xp || 0 }} XP
+                    <!-- Mini Stack of Avatars Perched at this Milestone -->
+                    <div v-if="tier.players && tier.players.length" class="perched-avatars-cluster d-flex justify-content-center align-items-center mt-2">
+                      <div class="d-flex align-items-center -space-x-2">
+                        <div 
+                          v-for="p in tier.players.slice(0, 3)" 
+                          :key="p.id" 
+                          class="avatar-tiny-ring rounded-circle shadow-xs"
+                          :title="p.name + ' (' + (p.xp || 0) + ' XP)'"
+                        >
+                          <img 
+                            v-if="p.avatar" 
+                            :src="p.avatar.startsWith('/') ? p.avatar : '/' + p.avatar" 
+                            class="w-100 h-100 rounded-circle object-fit-cover" 
+                          />
+                          <div 
+                            v-else 
+                            class="w-100 h-100 rounded-circle text-white fw-bold d-flex align-items-center justify-content-center"
+                            :style="{ backgroundColor: getPlayerColor(p.name), fontSize: '9px' }"
+                          >
+                            {{ getInitials(p.name) }}
+                          </div>
+                        </div>
+                        <span 
+                          v-if="tier.players.length > 3" 
+                          class="avatar-tiny-ring bg-white text-dark rounded-circle shadow-xs fw-bold extra-small d-flex align-items-center justify-content-center"
+                          style="font-size: 9px; width: 22px; height: 22px;"
+                        >
+                          +{{ tier.players.length - 3 }}
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Start Gate: 0 XP (Novice Tech) -->
+              <div class="start-journey-gate text-center mt-5 pt-3 position-relative z-2">
+                <div class="start-gate-pill mx-auto px-4 py-2 rounded-pill shadow-md d-inline-flex align-items-center gap-2">
+                  <span class="fs-5">🏁</span>
+                  <div class="text-start">
+                    <strong class="d-block text-white text-uppercase tracking-wider fw-bolder" style="font-size: 13px;">
+                      DÉPART DU PARCOURS &bull; NIVEAU 0 XP
+                    </strong>
+                    <span class="text-white opacity-85 extra-small">
+                      Novice Tech &bull; Point d'entrée de tous les bâtisseurs
                     </span>
                   </div>
+                </div>
+                <p class="text-muted extra-small mt-2 mb-0">
+                  Chaque nouvelle inscription démarre ici. Contribuez pour gravir la montagne !
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+        </section>
+
+        <!-- PART 2: Champions Roster Cadre (The Right Panel for Selected XP Tier) -->
+        <aside class="col-12 col-lg-5 col-xl-4 d-flex flex-column">
+          <div class="champions-cadre-card rounded-5 shadow-sm p-4 d-flex flex-column h-100 position-sticky" style="top: 80px;">
+            
+            <!-- Cadre Header: Selected Tier Overview -->
+            <transition name="tier-header-fade" mode="out-in">
+              <div 
+                v-if="selectedTier" 
+                :key="selectedTier.id"
+                class="tier-roster-header p-3 rounded-4 mb-3 position-relative overflow-hidden shadow-xs"
+                :style="getRosterHeaderStyle(selectedTier)"
+              >
+                <div class="d-flex align-items-start justify-content-between gap-2 position-relative z-1">
+                  <div class="d-flex align-items-center gap-3">
+                    <div 
+                      class="tier-header-icon rounded-4 d-flex align-items-center justify-content-center shadow-sm"
+                      :style="{ backgroundColor: selectedTier.color || '#00A859' }"
+                    >
+                      <i class="bi fs-3 text-white" :class="selectedTier.badge_icon || 'bi-award-fill'"></i>
+                    </div>
+                    <div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-white text-dark rounded-pill extra-small fw-bold shadow-2xs">
+                          Palier {{ selectedTier.min_xp }} XP
+                        </span>
+                        <span v-if="isCurrentUserTier(selectedTier)" class="badge bg-danger text-white rounded-pill extra-small fw-bold">
+                          Votre rang
+                        </span>
+                      </div>
+                      <h2 class="h5 fw-bolder text-dark mb-0 mt-1">
+                        {{ selectedTier.name }}
+                      </h2>
+                    </div>
+                  </div>
+
+                  <!-- Champions Count Pill -->
+                  <div class="text-end">
+                    <span class="badge rounded-pill px-3 py-2 fw-bolder fs-6 shadow-2xs" style="background: rgba(255,255,255,0.9); color: #0F172A;">
+                      {{ selectedTierPlayers.length }}
+                    </span>
+                    <span class="d-block text-muted extra-small mt-1" style="font-size: 10px;">
+                      {{ selectedTierPlayers.length > 1 ? 'Membres' : 'Membre' }}
+                    </span>
+                  </div>
+                </div>
+
+                <p class="text-dark opacity-80 small mt-3 mb-0 position-relative z-1">
+                  {{ selectedTier.description || 'Franchissez ce palier pour débloquer les privilèges de la communauté Tech237.' }}
+                </p>
+              </div>
+            </transition>
+
+            <!-- Search Filter Bar within this tier's champions -->
+            <div class="mb-3 position-relative">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3 text-muted">
+                  <i class="bi bi-search"></i>
+                </span>
+                <input 
+                  v-model="searchQuery" 
+                  type="text" 
+                  class="form-control bg-white border-start-0 rounded-end-pill pe-3 py-2 shadow-none" 
+                  placeholder="Rechercher un champion par son nom..." 
+                />
+              </div>
+            </div>
+
+            <!-- Champions List Stream with Smooth Transitions -->
+            <div class="champions-roster-scroll flex-grow-1 overflow-y-auto pe-1">
+              <transition name="roster-switch" mode="out-in">
+                
+                <!-- If there are players in this tier -->
+                <div v-if="filteredTierPlayers.length > 0" :key="'list-' + (selectedTier ? selectedTier.id : 'none')" class="d-flex flex-column gap-2">
+                  <div 
+                    v-for="(player, pIdx) in filteredTierPlayers" 
+                    :key="player.id"
+                    class="player-champion-item p-2 px-3 rounded-4 bg-white border d-flex align-items-center justify-content-between transition shadow-2xs"
+                    :class="{ 'highlight-user': isCurrentLoggedInUser(player) }"
+                  >
+                    <!-- Player Identity -->
+                    <div class="d-flex align-items-center gap-3 min-w-0">
+                      <!-- Rank or Medal -->
+                      <div class="player-rank-number text-center flex-shrink-0">
+                        <span v-if="pIdx === 0 && selectedTier.min_xp >= 100" class="fs-5">🥇</span>
+                        <span v-else-if="pIdx === 1 && selectedTier.min_xp >= 100" class="fs-5">🥈</span>
+                        <span v-else-if="pIdx === 2 && selectedTier.min_xp >= 100" class="fs-5">🥉</span>
+                        <span v-else class="text-muted small fw-bold">#{{ pIdx + 1 }}</span>
+                      </div>
+
+                      <!-- Avatar -->
+                      <div class="position-relative flex-shrink-0">
+                        <img 
+                          v-if="player.avatar" 
+                          :src="player.avatar.startsWith('/') ? player.avatar : '/' + player.avatar" 
+                          :alt="player.name" 
+                          class="rounded-circle border border-2 border-white shadow-2xs" 
+                          style="width: 44px; height: 44px; object-fit: cover;"
+                        />
+                        <div 
+                          v-else 
+                          class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-2xs"
+                          :style="{ width: '44px', height: '44px', backgroundColor: getPlayerColor(player.name), fontSize: '14px' }"
+                        >
+                          {{ getInitials(player.name) }}
+                        </div>
+                        <span v-if="isCurrentLoggedInUser(player)" class="user-self-dot" title="C'est vous !"></span>
+                      </div>
+
+                      <!-- Name & Rank Details -->
+                      <div class="min-w-0">
+                        <div class="d-flex align-items-center gap-1">
+                          <Link 
+                            :href="'/communaute/profil/' + player.id" 
+                            class="player-name-link fw-bold text-dark text-truncate text-decoration-none small"
+                            :title="player.name + ' - Ouvrir le profil public'"
+                          >
+                            {{ player.name }}
+                          </Link>
+                          <span v-if="isCurrentLoggedInUser(player)" class="badge bg-emerald-100 text-emerald-800 extra-small px-1 py-0 rounded">
+                            Moi
+                          </span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1 mt-0">
+                          <span class="text-muted extra-small" style="font-size: 11px;">
+                            {{ player.rank_title || selectedTier?.name || 'Novice Tech' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Right XP Pill & Profile Button -->
+                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                      <span class="player-xp-chip fw-bolder extra-small px-2 py-1 rounded-pill">
+                        {{ player.xp || 0 }} XP
+                      </span>
+                      <Link 
+                        :href="'/communaute/profil/' + player.id" 
+                        class="btn-visit-profile btn btn-sm btn-light rounded-circle shadow-2xs p-0 d-flex align-items-center justify-content-center"
+                        style="width: 32px; height: 32px;"
+                        title="Voir le profil public"
+                      >
+                        <i class="bi bi-chevron-right text-dark small"></i>
+                      </Link>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- Empty State: No players in this tier yet -->
+                <div 
+                  v-else-if="selectedTier && selectedTierPlayers.length === 0" 
+                  :key="'empty-' + selectedTier.id"
+                  class="empty-tier-box text-center p-4 rounded-4 bg-white border border-dashed my-auto"
+                >
+                  <div class="empty-tier-badge mb-3">
+                    <span class="fs-1">🚩</span>
+                  </div>
+                  <h3 class="h6 fw-bolder text-dark mb-1">
+                    Ce sommet est encore inexploré !
+                  </h3>
+                  <p class="text-muted extra-small mb-3">
+                    Aucun membre n'a encore atteint le palier <strong>{{ selectedTier.name }}</strong> ({{ selectedTier.min_xp }} XP requis). Soyez le premier pionnier à y hisser votre drapeau !
+                  </p>
+                  
+                  <div class="how-to-earn-card text-start p-3 rounded-3 bg-light border mb-3">
+                    <strong class="d-block extra-small text-dark fw-bold mb-2 text-uppercase tracking-wider">
+                      🎯 Comment remporter des XP :
+                    </strong>
+                    <ul class="list-unstyled mb-0 d-flex flex-column gap-1 extra-small text-muted">
+                      <li class="d-flex align-items-center gap-2">
+                        <span class="badge bg-warning text-dark rounded-pill px-2">+15 XP</span>
+                        <span>Publier une mini-actualité (POC)</span>
+                      </li>
+                      <li class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary text-white rounded-pill px-2">+30 XP</span>
+                        <span>Partager un projet dans le showcase</span>
+                      </li>
+                      <li class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success text-white rounded-pill px-2">+10 XP</span>
+                        <span>Apporter une solution validée sur le forum</span>
+                      </li>
+                      <li class="d-flex align-items-center gap-2">
+                        <span class="badge bg-secondary text-white rounded-pill px-2">+5 XP</span>
+                        <span>Commenter et participer aux sondages tech</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <Link 
+                    v-if="$page.props.auth?.user" 
+                    href="/pocs" 
+                    class="btn btn-sm btn-dark rounded-pill px-3 py-2 fw-bold w-100"
+                  >
+                    ⚡ Partager un POC pour gagner des XP
+                  </Link>
+                  <Link 
+                    v-else 
+                    href="/login" 
+                    class="btn btn-sm btn-warning rounded-pill px-3 py-2 fw-bold w-100"
+                  >
+                    Se connecter pour jouer
+                  </Link>
+                </div>
+
+                <!-- If search yields no result -->
+                <div v-else :key="'no-search'" class="text-center py-4 text-muted extra-small">
+                  <i class="bi bi-search fs-3 d-block mb-1 text-secondary opacity-50"></i>
+                  Aucun membre ne correspond à « {{ searchQuery }} » dans ce palier.
+                </div>
+
+              </transition>
+            </div>
+
+            <!-- Cadre Footer: Quick Level Progress / Action -->
+            <div class="tier-roster-footer pt-3 mt-3 border-top">
+              <div v-if="currentUserRank" class="d-flex align-items-center justify-content-between">
+                <div>
+                  <span class="text-muted extra-small d-block">Votre progression</span>
+                  <strong class="text-dark small fw-bold">{{ currentUserRank.xp }} XP cumulés</strong>
+                </div>
+                <Link 
+                  href="/espace-utilisateur" 
+                  class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold extra-small"
+                >
+                  Mon Espace 🚀
+                </Link>
+              </div>
+              <div v-else class="text-center">
+                <span class="text-muted extra-small d-block mb-2">Rejoignez l'arène des bâtisseurs tech</span>
+                <Link 
+                  href="/register" 
+                  class="btn btn-sm btn-warning rounded-pill px-4 fw-bold text-dark w-100"
+                >
+                  Créer un compte & Commencer à 0 XP
                 </Link>
               </div>
             </div>
 
-            <div class="modal-footer border-0 bg-white">
-              <button type="button" class="btn btn-warning rounded-pill px-4 fw-bold text-dark w-100" @click="showRankingModal = false">
-                Fermer & Continuer le Jeu 🚀
-              </button>
-            </div>
           </div>
-        </div>
-      </div>
+        </aside>
 
-    </div>
-  </FrontLayout>
+      </div>
+    </main>
+
+  </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Head, Link, usePage } from '@inertiajs/vue3'
-import FrontLayout from '@/Layouts/FrontLayout.vue'
 
 const props = defineProps({
   levels: {
@@ -307,6 +533,10 @@ const props = defineProps({
     default: () => []
   },
   players: {
+    type: Array,
+    default: () => []
+  },
+  allUsers: {
     type: Array,
     default: () => []
   },
@@ -321,217 +551,651 @@ const props = defineProps({
   currentUserRank: {
     type: Object,
     default: null
+  },
+  topThree: {
+    type: Array,
+    default: () => []
   }
 })
 
 const page = usePage()
-const showRankingModal = ref(false)
+const searchQuery = ref('')
+const selectedTier = ref(null)
 
-const allRankedUsers = computed(() => {
-  return [...(props.players || [])].sort((a, b) => (b.xp || 0) - (a.xp || 0))
+// Logo from SiteSetting
+const logoUrl = computed(() => {
+  const logo = page.props.siteSettings?.logo || 'assets/images/logo.png'
+  return logo.startsWith('/') ? logo : '/' + logo
 })
 
-const tiersWithProgress = computed(() => {
-  const list = [...(props.levels || [])].sort((a, b) => a.min_xp - b.min_xp)
-  return list.map(t => {
-    const playersHere = (props.players || []).filter(p => {
-      const uTierId = p.current_tier_id || null
-      return uTierId === t.id
-    })
-    return {
-      ...t,
-      players: playersHere
+// Tiers ordered: Highest XP at the TOP (index 0) down to 0 XP at the BOTTOM
+const sortedLevels = computed(() => {
+  const list = [...(props.levels || [])].sort((a, b) => b.min_xp - a.min_xp)
+  return list
+})
+
+// Initialize selectedTier on mount
+onMounted(() => {
+  if (props.currentUserRank?.tier) {
+    const match = sortedLevels.value.find(
+      t => t.id === props.currentUserRank.tier.id || t.min_xp === props.currentUserRank.tier.min_xp
+    )
+    if (match) {
+      selectedTier.value = match
+      return
     }
-  })
+  }
+
+  // Fallback to highest tier with players, or top tier
+  const withPlayers = sortedLevels.value.find(t => t.players && t.players.length > 0)
+  selectedTier.value = withPlayers || sortedLevels.value[0] || null
 })
 
-function getRowAlignmentClass(index) {
-  // Alternate serpentine pattern: center-left, center, center-right, center, repeat
-  const mod = index % 4
-  if (mod === 0) return 'justify-content-center'
-  if (mod === 1) return 'justify-content-start ps-md-5'
-  if (mod === 2) return 'justify-content-center'
-  return 'justify-content-end pe-md-5'
+// Players for currently selected tier
+const selectedTierPlayers = computed(() => {
+  if (!selectedTier.value) return []
+  return selectedTier.value.players || []
+})
+
+// Filtered players by search query
+const filteredTierPlayers = computed(() => {
+  const players = selectedTierPlayers.value
+  if (!searchQuery.value.trim()) return players
+  const q = searchQuery.value.toLowerCase().trim()
+  return players.filter(p => (p.name || '').toLowerCase().includes(q))
+})
+
+// Action: Click a tier node to reveal its champions in the second frame
+function selectTier(tier) {
+  selectedTier.value = tier
+  searchQuery.value = ''
 }
 
-function isCurrentUserAtTier(tier) {
+// Helpers
+function isCurrentUserTier(tier) {
   if (!props.currentUserRank || !props.currentUserRank.tier) return false
-  return props.currentUserRank.tier.id === tier.id
+  return (
+    props.currentUserRank.tier.id === tier.id ||
+    props.currentUserRank.tier.min_xp === tier.min_xp
+  )
 }
 
-function isTierUnlocked(tier) {
-  if (!props.currentUserRank) return false
-  return (props.currentUserRank.xp || 0) >= tier.min_xp
-}
-
-function getTierDiskStyle(tier, index) {
-  const colors = [
-    'linear-gradient(180deg, #60A5FA 0%, #2563EB 100%)', // Blue
-    'linear-gradient(180deg, #34D399 0%, #059669 100%)', // Emerald
-    'linear-gradient(180deg, #FBBF24 0%, #D97706 100%)', // Amber
-    'linear-gradient(180deg, #F472B6 0%, #DB2777 100%)', // Pink
-    'linear-gradient(180deg, #A78BFA 0%, #7C3AED 100%)', // Purple
-  ]
-  const bg = colors[index % colors.length]
-  return {
-    background: bg,
-    border: '4px solid #FFFFFF',
-    boxShadow: '0 8px 18px rgba(0,0,0,0.22), inset 0 2px 4px rgba(255,255,255,0.6)'
-  }
-}
-
-function getTierLabelStyle(tier) {
-  return {
-    backgroundColor: '#FFFFFF',
-    color: '#1F2937',
-    border: '2px solid #E5E7EB',
-    fontSize: '12px'
-  }
+function isCurrentLoggedInUser(player) {
+  return page.props.auth?.user && page.props.auth.user.id === player.id
 }
 
 function getInitials(name) {
   if (!name) return 'U'
-  const parts = name.trim().split(/\s+/)
-  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase()
-  return (parts[0][0] + parts[1][0]).toUpperCase()
+  const parts = name.trim().split(' ')
+  if (parts.length >= 2) {
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase()
+  }
+  return name.substring(0, 2).toUpperCase()
 }
 
+const colorPalette = [
+  '#059669', '#2563EB', '#D97706', '#DC2626', '#7C3AED', '#DB2777', '#0891B2'
+]
+
 function getPlayerColor(name) {
-  const colors = ['#059669', '#2563EB', '#D97706', '#DB2777', '#7C3AED', '#DC2626']
+  if (!name) return '#059669'
   let hash = 0
-  for (let i = 0; i < (name || '').length; i++) {
+  for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash)
   }
-  return colors[Math.abs(hash) % colors.length]
+  return colorPalette[Math.abs(hash) % colorPalette.length]
+}
+
+// Serpentine alignment: zigzag pattern between center-left, center, center-right
+function getSerpentineAlignment(index, total) {
+  const mod = index % 4
+  if (mod === 0) return 'justify-content-center'
+  if (mod === 1) return 'justify-content-start ps-4 ps-md-5'
+  if (mod === 2) return 'justify-content-center'
+  return 'justify-content-end pe-4 pe-md-5'
+}
+
+// Dynamic curved SVG path between the points
+const computedCurvedSvgPath = computed(() => {
+  const n = sortedLevels.value.length || 7
+  let path = ''
+  const startY = 120
+  const endY = 1320
+  const stepY = (endY - startY) / Math.max(n - 1, 1)
+
+  for (let i = 0; i < n; i++) {
+    const y = startY + i * stepY
+    const mod = i % 4
+    let x = 340 // center
+    if (mod === 1) x = 160 // left
+    if (mod === 3) x = 520 // right
+
+    if (i === 0) {
+      path += `M ${x} ${y}`
+    } else {
+      const prevY = startY + (i - 1) * stepY
+      const prevMod = (i - 1) % 4
+      let prevX = 340
+      if (prevMod === 1) prevX = 160
+      if (prevMod === 3) prevX = 520
+
+      const cY1 = prevY + stepY * 0.5
+      const cY2 = y - stepY * 0.5
+      path += ` C ${prevX} ${cY1}, ${x} ${cY2}, ${x} ${y}`
+    }
+  }
+
+  return path
+})
+
+// Disc Styling with physical 3D button depth & candy gradient
+function getTierDiscStyle(tier, index) {
+  const baseColor = tier.color || '#00A859'
+  const isSelected = selectedTier.value && selectedTier.value.id === tier.id
+
+  return {
+    background: `linear-gradient(145deg, ${lightenColor(baseColor, 20)} 0%, ${baseColor} 70%, ${darkenColor(baseColor, 20)} 100%)`,
+    borderColor: lightenColor(baseColor, 40),
+    boxShadow: isSelected 
+      ? `0 12px 28px ${hexToRgba(baseColor, 0.45)}, 0 4px 0 ${darkenColor(baseColor, 35)}`
+      : `0 8px 18px ${hexToRgba(baseColor, 0.3)}, 0 4px 0 ${darkenColor(baseColor, 35)}`
+  }
+}
+
+function getTierCapsuleStyle(tier) {
+  const baseColor = tier.color || '#00A859'
+  return {
+    backgroundColor: '#FFFFFF',
+    color: '#0F172A',
+    border: `2px solid ${baseColor}`
+  }
+}
+
+function getRosterHeaderStyle(tier) {
+  const baseColor = tier.color || '#00A859'
+  return {
+    background: `linear-gradient(135deg, ${hexToRgba(baseColor, 0.12)} 0%, #FFFFFF 100%)`,
+    border: `1.5px solid ${hexToRgba(baseColor, 0.25)}`
+  }
+}
+
+// Color arithmetic helpers for custom lighting
+function hexToRgba(hex, alpha = 1) {
+  if (!hex || !hex.startsWith('#')) return `rgba(0, 168, 89, ${alpha})`
+  const clean = hex.replace('#', '')
+  const r = parseInt(clean.substring(0, 2), 16) || 0
+  const g = parseInt(clean.substring(2, 4), 16) || 0
+  const b = parseInt(clean.substring(4, 6), 16) || 0
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+function lightenColor(col, percent) {
+  if (!col || !col.startsWith('#')) return '#10B981'
+  const num = parseInt(col.replace('#', ''), 16)
+  const amt = Math.round(2.55 * percent)
+  const R = (num >> 16) + amt
+  const G = (num >> 8 & 0x00FF) + amt
+  const B = (num & 0x0000FF) + amt
+  return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1)
+}
+
+function darkenColor(col, percent) {
+  return lightenColor(col, -percent)
 }
 </script>
 
 <style scoped>
-.candy-world-wrapper {
-  background: linear-gradient(180deg, #67E8F9 0%, #93C5FD 22%, #DDD6FE 50%, #FBCFE8 78%, #FDE68A 100%);
+/* Page Root & Ambient Canvas */
+.champions-arena-root {
+  background: radial-gradient(circle at 20% 15%, #FFFBEB 0%, #F8FAFC 50%, #F1F5F9 100%);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #1E293B;
   min-height: 100vh;
 }
 
-/* Candy Top HUD */
-.candy-top-hud {
-  background: linear-gradient(180deg, #F472B6 0%, #EC4899 100%);
-  border: 3px solid #FDF2F8;
-}
-.candy-hud-btn {
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-}
-.candy-hud-trophy {
-  background: linear-gradient(180deg, #FDE68A 0%, #F59E0B 100%);
-  border: 1px solid #FEF3C7;
+/* Header */
+.arena-header {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  z-index: 1020;
 }
 
-/* Ribbon Title */
-.candy-ribbon-title {
-  display: inline-block;
-  background: linear-gradient(180deg, #EC4899 0%, #BE185D 100%);
-  border: 3px solid #FFF;
+.arena-logo {
+  height: 40px;
+  max-width: 170px;
+  object-fit: contain;
+}
+
+.arena-badge-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pulse-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #10B981;
   border-radius: 999px;
-  font-size: 1.15rem;
-  letter-spacing: 1px;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+  animation: pulseBeacon 1.8s infinite;
 }
 
-/* Candy Board Path */
-.candy-board-path {
-  background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.85) 0%, rgba(240, 249, 255, 0.75) 100%);
-  border: 4px solid #FFFFFF;
-  backdrop-filter: blur(10px);
+@keyframes pulseBeacon {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
 }
 
-/* Floating decors */
-.candy-decor {
+.arena-tagline {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.stat-icon-coin {
+  font-size: 16px;
+}
+
+/* Return Home Button */
+.btn-return-home {
+  background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
+  color: #FFFFFF !important;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  box-shadow: 0 3px 0 #B45309, 0 6px 14px rgba(217, 119, 6, 0.25);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.btn-return-home:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 #B45309, 0 8px 18px rgba(217, 119, 6, 0.35);
+}
+
+.btn-return-home:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #B45309;
+}
+
+/* Left Map Section Container */
+.map-card-wrapper {
+  background: linear-gradient(180deg, #FFFFFF 0%, #FEFCE8 60%, #FEF3C7 100%);
+  border: 1px solid #FDE68A;
+  min-height: calc(100vh - 120px);
+}
+
+/* Floating background islands and decor */
+.bg-island {
   position: absolute;
+  border-radius: 999px;
+  filter: blur(60px);
   pointer-events: none;
-  user-select: none;
-  opacity: 0.65;
-  font-size: 38px;
+  opacity: 0.45;
 }
-.cloud-1 { top: 40px; left: 30px; animation: floatCloud 8s infinite alternate ease-in-out; }
-.cloud-2 { top: 280px; right: 40px; animation: floatCloud 10s infinite alternate ease-in-out; }
-.cloud-3 { top: 520px; left: 40px; font-size: 32px; }
-.cloud-4 { top: 760px; right: 50px; font-size: 32px; }
-.castle-decor { bottom: 80px; right: 30px; font-size: 52px; opacity: 0.85; }
-.tree-decor { bottom: 120px; left: 30px; font-size: 44px; opacity: 0.85; }
+
+.island-top-right {
+  top: -60px;
+  right: -60px;
+  width: 320px;
+  height: 320px;
+  background: #FDE047;
+}
+
+.island-bottom-left {
+  bottom: -40px;
+  left: -40px;
+  width: 280px;
+  height: 280px;
+  background: #BBF7D0;
+}
+
+.cloud-float {
+  position: absolute;
+  font-size: 28px;
+  pointer-events: none;
+  opacity: 0.7;
+  animation: floatCloud 8s infinite alternate ease-in-out;
+}
+
+.cloud-pos-1 { top: 60px; left: 30px; animation-duration: 9s; }
+.cloud-pos-2 { top: 220px; right: 40px; animation-duration: 11s; }
+.cloud-pos-3 { bottom: 300px; left: 50px; animation-duration: 7s; }
+.cloud-pos-4 { bottom: 120px; right: 60px; animation-duration: 10s; }
 
 @keyframes floatCloud {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(18px); }
+  0% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-12px) translateX(8px); }
+  100% { transform: translateY(6px) translateX(-6px); }
 }
 
-/* Candy Disks */
-.candy-disk-button {
-  width: 72px;
-  height: 72px;
-  cursor: pointer;
-}
-.candy-node-num {
-  font-size: 20px;
-  color: #FFFFFF;
-  line-height: 1;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-}
-.candy-node-unit {
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 700;
-  font-size: 9px;
+/* Summit Header */
+.summit-crest-box {
+  max-width: 540px;
 }
 
-/* Player Pin Bubble */
-.current-user-pin-bubble {
-  top: -16px;
-  right: -24px;
-}
-.pin-badge-tag {
-  background: #EF4444;
-  color: #FFF;
-  font-size: 9px;
-  font-weight: 800;
-  padding: 2px 6px;
+.summit-crown-badge {
+  width: 58px;
+  height: 58px;
   border-radius: 999px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-  animation: bouncePin 1.2s infinite ease-in-out;
+  background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
+  border: 3px solid #FDE68A;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
+  font-size: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: crownBob 3s infinite ease-in-out;
 }
-@keyframes bouncePin {
+
+@keyframes crownBob {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
 
-.player-pin-avatar {
-  width: 28px;
-  height: 28px;
-  margin-left: -6px;
-  transition: transform 0.2s ease;
+.summit-heading {
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #0F172A;
 }
-.player-pin-avatar:hover {
-  transform: scale(1.25);
+
+.summit-lead {
+  font-size: 14px;
+}
+
+/* Serpentine Track & SVG Line */
+.roadmap-connecting-svg {
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.svg-dash-animated {
+  animation: dashAnimation 25s linear infinite;
+}
+
+@keyframes dashAnimation {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 400; }
+}
+
+/* Pod & Interactive Disc */
+.tier-milestone-pod {
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+}
+
+/* Hover effect on XP tier */
+.tier-milestone-pod:hover {
+  transform: translateY(-8px) scale(1.08);
+}
+
+.tier-milestone-pod:active {
+  transform: translateY(-2px) scale(1.02);
+}
+
+.pod-selected-halo {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 104px;
+  height: 104px;
+  border-radius: 999px;
+  border: 3px dashed #F59E0B;
+  animation: haloSpin 12s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes haloSpin {
+  from { transform: translateX(-50%) rotate(0deg); }
+  to { transform: translateX(-50%) rotate(360deg); }
+}
+
+.summit-star-trophy {
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+}
+
+.trophy-bounce {
+  display: inline-block;
+  animation: trophyBob 2s infinite ease-in-out;
+}
+
+@keyframes trophyBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Candy 3D Disc */
+.candy-xp-disc {
+  width: 80px;
+  height: 80px;
+  border-radius: 999px;
+  border: 4px solid #FFFFFF;
+  position: relative;
+  overflow: visible;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.disc-gloss-shine {
+  position: absolute;
+  top: 4px;
+  left: 10px;
+  right: 10px;
+  height: 28px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%);
+  pointer-events: none;
+}
+
+.disc-xp-val {
+  font-size: 22px;
+  color: #FFFFFF;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+  line-height: 1;
+}
+
+.disc-xp-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.95);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.active-check-badge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  width: 24px;
+  height: 24px;
+  background: #0F172A;
+  color: #FBBF24;
+  border-radius: 999px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  border: 2px solid #FFFFFF;
+}
+
+/* Current user pin on map */
+.current-user-pin-chip {
+  top: -36px;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 10;
 }
 
-.star-gold {
-  color: #FBBF24;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-.star-dim {
-  color: #CBD5E1;
-  opacity: 0.5;
+.pin-label {
+  background: #DC2626;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.4);
+  border: 2px solid #FFFFFF;
 }
 
-.candy-start-island {
-  background: linear-gradient(180deg, #10B981 0%, #047857 100%);
-  border: 3px solid #FFF;
+/* Label under disc */
+.tier-label-capsule {
   font-size: 13px;
-  letter-spacing: 1px;
+  transition: all 0.25s ease;
 }
 
-.hover-scale-sm:hover {
-  transform: scale(1.06);
+.tier-milestone-pod:hover .tier-label-capsule {
+  transform: translateY(2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
 }
-.transition {
-  transition: all 0.25s ease;
+
+/* Avatars clustered at milestone */
+.avatar-tiny-ring {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #FFFFFF;
+  overflow: hidden;
+}
+
+/* Start gate pill at bottom */
+.start-gate-pill {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border: 3px solid #6EE7B7;
+}
+
+/* RIGHT PANEL: Champions Cadre */
+.champions-cadre-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  max-height: calc(100vh - 120px);
+}
+
+.tier-header-icon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+/* Scroll area for champions list */
+.champions-roster-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E1 transparent;
+}
+
+.player-champion-item {
+  border-color: #F1F5F9 !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.player-champion-item:hover {
+  transform: translateX(4px);
+  background-color: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+}
+
+.player-champion-item.highlight-user {
+  background-color: #ECFDF5 !important;
+  border-color: #A7F3D0 !important;
+}
+
+.player-name-link {
+  transition: color 0.15s ease;
+}
+
+.player-name-link:hover {
+  color: #059669 !important;
+}
+
+.player-xp-chip {
+  background-color: #FEF3C7;
+  color: #92400E;
+  font-size: 11px;
+}
+
+.user-self-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background-color: #10B981;
+  border: 2px solid #FFFFFF;
+  border-radius: 999px;
+}
+
+.btn-visit-profile:hover {
+  background-color: #0F172A !important;
+  color: #FFFFFF !important;
+}
+
+.btn-visit-profile:hover i {
+  color: #FFFFFF !important;
+}
+
+/* Transitions */
+.tier-header-fade-enter-active,
+.tier-header-fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.tier-header-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.tier-header-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.roster-switch-enter-active,
+.roster-switch-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.roster-switch-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.roster-switch-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* Utility classes */
+.shadow-2xs {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.extra-small {
+  font-size: 12px;
+}
+
+.-space-x-2 > * + * {
+  margin-left: -6px;
+}
+
+@media (max-width: 991.98px) {
+  .champions-cadre-card {
+    position: static !important;
+    max-height: none;
+  }
 }
 </style>
