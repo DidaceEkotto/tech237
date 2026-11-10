@@ -1454,9 +1454,15 @@ class DashboardController extends Controller
             'attachment.mimes' => 'Format de pièce jointe non autorisé (images, PDF, Word, TXT, ZIP autorisés).',
         ]);
 
-        $recipientId = $validated['recipient_id'] ?? null;
-        if (!$recipientId || (int)$recipientId === (int)$sender->id) {
-            $recipientId = \App\Models\User::where('id', '!=', $sender->id)->value('id') ?? $sender->id;
+        $isSupport = $request->boolean('is_support') || empty($request->input('recipient_id'));
+
+        if ($isSupport) {
+            $recipientId = $sender->id;
+        } else {
+            $recipientId = (int) $request->input('recipient_id');
+            if (!$recipientId || (int)$recipientId === (int)$sender->id) {
+                $recipientId = \App\Models\User::where('id', '!=', $sender->id)->value('id') ?? $sender->id;
+            }
         }
 
         $attachmentPath = null;
@@ -1480,7 +1486,29 @@ class DashboardController extends Controller
             'attachment_name' => $attachmentName,
             'attachment_type' => $attachmentType,
             'is_read' => false,
+            'is_support' => $isSupport,
         ]);
+
+        if ($isSupport) {
+            // Send notification to admin team
+            try {
+                $adminEmail = config('mail.from.address') ?: 'admin@tech237.net';
+                Mail::send('emails.new_message_notification', [
+                    'recipient' => (object)['name' => 'Support & Administration Tech237'],
+                    'sender' => $sender,
+                    'msgSubject' => $validated['subject'],
+                    'msgContent' => $validated['message'],
+                    'replyUrl' => route('admin.messages.index'),
+                ], function ($m) use ($adminEmail, $sender, $validated) {
+                    $m->to($adminEmail)
+                      ->subject("🚨 Message Support Tech237 de {$sender->name} : {$validated['subject']}");
+                });
+            } catch (\Throwable $e) {
+                Log::error("Erreur notification email support admin: " . $e->getMessage());
+            }
+
+            return back()->with('success', 'Votre message a été transmis avec succès à l\'équipe Support Tech237 !');
+        }
 
         // Send notification email to the recipient
         $recipient = \App\Models\User::find($recipientId);

@@ -206,7 +206,7 @@
               </div>
 
               <!-- Public Roadmap checkbox -->
-              <div class="form-check form-switch mb-2">
+              <div class="form-check form-switch mb-3">
                 <input class="form-check-input" type="checkbox" id="publicRoadmapCheck" v-model="form.is_public">
                 <label class="form-check-label small fw-semibold text-dark" for="publicRoadmapCheck">
                   Rendre la Roadmap publique
@@ -214,6 +214,27 @@
                 <div class="extra-small text-muted">
                   Si activé, les visiteurs pourront consulter l'avancement des fonctionnalités sur la page du projet.
                 </div>
+              </div>
+
+              <!-- Invite Contributors right at creation -->
+              <div v-if="registeredUsers && registeredUsers.length" class="mb-3">
+                <label class="form-label small fw-bold text-dark mb-1">
+                  <i class="bi bi-people-fill text-primary me-1"></i>Inviter des contributeurs dès la création
+                </label>
+                <div class="d-flex flex-wrap gap-1 p-2 bg-light rounded-3 border" style="max-height: 120px; overflow-y: auto;">
+                  <button 
+                    v-for="u in registeredUsers.slice(0, 30)" 
+                    :key="'reg-' + u.id" 
+                    type="button"
+                    class="badge rounded-pill border px-2 py-1 user-select-none d-flex align-items-center gap-1 transition"
+                    :class="form.contributor_ids.includes(u.id) ? 'bg-primary text-white border-primary' : 'bg-white text-dark border-secondary-subtle'"
+                    @click="toggleContributorSelection(u.id)"
+                  >
+                    <i class="bi" :class="form.contributor_ids.includes(u.id) ? 'bi-check-circle-fill' : 'bi-plus'"></i>
+                    <span>{{ u.name }}</span>
+                  </button>
+                </div>
+                <small class="text-muted extra-small">Cliquez pour ajouter des collaborateurs au projet dès son lancement.</small>
               </div>
 
             </div>
@@ -242,6 +263,7 @@ import FrontLayout from '@/Layouts/FrontLayout.vue'
 const props = defineProps({
   boards: { type: Array, default: () => [] },
   myProjects: { type: Array, default: () => [] },
+  registeredUsers: { type: Array, default: () => [] },
 })
 
 const showModal = ref(false)
@@ -252,6 +274,7 @@ const form = ref({
   description: '',
   project_id: null,
   is_public: false,
+  contributor_ids: [],
 })
 
 function openCreateModal() {
@@ -260,8 +283,18 @@ function openCreateModal() {
     description: '',
     project_id: props.myProjects.length > 0 ? props.myProjects[0].id : null,
     is_public: false,
+    contributor_ids: [],
   }
   showModal.value = true
+}
+
+function toggleContributorSelection(userId) {
+  const idx = form.value.contributor_ids.indexOf(userId)
+  if (idx !== -1) {
+    form.value.contributor_ids.splice(idx, 1)
+  } else {
+    form.value.contributor_ids.push(userId)
+  }
 }
 
 function submitCreateBoard() {

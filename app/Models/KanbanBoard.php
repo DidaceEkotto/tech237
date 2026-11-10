@@ -46,6 +46,16 @@ class KanbanBoard extends Model
         return $this->hasMany(KanbanCard::class, 'board_id')->orderBy('order');
     }
 
+    public function members(): HasMany
+    {
+        return $this->hasMany(KanbanBoardMember::class, 'board_id')->with('user');
+    }
+
+    public function activities(): HasMany
+    {
+        return $this->hasMany(KanbanCardActivity::class, 'board_id')->with('user')->latest();
+    }
+
     /**
      * Check if a given user can view this board
      */
@@ -60,6 +70,10 @@ class KanbanBoard extends Model
         }
 
         if ($this->user_id === $user->id) {
+            return true;
+        }
+
+        if ($this->members()->where('user_id', $user->id)->exists()) {
             return true;
         }
 
@@ -83,6 +97,10 @@ class KanbanBoard extends Model
         }
 
         if ($this->user_id === $user->id) {
+            return true;
+        }
+
+        if ($this->members()->where('user_id', $user->id)->exists()) {
             return true;
         }
 

@@ -65,7 +65,14 @@ class HandleInertiaRequests extends Middleware
             'topContributors' => fn () => \App\Models\User::where(function($q) {
                 $q->whereNull('status')->orWhere('status', '!=', 'banned');
             })->orderByDesc('xp')->take(3)->select('id', 'name', 'avatar', 'xp', 'rank_title')->get(),
-            'adBanners' => fn () => AdBanner::where('is_active', true)->get()->groupBy('position'),
+            'adBanners' => fn () => AdBanner::where('is_active', true)
+                ->inRandomOrder()
+                ->get()
+                ->groupBy('position')
+                ->map(fn ($group) => [$group->first()]),
+            'partners' => fn () => \Illuminate\Support\Facades\Schema::hasTable('partners') 
+                ? \App\Models\Partner::active()->get() 
+                : collect(),
             'currentLocale' => fn () => session('locale', 'fr'),
             'seo' => [
                 'site_name' => $settings->site_name ?? 'Tech237',

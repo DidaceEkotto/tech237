@@ -43,7 +43,9 @@
                       <i class="bi bi-building me-1"></i>{{ project.startup.name }} ({{ project.startup.legal_type }})
                     </Link>
                   </span>
-                  <span v-if="project.user">&bull; Porté par {{ project.user.full_name || project.user.name }}</span>
+                  <Link v-if="project.user" :href="'/communaute/profil/' + project.user.id" class="text-decoration-none text-muted hover-underline" :title="'Profil de ' + (project.user.full_name || project.user.name)">
+                    &bull; Porté par <strong class="text-dark">{{ project.user.full_name || project.user.name }}</strong>
+                  </Link>
                   <span v-if="project.development_duration">&bull; Durée : {{ project.development_duration }}</span>
                   <span>&bull; {{ project.views_count }} vues</span>
                 </div>
@@ -297,10 +299,12 @@
               Collaborateurs du projet ({{ project.active_collaborators.length }})
             </h5>
             <div class="d-flex flex-column gap-3">
-              <div 
+              <Link 
                 v-for="collab in project.active_collaborators" 
                 :key="collab.id" 
-                class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border"
+                :href="'/communaute/profil/' + (collab.user?.id || collab.user_id)"
+                class="d-flex align-items-center gap-3 p-2 rounded-3 bg-light border text-decoration-none text-dark hover-collab-card transition"
+                :title="'Voir le mur public de ' + (collab.user?.full_name || collab.user?.name)"
               >
                 <img 
                   v-if="collab.user?.avatar" 
@@ -320,7 +324,8 @@
                   <div class="fw-bold text-dark text-truncate">{{ collab.user?.full_name || collab.user?.name }}</div>
                   <small class="badge bg-secondary-subtle text-secondary small">{{ collab.role || 'Contributeur & Dev' }}</small>
                 </div>
-              </div>
+                <i class="bi bi-chevron-right text-muted small pe-1"></i>
+              </Link>
             </div>
           </div>
 
@@ -645,6 +650,15 @@ function submitReport() {
 }
 .hover-danger:hover {
   color: #dc3545 !important;
+}
+.hover-collab-card:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.hover-underline:hover {
+  text-decoration: underline !important;
 }
 :deep(.project-wysiwyg-content table) {
   width: 100%;

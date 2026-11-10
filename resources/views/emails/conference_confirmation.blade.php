@@ -15,9 +15,9 @@
                     <tr>
                         <td align="center" style="background-color: #111111; padding: 30px 20px; border-bottom: 4px solid #FF004B;">
                             @if(!empty($settings->logo))
-                                <img src="{{ url($settings->logo) }}" alt="{{ $settings->site_name ?? 'Melty' }}" height="44" style="display: block; border: 0;">
+                                <img src="{{ url($settings->logo) }}" alt="{{ $settings->site_name ?? 'Tech237' }}" height="44" style="display: block; border: 0;">
                             @else
-                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -1px;">melty<span style="color: #FF004B;">.</span></h1>
+                                <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -1px;">Tech237<span style="color: #00A859;">.</span></h1>
                             @endif
                         </td>
                     </tr>
@@ -88,10 +88,10 @@
                     <tr>
                         <td style="background-color: #fafafa; border-top: 1px solid #eeeeee; padding: 25px 35px; text-align: center;">
                             <p style="margin: 0 0 8px 0; font-size: 12px; color: #999999;">
-                                Cet email vous a été envoyé par <strong>{{ $settings->site_name ?? 'Melty' }}</strong> dans le cadre de votre inscription à un événement tech.
+                                Cet email vous a été envoyé par <strong>{{ $settings->site_name ?? 'Tech237' }}</strong> dans le cadre de votre inscription à un événement tech.
                             </p>
                             <p style="margin: 0; font-size: 12px; color: #aaaaaa;">
-                                © {{ date('Y') }} {{ $settings->site_name ?? 'Melty' }}. Tous droits réservés.
+                                © {{ date('Y') }} {{ $settings->site_name ?? 'Tech237' }}. Tous droits réservés.
                             </p>
                         </td>
                     </tr>

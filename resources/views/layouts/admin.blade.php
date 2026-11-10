@@ -33,7 +33,7 @@
     <aside class="admin-sidebar" id="adminSidebar">
         <div class="brand">
             <a href="{{ route('admin.dashboard') }}" class="d-flex align-items-center text-decoration-none">
-                <img src="{{ asset('assets/images/logo-tech237.png') }}" alt="Melty Admin" height="34">
+                <img src="{{ asset('assets/images/logo-tech237.png') }}" alt="Tech237 Admin" height="34">
             </a>
             <button class="btn btn-sm btn-link text-white-50 d-lg-none" onclick="toggleSidebar()">
                 <i class="bi bi-x-lg fs-5"></i>
@@ -41,6 +41,20 @@
         </div>
 
         <nav class="py-3">
+            @if($admin && $admin->role === 'tester_reviews')
+                <div class="nav-heading">Espace Testeur Spécialisé</div>
+                <a href="{{ route('admin.app-reviews.index') }}" class="nav-link {{ request()->routeIs('admin.app-reviews.*') ? 'active' : '' }}">
+                    <i class="bi bi-phone text-primary"></i> Tests Applications
+                </a>
+                <a href="{{ route('admin.game-reviews.index') }}" class="nav-link {{ request()->routeIs('admin.game-reviews.*') ? 'active' : '' }}">
+                    <i class="bi bi-controller text-danger"></i> Tests Jeux Vidéo
+                </a>
+
+                <div class="nav-heading">Mon Compte</div>
+                <a href="{{ route('admin.profile.index') }}" class="nav-link {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}">
+                    <i class="bi bi-person-circle"></i> Mon Profil
+                </a>
+            @else
             <div class="nav-heading">Principal</div>
             <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                 <i class="bi bi-grid-1x2"></i> Tableau de bord
@@ -145,6 +159,9 @@
             <a href="{{ route('admin.banners.index') }}" class="nav-link {{ request()->routeIs('admin.banners.*') ? 'active' : '' }}">
                 <i class="bi bi-badge-ad"></i> Bannières Pub
             </a>
+            <a href="{{ route('admin.partners.index') }}" class="nav-link {{ request()->routeIs('admin.partners.*') ? 'active' : '' }}">
+                <i class="bi bi-buildings"></i> Partenaires & Entreprises
+            </a>
             <a href="{{ route('admin.newsletters.index') }}" class="nav-link {{ request()->routeIs('admin.newsletters.*') ? 'active' : '' }}">
                 <i class="bi bi-envelope-paper"></i> Newsletters & Inscrits
             </a>
@@ -170,7 +187,10 @@
                     $unreadAdminMessagesCount = 0;
                     try {
                         if (\Illuminate\Support\Facades\Schema::hasTable('user_messages')) {
-                            $unreadAdminMessagesCount = \App\Models\UserMessage::where('is_read', false)->whereNotNull('user_id')->count();
+                            $unreadAdminMessagesCount = \App\Models\UserMessage::where('is_read', false)
+                                ->where(function($q) {
+                                    $q->whereNull('admin_id')->orWhere('is_support', true);
+                                })->count();
                         }
                     } catch (\Throwable $e) {}
                 @endphp
@@ -213,6 +233,7 @@
             <a href="{{ route('admin.profile.index') }}" class="nav-link {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}">
                 <i class="bi bi-person-circle"></i> Mon Profil
             </a>
+            @endif
         </nav>
     </aside>
 
@@ -226,7 +247,7 @@
                 </button>
                 <div class="d-none d-md-block">
                     <span class="text-muted small">Espace d'administration sécurisé</span>
-                    <span class="badge bg-dark ms-2">{{ config('app.name', 'Melty') }}</span>
+                    <span class="badge bg-dark ms-2">{{ config('app.name', 'Tech237') }}</span>
                 </div>
             </div>
 

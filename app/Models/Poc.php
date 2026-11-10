@@ -34,6 +34,14 @@ class Poc extends Model
         'views_count' => 'integer',
     ];
 
+    protected static function booted()
+    {
+        static::deleting(function ($poc) {
+            \App\Models\Comment::where('poc_id', $poc->id)->delete();
+            $poc->upvotes()->delete();
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

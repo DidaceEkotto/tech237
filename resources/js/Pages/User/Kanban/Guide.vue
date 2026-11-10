@@ -126,6 +126,45 @@
             </div>
           </div>
 
+          <!-- 7. Pièces Jointes & Dropzone Images -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-primary">
+              <div class="rounded-circle text-primary bg-primary-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-images"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">7. Dropzone Pièces Jointes (Images)</h4>
+              <p class="small text-muted mb-0">
+                Téléversez en drag & drop vos maquettes UI, schémas d'architecture et captures d'écran. La première image sert automatiquement d'illustration de couverture sur votre carte.
+              </p>
+            </div>
+          </div>
+
+          <!-- 8. Échanges en Équipe & Mentions @ -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-success">
+              <div class="rounded-circle text-success bg-success-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-chat-quote-fill"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">8. Commentaires d'Équipe &amp; Mentions @</h4>
+              <p class="small text-muted mb-0">
+                Discutez des spécifications directement au cœur de chaque tâche. Taguez vos collègues avec <code>@Prénom</code> pour attirer leur attention et gardez une trace complète de l'historique d'activité.
+              </p>
+            </div>
+          </div>
+
+          <!-- 9. Gestion des Contributeurs -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-warning">
+              <div class="rounded-circle text-warning bg-warning-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-person-plus-fill"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">9. Invitation &amp; Retrait de Membres</h4>
+              <p class="small text-muted mb-0">
+                Associez des contributeurs dès la création de votre tableau ou via le bouton <em>« Équipe »</em>. Vous pouvez ajouter tout membre inscrit sur Tech237 ou le retirer à tout moment en 1 clic.
+              </p>
+            </div>
+          </div>
+
         </div>
 
         <!-- FAQ / Best Practices -->

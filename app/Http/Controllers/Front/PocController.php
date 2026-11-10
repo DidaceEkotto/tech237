@@ -154,7 +154,7 @@ class PocController extends Controller
             }
         }
 
-        $poc->increment('views_count');
+        \App\Services\UniqueViewService::recordView($poc, $request);
 
         $userId = Auth::id();
         $ip = $request->ip();

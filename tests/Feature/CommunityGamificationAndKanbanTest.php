@@ -115,4 +115,100 @@ class CommunityGamificationAndKanbanTest extends TestCase
         $resProfile = $this->get("/communaute/profil/{$user->id}");
         $resProfile->assertStatus(200);
     }
+
+    public function test_support_message_routing_to_admin()
+    {
+        Mail::fake();
+
+        $user = User::factory()->create();
+        $collaborator = User::factory()->create();
+
+        $response = $this->actingAs($user, 'web')->post('/espace-utilisateur/messages/envoyer', [
+            'is_support' => '1',
+            'subject' => 'Besoin d\'assistance technique',
+            'message' => 'Bonjour l\'équipe support, j\'ai une question urgente.',
+        ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('user_messages', [
+            'user_id' => $user->id,
+            'sender_id' => $user->id,
+            'is_support' => true,
+            'subject' => 'Besoin d\'assistance technique',
+        ]);
+
+        // Ensure it did NOT send to the collaborator
+        $this->assertDatabaseMissing('user_messages', [
+            'user_id' => $collaborator->id,
+            'subject' => 'Besoin d\'assistance technique',
+        ]);
+    }
+
+    public function test_poc_and_project_unique_view_counts()
+    {
+        $user = User::factory()->create();
+        $poc = \App\Models\Poc::create([
+            'user_id' => $user->id,
+            'author_name' => $user->name,
+            'title' => 'POC Test Unique Views',
+            'slug' => 'poc-test-unique-views',
+            'content' => 'Contenu du POC',
+            'tag' => 'dev',
+            'status' => 'published',
+            'views_count' => 0,
+        ]);
+
+        // First visit
+        $this->get("/pocs/{$poc->slug}");
+        $this->assertEquals(1, $poc->fresh()->views_count);
+
+        // Second visit from same session / device
+        $this->get("/pocs/{$poc->slug}");
+        $this->assertEquals(1, $poc->fresh()->views_count);
+    }
+
+    public function test_kanban_members_and_card_collaboration()
+    {
+        $owner = User::factory()->create();
+        $collab = User::factory()->create();
+
+        $board = KanbanBoard::create([
+            'user_id' => $owner->id,
+            'title' => 'Tableau Collaboratif',
+        ]);
+
+        // Add member
+        $this->actingAs($owner, 'web')->post("/espace-utilisateur/kanban/boards/{$board->id}/members", [
+            'user_id' => $collab->id,
+            'role' => 'member',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('kanban_board_members', [
+            'board_id' => $board->id,
+            'user_id' => $collab->id,
+        ]);
+
+        $column = \App\Models\KanbanColumn::create([
+            'board_id' => $board->id,
+            'title' => 'En cours',
+            'order' => 1,
+        ]);
+
+        $card = KanbanCard::create([
+            'board_id' => $board->id,
+            'column_id' => $column->id,
+            'title' => 'Tâche en équipe',
+        ]);
+
+        // Collaborator can comment
+        $this->actingAs($collab, 'web')->post("/espace-utilisateur/kanban/cards/{$card->id}/comments", [
+            'comment' => 'Je m\'occupe de cette tâche ! @' . $owner->name,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('kanban_card_comments', [
+            'card_id' => $card->id,
+            'user_id' => $collab->id,
+        ]);
+    }
 }

@@ -60,7 +60,9 @@ class Index extends Component
 
         // Mark messages in this thread as read by admin if applicable
         UserMessage::where('user_id', $userId)
-            ->whereNull('admin_id')
+            ->where(function ($q) {
+                $q->whereNull('admin_id')->orWhere('is_support', true);
+            })
             ->where('is_read', false)
             ->update(['is_read' => true, 'read_at' => now()]);
     }
@@ -111,10 +113,8 @@ class Index extends Component
 
         // Determine recipients
         if ($this->recipientType === 'all') {
-            $recipients = User::where(function ($q) {
-                $q->whereNull('status')->orWhere('status', '!=', 'banned');
-            })->get();
-            $targetDesc = "tous les membres (" . $recipients->count() . " utilisateurs)";
+            $recipients = User::all();
+            $targetDesc = "tous les inscrits du site (" . $recipients->count() . " utilisateurs)";
         } else {
             if (empty($this->selectedUserIds)) {
                 $this->addError('selectedUserIds', 'Veuillez sélectionner au moins un destinataire.');
@@ -243,20 +243,35 @@ class Index extends Component
 
     public function render()
     {
-        // 1. Thread Partners (Users who have exchanged messages)
-        $threadsQuery = User::whereHas('messages')
+        // 1. Thread Partners (Users who have exchanged messages, or all users if searching)
+        if ($this->search) {
+            $threadsQuery = User::where(function ($q) {
+                $q->where('name', 'like', "%{$this->search}%")
+                  ->orWhere('email', 'like', "%{$this->search}%");
+            })
             ->withCount(['messages as unread_count' => function ($q) {
-                $q->whereNull('admin_id')->where('is_read', false);
+                $q->where(function ($sub) {
+                    $sub->whereNull('admin_id')->orWhere('is_support', true);
+                })->where('is_read', false);
             }])
             ->with(['messages' => function ($q) {
                 $q->latest()->limit(1);
             }]);
-
-        if ($this->search) {
-            $threadsQuery->where(function ($q) {
-                $q->where('name', 'like', "%{$this->search}%")
-                  ->orWhere('email', 'like', "%{$this->search}%");
-            });
+        } else {
+            $threadsQuery = User::where(function ($q) {
+                $q->whereHas('messages')
+                  ->orWhereHas('sentMessages', function ($sub) {
+                      $sub->where('is_support', true);
+                  });
+            })
+            ->withCount(['messages as unread_count' => function ($q) {
+                $q->where(function ($sub) {
+                    $sub->whereNull('admin_id')->orWhere('is_support', true);
+                })->where('is_read', false);
+            }])
+            ->with(['messages' => function ($q) {
+                $q->latest()->limit(1);
+            }]);
         }
 
         $threads = $threadsQuery->paginate(15);
@@ -267,27 +282,39 @@ class Index extends Component
         if ($this->activeUserId) {
             $activeUser = User::find($this->activeUserId);
             if ($activeUser) {
-                $activeMessages = UserMessage::where('user_id', $activeUser->id)
-                    ->orWhere('sender_id', $activeUser->id)
-                    ->with(['user', 'sender', 'admin'])
-                    ->orderBy('created_at', 'asc')
-                    ->get();
+                $activeMessages = UserMessage::where(function ($q) use ($activeUser) {
+                    $q->where('user_id', $activeUser->id)
+                      ->where(function ($sub) {
+                          $sub->whereNotNull('admin_id')
+                              ->orWhere('is_support', true)
+                              ->orWhereNull('sender_id');
+                      });
+                })
+                ->orWhere(function ($q) use ($activeUser) {
+                    $q->where('sender_id', $activeUser->id)
+                      ->where('is_support', true);
+                })
+                ->with(['user', 'sender', 'admin'])
+                ->orderBy('created_at', 'asc')
+                ->get();
             }
         }
 
-        // 3. User search for compose modal
+        // 3. User search for compose modal (searches all registered users on the site)
         $usersForSelection = collect();
         if ($this->viewMode === 'compose' && $this->recipientType === 'specific') {
             $usersForSelection = User::when($this->userSearch, function ($q) {
                 $q->where('name', 'like', "%{$this->userSearch}%")
                   ->orWhere('email', 'like', "%{$this->userSearch}%");
-            })->take(30)->get();
+            })->take(200)->get();
         }
 
         // 4. Quick stats
         $stats = [
             'total_messages' => UserMessage::count(),
-            'unread_messages' => UserMessage::where('is_read', false)->whereNull('admin_id')->count(),
+            'unread_messages' => UserMessage::where('is_read', false)->where(function ($q) {
+                $q->whereNull('admin_id')->orWhere('is_support', true);
+            })->count(),
             'total_users' => User::count(),
             'admin_broadcasts' => UserMessage::whereNotNull('admin_id')->count(),
         ];

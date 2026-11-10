@@ -48,7 +48,7 @@ class ProjectShowcaseController extends Controller
             ])
             ->firstOrFail();
 
-        $project->increment('views_count');
+        \App\Services\UniqueViewService::recordView($project, request());
 
         // Other projects from same founder or category
         $relatedProjects = Project::where('id', '!=', $project->id)

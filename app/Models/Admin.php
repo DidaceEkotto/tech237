@@ -63,6 +63,11 @@ class Admin extends Authenticatable
         return $this->role === 'editor';
     }
 
+    public function isTester(): bool
+    {
+        return $this->role === 'tester_reviews';
+    }
+
     public function canValidateArticles(): bool
     {
         return in_array($this->role, ['super_admin', 'admin']);

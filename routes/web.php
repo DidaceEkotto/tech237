@@ -285,6 +285,11 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/kanban/cards/{cardId}/move', [KanbanController::class, 'moveCard'])->name('user.kanban.cards.move');
     Route::delete('/espace-utilisateur/kanban/cards/{cardId}', [KanbanController::class, 'deleteCard'])->name('user.kanban.cards.delete');
     Route::post('/espace-utilisateur/kanban/cards/{cardId}/devlog', [KanbanController::class, 'publishToDevlog'])->name('user.kanban.cards.devlog');
+    Route::post('/espace-utilisateur/kanban/boards/{boardId}/members', [KanbanController::class, 'addMember'])->name('user.kanban.members.store');
+    Route::delete('/espace-utilisateur/kanban/boards/{boardId}/members/{userId}', [KanbanController::class, 'removeMember'])->name('user.kanban.members.delete');
+    Route::post('/espace-utilisateur/kanban/cards/{cardId}/attachments', [KanbanController::class, 'uploadCardAttachment'])->name('user.kanban.cards.attachments.store');
+    Route::delete('/espace-utilisateur/kanban/cards/{cardId}/attachments/{attachmentId}', [KanbanController::class, 'deleteCardAttachment'])->name('user.kanban.cards.attachments.delete');
+    Route::post('/espace-utilisateur/kanban/cards/{cardId}/comments', [KanbanController::class, 'addCardComment'])->name('user.kanban.cards.comments.store');
 });
 
 // Public Project Roadmap
@@ -362,6 +367,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Marketing & Communication
         Route::get('/sliders', AdminSlidersIndex::class)->name('sliders.index');
         Route::get('/banners', AdminBannersIndex::class)->name('banners.index');
+        Route::get('/partners', App\Livewire\Admin\Partners\Index::class)->name('partners.index');
         Route::get('/newsletters', AdminNewslettersIndex::class)->name('newsletters.index');
 
         // Visitor Analytics (Logs, Graphiques, Sessions, Géoloc)

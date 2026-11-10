@@ -2655,10 +2655,10 @@ const conversations = computed(() => {
     let canReply = true
     let guestSenderEmail = null
 
-    if (msg.admin) {
-      partnerKey = 'admin_' + msg.admin.id
-      partnerName = msg.admin.name || 'Support Tech237'
-      partnerAvatar = msg.admin.avatar || null
+    if (msg.admin || msg.is_support) {
+      partnerKey = 'support_tech237'
+      partnerName = msg.admin ? (msg.admin.name || 'Support Tech237') : 'Support Tech237'
+      partnerAvatar = msg.admin?.avatar || null
       partnerType = 'admin'
       canReply = true
     } else if (msg.sender && msg.sender.id !== authId) {
@@ -2807,6 +2807,9 @@ function sendThreadReply() {
   if (activeConversation.value.rawId) {
     formData.append('recipient_id', activeConversation.value.rawId)
   }
+  if (activeConversation.value.type === 'admin' || !activeConversation.value.rawId || activeConversation.value.key === 'support_tech237') {
+    formData.append('is_support', '1')
+  }
   formData.append('subject', threadReplySubject.value || 'Re: Message Tech237')
   formData.append('message', threadReplyText.value)
   if (replyAttachment.value) {
@@ -2925,6 +2928,9 @@ function submitNewMessage() {
   if (newMsgSelectedRecipient.value?.id) {
     formData.append('recipient_id', newMsgSelectedRecipient.value.id)
   }
+  if (newMsgIsSupport.value || !newMsgSelectedRecipient.value?.id) {
+    formData.append('is_support', '1')
+  }
   formData.append('subject', newMsgSubject.value)
   formData.append('message', newMsgText.value)
   if (newMsgAttachment.value) {
@@ -2937,7 +2943,9 @@ function submitNewMessage() {
     onSuccess: () => {
       showNewMessageModal.value = false
       isSendingNewMsg.value = false
-      if (newMsgSelectedRecipient.value?.id) {
+      if (newMsgIsSupport.value || !newMsgSelectedRecipient.value?.id) {
+        activeConversationKey.value = 'support_tech237'
+      } else if (newMsgSelectedRecipient.value?.id) {
         activeConversationKey.value = 'user_' + newMsgSelectedRecipient.value.id
       }
       mobileShowThread.value = true

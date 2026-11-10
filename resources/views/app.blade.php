@@ -190,6 +190,11 @@
                 $seoDesc = "Nos engagements rigoureux concernant la confidentialité, le respect de votre vie privée et la gestion des données personnelles.";
                 $seoImg = $defaultImg;
             }
+            elseif (Request::routeIs('pocs.index')){
+                $seoTitle = "Les POCs de la Communauté | " . $siteName;
+                $seoDesc = "Partagez de courtes actualités dans le domaine de la tech avec les autres membres de la communauté. ";
+                $seoImg = $defaultImg;
+            }
         } catch (\Throwable $e) {
             // Safe fallback to site defaults
             $seoTitle = $siteName . ' - Là où les idées deviennent des projets';

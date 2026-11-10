@@ -9,6 +9,8 @@ use App\Models\ContentView;
 use App\Models\Article;
 use App\Models\GameReview;
 use App\Models\AppReview;
+use App\Models\Poc;
+use App\Models\Project;
 
 class UniqueViewService
 {
@@ -83,6 +85,12 @@ class UniqueViewService
         }
         if ($model instanceof AppReview) {
             return 'app_review';
+        }
+        if ($model instanceof Poc) {
+            return 'poc';
+        }
+        if ($model instanceof Project) {
+            return 'project';
         }
 
         return null;

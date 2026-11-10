@@ -4,15 +4,20 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\KanbanBoard;
+use App\Models\KanbanBoardMember;
 use App\Models\KanbanCard;
+use App\Models\KanbanCardComment;
+use App\Models\KanbanCardActivity;
 use App\Models\KanbanColumn;
 use App\Models\Project;
 use App\Models\ProjectCollaborator;
 use App\Models\ProjectTimeline;
 use App\Models\User;
 use App\Services\BookmarkNotificationService;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 
 class KanbanController extends Controller
@@ -34,11 +39,14 @@ class KanbanController extends Controller
             ->select('id', 'name', 'slug', 'logo')
             ->get();
 
+        $directBoardIds = KanbanBoardMember::where('user_id', $user->id)->pluck('board_id');
+
         // Boards list
-        $boards = KanbanBoard::with(['project', 'columns.cards'])
-            ->where(function ($q) use ($user, $collabProjectIds) {
+        $boards = KanbanBoard::with(['project', 'columns.cards', 'members.user'])
+            ->where(function ($q) use ($user, $collabProjectIds, $directBoardIds) {
                 $q->where('user_id', $user->id)
-                  ->orWhereIn('project_id', $collabProjectIds);
+                  ->orWhereIn('project_id', $collabProjectIds)
+                  ->orWhereIn('id', $directBoardIds);
             })
             ->latest('updated_at')
             ->get()
@@ -63,9 +71,15 @@ class KanbanController extends Controller
             \Illuminate\Support\Facades\Artisan::call('kanban:check-overdue');
         } catch (\Throwable $e) {}
 
+        $registeredUsers = User::where('id', '!=', $user->id)
+            ->select('id', 'name', 'first_name', 'email', 'avatar')
+            ->take(100)
+            ->get();
+
         return Inertia::render('User/Kanban/Index', [
             'boards' => $boards,
             'myProjects' => $myProjects,
+            'registeredUsers' => $registeredUsers,
         ]);
     }
 
@@ -121,11 +135,17 @@ class KanbanController extends Controller
 
         $board = KanbanBoard::with([
             'project',
+            'members.user:id,name,first_name,avatar,email',
+            'activities.user:id,name,first_name,avatar',
             'columns' => function ($q) {
                 $q->orderBy('order');
             },
             'columns.cards' => function ($q) {
-                $q->with('assignee:id,name,first_name,avatar')->orderBy('order');
+                $q->with([
+                    'assignee:id,name,first_name,avatar',
+                    'comments.user:id,name,first_name,avatar',
+                    'activities.user:id,name,first_name,avatar',
+                ])->orderBy('order');
             },
             'user:id,name,first_name,avatar',
         ])->findOrFail($boardId);
@@ -147,11 +167,22 @@ class KanbanController extends Controller
             ]);
         }
 
+        // Direct board members
+        foreach ($board->members as $m) {
+            if ($m->user && !$teamMembers->contains('id', $m->user->id)) {
+                $teamMembers->push([
+                    'id' => $m->user->id,
+                    'name' => $m->user->first_name ? $m->user->first_name . ' ' . $m->user->name : $m->user->name,
+                    'avatar' => $m->user->avatar,
+                ]);
+            }
+        }
+
         if ($board->project_id && $board->project) {
             // Project owner
             if ($board->project->user_id !== $user?->id) {
                 $projOwner = User::find($board->project->user_id);
-                if ($projOwner) {
+                if ($projOwner && !$teamMembers->contains('id', $projOwner->id)) {
                     $teamMembers->push([
                         'id' => $projOwner->id,
                         'name' => $projOwner->first_name ? $projOwner->first_name . ' ' . $projOwner->name : $projOwner->name,
@@ -177,10 +208,16 @@ class KanbanController extends Controller
             }
         }
 
+        $registeredUsers = User::where('id', '!=', $user->id)
+            ->select('id', 'name', 'first_name', 'email', 'avatar')
+            ->take(100)
+            ->get();
+
         return Inertia::render('User/Kanban/Show', [
             'board' => $board,
             'canEdit' => $canEdit,
             'teamMembers' => $teamMembers->values(),
+            'registeredUsers' => $registeredUsers,
         ]);
     }
 
@@ -218,7 +255,213 @@ class KanbanController extends Controller
 
         $this->createDefaultColumns($board->id);
 
+        // Add contributors if selected during creation
+        if ($request->has('contributor_ids') && is_array($request->input('contributor_ids'))) {
+            foreach ($request->input('contributor_ids') as $cid) {
+                if ($cid && (int)$cid !== (int)$user->id) {
+                    KanbanBoardMember::firstOrCreate([
+                        'board_id' => $board->id,
+                        'user_id' => (int)$cid,
+                    ], ['role' => 'member']);
+                }
+            }
+        }
+
+        // Log initial activity
+        KanbanCardActivity::create([
+            'board_id' => $board->id,
+            'user_id' => $user->id,
+            'type' => 'board_created',
+            'description' => "Tableau créé par {$user->name}",
+        ]);
+
         return redirect()->route('user.kanban.show', $board->id)->with('success', "Tableau Kanban « {$board->title} » créé avec succès !");
+    }
+
+    /**
+     * Add a collaborator/contributor to the board
+     */
+    public function addMember(Request $request, int $boardId)
+    {
+        $user = Auth::guard('web')->user();
+        $board = KanbanBoard::findOrFail($boardId);
+
+        if (!$board->canEdit($user)) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'role' => 'nullable|string|in:member,admin,viewer',
+        ]);
+
+        $targetUser = User::findOrFail($validated['user_id']);
+
+        if ((int)$targetUser->id === (int)$board->user_id) {
+            return back()->withErrors(['error' => "Le propriétaire du tableau est déjà membre d'office."]);
+        }
+
+        KanbanBoardMember::firstOrCreate([
+            'board_id' => $board->id,
+            'user_id' => $targetUser->id,
+        ], [
+            'role' => $validated['role'] ?? 'member',
+        ]);
+
+        KanbanCardActivity::create([
+            'board_id' => $board->id,
+            'user_id' => $user->id,
+            'type' => 'member_added',
+            'description' => "{$targetUser->name} a été ajouté(e) aux contributeurs du tableau.",
+        ]);
+
+        return back()->with('success', "{$targetUser->name} a été ajouté(e) avec succès aux contributeurs du tableau !");
+    }
+
+    /**
+     * Remove a collaborator from the board
+     */
+    public function removeMember(Request $request, int $boardId, int $userId)
+    {
+        $user = Auth::guard('web')->user();
+        $board = KanbanBoard::findOrFail($boardId);
+
+        if (!$board->canEdit($user)) {
+            abort(403);
+        }
+
+        $targetUser = User::findOrFail($userId);
+
+        KanbanBoardMember::where('board_id', $board->id)
+            ->where('user_id', $targetUser->id)
+            ->delete();
+
+        KanbanCardActivity::create([
+            'board_id' => $board->id,
+            'user_id' => $user->id,
+            'type' => 'member_removed',
+            'description' => "{$targetUser->name} a été retiré(e) des contributeurs du tableau.",
+        ]);
+
+        return back()->with('success', "{$targetUser->name} a été retiré(e) des contributeurs du tableau.");
+    }
+
+    /**
+     * Upload an image attachment to a card (images only)
+     */
+    public function uploadCardAttachment(Request $request, int $cardId)
+    {
+        $user = Auth::guard('web')->user();
+        $card = KanbanCard::with('board')->findOrFail($cardId);
+
+        if (!$card->board->canEdit($user)) {
+            abort(403);
+        }
+
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,webp,gif|max:10240',
+        ], [
+            'image.required' => 'Veuillez sélectionner une image.',
+            'image.image' => 'Seules les images sont autorisées comme pièces jointes.',
+            'image.mimes' => 'Formats autorisés : JPG, PNG, WEBP, GIF.',
+            'image.max' => 'L\'image ne doit pas dépasser 10 Mo.',
+        ]);
+
+        $file = $request->file('image');
+        $path = ImageService::saveImage($file, 'kanban_attachments');
+
+        $attachments = $card->attachments ?: [];
+        $newAttachment = [
+            'id' => (string) Str::uuid(),
+            'url' => $path,
+            'name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'uploaded_at' => now()->toIso8601String(),
+            'uploader_name' => $user->name,
+            'uploader_id' => $user->id,
+        ];
+        $attachments[] = $newAttachment;
+
+        $card->update(['attachments' => $attachments]);
+
+        KanbanCardActivity::create([
+            'board_id' => $card->board_id,
+            'card_id' => $card->id,
+            'user_id' => $user->id,
+            'type' => 'attachment_added',
+            'description' => "{$user->name} a ajouté l'image « {$file->getClientOriginalName()} »",
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'attachment' => $newAttachment, 'attachments' => $attachments]);
+        }
+
+        return back()->with('success', "Image attachée avec succès à la tâche !");
+    }
+
+    /**
+     * Delete an attachment from a card
+     */
+    public function deleteCardAttachment(Request $request, int $cardId, string $attachmentId)
+    {
+        $user = Auth::guard('web')->user();
+        $card = KanbanCard::with('board')->findOrFail($cardId);
+
+        if (!$card->board->canEdit($user)) {
+            abort(403);
+        }
+
+        $attachments = collect($card->attachments ?: [])
+            ->reject(fn($a) => ($a['id'] ?? '') === $attachmentId)
+            ->values()
+            ->all();
+
+        $card->update(['attachments' => $attachments]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'attachments' => $attachments]);
+        }
+
+        return back()->with('success', "Pièce jointe supprimée.");
+    }
+
+    /**
+     * Add a comment to a card with activity logging & collaborator mention
+     */
+    public function addCardComment(Request $request, int $cardId)
+    {
+        $user = Auth::guard('web')->user();
+        $card = KanbanCard::with('board')->findOrFail($cardId);
+
+        if (!$card->board->canAccess($user)) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'comment' => 'required|string|min:1|max:3000',
+        ]);
+
+        $comment = KanbanCardComment::create([
+            'card_id' => $card->id,
+            'user_id' => $user->id,
+            'comment' => $validated['comment'],
+        ]);
+
+        KanbanCardActivity::create([
+            'board_id' => $card->board_id,
+            'card_id' => $card->id,
+            'user_id' => $user->id,
+            'type' => 'comment_added',
+            'description' => "{$user->name} a commenté : " . Str::limit($validated['comment'], 60),
+        ]);
+
+        $comment->load('user:id,name,first_name,avatar');
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'comment' => $comment]);
+        }
+
+        return back()->with('success', "Commentaire publié avec succès !");
     }
 
     /**

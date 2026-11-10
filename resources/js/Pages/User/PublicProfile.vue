@@ -59,6 +59,17 @@
                     Membre actif depuis {{ formatDate(profileUser.created_at) }} &bull; 
                     <span class="text-warning fw-bold">#{{ stats.rank_position }} au classement national</span>
                   </small>
+
+                  <!-- XP Progress to next level -->
+                  <div v-if="nextTier" class="mt-2" style="max-width: 320px;">
+                    <div class="d-flex justify-content-between align-items-center extra-small mb-1">
+                      <span class="text-muted">Prochain palier : <strong class="text-dark">{{ nextTier.name }}</strong></span>
+                      <span class="fw-bold text-success">{{ stats.total_xp }} / {{ nextTier.min_xp }} XP</span>
+                    </div>
+                    <div class="progress" style="height: 6px; border-radius: 999px; background-color: #e2e8f0;">
+                      <div class="progress-bar bg-success rounded-pill" :style="{ width: Math.min(100, Math.round((stats.total_xp / nextTier.min_xp) * 100)) + '%' }"></div>
+                    </div>
+                  </div>
                 </div>
               </div>
 

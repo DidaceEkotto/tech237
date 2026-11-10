@@ -19,6 +19,14 @@ use Carbon\Carbon;
 
 class Dashboard extends Component
 {
+    public function mount()
+    {
+        $admin = Auth::guard('admin')->user();
+        if ($admin && $admin->role === 'tester_reviews') {
+            return redirect()->route('admin.app-reviews.index');
+        }
+    }
+
     public function render()
     {
         $stats = [

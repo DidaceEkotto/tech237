@@ -20,6 +20,7 @@ class UserMessage extends Model
         'attachment_type',
         'reactions',
         'is_read',
+        'is_support',
         'read_at',
     ];
 
@@ -27,6 +28,7 @@ class UserMessage extends Model
     {
         return [
             'is_read' => 'boolean',
+            'is_support' => 'boolean',
             'reactions' => 'array',
             'read_at' => 'datetime',
         ];

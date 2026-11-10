@@ -49,7 +49,7 @@
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Adresse Email <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control form-control-sm @error('email') is-invalid @enderror" placeholder="ex: redacteur@melty.test" wire:model="email" required>
+                            <input type="email" class="form-control form-control-sm @error('email') is-invalid @enderror" placeholder="ex: redacteur@tech237.cm" wire:model="email" required>
                             @error('email') <div class="text-danger small">{{ $message }}</div> @enderror
                         </div>
 
@@ -63,6 +63,7 @@
                                 <option value="recruiter_admin">Responsable Recrutement (Gestion des offres d'emploi IT et tests)</option>
                                 <option value="events_manager">Gestionnaire Événements (Validation des conférences et meetups)</option>
                                 <option value="analyst">Analyste Données (Statistiques, audience et reporting)</option>
+                                <option value="tester_reviews">Testeur (Tests Applications & Tests Jeux Vidéo uniquement)</option>
                             </select>
                         </div>
 
@@ -122,6 +123,8 @@
                                             <span class="badge bg-success">Événements</span>
                                         @elseif($adm->role === 'analyst')
                                             <span class="badge bg-dark">Analyste</span>
+                                        @elseif($adm->role === 'tester_reviews')
+                                            <span class="badge bg-primary text-white"><i class="bi bi-controller me-1"></i>Testeur Apps & Jeux</span>
                                         @else
                                             <span class="badge bg-secondary">{{ $adm->role }}</span>
                                         @endif

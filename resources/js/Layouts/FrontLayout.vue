@@ -9,7 +9,7 @@
       :href="backgroundAd.link_url" 
       target="_blank" 
       class="background-ad-gutter-link"
-      title="Partenaire Melty"
+      title="Partenaire Tech237"
     ></a>
 
     <!-- 1. Top Bar: Socials, Newsletter button, Search, Language, Single Connexion / Profile -->
@@ -455,6 +455,52 @@
       </div>
     </div>
 
+    <!-- 5.5. Entreprises & Partenaires Marquee Carousel -->
+    <div v-if="partners && partners.length" class="partners-marquee-section py-4 my-4 border-top border-bottom bg-white overflow-hidden">
+      <div class="container mb-3 text-center">
+        <span class="badge bg-light text-muted border px-3 py-1 rounded-pill extra-small text-uppercase font-monospace" style="letter-spacing: 1.5px; font-size: 10px;">
+          Écosystème &bull; Entreprises Partenaires
+        </span>
+      </div>
+      <div class="partners-marquee-wrapper position-relative">
+        <div class="partners-marquee-track d-flex align-items-center gap-5">
+          <!-- First set of logos -->
+          <template v-for="(partner, idx) in partners" :key="'p1-' + partner.id + '-' + idx">
+            <a 
+              v-if="partner.website_url" 
+              :href="partner.website_url" 
+              :target="isExternalUrl(partner.website_url) ? '_blank' : '_self'"
+              :rel="isExternalUrl(partner.website_url) ? 'noopener noreferrer' : ''"
+              class="partner-logo-item d-flex align-items-center justify-content-center text-decoration-none px-3"
+              :title="partner.name + (isExternalUrl(partner.website_url) ? ' (Ouvre un nouvel onglet)' : '')"
+            >
+              <img :src="'/' + partner.logo" :alt="partner.name" class="partner-img">
+            </a>
+            <div v-else class="partner-logo-item d-flex align-items-center justify-content-center px-3" :title="partner.name">
+              <img :src="'/' + partner.logo" :alt="partner.name" class="partner-img">
+            </div>
+          </template>
+
+          <!-- Second set of logos for infinite loop -->
+          <template v-for="(partner, idx) in partners" :key="'p2-' + partner.id + '-' + idx">
+            <a 
+              v-if="partner.website_url" 
+              :href="partner.website_url" 
+              :target="isExternalUrl(partner.website_url) ? '_blank' : '_self'"
+              :rel="isExternalUrl(partner.website_url) ? 'noopener noreferrer' : ''"
+              class="partner-logo-item d-flex align-items-center justify-content-center text-decoration-none px-3"
+              :title="partner.name + (isExternalUrl(partner.website_url) ? ' (Ouvre un nouvel onglet)' : '')"
+            >
+              <img :src="'/' + partner.logo" :alt="partner.name" class="partner-img">
+            </a>
+            <div v-else class="partner-logo-item d-flex align-items-center justify-content-center px-3" :title="partner.name">
+              <img :src="'/' + partner.logo" :alt="partner.name" class="partner-img">
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <!-- 6. Tech237 Footer with Brand Identity -->
     <footer class="tech237-footer mt-5 pt-5 pb-4">
       <div class="container">
@@ -851,6 +897,17 @@ const backgroundAd = computed(() => page.props.adBanners?.background?.[0] || nul
 const popupAd = computed(() => page.props.adBanners?.modal_popup?.[0] || null)
 const headerTopAd = computed(() => page.props.adBanners?.header_top?.[0] || null)
 const footerBannerAd = computed(() => page.props.adBanners?.footer_banner?.[0] || null)
+const partners = computed(() => page.props.partners || [])
+
+function isExternalUrl(url) {
+  if (!url) return false
+  try {
+    const linkHost = new URL(url, window.location.origin).hostname
+    return linkHost !== window.location.hostname
+  } catch (e) {
+    return url.startsWith('http://') || url.startsWith('https://')
+  }
+}
 
 const backgroundAdStyle = computed(() => {
   if (backgroundAd.value && backgroundAd.value.image) {
@@ -1252,5 +1309,39 @@ function confirmLogout() {
 }
 .fade-loader-enter-from, .fade-loader-leave-to {
   opacity: 0;
+}
+
+/* Partners Marquee Styles */
+.partners-marquee-wrapper {
+  width: 100%;
+  overflow: hidden;
+  user-select: none;
+}
+.partners-marquee-track {
+  width: max-content;
+  animation: partnersScroll 30s linear infinite;
+  display: flex;
+}
+.partners-marquee-wrapper:hover .partners-marquee-track {
+  animation-play-state: paused;
+}
+@keyframes partnersScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.partner-logo-item {
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+.partner-img {
+  max-height: 48px;
+  max-width: 160px;
+  object-fit: contain;
+  filter: grayscale(90%) opacity(0.75);
+  transition: filter 0.25s ease, transform 0.25s ease;
+}
+.partner-logo-item:hover .partner-img {
+  filter: grayscale(0%) opacity(1);
+  transform: scale(1.08);
 }
 </style>

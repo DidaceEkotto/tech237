@@ -82,6 +82,17 @@
                 <option value="low">⚪ Faible</option>
               </select>
 
+              <!-- Manage Team / Contributors Button -->
+              <button 
+                v-if="canEdit" 
+                @click="showTeamModal = true" 
+                class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-bold text-dark d-flex align-items-center gap-2 shadow-2xs"
+                title="Gérer les contributeurs du tableau"
+              >
+                <i class="bi bi-people-fill text-primary"></i>
+                <span>Équipe ({{ (board.members || []).length + 1 }})</span>
+              </button>
+
               <!-- Add Column Button -->
               <button 
                 v-if="canEdit" 
@@ -182,6 +193,11 @@
                 @dragend="onDragEnd"
                 @click="openCardModal(card)"
               >
+                <!-- Card Cover Image Preview -->
+                <div v-if="card.attachments && card.attachments.length" class="mb-2 rounded-2 overflow-hidden border" style="max-height: 110px;">
+                  <img :src="'/' + card.attachments[0].url" class="w-100 object-fit-cover" style="max-height: 110px;" :alt="card.attachments[0].name" />
+                </div>
+
                 <!-- Labels pills & priority badge -->
                 <div class="d-flex align-items-center justify-content-between gap-1 mb-2 flex-wrap">
                   <div class="d-flex align-items-center gap-1 flex-wrap">
@@ -226,6 +242,16 @@
                     <span v-if="card.due_date" class="d-flex align-items-center gap-1" :class="{ 'text-danger fw-bold': isOverdue(card.due_date) }">
                       <i class="bi bi-calendar3"></i>
                       <span>{{ formatDateShort(card.due_date) }}</span>
+                    </span>
+
+                    <!-- Attachments counter badge -->
+                    <span v-if="card.attachments && card.attachments.length" class="d-inline-flex align-items-center gap-1 extra-small text-muted" title="Pièces jointes images">
+                      <i class="bi bi-image"></i> {{ card.attachments.length }}
+                    </span>
+
+                    <!-- Comments counter badge -->
+                    <span v-if="card.comments && card.comments.length" class="d-inline-flex align-items-center gap-1 extra-small text-muted" title="Commentaires d'équipe">
+                      <i class="bi bi-chat-left-text"></i> {{ card.comments.length }}
                     </span>
 
                     <!-- Devlog Published badge -->
@@ -444,6 +470,101 @@
                   </button>
                 </div>
 
+                <!-- Team Collaboration Section: Comments, Mentions & Activities -->
+                <div class="mt-4 pt-3 border-top">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-chat-left-dots-fill text-primary"></i>
+                      <span>Collaboration & Échanges d'équipe</span>
+                    </h6>
+                    <span class="badge bg-light text-muted border extra-small">
+                      {{ (activeCard.comments || []).length }} message(s)
+                    </span>
+                  </div>
+
+                  <!-- Quick Mention helper pills -->
+                  <div v-if="teamMembers && teamMembers.length > 1" class="d-flex align-items-center gap-1 flex-wrap mb-2">
+                    <span class="extra-small text-muted me-1">Mentionner :</span>
+                    <button 
+                      v-for="tm in teamMembers" 
+                      :key="'tm-' + tm.id"
+                      type="button" 
+                      @click="insertMention(tm.name)"
+                      class="btn btn-sm btn-light border py-0 px-2 rounded-pill extra-small text-muted hover-dark"
+                      style="font-size: 11px;"
+                    >
+                      @{{ tm.name.split(' ')[0] }}
+                    </button>
+                  </div>
+
+                  <!-- Comment composer input -->
+                  <div class="card border rounded-3 p-2 bg-light mb-3">
+                    <textarea 
+                      v-model="newCommentText" 
+                      class="form-control border-0 bg-transparent small" 
+                      rows="2" 
+                      placeholder="Écrire un commentaire, tagger un collaborateur avec @Nom..."
+                      @keydown.enter.ctrl="submitCardComment"
+                    ></textarea>
+                    <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1">
+                      <small class="text-muted extra-small">Astuce: Ctrl + Entrée pour envoyer</small>
+                      <button 
+                        @click="submitCardComment" 
+                        :disabled="!newCommentText.trim() || isSubmittingComment" 
+                        class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-xs d-flex align-items-center gap-1"
+                      >
+                        <i class="bi bi-send-fill" style="font-size: 11px;"></i>
+                        <span>{{ isSubmittingComment ? 'Envoi...' : 'Commenter' }}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Comments Stream -->
+                  <div v-if="activeCardComments.length" class="d-flex flex-column gap-2 mb-3" style="max-height: 240px; overflow-y: auto;">
+                    <div 
+                      v-for="comm in activeCardComments" 
+                      :key="comm.id" 
+                      class="d-flex align-items-start gap-2 p-2 rounded-3 bg-white border shadow-2xs"
+                    >
+                      <img 
+                        v-if="comm.user?.avatar" 
+                        :src="'/' + comm.user.avatar" 
+                        class="rounded-circle border flex-shrink-0" 
+                        style="width: 32px; height: 32px; object-fit: cover;" 
+                        :alt="comm.user?.name"
+                      />
+                      <div 
+                        v-else 
+                        class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0"
+                        style="width: 32px; height: 32px; font-size: 11px;"
+                      >
+                        {{ (comm.user?.name || 'U').substring(0, 2).toUpperCase() }}
+                      </div>
+                      <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex align-items-center justify-content-between">
+                          <strong class="small text-dark">{{ comm.user?.name || 'Collaborateur' }}</strong>
+                          <span class="extra-small text-muted">{{ formatTimeAgo(comm.created_at) }}</span>
+                        </div>
+                        <p class="small text-dark mb-0 mt-1" style="white-space: pre-wrap;">{{ comm.comment }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else class="text-center py-2 text-muted extra-small">
+                    Aucun échange sur cette tâche pour l'instant. Lancez la discussion !
+                  </div>
+
+                  <!-- Activities Log for this card -->
+                  <div v-if="activeCardActivities.length" class="mt-3 pt-2 border-top">
+                    <small class="text-muted fw-bold extra-small text-uppercase d-block mb-1">Historique d'activité</small>
+                    <div class="d-flex flex-column gap-1">
+                      <div v-for="act in activeCardActivities.slice(0, 4)" :key="act.id" class="extra-small text-muted d-flex align-items-center gap-2">
+                        <i class="bi bi-clock-history text-secondary"></i>
+                        <span>{{ act.description }} &bull; {{ formatTimeAgo(act.created_at) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               <!-- Right Column: Settings & Meta -->
@@ -517,6 +638,66 @@
                     <button @click="addLabel" class="btn btn-outline-secondary" type="button">
                       +
                     </button>
+                  </div>
+                </div>
+
+                <!-- Dropzone Pièce Jointe (Images Uniquement) -->
+                <div class="mb-4">
+                  <div class="d-flex align-items-center justify-content-between mb-1">
+                    <label class="form-label small fw-bold text-dark mb-0">
+                      <i class="bi bi-image text-primary me-1"></i>Pièces jointes (Images)
+                    </label>
+                    <span v-if="activeCardAttachments.length" class="badge bg-light text-muted border extra-small">
+                      {{ activeCardAttachments.length }} image(s)
+                    </span>
+                  </div>
+
+                  <!-- Dropzone upload box -->
+                  <div 
+                    v-if="canEdit" 
+                    class="kanban-dropzone p-3 rounded-3 text-center border-2 border-dashed cursor-pointer mb-2 transition"
+                    :class="{ 'border-primary bg-primary-subtle bg-opacity-10': isDraggingFile }"
+                    @click="triggerImageFileInput"
+                    @dragover.prevent="isDraggingFile = true"
+                    @dragleave.prevent="isDraggingFile = false"
+                    @drop.prevent="onDropzoneFileDrop"
+                  >
+                    <input 
+                      type="file" 
+                      ref="cardImageFileInput" 
+                      @change="onCardImageFileSelect" 
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" 
+                      class="d-none"
+                    />
+                    <div v-if="isUploadingAttachment" class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <div v-else>
+                      <i class="bi bi-cloud-arrow-up fs-4 text-primary d-block mb-1"></i>
+                      <span class="small fw-semibold text-dark d-block">Glissez une image ou cliquez</span>
+                      <small class="text-muted extra-small" style="font-size: 10px;">JPG, PNG, WEBP, GIF (Max 10 Mo)</small>
+                    </div>
+                  </div>
+
+                  <!-- Attachments preview strip -->
+                  <div v-if="activeCardAttachments.length" class="d-flex flex-column gap-2 mt-2">
+                    <div 
+                      v-for="att in activeCardAttachments" 
+                      :key="att.id"
+                      class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-light border gap-2"
+                    >
+                      <a :href="'/' + att.url" target="_blank" class="d-flex align-items-center gap-2 text-decoration-none text-dark flex-grow-1 min-w-0" :title="'Aperçu plein écran de ' + att.name">
+                        <img :src="'/' + att.url" class="rounded object-fit-cover border" style="width: 38px; height: 38px;" :alt="att.name">
+                        <div class="text-truncate">
+                          <strong class="small d-block text-truncate mb-0">{{ att.name }}</strong>
+                          <span class="extra-small text-muted">{{ formatFileSize(att.size) }} &bull; {{ att.uploader_name }}</span>
+                        </div>
+                      </a>
+                      <button v-if="canEdit" @click.stop="deleteAttachment(att.id)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer l'image">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div v-else-if="!canEdit" class="extra-small text-muted">
+                    Aucune image jointe.
                   </div>
                 </div>
 
@@ -662,11 +843,102 @@
       </div>
     </div>
 
+    <!-- 4. Manage Team / Contributors Modal -->
+    <div v-if="showTeamModal" class="modal-backdrop fade show" style="background: rgba(15, 23, 42, 0.65); z-index: 1050;"></div>
+    <div v-if="showTeamModal" class="modal fade show d-block" style="z-index: 1055;" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+          <div class="modal-header border-0 pb-0">
+            <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2">
+              <i class="bi bi-people-fill text-primary"></i>
+              <span>Équipe &amp; Contributeurs du tableau</span>
+            </h5>
+            <button type="button" class="btn-close" @click="showTeamModal = false"></button>
+          </div>
+          <div class="modal-body p-4">
+            <!-- Add Member Form -->
+            <div class="card p-3 rounded-3 bg-light border mb-4">
+              <label class="form-label small fw-bold text-dark mb-1">Inviter un nouveau contributeur</label>
+              <div class="d-flex gap-2">
+                <select v-model="selectedNewMemberId" class="form-select form-select-sm bg-white">
+                  <option :value="null">Sélectionner un membre du site...</option>
+                  <option 
+                    v-for="u in eligibleNewMembers" 
+                    :key="u.id" 
+                    :value="u.id"
+                  >
+                    {{ u.name }} ({{ u.email }})
+                  </option>
+                </select>
+                <button 
+                  @click="addTeamMember" 
+                  :disabled="!selectedNewMemberId || isAddingMember" 
+                  class="btn btn-sm btn-primary rounded-pill px-3 fw-bold flex-shrink-0"
+                >
+                  {{ isAddingMember ? 'Ajout...' : 'Ajouter' }}
+                </button>
+              </div>
+              <small class="text-muted extra-small mt-1">Le membre pourra collaborer et être assigné aux tâches de ce tableau.</small>
+            </div>
+
+            <!-- Current Members List -->
+            <h6 class="small fw-bold text-dark mb-2">Membres du tableau :</h6>
+            <div class="d-flex flex-column gap-2" style="max-height: 260px; overflow-y: auto;">
+              <!-- Board Owner -->
+              <div class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-white border">
+                <div class="d-flex align-items-center gap-2">
+                  <img v-if="board.user?.avatar" :src="'/' + board.user.avatar" class="rounded-circle border" style="width: 32px; height: 32px; object-fit: cover;">
+                  <div v-else class="rounded-circle bg-dark text-white fw-bold d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 11px;">
+                    {{ (board.user?.name || 'P').substring(0, 2).toUpperCase() }}
+                  </div>
+                  <div>
+                    <strong class="small d-block text-dark">{{ board.user?.name }}</strong>
+                    <span class="badge bg-dark rounded-pill extra-small">Propriétaire</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Other Members -->
+              <div 
+                v-for="m in (board.members || [])" 
+                :key="m.id" 
+                class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-white border"
+              >
+                <div class="d-flex align-items-center gap-2">
+                  <img v-if="m.user?.avatar" :src="'/' + m.user.avatar" class="rounded-circle border" style="width: 32px; height: 32px; object-fit: cover;">
+                  <div v-else class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 11px;">
+                    {{ (m.user?.name || 'M').substring(0, 2).toUpperCase() }}
+                  </div>
+                  <div>
+                    <strong class="small d-block text-dark">{{ m.user?.name }}</strong>
+                    <span class="badge bg-secondary-subtle text-secondary rounded-pill extra-small">Contributeur</span>
+                  </div>
+                </div>
+                <button 
+                  v-if="canEdit" 
+                  @click="removeTeamMember(m.user_id)" 
+                  class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0 extra-small"
+                  title="Retirer ce membre du tableau"
+                >
+                  <i class="bi bi-person-x me-1"></i>Retirer
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 bg-light py-2">
+            <button type="button" class="btn btn-sm btn-light rounded-pill px-3" @click="showTeamModal = false">
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </FrontLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 
@@ -674,6 +946,7 @@ const props = defineProps({
   board: { type: Object, required: true },
   canEdit: { type: Boolean, default: false },
   teamMembers: { type: Array, default: () => [] },
+  registeredUsers: { type: Array, default: () => [] },
 })
 
 const searchFilter = ref('')
@@ -930,6 +1203,181 @@ function publishCardToDevlog() {
   }).finally(() => {
     isPublishingDevlog.value = false
   })
+}
+
+// Team management
+const showTeamModal = ref(false)
+const selectedNewMemberId = ref(null)
+const isAddingMember = ref(false)
+
+const eligibleNewMembers = computed(() => {
+  const existingIds = [props.board.user_id, ...(props.board.members || []).map(m => m.user_id)]
+  return (props.registeredUsers || []).filter(u => !existingIds.includes(u.id))
+})
+
+function addTeamMember() {
+  if (!selectedNewMemberId.value || isAddingMember.value) return
+  isAddingMember.value = true
+
+  router.post(`/espace-utilisateur/kanban/boards/${props.board.id}/members`, {
+    user_id: selectedNewMemberId.value
+  }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      selectedNewMemberId.value = null
+      isAddingMember.value = false
+    },
+    onError: () => {
+      isAddingMember.value = false
+    }
+  })
+}
+
+function removeTeamMember(userId) {
+  if (!confirm("Retirer ce contributeur du tableau ?")) return
+  router.delete(`/espace-utilisateur/kanban/boards/${props.board.id}/members/${userId}`, {
+    preserveScroll: true
+  })
+}
+
+// Card Image Attachments Dropzone
+const cardImageFileInput = ref(null)
+const isDraggingFile = ref(false)
+const isUploadingAttachment = ref(false)
+const activeCardAttachments = computed(() => activeCard.value?.attachments || [])
+
+function triggerImageFileInput() {
+  if (cardImageFileInput.value) cardImageFileInput.value.click()
+}
+
+function onCardImageFileSelect(e) {
+  if (e.target.files && e.target.files.length > 0) {
+    uploadAttachmentFile(e.target.files[0])
+  }
+}
+
+function onDropzoneFileDrop(e) {
+  isDraggingFile.value = false
+  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    const file = e.dataTransfer.files[0]
+    if (file.type.startsWith('image/')) {
+      uploadAttachmentFile(file)
+    } else {
+      alert("Seuls les fichiers images (JPG, PNG, WEBP, GIF) sont autorisés !")
+    }
+  }
+}
+
+function uploadAttachmentFile(file) {
+  if (!activeCard.value || isUploadingAttachment.value) return
+  isUploadingAttachment.value = true
+
+  const formData = new FormData()
+  formData.append('image', file)
+
+  fetch(`/espace-utilisateur/kanban/cards/${activeCard.value.id}/attachments`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: formData
+  }).then(r => r.json()).then(data => {
+    if (data && data.success) {
+      if (!Array.isArray(activeCard.value.attachments)) {
+        activeCard.value.attachments = []
+      }
+      activeCard.value.attachments = data.attachments
+    } else {
+      alert("Erreur lors de l'envoi de l'image.")
+    }
+  }).catch(err => {
+    console.error('Upload attachment error:', err)
+  }).finally(() => {
+    isUploadingAttachment.value = false
+    if (cardImageFileInput.value) cardImageFileInput.value.value = ''
+  })
+}
+
+function deleteAttachment(attId) {
+  if (!confirm("Supprimer cette image de la tâche ?")) return
+
+  fetch(`/espace-utilisateur/kanban/cards/${activeCard.value.id}/attachments/${attId}`, {
+    method: 'DELETE',
+    headers: {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    }
+  }).then(r => r.json()).then(data => {
+    if (data && data.success) {
+      activeCard.value.attachments = data.attachments
+    }
+  }).catch(err => {
+    console.error('Delete attachment error:', err)
+  })
+}
+
+// Card Comments & Mentions
+const newCommentText = ref('')
+const isSubmittingComment = ref(false)
+const activeCardComments = computed(() => activeCard.value?.comments || [])
+const activeCardActivities = computed(() => activeCard.value?.activities || [])
+
+function insertMention(name) {
+  const firstName = name.split(' ')[0]
+  newCommentText.value += `@${firstName} `
+}
+
+function submitCardComment() {
+  if (!newCommentText.value.trim() || !activeCard.value || isSubmittingComment.value) return
+  isSubmittingComment.value = true
+
+  fetch(`/espace-utilisateur/kanban/cards/${activeCard.value.id}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: JSON.stringify({
+      comment: newCommentText.value.trim()
+    })
+  }).then(r => r.json()).then(data => {
+    if (data && data.success) {
+      if (!Array.isArray(activeCard.value.comments)) {
+        activeCard.value.comments = []
+      }
+      activeCard.value.comments.push(data.comment)
+      newCommentText.value = ''
+    }
+  }).catch(err => {
+    console.error('Comment error:', err)
+  }).finally(() => {
+    isSubmittingComment.value = false
+  })
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '0 Ko'
+  const k = 1024
+  if (bytes < k) return bytes + ' o'
+  if (bytes < k * k) return Math.round(bytes / k) + ' Ko'
+  return (bytes / (k * k)).toFixed(1) + ' Mo'
+}
+
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'À l\'instant'
+  if (mins < 60) return `${mins}m`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
+  return `${days}j`
 }
 
 // Column Management
