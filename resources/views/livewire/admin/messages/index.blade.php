@@ -266,7 +266,12 @@
 
                                 <div class="flex-grow-1 text-truncate text-start">
                                     <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <strong class="text-dark small text-truncate">{{ $t->name }}</strong>
+                                        <div class="d-flex align-items-center gap-1 text-truncate">
+                                            <strong class="text-dark small text-truncate">{{ $t->name }}</strong>
+                                            @if(($t->support_count ?? 0) > 0)
+                                                <span class="badge bg-danger text-white rounded-pill extra-small" style="font-size: 9px;"><i class="bi bi-headset"></i> Support</span>
+                                            @endif
+                                        </div>
                                         <small class="text-muted extra-small">
                                             {{ $latestMsg?->created_at ? $latestMsg->created_at->format('d/m H:i') : '' }}
                                         </small>
@@ -331,7 +336,12 @@
                                         style="max-width: 80%; background-color: {{ $isAdminMsg ? '#0B2559' : '#FFFFFF' }}; color: {{ $isAdminMsg ? '#FFFFFF' : '#1F2937' }}; border: {{ $isAdminMsg ? 'none' : '1px solid #E5E7EB' }};"
                                     >
                                         <div class="d-flex align-items-center justify-content-between gap-3 mb-1 border-bottom pb-1" style="border-color: {{ $isAdminMsg ? 'rgba(255,255,255,0.2)' : '#E5E7EB' }}; font-size: 11px;">
-                                            <strong>{{ $isAdminMsg ? 'Équipe Tech237 (Admin)' : $activeUser->name }}</strong>
+                                            <div>
+                                                <strong>{{ $isAdminMsg ? 'Équipe Tech237 (Admin)' : $activeUser->name }}</strong>
+                                                @if($m->is_support && !$isAdminMsg)
+                                                    <span class="badge bg-warning text-dark rounded-pill ms-1" style="font-size: 9px;"><i class="bi bi-headset"></i> Support</span>
+                                                @endif
+                                            </div>
                                             <div class="d-flex align-items-center gap-1 opacity-75">
                                                 <span>{{ $m->created_at->format('d/m/Y H:i') }}</span>
                                                 <button wire:click="deleteMessage({{ $m->id }})" wire:confirm="Supprimer ce message ?" class="btn btn-link btn-sm p-0 ms-1 text-danger" title="Supprimer">

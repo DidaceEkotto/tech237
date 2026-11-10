@@ -93,6 +93,16 @@
                 <span>Équipe ({{ (board.members || []).length + 1 }})</span>
               </button>
 
+              <!-- Archives Button -->
+              <button 
+                @click="showArchivesModal = true" 
+                class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-bold text-dark d-flex align-items-center gap-2 shadow-2xs"
+                title="Consulter les tâches archivées"
+              >
+                <i class="bi bi-archive-fill text-warning"></i>
+                <span>Archives ({{ localArchivedCards.length }})</span>
+              </button>
+
               <!-- Add Column Button -->
               <button 
                 v-if="canEdit" 
@@ -334,6 +344,7 @@
                 v-if="canEdit"
                 type="text" 
                 v-model="editCardForm.title" 
+                :disabled="isCardLocked"
                 class="form-control form-control-lg fw-bold border-0 bg-transparent p-0 fs-5 text-dark"
                 placeholder="Titre de la tâche..."
               />
@@ -343,7 +354,7 @@
             <!-- Header Action: Always visible save button without scrolling -->
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
               <button 
-                v-if="canEdit" 
+                v-if="canEdit && !isCardLocked" 
                 type="button" 
                 class="btn btn-sm btn-success rounded-pill px-3 py-1 fw-bold d-flex align-items-center gap-1 shadow-sm text-nowrap" 
                 @click="saveCardChanges" 
@@ -357,6 +368,33 @@
           </div>
 
           <div class="modal-body p-4">
+
+            <!-- Completed & Locked Task Banner -->
+            <div v-if="isCardLocked" class="alert alert-success d-flex align-items-center justify-content-between p-3 rounded-4 mb-4 border-0 shadow-2xs flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-success text-white p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                  <i class="bi bi-lock-fill fs-5"></i>
+                </div>
+                <div>
+                  <strong class="small d-block text-success fw-bold">Tâche terminée &amp; verrouillée</strong>
+                  <span class="extra-small text-muted">Cette tâche est finalisée. Les champs de saisie sont protégés en lecture seule.</span>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <button v-if="canEdit" type="button" @click="toggleCardCompletion" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold extra-small">
+                  <i class="bi bi-unlock me-1"></i>Rouvrir la tâche
+                </button>
+                <button v-if="canEdit && !activeCard.is_archived" type="button" @click="archiveActiveCard" class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold extra-small shadow-2xs">
+                  <i class="bi bi-archive-fill me-1"></i>Archiver
+                </button>
+              </div>
+            </div>
+            <div v-else-if="canEdit" class="d-flex justify-content-end mb-3">
+              <button type="button" @click="toggleCardCompletion" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold extra-small">
+                <i class="bi bi-check2-circle me-1"></i>Marquer comme terminée
+              </button>
+            </div>
+
             <div class="row g-4">
               
               <!-- Left Column: Description & Checklist -->
@@ -371,6 +409,7 @@
                   <textarea 
                     v-if="canEdit"
                     v-model="editCardForm.description" 
+                    :disabled="isCardLocked"
                     class="form-control rounded-3" 
                     rows="4" 
                     placeholder="Détails techniques, étapes, contexte..."
@@ -410,7 +449,7 @@
                           type="checkbox" 
                           :id="'chk_' + cIdx"
                           v-model="item.done"
-                          :disabled="!canEdit"
+                          :disabled="!canEdit || isCardLocked"
                         />
                         <label 
                           class="form-check-label small cursor-pointer" 
@@ -421,14 +460,14 @@
                         </label>
                       </div>
 
-                      <button v-if="canEdit" @click="removeChecklistItem(cIdx)" class="btn btn-link btn-sm text-danger p-0">
+                      <button v-if="canEdit && !isCardLocked" @click="removeChecklistItem(cIdx)" class="btn btn-link btn-sm text-danger p-0">
                         <i class="bi bi-x"></i>
                       </button>
                     </div>
                   </div>
 
                   <!-- Add checklist item -->
-                  <div v-if="canEdit" class="d-flex align-items-center gap-2">
+                  <div v-if="canEdit && !isCardLocked" class="d-flex align-items-center gap-2">
                     <input 
                       type="text" 
                       v-model="newChecklistText" 
@@ -443,7 +482,7 @@
                 </div>
 
                 <!-- Magic Bridge: Publish to Project Devlog -->
-                <div v-if="board.project_id && canEdit" class="p-3 rounded-4 border bg-emerald-50" style="background-color: #ecfdf5; border-color: #a7f3d0 !important;">
+                <div v-if="board.project_id && canEdit" class="p-3 rounded-4 border bg-emerald-50 mb-4" style="background-color: #ecfdf5; border-color: #a7f3d0 !important;">
                   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
                     <div class="d-flex align-items-center gap-2">
                       <span class="rounded-circle p-2 bg-success text-white d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
@@ -470,65 +509,135 @@
                   </button>
                 </div>
 
-                <!-- Team Collaboration Section: Comments, Mentions & Activities -->
-                <div class="mt-4 pt-3 border-top">
+                <!-- Team Collaboration Section: Real-time Comments, Multi-Mentions & Emoji Picker -->
+                <div class="mt-4 pt-3 border-top position-relative">
                   <div class="d-flex align-items-center justify-content-between mb-3">
-                    <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                      <i class="bi bi-chat-left-dots-fill text-primary"></i>
-                      <span>Collaboration & Échanges d'équipe</span>
-                    </h6>
+                    <div class="d-flex align-items-center gap-2">
+                      <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-chat-left-dots-fill text-primary"></i>
+                        <span>Collaboration &amp; Échanges d'équipe</span>
+                      </h6>
+                      <span class="badge bg-success-subtle text-success extra-small rounded-pill px-2 py-0 d-inline-flex align-items-center gap-1">
+                        <span class="spinner-grow spinner-grow-sm text-success" style="width: 6px; height: 6px;" role="status"></span>
+                        En direct
+                      </span>
+                    </div>
                     <span class="badge bg-light text-muted border extra-small">
                       {{ (activeCard.comments || []).length }} message(s)
                     </span>
                   </div>
 
-                  <!-- Quick Mention helper pills -->
-                  <div v-if="teamMembers && teamMembers.length > 1" class="d-flex align-items-center gap-1 flex-wrap mb-2">
-                    <span class="extra-small text-muted me-1">Mentionner :</span>
-                    <button 
-                      v-for="tm in teamMembers" 
-                      :key="'tm-' + tm.id"
-                      type="button" 
-                      @click="insertMention(tm.name)"
-                      class="btn btn-sm btn-light border py-0 px-2 rounded-pill extra-small text-muted hover-dark"
-                      style="font-size: 11px;"
+                  <!-- Comment Composer Card -->
+                  <div class="card border rounded-3 p-2 bg-light mb-3 position-relative shadow-2xs">
+                    
+                    <!-- Multi @ Mentions Autocomplete Popover -->
+                    <div 
+                      v-if="showMentionDropdown && filteredMentionMembers.length" 
+                      class="mention-dropdown shadow-lg rounded-3 bg-white border position-absolute p-1"
+                      style="bottom: 100%; left: 8px; z-index: 1060; max-height: 190px; overflow-y: auto; width: 250px;"
                     >
-                      @{{ tm.name.split(' ')[0] }}
-                    </button>
-                  </div>
+                      <div class="px-2 py-1 extra-small text-muted fw-bold border-bottom">Tagger un collaborateur :</div>
+                      <button 
+                        v-for="m in filteredMentionMembers" 
+                        :key="'mention-' + m.id"
+                        type="button"
+                        @click="selectMentionMember(m)"
+                        class="dropdown-item d-flex align-items-center gap-2 py-1 px-2 rounded-2 small text-dark"
+                      >
+                        <img v-if="m.avatar" :src="m.avatar.startsWith('/') ? m.avatar : '/' + m.avatar" class="rounded-circle border" style="width: 22px; height: 22px; object-fit: cover;">
+                        <span v-else class="rounded-circle bg-primary text-white fw-bold d-flex align-items-center justify-content-center" style="width: 22px; height: 22px; font-size: 10px;">
+                          {{ (m.name || 'U').substring(0, 1).toUpperCase() }}
+                        </span>
+                        <span class="small fw-semibold text-truncate">{{ m.name }}</span>
+                      </button>
+                    </div>
 
-                  <!-- Comment composer input -->
-                  <div class="card border rounded-3 p-2 bg-light mb-3">
+                    <!-- Emoji Picker Popover -->
+                    <div 
+                      v-if="showEmojiPicker" 
+                      class="emoji-picker-box shadow-lg rounded-3 bg-white border position-absolute p-2"
+                      style="bottom: 100%; right: 8px; z-index: 1060; width: 260px;"
+                    >
+                      <div class="d-flex justify-content-between align-items-center mb-1 pb-1 border-bottom">
+                        <span class="extra-small fw-bold text-dark">Sélectionner un emoji</span>
+                        <button type="button" class="btn-close" style="font-size: 8px;" @click="showEmojiPicker = false"></button>
+                      </div>
+                      <div class="d-flex flex-wrap gap-1">
+                        <button 
+                          v-for="emo in popularEmojis" 
+                          :key="emo" 
+                          type="button"
+                          @click="insertEmoji(emo)"
+                          class="btn btn-sm btn-light border-0 p-1 fs-5 emoji-btn"
+                          :title="emo"
+                        >
+                          {{ emo }}
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Textarea -->
                     <textarea 
+                      ref="commentTextareaRef"
                       v-model="newCommentText" 
+                      @input="onCommentInput"
                       class="form-control border-0 bg-transparent small" 
                       rows="2" 
-                      placeholder="Écrire un commentaire, tagger un collaborateur avec @Nom..."
+                      placeholder="Écrire un message en direct, tapez @ pour tagger des collaborateurs..."
                       @keydown.enter.ctrl="submitCardComment"
                     ></textarea>
+
+                    <!-- Composer Toolbar -->
                     <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1">
-                      <small class="text-muted extra-small">Astuce: Ctrl + Entrée pour envoyer</small>
-                      <button 
-                        @click="submitCardComment" 
-                        :disabled="!newCommentText.trim() || isSubmittingComment" 
-                        class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-xs d-flex align-items-center gap-1"
-                      >
-                        <i class="bi bi-send-fill" style="font-size: 11px;"></i>
-                        <span>{{ isSubmittingComment ? 'Envoi...' : 'Commenter' }}</span>
-                      </button>
+                      <div class="d-flex align-items-center gap-1">
+                        <!-- Quick @ Mention Button -->
+                        <button 
+                          type="button" 
+                          @click="triggerMentionPrompt"
+                          class="btn btn-xs btn-light border rounded-pill px-2 py-0 extra-small text-muted d-flex align-items-center gap-1"
+                          title="Tagger un collaborateur (@)"
+                        >
+                          <span class="fw-bold text-primary">@</span>
+                          <span>Tagger</span>
+                        </button>
+
+                        <!-- Emoji Picker Button -->
+                        <button 
+                          type="button" 
+                          @click="showEmojiPicker = !showEmojiPicker"
+                          class="btn btn-xs btn-light border rounded-pill px-2 py-0 extra-small text-muted d-flex align-items-center gap-1"
+                          title="Insérer un emoji"
+                        >
+                          <span>😊</span>
+                          <span>Emoji</span>
+                        </button>
+                      </div>
+
+                      <div class="d-flex align-items-center gap-2">
+                        <small class="text-muted extra-small d-none d-sm-inline">Ctrl + Entrée</small>
+                        <button 
+                          @click="submitCardComment" 
+                          :disabled="!newCommentText.trim() || isSubmittingComment" 
+                          class="btn btn-sm btn-primary rounded-pill px-3 fw-bold shadow-xs d-flex align-items-center gap-1"
+                        >
+                          <i class="bi bi-send-fill" style="font-size: 11px;"></i>
+                          <span>{{ isSubmittingComment ? 'Envoi...' : 'Envoyer' }}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  <!-- Comments Stream -->
-                  <div v-if="activeCardComments.length" class="d-flex flex-column gap-2 mb-3" style="max-height: 240px; overflow-y: auto;">
+                  <!-- Comments Stream (Real-Time Live Feed) -->
+                  <div ref="commentsStreamContainer" v-if="activeCardComments.length" class="d-flex flex-column gap-2 mb-3 pe-1" style="max-height: 250px; overflow-y: auto;">
                     <div 
                       v-for="comm in activeCardComments" 
                       :key="comm.id" 
-                      class="d-flex align-items-start gap-2 p-2 rounded-3 bg-white border shadow-2xs"
+                      class="d-flex align-items-start gap-2 p-2 px-3 rounded-3 bg-white border shadow-2xs transition"
+                      :class="{ 'border-primary border-2 bg-primary-subtle bg-opacity-10': isUserMentioned(comm.comment) }"
                     >
                       <img 
                         v-if="comm.user?.avatar" 
-                        :src="'/' + comm.user.avatar" 
+                        :src="comm.user.avatar.startsWith('/') ? comm.user.avatar : '/' + comm.user.avatar" 
                         class="rounded-circle border flex-shrink-0" 
                         style="width: 32px; height: 32px; object-fit: cover;" 
                         :alt="comm.user?.name"
@@ -541,11 +650,16 @@
                         {{ (comm.user?.name || 'U').substring(0, 2).toUpperCase() }}
                       </div>
                       <div class="flex-grow-1 min-w-0">
-                        <div class="d-flex align-items-center justify-content-between">
-                          <strong class="small text-dark">{{ comm.user?.name || 'Collaborateur' }}</strong>
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                          <div class="d-flex align-items-center gap-2">
+                            <strong class="small text-dark">{{ comm.user?.name || 'Collaborateur' }}</strong>
+                            <span v-if="isUserMentioned(comm.comment)" class="badge bg-primary text-white extra-small py-0 px-2 rounded-pill">
+                              Vous êtes mentionné(e) 🔔
+                            </span>
+                          </div>
                           <span class="extra-small text-muted">{{ formatTimeAgo(comm.created_at) }}</span>
                         </div>
-                        <p class="small text-dark mb-0 mt-1" style="white-space: pre-wrap;">{{ comm.comment }}</p>
+                        <div class="small text-dark mb-0 comment-body-text" v-html="renderCommentWithMentions(comm.comment)"></div>
                       </div>
                     </div>
                   </div>
@@ -567,13 +681,13 @@
 
               </div>
 
-              <!-- Right Column: Settings & Meta -->
+              <!-- Right Column: Settings, Metadata & Dropzone -->
               <div class="col-lg-4 border-start">
                 
                 <!-- Priority Selector -->
                 <div class="mb-3">
                   <label class="form-label small fw-bold text-dark mb-1">Priorité</label>
-                  <select v-if="canEdit" v-model="editCardForm.priority" class="form-select form-select-sm rounded-3">
+                  <select v-if="canEdit && !isCardLocked" v-model="editCardForm.priority" class="form-select form-select-sm rounded-3">
                     <option value="low">⚪ Faible</option>
                     <option value="medium">🔵 Moyenne</option>
                     <option value="high">🟠 Haute</option>
@@ -587,7 +701,7 @@
                 <!-- Assignee -->
                 <div class="mb-3">
                   <label class="form-label small fw-bold text-dark mb-1">Responsable assigné</label>
-                  <select v-if="canEdit" v-model="editCardForm.assigned_to" class="form-select form-select-sm rounded-3">
+                  <select v-if="canEdit && !isCardLocked" v-model="editCardForm.assigned_to" class="form-select form-select-sm rounded-3">
                     <option :value="null">-- Non assigné --</option>
                     <option v-for="member in teamMembers" :key="member.id" :value="member.id">
                       {{ member.name }}
@@ -603,7 +717,7 @@
                 <div class="mb-3">
                   <label class="form-label small fw-bold text-dark mb-1">Date d'échéance</label>
                   <input 
-                    v-if="canEdit"
+                    v-if="canEdit && !isCardLocked"
                     type="date" 
                     v-model="editCardForm.due_date" 
                     class="form-control form-control-sm rounded-3" 
@@ -623,11 +737,11 @@
                       class="badge bg-secondary-subtle text-dark border rounded-pill px-2 py-1 extra-small d-inline-flex align-items-center gap-1"
                     >
                       <span>{{ lbl }}</span>
-                      <i v-if="canEdit" @click="removeLabel(lIdx)" class="bi bi-x cursor-pointer"></i>
+                      <i v-if="canEdit && !isCardLocked" @click="removeLabel(lIdx)" class="bi bi-x cursor-pointer"></i>
                     </span>
                   </div>
 
-                  <div v-if="canEdit" class="input-group input-group-sm">
+                  <div v-if="canEdit && !isCardLocked" class="input-group input-group-sm">
                     <input 
                       type="text" 
                       v-model="newLabelText" 
@@ -641,7 +755,7 @@
                   </div>
                 </div>
 
-                <!-- Dropzone Pièce Jointe (Images Uniquement) -->
+                <!-- Dropzone Pièce Jointe (Images Uniquement, encadré par des pointillés clairs) -->
                 <div class="mb-4">
                   <div class="d-flex align-items-center justify-content-between mb-1">
                     <label class="form-label small fw-bold text-dark mb-0">
@@ -652,11 +766,11 @@
                     </span>
                   </div>
 
-                  <!-- Dropzone upload box -->
+                  <!-- Dropzone upload box with prominent dashed borders -->
                   <div 
-                    v-if="canEdit" 
-                    class="kanban-dropzone p-3 rounded-3 text-center border-2 border-dashed cursor-pointer mb-2 transition"
-                    :class="{ 'border-primary bg-primary-subtle bg-opacity-10': isDraggingFile }"
+                    v-if="canEdit && !isCardLocked" 
+                    class="kanban-dropzone p-3 rounded-3 text-center cursor-pointer mb-2 transition"
+                    :class="{ 'is-dragging': isDraggingFile }"
                     @click="triggerImageFileInput"
                     @dragover.prevent="isDraggingFile = true"
                     @dragleave.prevent="isDraggingFile = false"
@@ -669,11 +783,14 @@
                       accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" 
                       class="d-none"
                     />
-                    <div v-if="isUploadingAttachment" class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <div v-if="isUploadingAttachment" class="py-2 d-flex flex-column align-items-center">
+                      <div class="spinner-border spinner-border-sm text-primary mb-1" role="status"></div>
+                      <span class="extra-small text-muted">Envoi de l'image en cours...</span>
+                    </div>
                     <div v-else>
                       <i class="bi bi-cloud-arrow-up fs-4 text-primary d-block mb-1"></i>
                       <span class="small fw-semibold text-dark d-block">Glissez une image ou cliquez</span>
-                      <small class="text-muted extra-small" style="font-size: 10px;">JPG, PNG, WEBP, GIF (Max 10 Mo)</small>
+                      <small class="text-muted extra-small" style="font-size: 10px;">Formats autorisés : JPG, PNG, WEBP, GIF (Max 10 Mo)</small>
                     </div>
                   </div>
 
@@ -684,27 +801,40 @@
                       :key="att.id"
                       class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-light border gap-2"
                     >
-                      <a :href="'/' + att.url" target="_blank" class="d-flex align-items-center gap-2 text-decoration-none text-dark flex-grow-1 min-w-0" :title="'Aperçu plein écran de ' + att.name">
-                        <img :src="'/' + att.url" class="rounded object-fit-cover border" style="width: 38px; height: 38px;" :alt="att.name">
+                      <a :href="att.url.startsWith('/') ? att.url : '/' + att.url" target="_blank" class="d-flex align-items-center gap-2 text-decoration-none text-dark flex-grow-1 min-w-0" :title="'Aperçu plein écran de ' + att.name">
+                        <img :src="att.url.startsWith('/') ? att.url : '/' + att.url" class="rounded object-fit-cover border" style="width: 38px; height: 38px;" :alt="att.name">
                         <div class="text-truncate">
                           <strong class="small d-block text-truncate mb-0">{{ att.name }}</strong>
                           <span class="extra-small text-muted">{{ formatFileSize(att.size) }} &bull; {{ att.uploader_name }}</span>
                         </div>
                       </a>
-                      <button v-if="canEdit" @click.stop="deleteAttachment(att.id)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer l'image">
+                      <button v-if="canEdit && !isCardLocked" @click.stop="deleteAttachment(att.id)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer l'image">
                         <i class="bi bi-trash"></i>
                       </button>
                     </div>
                   </div>
-                  <div v-else-if="!canEdit" class="extra-small text-muted">
+                  <div v-else-if="!canEdit || isCardLocked" class="extra-small text-muted">
                     Aucune image jointe.
                   </div>
                 </div>
 
-                <!-- Delete card button -->
-                <div v-if="canEdit" class="pt-3 border-top">
-                  <button @click="deleteActiveCard" class="btn btn-sm btn-outline-danger w-100 rounded-pill">
-                    <i class="bi bi-trash me-1"></i> Supprimer cette carte
+                <!-- Archive / Delete Actions -->
+                <div v-if="canEdit" class="pt-3 border-top d-flex flex-column gap-2">
+                  <button 
+                    v-if="!activeCard.is_archived" 
+                    type="button" 
+                    @click="archiveActiveCard" 
+                    class="btn btn-sm btn-outline-warning text-dark w-100 rounded-pill fw-semibold extra-small"
+                  >
+                    <i class="bi bi-archive me-1"></i> Archiver cette tâche
+                  </button>
+                  <button 
+                    v-if="!isCardLocked" 
+                    type="button" 
+                    @click="deleteActiveCard" 
+                    class="btn btn-sm btn-outline-danger w-100 rounded-pill extra-small"
+                  >
+                    <i class="bi bi-trash me-1"></i> Supprimer définitivement
                   </button>
                 </div>
 
@@ -723,7 +853,7 @@
               <button type="button" class="btn btn-sm btn-light rounded-pill px-3" @click="closeCardModal">
                 Fermer
               </button>
-              <button v-if="canEdit" type="button" class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm" @click="saveCardChanges" :disabled="isSavingCard">
+              <button v-if="canEdit && !isCardLocked" type="button" class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm" @click="saveCardChanges" :disabled="isSavingCard">
                 {{ isSavingCard ? 'Enregistrement...' : 'Enregistrer' }}
               </button>
             </div>
@@ -934,23 +1064,157 @@
       </div>
     </div>
 
+    <!-- 5. Archives Modal -->
+    <div v-if="showArchivesModal" class="modal-backdrop fade show" style="background: rgba(15, 23, 42, 0.65); z-index: 1050;"></div>
+    <div v-if="showArchivesModal" class="modal fade show d-block" style="z-index: 1055;" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+          <div class="modal-header border-bottom py-3 px-4 bg-light d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-archive-fill text-warning fs-5"></i>
+              <h5 class="modal-title fw-bold text-dark mb-0">Tâches archivées</h5>
+              <span class="badge bg-secondary rounded-pill extra-small">{{ localArchivedCards.length }}</span>
+            </div>
+            <button type="button" class="btn-close" @click="showArchivesModal = false"></button>
+          </div>
+
+          <div class="modal-body p-4">
+            <p class="text-muted small mb-3">
+              Consultez l'historique complet des tâches terminées et archivées. Vous pouvez les réouvrir ou les restaurer directement dans votre tableau Kanban.
+            </p>
+
+            <!-- Search inside archives -->
+            <div class="mb-3">
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+                <input 
+                  type="text" 
+                  v-model="archiveSearchQuery" 
+                  class="form-control border-start-0" 
+                  placeholder="Rechercher une tâche archivée..."
+                />
+              </div>
+            </div>
+
+            <!-- List of archived cards -->
+            <div v-if="filteredArchivedCards.length" class="d-flex flex-column gap-3" style="max-height: 400px; overflow-y: auto;">
+              <div 
+                v-for="card in filteredArchivedCards" 
+                :key="card.id"
+                class="card border rounded-3 p-3 bg-white shadow-2xs d-flex flex-column gap-2"
+              >
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-check-circle-fill text-success fs-6"></i>
+                      <span>{{ card.title }}</span>
+                    </h6>
+                    <span class="extra-small text-muted">
+                      Archivée le {{ formatDateShort(card.archived_at || card.updated_at) }}
+                      <span v-if="card.column"> &bull; Colonne : <strong>{{ card.column.title }}</strong></span>
+                    </span>
+                  </div>
+
+                  <span class="badge rounded-pill extra-small px-2 py-1" :class="getPriorityClass(card.priority)">
+                    {{ getPriorityLabel(card.priority) }}
+                  </span>
+                </div>
+
+                <p v-if="card.description" class="small text-muted mb-0 text-truncate" style="max-height: 40px;">
+                  {{ card.description }}
+                </p>
+
+                <!-- Metadata pills & Action buttons -->
+                <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1 flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-2 extra-small text-muted">
+                    <span v-if="card.attachments && card.attachments.length">
+                      <i class="bi bi-paperclip me-1"></i>{{ card.attachments.length }} pièce(s)
+                    </span>
+                    <span v-if="card.comments && card.comments.length">
+                      <i class="bi bi-chat-text me-1"></i>{{ card.comments.length }} commentaire(s)
+                    </span>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2">
+                    <button 
+                      type="button" 
+                      @click="inspectArchivedCard(card)" 
+                      class="btn btn-xs btn-outline-secondary rounded-pill px-3 py-1 extra-small fw-semibold"
+                    >
+                      <i class="bi bi-eye me-1"></i>Consulter
+                    </button>
+                    <button 
+                      v-if="canEdit" 
+                      type="button" 
+                      @click="unarchiveCardAction(card)" 
+                      class="btn btn-xs btn-success rounded-pill px-3 py-1 extra-small fw-bold shadow-2xs"
+                      :disabled="isUnarchivingCard"
+                    >
+                      <i class="bi bi-arrow-counterclockwise me-1"></i>Désarchiver
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else class="text-center py-5 text-muted">
+              <i class="bi bi-archive fs-1 d-block mb-2 text-secondary opacity-50"></i>
+              <span class="small d-block">Aucune tâche archivée pour le moment.</span>
+              <span class="extra-small text-muted">Lorsque vous terminez des tâches, vous pouvez les archiver pour garder votre tableau épuré.</span>
+            </div>
+          </div>
+
+          <div class="modal-footer border-0 bg-light py-2">
+            <button type="button" class="btn btn-sm btn-light rounded-pill px-3" @click="showArchivesModal = false">
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </FrontLayout>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Head, Link, router } from '@inertiajs/vue3'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+
+const page = usePage()
 
 const props = defineProps({
   board: { type: Object, required: true },
   canEdit: { type: Boolean, default: false },
   teamMembers: { type: Array, default: () => [] },
   registeredUsers: { type: Array, default: () => [] },
+  archivedCards: { type: Array, default: () => [] },
 })
+
+function getCsrfToken() {
+  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+}
 
 const searchFilter = ref('')
 const priorityFilter = ref('all')
+
+// Archived Cards State
+const localArchivedCards = ref([...(props.archivedCards || [])])
+const showArchivesModal = ref(false)
+const archiveSearchQuery = ref('')
+const isUnarchivingCard = ref(false)
+
+const filteredArchivedCards = computed(() => {
+  let list = localArchivedCards.value || []
+  if (archiveSearchQuery.value.trim()) {
+    const q = archiveSearchQuery.value.toLowerCase()
+    list = list.filter(c => 
+      c.title.toLowerCase().includes(q) || 
+      (c.description && c.description.toLowerCase().includes(q))
+    )
+  }
+  return list
+})
 
 // Drag & Drop State
 const draggedCard = ref(null)
@@ -987,6 +1251,10 @@ function onDropOnColumn(event, targetColumn) {
     if (idx !== -1) {
       originColumn.cards.splice(idx, 1)
       card.column_id = targetColumn.id
+      // If moving to done column, automatically complete
+      if (targetColumn.is_done_column) {
+        card.is_completed = true
+      }
       targetColumn.cards.push(card)
     }
   }
@@ -998,7 +1266,7 @@ function onDropOnColumn(event, targetColumn) {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-CSRF-TOKEN': getCsrfToken(),
     },
     body: JSON.stringify({
       column_id: targetColumn.id,
@@ -1037,7 +1305,7 @@ function submitQuickCard(column) {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-CSRF-TOKEN': getCsrfToken(),
     },
     body: JSON.stringify({
       title: quickCardTitle.value.trim(),
@@ -1056,6 +1324,10 @@ function submitQuickCard(column) {
 
 // Card Detail Modal State
 const activeCard = ref(null)
+const isCardLocked = computed(() => {
+  return Boolean(activeCard.value && activeCard.value.is_completed)
+})
+
 const editCardForm = ref({
   title: '',
   description: '',
@@ -1070,6 +1342,8 @@ const newLabelText = ref('')
 const isSavingCard = ref(false)
 const isPublishingDevlog = ref(false)
 
+let commentsPollingTimer = null
+
 function openCardModal(card) {
   activeCard.value = card
   editCardForm.value = {
@@ -1081,10 +1355,108 @@ function openCardModal(card) {
     labels: Array.isArray(card.labels) ? [...card.labels] : [],
     checklist: Array.isArray(card.checklist) ? card.checklist.map(i => ({ ...i })) : [],
   }
+  startCommentsPolling()
 }
 
 function closeCardModal() {
+  stopCommentsPolling()
   activeCard.value = null
+  showMentionDropdown.value = false
+  showEmojiPicker.value = false
+}
+
+function toggleCardCompletion() {
+  if (!activeCard.value) return
+
+  fetch(`/espace-utilisateur/kanban/cards/${activeCard.value.id}/toggle-completion`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': getCsrfToken(),
+    }
+  }).then(r => r.json()).then(data => {
+    if (data && data.success) {
+      activeCard.value.is_completed = data.is_completed
+      // Synchronize in column
+      for (const col of props.board.columns) {
+        const found = (col.cards || []).find(c => c.id === activeCard.value.id)
+        if (found) {
+          found.is_completed = data.is_completed
+          break
+        }
+      }
+    }
+  }).catch(err => console.error('Toggle completion error:', err))
+}
+
+function archiveActiveCard() {
+  if (!activeCard.value) return
+  if (!confirm(`Archiver la tâche « ${activeCard.value.title} » ?\nElle disparaîtra du tableau mais restera consultable dans les archives.`)) return
+
+  const cardId = activeCard.value.id
+  fetch(`/espace-utilisateur/kanban/cards/${cardId}/archive`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': getCsrfToken(),
+    }
+  }).then(r => r.json()).then(data => {
+    if (data && data.success) {
+      // Remove from board columns
+      for (const col of props.board.columns) {
+        const idx = (col.cards || []).findIndex(c => c.id === cardId)
+        if (idx !== -1) {
+          col.cards.splice(idx, 1)
+          break
+        }
+      }
+      // Add to local archives
+      if (data.card) {
+        localArchivedCards.value.unshift(data.card)
+      }
+      closeCardModal()
+    }
+  }).catch(err => console.error('Archive error:', err))
+}
+
+function unarchiveCardAction(card) {
+  if (!card || isUnarchivingCard.value) return
+  isUnarchivingCard.value = true
+
+  fetch(`/espace-utilisateur/kanban/cards/${card.id}/unarchive`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': getCsrfToken(),
+    }
+  }).then(r => r.json()).then(data => {
+    if (data && data.success) {
+      // Remove from local archives
+      const aIdx = localArchivedCards.value.findIndex(c => c.id === card.id)
+      if (aIdx !== -1) {
+        localArchivedCards.value.splice(aIdx, 1)
+      }
+      // Add back to target column
+      const targetCol = props.board.columns.find(col => col.id === card.column_id) || props.board.columns[0]
+      if (targetCol && data.card) {
+        targetCol.cards.push(data.card)
+      }
+      if (activeCard.value && activeCard.value.id === card.id) {
+        activeCard.value.is_archived = false
+      }
+    }
+  }).catch(err => console.error('Unarchive error:', err))
+  .finally(() => {
+    isUnarchivingCard.value = false
+  })
+}
+
+function inspectArchivedCard(card) {
+  showArchivesModal.value = false
+  openCardModal(card)
 }
 
 function addChecklistItem() {
@@ -1136,12 +1508,20 @@ function saveCardChanges() {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-CSRF-TOKEN': getCsrfToken(),
     },
     body: JSON.stringify(editCardForm.value)
   }).then(r => r.json()).then(data => {
     if (data && data.success) {
       Object.assign(activeCard.value, data.card)
+      // Also update in columns list
+      for (const col of props.board.columns) {
+        const found = (col.cards || []).find(c => c.id === activeCard.value.id)
+        if (found) {
+          Object.assign(found, data.card)
+          break
+        }
+      }
       closeCardModal()
     }
   }).catch(err => {
@@ -1160,7 +1540,7 @@ function deleteActiveCard() {
     headers: {
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-CSRF-TOKEN': getCsrfToken(),
     }
   }).then(r => r.json()).then(data => {
     if (data && data.success) {
@@ -1186,7 +1566,7 @@ function publishCardToDevlog() {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-CSRF-TOKEN': getCsrfToken(),
     },
     body: JSON.stringify({
       title: editCardForm.value.title || activeCard.value.title,
@@ -1280,20 +1660,36 @@ function uploadAttachmentFile(file) {
     headers: {
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-CSRF-TOKEN': getCsrfToken(),
     },
     body: formData
-  }).then(r => r.json()).then(data => {
+  }).then(async r => {
+    if (!r.ok) {
+      const errData = await r.json().catch(() => ({}))
+      throw new Error(errData.message || 'Erreur lors du téléversement')
+    }
+    return r.json()
+  }).then(data => {
     if (data && data.success) {
       if (!Array.isArray(activeCard.value.attachments)) {
         activeCard.value.attachments = []
       }
       activeCard.value.attachments = data.attachments
+
+      // Also sync to board column cards
+      for (const col of props.board.columns) {
+        const found = (col.cards || []).find(c => c.id === activeCard.value.id)
+        if (found) {
+          found.attachments = data.attachments
+          break
+        }
+      }
     } else {
       alert("Erreur lors de l'envoi de l'image.")
     }
   }).catch(err => {
     console.error('Upload attachment error:', err)
+    alert(err.message || "Erreur de connexion lors du téléversement de l'image.")
   }).finally(() => {
     isUploadingAttachment.value = false
     if (cardImageFileInput.value) cardImageFileInput.value.value = ''
@@ -1308,27 +1704,188 @@ function deleteAttachment(attId) {
     headers: {
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-CSRF-TOKEN': getCsrfToken(),
     }
   }).then(r => r.json()).then(data => {
     if (data && data.success) {
       activeCard.value.attachments = data.attachments
+      for (const col of props.board.columns) {
+        const found = (col.cards || []).find(c => c.id === activeCard.value.id)
+        if (found) {
+          found.attachments = data.attachments
+          break
+        }
+      }
     }
   }).catch(err => {
     console.error('Delete attachment error:', err)
   })
 }
 
-// Card Comments & Mentions
+// Real-Time Comments, Live Stream & Multi-Mentions
 const newCommentText = ref('')
 const isSubmittingComment = ref(false)
+const commentTextareaRef = ref(null)
+const commentsStreamContainer = ref(null)
 const activeCardComments = computed(() => activeCard.value?.comments || [])
 const activeCardActivities = computed(() => activeCard.value?.activities || [])
 
-function insertMention(name) {
-  const firstName = name.split(' ')[0]
-  newCommentText.value += `@${firstName} `
+// Multi-Mentions (@) Autocomplete
+const showMentionDropdown = ref(false)
+const mentionQuery = ref('')
+
+const allMentionMembers = computed(() => {
+  const members = []
+  if (props.board.user) {
+    members.push(props.board.user)
+  }
+  if (Array.isArray(props.board.members)) {
+    props.board.members.forEach(m => {
+      if (m.user && !members.some(u => u.id === m.user.id)) {
+        members.push(m.user)
+      }
+    })
+  }
+  if (Array.isArray(props.teamMembers)) {
+    props.teamMembers.forEach(tm => {
+      if (!members.some(u => u.id === tm.id)) {
+        members.push(tm)
+      }
+    })
+  }
+  return members
+})
+
+const filteredMentionMembers = computed(() => {
+  if (!mentionQuery.value) return allMentionMembers.value
+  const q = mentionQuery.value.toLowerCase()
+  return allMentionMembers.value.filter(m => (m.name || '').toLowerCase().includes(q))
+})
+
+function onCommentInput(e) {
+  const val = newCommentText.value
+  const cursorPos = commentTextareaRef.value?.selectionStart || val.length
+  const textBeforeCursor = val.slice(0, cursorPos)
+  const lastAt = textBeforeCursor.lastIndexOf('@')
+
+  if (lastAt !== -1 && (lastAt === 0 || /\s/.test(textBeforeCursor[lastAt - 1]))) {
+    const query = textBeforeCursor.slice(lastAt + 1)
+    if (!/\s/.test(query)) {
+      mentionQuery.value = query
+      showMentionDropdown.value = true
+      return
+    }
+  }
+  showMentionDropdown.value = false
 }
+
+function triggerMentionPrompt() {
+  newCommentText.value += '@'
+  showMentionDropdown.value = true
+  nextTick(() => {
+    commentTextareaRef.value?.focus()
+  })
+}
+
+function selectMentionMember(member) {
+  const val = newCommentText.value
+  const cursorPos = commentTextareaRef.value?.selectionStart || val.length
+  const textBeforeCursor = val.slice(0, cursorPos)
+  const lastAt = textBeforeCursor.lastIndexOf('@')
+
+  const cleanName = member.name.replace(/\s+/g, '_')
+  if (lastAt !== -1) {
+    newCommentText.value = textBeforeCursor.slice(0, lastAt) + `@${cleanName} ` + val.slice(cursorPos)
+  } else {
+    newCommentText.value += `@${cleanName} `
+  }
+  showMentionDropdown.value = false
+  nextTick(() => {
+    commentTextareaRef.value?.focus()
+  })
+}
+
+function renderCommentWithMentions(text) {
+  if (!text) return ''
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
+  // Highlight @mentions in primary badge style
+  return escaped.replace(/@([a-zA-Z0-9_\u00C0-\u017F]+)/g, '<span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-0 rounded-pill fw-bold">@$1</span>')
+}
+
+function isUserMentioned(commentText) {
+  if (!commentText || !page.props.auth?.user?.name) return false
+  const myName = page.props.auth.user.name.toLowerCase()
+  const myNameClean = myName.replace(/\s+/g, '_')
+  const commentLower = commentText.toLowerCase()
+  return commentLower.includes('@' + myNameClean) || commentLower.includes('@' + myName.split(' ')[0])
+}
+
+// Emoji Picker
+const showEmojiPicker = ref(false)
+const popularEmojis = ['👍', '👏', '🚀', '🔥', '✅', '🎉', '💡', '❤️', '👀', '✨', '⚡', '💻', '🐛', '🎯', '🙌', '💯']
+
+function insertEmoji(emoji) {
+  newCommentText.value += emoji + ' '
+  showEmojiPicker.value = false
+  nextTick(() => {
+    commentTextareaRef.value?.focus()
+  })
+}
+
+// Real-Time Polling for Comments
+function fetchCardComments(cardId) {
+  if (!cardId || !activeCard.value || activeCard.value.id !== cardId) return
+
+  fetch(`/espace-utilisateur/kanban/cards/${cardId}/comments`, {
+    headers: {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    }
+  }).then(r => r.json()).then(data => {
+    if (data && data.success && Array.isArray(data.comments)) {
+      if (activeCard.value && activeCard.value.id === cardId) {
+        // If count changed or empty, update comments
+        if (data.comments.length !== (activeCard.value.comments || []).length) {
+          activeCard.value.comments = data.comments
+          nextTick(() => {
+            if (commentsStreamContainer.value) {
+              commentsStreamContainer.value.scrollTop = commentsStreamContainer.value.scrollHeight
+            }
+          })
+        }
+      }
+    }
+  }).catch(() => {})
+}
+
+function startCommentsPolling() {
+  stopCommentsPolling()
+  if (activeCard.value) {
+    fetchCardComments(activeCard.value.id)
+    commentsPollingTimer = setInterval(() => {
+      if (activeCard.value) {
+        fetchCardComments(activeCard.value.id)
+      }
+    }, 3500)
+  }
+}
+
+function stopCommentsPolling() {
+  if (commentsPollingTimer) {
+    clearInterval(commentsPollingTimer)
+    commentsPollingTimer = null
+  }
+}
+
+onUnmounted(() => {
+  stopCommentsPolling()
+})
 
 function submitCardComment() {
   if (!newCommentText.value.trim() || !activeCard.value || isSubmittingComment.value) return
@@ -1340,7 +1897,7 @@ function submitCardComment() {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'X-Requested-With': 'XMLHttpRequest',
-      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-CSRF-TOKEN': getCsrfToken(),
     },
     body: JSON.stringify({
       comment: newCommentText.value.trim()
@@ -1352,6 +1909,12 @@ function submitCardComment() {
       }
       activeCard.value.comments.push(data.comment)
       newCommentText.value = ''
+      showMentionDropdown.value = false
+      nextTick(() => {
+        if (commentsStreamContainer.value) {
+          commentsStreamContainer.value.scrollTop = commentsStreamContainer.value.scrollHeight
+        }
+      })
     }
   }).catch(err => {
     console.error('Comment error:', err)
@@ -1560,5 +2123,26 @@ function getAvatarColor(idx) {
 }
 .cursor-pointer {
   cursor: pointer;
+}
+.kanban-dropzone {
+  border: 2px dashed #94a3b8;
+  background-color: #f8fafc;
+  transition: all 0.2s ease;
+}
+.kanban-dropzone:hover, .kanban-dropzone.is-dragging {
+  border-color: #00A859 !important;
+  background-color: #f0fdf4 !important;
+}
+.comment-body-text {
+  line-height: 1.45;
+  word-break: break-word;
+}
+.emoji-btn:hover {
+  transform: scale(1.2);
+  transition: transform 0.1s ease;
+}
+.mention-dropdown-menu {
+  z-index: 1060;
+  width: 250px;
 }
 </style>

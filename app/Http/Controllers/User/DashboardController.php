@@ -832,6 +832,43 @@ class DashboardController extends Controller
         return back()->with('success', 'Message marqué comme lu.');
     }
 
+    public function markThreadRead(Request $request)
+    {
+        $user = Auth::guard('web')->user();
+        $isSupport = $request->boolean('is_support');
+        $partnerId = $request->input('partner_id') ?: $request->input('sender_id');
+
+        $query = UserMessage::where('user_id', $user->id)->where('is_read', false);
+
+        if ($isSupport) {
+            $query->where(function ($q) {
+                $q->where('is_support', true)->orWhereNotNull('admin_id');
+            });
+        } elseif ($partnerId) {
+            $query->where('sender_id', (int)$partnerId);
+        }
+
+        $updated = $query->update([
+            'is_read' => true,
+            'read_at' => now(),
+        ]);
+
+        $newUnreadCount = UserMessage::where('user_id', $user->id)->where('is_read', false)->count();
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'updated' => $updated,
+                'unreadMessagesCount' => $newUnreadCount,
+                'unread_count' => $newUnreadCount,
+            ]);
+        }
+
+        return back()->with([
+            'unreadMessagesCount' => $newUnreadCount,
+        ]);
+    }
+
     public function toggleReaction(Request $request, int $id)
     {
         $user = Auth::guard('web')->user();

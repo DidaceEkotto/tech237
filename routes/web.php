@@ -257,6 +257,7 @@ Route::middleware('auth:web')->group(function () {
     // Profile, messages and documents
     Route::post('/espace-utilisateur/profil', [UserDashboardController::class, 'updateProfile'])->name('user.profile.update');
     Route::post('/espace-utilisateur/messages/envoyer', [UserDashboardController::class, 'sendMessage'])->name('user.messages.send');
+    Route::post('/espace-utilisateur/messages/thread-read', [UserDashboardController::class, 'markThreadRead'])->name('user.messages.thread-read');
     Route::post('/espace-utilisateur/messages/{id}/read', [UserDashboardController::class, 'markMessageRead'])->name('user.messages.read');
     Route::post('/espace-utilisateur/messages/{id}/reaction', [UserDashboardController::class, 'toggleReaction'])->name('user.messages.reaction');
     Route::delete('/espace-utilisateur/messages/{id}', [UserDashboardController::class, 'deleteMessage'])->name('user.messages.delete');
@@ -289,7 +290,11 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/espace-utilisateur/kanban/boards/{boardId}/members/{userId}', [KanbanController::class, 'removeMember'])->name('user.kanban.members.delete');
     Route::post('/espace-utilisateur/kanban/cards/{cardId}/attachments', [KanbanController::class, 'uploadCardAttachment'])->name('user.kanban.cards.attachments.store');
     Route::delete('/espace-utilisateur/kanban/cards/{cardId}/attachments/{attachmentId}', [KanbanController::class, 'deleteCardAttachment'])->name('user.kanban.cards.attachments.delete');
+    Route::get('/espace-utilisateur/kanban/cards/{cardId}/comments', [KanbanController::class, 'getCardComments'])->name('user.kanban.cards.comments.index');
     Route::post('/espace-utilisateur/kanban/cards/{cardId}/comments', [KanbanController::class, 'addCardComment'])->name('user.kanban.cards.comments.store');
+    Route::post('/espace-utilisateur/kanban/cards/{cardId}/toggle-completion', [KanbanController::class, 'toggleCardCompletion'])->name('user.kanban.cards.toggle_completion');
+    Route::post('/espace-utilisateur/kanban/cards/{cardId}/archive', [KanbanController::class, 'archiveCard'])->name('user.kanban.cards.archive');
+    Route::post('/espace-utilisateur/kanban/cards/{cardId}/unarchive', [KanbanController::class, 'unarchiveCard'])->name('user.kanban.cards.unarchive');
 });
 
 // Public Project Roadmap

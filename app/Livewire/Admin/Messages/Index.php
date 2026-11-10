@@ -58,8 +58,10 @@ class Index extends Component
         $this->threadReplyText = '';
         $this->threadReplyAttachment = null;
 
-        // Mark messages in this thread as read by admin if applicable
-        UserMessage::where('user_id', $userId)
+        // Mark incoming messages in this thread as read by admin
+        UserMessage::where(function ($q) use ($userId) {
+                $q->where('user_id', $userId)->orWhere('sender_id', $userId);
+            })
             ->where(function ($q) {
                 $q->whereNull('admin_id')->orWhere('is_support', true);
             })
@@ -212,6 +214,7 @@ class Index extends Component
             'attachment_name' => $attachmentName,
             'attachment_type' => $attachmentType,
             'is_read' => false,
+            'is_support' => true,
         ]);
 
         if ($recipient->email && filter_var($recipient->email, FILTER_VALIDATE_EMAIL)) {
@@ -254,6 +257,9 @@ class Index extends Component
                     $sub->whereNull('admin_id')->orWhere('is_support', true);
                 })->where('is_read', false);
             }])
+            ->withCount(['messages as support_count' => function ($q) {
+                $q->where('is_support', true);
+            }])
             ->with(['messages' => function ($q) {
                 $q->latest()->limit(1);
             }]);
@@ -268,6 +274,9 @@ class Index extends Component
                 $q->where(function ($sub) {
                     $sub->whereNull('admin_id')->orWhere('is_support', true);
                 })->where('is_read', false);
+            }])
+            ->withCount(['messages as support_count' => function ($q) {
+                $q->where('is_support', true);
             }])
             ->with(['messages' => function ($q) {
                 $q->latest()->limit(1);
@@ -284,15 +293,12 @@ class Index extends Component
             if ($activeUser) {
                 $activeMessages = UserMessage::where(function ($q) use ($activeUser) {
                     $q->where('user_id', $activeUser->id)
-                      ->where(function ($sub) {
-                          $sub->whereNotNull('admin_id')
-                              ->orWhere('is_support', true)
-                              ->orWhereNull('sender_id');
-                      });
+                      ->orWhere('sender_id', $activeUser->id);
                 })
-                ->orWhere(function ($q) use ($activeUser) {
-                    $q->where('sender_id', $activeUser->id)
-                      ->where('is_support', true);
+                ->where(function ($q) {
+                    $q->where('is_support', true)
+                      ->orWhereNotNull('admin_id')
+                      ->orWhereNull('sender_id');
                 })
                 ->with(['user', 'sender', 'admin'])
                 ->orderBy('created_at', 'asc')

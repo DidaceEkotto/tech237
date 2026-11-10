@@ -141,7 +141,9 @@ class KanbanController extends Controller
                 $q->orderBy('order');
             },
             'columns.cards' => function ($q) {
-                $q->with([
+                $q->where(function ($sub) {
+                    $sub->whereNull('is_archived')->orWhere('is_archived', false);
+                })->with([
                     'assignee:id,name,first_name,avatar',
                     'comments.user:id,name,first_name,avatar',
                     'activities.user:id,name,first_name,avatar',
@@ -213,11 +215,23 @@ class KanbanController extends Controller
             ->take(100)
             ->get();
 
+        $archivedCards = KanbanCard::where('board_id', $board->id)
+            ->where('is_archived', true)
+            ->with([
+                'assignee:id,name,first_name,avatar',
+                'column:id,title,color',
+                'comments.user:id,name,first_name,avatar',
+                'activities.user:id,name,first_name,avatar',
+            ])
+            ->latest('archived_at')
+            ->get();
+
         return Inertia::render('User/Kanban/Show', [
             'board' => $board,
             'canEdit' => $canEdit,
             'teamMembers' => $teamMembers->values(),
             'registeredUsers' => $registeredUsers,
+            'archivedCards' => $archivedCards,
         ]);
     }
 
@@ -465,6 +479,132 @@ class KanbanController extends Controller
     }
 
     /**
+     * Fetch comments and activities for a card (for real-time instant chat without page reload)
+     */
+    public function getCardComments(Request $request, int $cardId)
+    {
+        $user = Auth::guard('web')->user();
+        $card = KanbanCard::with([
+            'board',
+            'comments.user:id,name,first_name,avatar',
+            'activities.user:id,name,first_name,avatar',
+        ])->findOrFail($cardId);
+
+        if (!$card->board->canAccess($user)) {
+            abort(403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'card_id' => $card->id,
+            'is_completed' => (bool)$card->is_completed,
+            'is_archived' => (bool)$card->is_archived,
+            'attachments' => $card->attachments ?: [],
+            'comments' => $card->comments,
+            'activities' => $card->activities()->latest()->take(25)->get(),
+        ]);
+    }
+
+    /**
+     * Toggle card completion state (lock / unlock modifications)
+     */
+    public function toggleCardCompletion(Request $request, int $cardId)
+    {
+        $user = Auth::guard('web')->user();
+        $card = KanbanCard::with('board')->findOrFail($cardId);
+
+        if (!$card->board->canEdit($user)) {
+            abort(403);
+        }
+
+        $newState = !$card->is_completed;
+        $card->update(['is_completed' => $newState]);
+
+        $actionDesc = $newState 
+            ? "{$user->name} a marqué la tâche comme terminée (verrouillée)" 
+            : "{$user->name} a rouvert la tâche (déverrouillée pour modification)";
+
+        KanbanCardActivity::create([
+            'board_id' => $card->board_id,
+            'card_id' => $card->id,
+            'user_id' => $user->id,
+            'type' => $newState ? 'card_completed' : 'card_reopened',
+            'description' => $actionDesc,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'is_completed' => $newState, 'card' => $card]);
+        }
+
+        return back()->with('success', $actionDesc);
+    }
+
+    /**
+     * Archive a card (hides from board, accessible in archives)
+     */
+    public function archiveCard(Request $request, int $cardId)
+    {
+        $user = Auth::guard('web')->user();
+        $card = KanbanCard::with(['board', 'column'])->findOrFail($cardId);
+
+        if (!$card->board->canEdit($user)) {
+            abort(403);
+        }
+
+        $card->update([
+            'is_archived' => true,
+            'is_completed' => true,
+            'archived_at' => now(),
+        ]);
+
+        KanbanCardActivity::create([
+            'board_id' => $card->board_id,
+            'card_id' => $card->id,
+            'user_id' => $user->id,
+            'type' => 'card_archived',
+            'description' => "{$user->name} a archivé la tâche « {$card->title} »",
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'card' => $card]);
+        }
+
+        return back()->with('success', "Tâche « {$card->title} » archivée avec succès.");
+    }
+
+    /**
+     * Unarchive a card (restores back to board column)
+     */
+    public function unarchiveCard(Request $request, int $cardId)
+    {
+        $user = Auth::guard('web')->user();
+        $card = KanbanCard::with(['board', 'column'])->findOrFail($cardId);
+
+        if (!$card->board->canEdit($user)) {
+            abort(403);
+        }
+
+        $card->update([
+            'is_archived' => false,
+            'archived_at' => null,
+        ]);
+
+        KanbanCardActivity::create([
+            'board_id' => $card->board_id,
+            'card_id' => $card->id,
+            'user_id' => $user->id,
+            'type' => 'card_unarchived',
+            'description' => "{$user->name} a désarchivé la tâche « {$card->title} »",
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'card' => $card]);
+        }
+
+        return back()->with('success', "Tâche « {$card->title} » restaurée dans sa colonne.");
+    }
+
+    /**
      * Update board settings
      */
     public function updateBoard(Request $request, int $boardId)
@@ -654,6 +794,17 @@ class KanbanController extends Controller
             abort(403);
         }
 
+        // Lock check: completed tasks cannot be modified unless explicitly unlocked
+        if ($card->is_completed && !$request->boolean('force_unlock')) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => "Cette tâche est marquée comme terminée et est verrouillée en lecture seule. Rouvrez-la pour apporter des modifications.",
+                ], 422);
+            }
+            return back()->withErrors(['error' => "Cette tâche est marquée comme terminée et est verrouillée en lecture seule."]);
+        }
+
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -708,9 +859,12 @@ class KanbanController extends Controller
             ->where('board_id', $card->board_id)
             ->firstOrFail();
 
+        $isCompleted = (bool)$targetColumn->is_done_column;
+
         $card->update([
             'column_id' => $targetColumn->id,
             'order' => $newOrder,
+            'is_completed' => $isCompleted ? true : $card->is_completed,
         ]);
 
         return response()->json([

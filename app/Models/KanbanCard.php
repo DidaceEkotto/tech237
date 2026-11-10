@@ -23,6 +23,9 @@ class KanbanCard extends Model
         'checklist',
         'attachments',
         'order',
+        'is_completed',
+        'is_archived',
+        'archived_at',
         'devlog_published',
         'overdue_alert_sent_at',
     ];
@@ -35,6 +38,9 @@ class KanbanCard extends Model
             'attachments' => 'array',
             'due_date' => 'date:Y-m-d',
             'order' => 'integer',
+            'is_completed' => 'boolean',
+            'is_archived' => 'boolean',
+            'archived_at' => 'datetime',
             'devlog_published' => 'boolean',
             'overdue_alert_sent_at' => 'datetime',
         ];

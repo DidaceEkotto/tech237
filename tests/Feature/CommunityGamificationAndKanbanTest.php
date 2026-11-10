@@ -211,4 +211,119 @@ class CommunityGamificationAndKanbanTest extends TestCase
             'user_id' => $collab->id,
         ]);
     }
+
+    public function test_kanban_card_toggle_completion_and_archiving_flow()
+    {
+        $user = User::factory()->create();
+
+        $board = KanbanBoard::create([
+            'user_id' => $user->id,
+            'title' => 'Tableau Test Flow',
+        ]);
+
+        $column = \App\Models\KanbanColumn::create([
+            'board_id' => $board->id,
+            'title' => 'À faire',
+            'order' => 1,
+        ]);
+
+        $card = KanbanCard::create([
+            'board_id' => $board->id,
+            'column_id' => $column->id,
+            'title' => 'Tâche à valider',
+            'is_completed' => false,
+            'is_archived' => false,
+        ]);
+
+        // 1. Toggle completion
+        $resToggle = $this->actingAs($user, 'web')->postJson("/espace-utilisateur/kanban/cards/{$card->id}/toggle-completion");
+        $resToggle->assertStatus(200);
+        $resToggle->assertJson(['success' => true, 'is_completed' => true]);
+        $this->assertTrue((bool)$card->fresh()->is_completed);
+
+        // 2. Editing locked task without force_unlock should be rejected (422)
+        $resEditLocked = $this->actingAs($user, 'web')->putJson("/espace-utilisateur/kanban/cards/{$card->id}", [
+            'title' => 'Modification refusée',
+        ]);
+        $resEditLocked->assertStatus(422);
+
+        // 3. Archive card
+        $resArchive = $this->actingAs($user, 'web')->postJson("/espace-utilisateur/kanban/cards/{$card->id}/archive");
+        $resArchive->assertStatus(200);
+        $resArchive->assertJson(['success' => true]);
+        $this->assertTrue((bool)$card->fresh()->is_archived);
+        $this->assertNotNull($card->fresh()->archived_at);
+
+        // 4. Unarchive card
+        $resUnarchive = $this->actingAs($user, 'web')->postJson("/espace-utilisateur/kanban/cards/{$card->id}/unarchive");
+        $resUnarchive->assertStatus(200);
+        $resUnarchive->assertJson(['success' => true]);
+        $this->assertFalse((bool)$card->fresh()->is_archived);
+    }
+
+    public function test_kanban_comments_realtime_polling()
+    {
+        $user = User::factory()->create();
+
+        $board = KanbanBoard::create([
+            'user_id' => $user->id,
+            'title' => 'Tableau Chat',
+        ]);
+
+        $column = \App\Models\KanbanColumn::create([
+            'board_id' => $board->id,
+            'title' => 'Discussion',
+            'order' => 1,
+        ]);
+
+        $card = KanbanCard::create([
+            'board_id' => $board->id,
+            'column_id' => $column->id,
+            'title' => 'Tâche de chat instantané',
+        ]);
+
+        \App\Models\KanbanCardComment::create([
+            'card_id' => $card->id,
+            'user_id' => $user->id,
+            'comment' => 'Coucou @' . $user->name,
+        ]);
+
+        $response = $this->actingAs($user, 'web')->getJson("/espace-utilisateur/kanban/cards/{$card->id}/comments");
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+        $response->assertJsonCount(1, 'comments');
+    }
+
+    public function test_messages_thread_batch_mark_read()
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+
+        $msg1 = \App\Models\UserMessage::create([
+            'user_id' => $user->id,
+            'sender_id' => $other->id,
+            'subject' => 'Message 1',
+            'message' => 'Hello 1',
+            'is_read' => false,
+        ]);
+
+        $msg2 = \App\Models\UserMessage::create([
+            'user_id' => $user->id,
+            'sender_id' => $other->id,
+            'subject' => 'Message 2',
+            'message' => 'Hello 2',
+            'is_read' => false,
+        ]);
+
+        $response = $this->actingAs($user, 'web')->postJson('/espace-utilisateur/messages/thread-read', [
+            'sender_id' => $other->id,
+            'is_support' => false,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true, 'unread_count' => 0]);
+
+        $this->assertTrue((bool)$msg1->fresh()->is_read);
+        $this->assertTrue((bool)$msg2->fresh()->is_read);
+    }
 }

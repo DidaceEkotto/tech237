@@ -165,6 +165,32 @@
             </div>
           </div>
 
+          <!-- 10. Verrouillage des Tâches Terminées -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-secondary">
+              <div class="rounded-circle text-secondary bg-secondary-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-lock-fill"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">10. Tâches Terminées Protégées</h4>
+              <p class="small text-muted mb-0">
+                Lorsqu'une tâche est marquée comme terminée ou déplacée en colonne finale, ses champs de saisie sont verrouillés en lecture seule pour éviter les altérations involontaires. Vous pouvez la rouvrir à tout moment.
+              </p>
+            </div>
+          </div>
+
+          <!-- 11. Archivage & Historique Intégral -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-amber" style="border-left-color: #f59e0b !important;">
+              <div class="rounded-circle text-warning bg-warning-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-archive-fill"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">11. Archivage &amp; Désarchivage</h4>
+              <p class="small text-muted mb-0">
+                Quand votre tableau compte de nombreuses tâches closes, archivez-les pour conserver une vue claire. Le bouton <em>« Archives »</em> vous permet d'inspecter leur contenu et de les restaurer sur le tableau.
+              </p>
+            </div>
+          </div>
+
         </div>
 
         <!-- FAQ / Best Practices -->

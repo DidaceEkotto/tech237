@@ -173,8 +173,8 @@
               >
                 <i class="bi bi-envelope me-2 fs-5"></i>
                 <span>Messages</span>
-                <span v-if="unreadMessagesCount > 0" class="badge bg-warning text-dark rounded-pill ms-auto">
-                  {{ unreadMessagesCount }}
+                <span v-if="localUnreadMessagesCount > 0" class="badge bg-warning text-dark rounded-pill ms-auto">
+                  {{ localUnreadMessagesCount }}
                 </span>
               </button>
 
@@ -277,7 +277,7 @@
                   <div class="p-3 bg-light rounded-4 border">
                     <div class="text-muted small fw-bold">Messages Administrateur</div>
                     <div class="h3 fw-bold my-1 text-warning">{{ messages.length }}</div>
-                    <span class="badge bg-warning-subtle text-warning small">{{ unreadMessagesCount }} non lu(s)</span>
+                    <span class="badge bg-warning-subtle text-warning small">{{ localUnreadMessagesCount }} non lu(s)</span>
                   </div>
                 </div>
               </div>
@@ -2725,6 +2725,11 @@ const conversations = computed(() => {
   return list
 })
 
+const localUnreadMessagesCount = ref(props.unreadMessagesCount || 0)
+watch(() => props.unreadMessagesCount, (val) => {
+  localUnreadMessagesCount.value = val || 0
+})
+
 const unreadConversationsCount = computed(() => {
   return conversations.value.filter(c => c.unreadCount > 0).length
 })
@@ -2760,16 +2765,44 @@ const activeConversation = computed(() => {
 })
 
 function selectConversation(c) {
+  if (!c) return
   activeConversationKey.value = c.key
   mobileShowThread.value = true
   const lastSub = c.lastMessage?.subject || 'Message Tech237'
   threadReplySubject.value = lastSub.startsWith('Re:') ? lastSub : ('Re: ' + lastSub)
   
-  c.messages.forEach(m => {
-    if (!m.is_read && m.user_id === props.user?.id) {
-      markAsRead(m.id)
-    }
-  })
+  // If this conversation has unread messages, mark them as read immediately both locally and in backend
+  const unreadInThread = (c.messages || []).filter(m => !m.is_read && m.user_id === props.user?.id).length
+  if (unreadInThread > 0 || c.unreadCount > 0) {
+    c.messages.forEach(m => {
+      if (m.user_id === props.user?.id) {
+        m.is_read = true
+      }
+    })
+    c.unreadCount = 0
+    localUnreadMessagesCount.value = Math.max(0, localUnreadMessagesCount.value - unreadInThread)
+
+    // Mark thread read on server
+    fetch('/espace-utilisateur/messages/thread-read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      },
+      body: JSON.stringify({
+        is_support: c.key === 'support_tech237',
+        partner_id: c.rawId,
+      })
+    }).then(r => r.json()).then(data => {
+      if (data && typeof data.unreadMessagesCount === 'number') {
+        localUnreadMessagesCount.value = data.unreadMessagesCount
+      }
+    }).catch(err => {
+      console.error('Error marking thread read:', err)
+    })
+  }
 
   scrollToBottom()
 }
@@ -2970,11 +3003,14 @@ onMounted(() => {
 watch(() => currentSection.value, (newSec) => {
   if (newSec === 'messages') {
     startMessagesPolling()
+    if (activeConversation.value) {
+      selectConversation(activeConversation.value)
+    }
     scrollToBottom()
   } else {
     stopMessagesPolling()
   }
-})
+}, { immediate: true })
 
 function startMessagesPolling() {
   stopMessagesPolling()
