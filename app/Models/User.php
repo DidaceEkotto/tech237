@@ -26,6 +26,7 @@ class User extends Authenticatable
         'ban_reason',
         'xp',
         'rank_title',
+        'pending_level_up',
         'birth_date',
         'marital_status',
         'registered_at',
@@ -43,6 +44,7 @@ class User extends Authenticatable
             'birth_date' => 'date',
             'registered_at' => 'datetime',
             'password' => 'hashed',
+            'pending_level_up' => 'array',
         ];
     }
 
@@ -158,18 +160,30 @@ class User extends Authenticatable
 
     public function addXp(int $points): void
     {
-        $newXp = max(0, ($this->xp ?? 0) + $points);
-        $rank = match (true) {
-            $newXp >= 1000 => 'Légende Tech237 👑',
-            $newXp >= 400 => 'Tech Lead 🚀',
-            $newXp >= 150 => 'Tech Builder 🛠️',
-            $newXp >= 50 => 'Codeur Actif ⚡',
-            default => 'Novice Tech 🌱',
-        };
+        $currentXp = $this->xp ?? 0;
+        $newXp = max(0, $currentXp + $points);
 
-        $this->update([
+        $oldTier = XpLevel::getLevelForXp($currentXp);
+        $newTier = XpLevel::getLevelForXp($newXp);
+
+        $updateData = [
             'xp' => $newXp,
-            'rank_title' => $rank,
-        ]);
+            'rank_title' => $newTier->name,
+        ];
+
+        // Did the user unlock a higher level tier?
+        if (($newTier->min_xp ?? 0) > ($oldTier->min_xp ?? 0)) {
+            $updateData['pending_level_up'] = [
+                'name' => $newTier->name,
+                'min_xp' => $newTier->min_xp,
+                'badge_icon' => $newTier->badge_icon ?? 'bi-award',
+                'color' => $newTier->color ?? '#00A859',
+                'description' => $newTier->description ?? '',
+                'new_xp' => $newXp,
+                'achieved_at' => now()->toIso8601String(),
+            ];
+        }
+
+        $this->update($updateData);
     }
 }

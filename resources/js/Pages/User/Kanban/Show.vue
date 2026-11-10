@@ -92,6 +92,15 @@
                 <span class="d-none d-sm-inline">Colonne</span>
               </button>
 
+              <!-- Guide Link -->
+              <Link 
+                href="/espace-utilisateur/kanban/guide" 
+                class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold text-muted shadow-2xs"
+                title="Consulter le guide pratique"
+              >
+                <i class="bi bi-question-circle me-1 text-primary"></i><span class="d-none d-md-inline">Guide</span>
+              </Link>
+
               <!-- Public Roadmap Link if enabled -->
               <a 
                 v-if="board.is_public && board.project" 

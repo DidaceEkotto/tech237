@@ -1277,8 +1277,8 @@
                             {{ m.subject }}
                           </div>
 
-                          <!-- Text message -->
-                          <div class="small leading-relaxed" style="white-space: pre-line;">{{ m.message || m.content }}</div>
+                          <!-- Text message with clickable links opening in new tab -->
+                          <div class="small leading-relaxed" style="white-space: pre-line;" v-html="formatMessageWithLinks(m.message || m.content)"></div>
 
                           <!-- Attachment Preview -->
                           <div v-if="m.attachment_path" class="mt-2 pt-2 border-top" :style="{ borderColor: m.sender_id === user.id ? 'rgba(255,255,255,0.2)' : '#E5E7EB' }">
@@ -1339,8 +1339,8 @@
                       </div>
                     </div>
 
-                    <!-- Thread Reply Composer -->
-                    <div class="p-3 border-top bg-light">
+                    <!-- Thread Reply Composer (If partner is registered user or admin) -->
+                    <div v-if="activeConversation.canReply !== false" class="p-3 border-top bg-light">
                       <form @submit.prevent="sendThreadReply">
                         <div class="input-group input-group-sm mb-2">
                           <span class="input-group-text bg-white border-0 fw-bold extra-small text-muted">Sujet :</span>
@@ -1415,6 +1415,29 @@
                           </button>
                         </div>
                       </form>
+                    </div>
+
+                    <!-- Friendly Alert Card if sender is not registered on the platform -->
+                    <div v-else class="p-4 border-top bg-light-subtle">
+                      <div class="alert alert-warning border-0 rounded-4 shadow-xs mb-0 p-3 d-flex align-items-start gap-3">
+                        <div class="rounded-circle bg-warning bg-opacity-25 p-2 text-warning d-flex align-items-center justify-content-center flex-shrink-0 mt-1">
+                          <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                        </div>
+                        <div>
+                          <strong class="d-block text-dark small mb-1">Réponse directe indisponible sur la plateforme</strong>
+                          <p class="text-muted extra-small mb-2">
+                            Cet interlocuteur ne possède pas de compte utilisateur actif sur Tech237 ou ce message provient d'une notification automatique du système. Vous ne pouvez donc pas lui répondre directement via la messagerie interne.
+                          </p>
+                          <div v-if="activeConversation.guestSenderEmail" class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge bg-white text-dark border extra-small">
+                              <i class="bi bi-envelope me-1 text-primary"></i> {{ activeConversation.guestSenderEmail }}
+                            </span>
+                            <a :href="'mailto:' + activeConversation.guestSenderEmail + '?subject=' + encodeURIComponent(threadReplySubject)" class="btn btn-xs btn-primary rounded-pill px-3 py-1 fw-bold text-decoration-none shadow-xs">
+                              <i class="bi bi-reply-fill me-1"></i> Répondre par Email externe &rarr;
+                            </a>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                   </div>
@@ -2590,6 +2613,22 @@ function getInitials(name) {
   return name.substring(0, 2).toUpperCase()
 }
 
+function formatMessageWithLinks(text) {
+  if (!text) return ''
+  const escaped = String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+
+  const urlRegex = /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi
+  return escaped.replace(urlRegex, (url) => {
+    const href = url.startsWith('http') ? url : `https://${url}`
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="fw-bold text-decoration-underline text-break" style="color: inherit;">${url} <i class="bi bi-box-arrow-up-right extra-small"></i></a>`
+  })
+}
+
 function getAvatarBg(name) {
   const colors = [
     '#00A859', '#10B981', '#059669', '#3B82F6', '#2563EB',
@@ -2613,26 +2652,40 @@ const conversations = computed(() => {
     let partnerAvatar = null
     let partnerType = 'user'
     let rawPartnerId = null
+    let canReply = true
+    let guestSenderEmail = null
 
     if (msg.admin) {
       partnerKey = 'admin_' + msg.admin.id
       partnerName = msg.admin.name || 'Support Tech237'
       partnerAvatar = msg.admin.avatar || null
       partnerType = 'admin'
+      canReply = true
     } else if (msg.sender && msg.sender.id !== authId) {
       partnerKey = 'user_' + msg.sender.id
       partnerName = msg.sender.name
       partnerAvatar = msg.sender.avatar || null
       rawPartnerId = msg.sender.id
+      canReply = true
     } else if (msg.user && msg.user.id !== authId) {
       partnerKey = 'user_' + msg.user.id
       partnerName = msg.user.name
       partnerAvatar = msg.user.avatar || null
       rawPartnerId = msg.user.id
+      canReply = true
+    } else if (!msg.sender && !msg.admin) {
+      // Guest or external contact without a registered account
+      const emailMatch = (msg.message || '').match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+      guestSenderEmail = emailMatch ? emailMatch[1] : null;
+      partnerKey = 'guest_' + msg.id;
+      partnerName = msg.sender_name || (guestSenderEmail ? 'Visiteur (' + guestSenderEmail + ')' : 'Contact Externe');
+      partnerType = 'guest';
+      canReply = false;
     } else {
       partnerKey = 'support_general'
       partnerName = 'Équipe Tech237'
       partnerType = 'admin'
+      canReply = true
     }
 
     if (!map[partnerKey]) {
@@ -2642,6 +2695,8 @@ const conversations = computed(() => {
         name: partnerName,
         avatar: partnerAvatar,
         type: partnerType,
+        canReply: canReply,
+        guestSenderEmail: guestSenderEmail,
         messages: [],
         unreadCount: 0,
         lastMessage: msg,

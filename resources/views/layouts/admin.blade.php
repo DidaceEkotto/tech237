@@ -152,8 +152,31 @@
             <div class="nav-heading">Rétention & Communauté</div>
             <a href="{{ route('admin.pocs.index') }}" class="nav-link {{ request()->routeIs('admin.pocs.*') ? 'active' : '' }}">
                 <i class="bi bi-lightning-charge-fill text-warning"></i> Mini-Actus (POCs)
-                @php $totalPocsAdminCount = \App\Models\Poc::count(); @endphp
+                @php
+                    $totalPocsAdminCount = 0;
+                    try {
+                        if (\Illuminate\Support\Facades\Schema::hasTable('pocs')) {
+                            $totalPocsAdminCount = \App\Models\Poc::count();
+                        }
+                    } catch (\Throwable $e) {
+                        $totalPocsAdminCount = 0;
+                    }
+                @endphp
                 <span class="badge bg-secondary ms-auto">{{ $totalPocsAdminCount }}</span>
+            </a>
+            <a href="{{ route('admin.messages.index') }}" class="nav-link {{ request()->routeIs('admin.messages.*') ? 'active' : '' }}">
+                <i class="bi bi-chat-dots-fill text-info"></i> Messagerie Communautaire
+                @php
+                    $unreadAdminMessagesCount = 0;
+                    try {
+                        if (\Illuminate\Support\Facades\Schema::hasTable('user_messages')) {
+                            $unreadAdminMessagesCount = \App\Models\UserMessage::where('is_read', false)->whereNotNull('user_id')->count();
+                        }
+                    } catch (\Throwable $e) {}
+                @endphp
+                @if($unreadAdminMessagesCount > 0)
+                    <span class="badge bg-warning text-dark ms-auto">{{ $unreadAdminMessagesCount }}</span>
+                @endif
             </a>
             <a href="{{ route('admin.polls.index') }}" class="nav-link {{ request()->routeIs('admin.polls.*') ? 'active' : '' }}">
                 <i class="bi bi-pie-chart-fill text-primary"></i> Sondages Tech (Polls)
@@ -162,7 +185,7 @@
                 <i class="bi bi-arrow-up-circle-fill text-success"></i> Upvotes Projets Tech
             </a>
             <a href="{{ route('admin.retention.badges') }}" class="nav-link {{ request()->routeIs('admin.retention.badges*') ? 'active' : '' }}">
-                <i class="bi bi-award-fill text-warning"></i> Badges & Gamification
+                <i class="bi bi-award-fill text-warning"></i> Niveaux XP &amp; Badges
             </a>
 
             <div class="nav-heading">Gestion & Sécurité</div>

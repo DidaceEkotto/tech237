@@ -814,12 +814,16 @@
       </div>
     </transition>
 
+    <!-- 13. Gamification Level Up Celebration Modal with Audio Chime -->
+    <LevelUpCelebrationModal />
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import { Link, usePage, router } from '@inertiajs/vue3'
+import LevelUpCelebrationModal from '@/Components/LevelUpCelebrationModal.vue'
 
 const page = usePage()
 

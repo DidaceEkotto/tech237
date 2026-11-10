@@ -22,6 +22,7 @@ class KanbanCard extends Model
         'checklist',
         'order',
         'devlog_published',
+        'overdue_alert_sent_at',
     ];
 
     protected function casts(): array
@@ -32,6 +33,7 @@ class KanbanCard extends Model
             'due_date' => 'date:Y-m-d',
             'order' => 'integer',
             'devlog_published' => 'boolean',
+            'overdue_alert_sent_at' => 'datetime',
         ];
     }
 

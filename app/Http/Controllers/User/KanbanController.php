@@ -58,10 +58,23 @@ class KanbanController extends Controller
                 return $b;
             });
 
+        // Trigger automated overdue alert check in background
+        try {
+            \Illuminate\Support\Facades\Artisan::call('kanban:check-overdue');
+        } catch (\Throwable $e) {}
+
         return Inertia::render('User/Kanban/Index', [
             'boards' => $boards,
             'myProjects' => $myProjects,
         ]);
+    }
+
+    /**
+     * Display Kanban Guide / Onboarding Tutorial
+     */
+    public function guide()
+    {
+        return Inertia::render('User/Kanban/Guide');
     }
 
     /**

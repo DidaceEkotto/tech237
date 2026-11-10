@@ -70,6 +70,19 @@ class Index extends Component
 
     public function render()
     {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('pocs')) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            } catch (\Throwable $e) {}
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('pocs')) {
+            return view('livewire.admin.pocs.index', [
+                'pocs' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15),
+                'stats' => ['total' => 0, 'published' => 0, 'draft' => 0, 'total_upvotes' => 0, 'total_views' => 0],
+            ])->layout('layouts.admin');
+        }
+
         $query = Poc::with(['user', 'comments'])->latest();
 
         if ($this->search) {

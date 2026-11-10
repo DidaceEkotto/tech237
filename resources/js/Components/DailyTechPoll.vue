@@ -1,5 +1,9 @@
 <template>
-  <div v-if="livePoll" class="card border-0 rounded-4 shadow-sm p-4 text-white overflow-hidden position-relative mb-4" style="background: linear-gradient(135deg, #0B2559 0%, #06152D 100%);">
+  <div class="sidebar-gamification-wrapper">
+    <!-- Top 3 Community Leaderboard Widget with Map CTA -->
+    <SidebarLeaderboard />
+
+    <div v-if="livePoll" class="card border-0 rounded-4 shadow-sm p-4 text-white overflow-hidden position-relative mb-4" style="background: linear-gradient(135deg, #0B2559 0%, #06152D 100%);">
     <!-- Header -->
     <div class="d-flex align-items-center justify-content-between mb-3">
       <span class="badge px-3 py-1 rounded-pill fw-bold text-uppercase text-white shadow-sm" style="background-color: var(--tech-green, #00A859); font-size: 11px;">
@@ -97,10 +101,12 @@
       </div>
     </div>
   </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import SidebarLeaderboard from '@/Components/SidebarLeaderboard.vue'
 
 const props = defineProps({
   poll: {

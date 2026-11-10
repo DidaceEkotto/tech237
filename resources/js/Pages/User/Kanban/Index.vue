@@ -34,7 +34,14 @@
               </p>
             </div>
 
-            <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <Link 
+                href="/espace-utilisateur/kanban/guide" 
+                class="btn btn-outline-light rounded-pill px-3 py-2 fw-semibold d-flex align-items-center gap-2"
+              >
+                <i class="bi bi-question-circle"></i>
+                <span>Guide d'utilisation</span>
+              </Link>
               <button 
                 @click="openCreateModal" 
                 class="btn btn-light rounded-pill px-4 py-2 fw-bold text-dark shadow-sm d-flex align-items-center gap-2"
@@ -123,7 +130,10 @@
           <p class="text-muted small mb-4" style="max-width: 480px; margin: 0 auto 1.5rem auto;">
             Créez votre premier tableau pour organiser le développement de votre projet tech ou suivre vos tâches quotidiennes avec la méthode Trello.
           </p>
-          <div>
+          <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <Link href="/espace-utilisateur/kanban/guide" class="btn btn-outline-secondary rounded-pill px-4 py-2 fw-semibold">
+              <i class="bi bi-book me-1"></i> Comprendre le fonctionnement
+            </Link>
             <button @click="openCreateModal" class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm">
               <i class="bi bi-plus-circle me-1"></i> Créer mon premier tableau
             </button>

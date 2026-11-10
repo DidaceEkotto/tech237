@@ -241,31 +241,40 @@ class PocController extends Controller
     }
 
     /**
-     * Add comment to a POC
+     * Add comment to a POC (Must have an active user account on site)
      */
     public function storeComment(Request $request, int $id)
     {
         $poc = Poc::published()->findOrFail($id);
+
+        $user = Auth::user();
+        if (!$user) {
+            return back()->with('error', 'Vous devez avoir un compte actif sur le site pour commenter ce POC.');
+        }
+
+        if (method_exists($user, 'isBanned') && $user->isBanned()) {
+            return back()->with('error', 'Votre compte est restreint. Vous ne pouvez pas publier de commentaire.');
+        }
+
+        if (isset($user->is_active) && !$user->is_active) {
+            return back()->with('error', 'Votre compte est inactif ou en attente d\'activation.');
+        }
 
         $validated = $request->validate([
             'content' => 'required|string|min:3|max:1500',
             'parent_id' => 'nullable|exists:comments,id',
         ]);
 
-        $user = Auth::user();
-
         Comment::create([
             'poc_id' => $poc->id,
-            'user_id' => $user?->id,
+            'user_id' => $user->id,
             'parent_id' => $validated['parent_id'] ?? null,
             'content' => $validated['content'],
             'status' => 'approved',
         ]);
 
-        if ($user) {
-            $user->addXp(2);
-        }
+        $user->addXp(3); // +3 XP reward for community engagement
 
-        return back()->with('success', 'Votre commentaire a bien été publié !');
+        return back()->with('success', 'Votre commentaire a bien été publié ! (+3 XP) 🎉');
     }
 }

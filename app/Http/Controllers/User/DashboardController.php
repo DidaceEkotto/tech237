@@ -1503,4 +1503,16 @@ class DashboardController extends Controller
 
         return back()->with('success', 'Votre message privé a été envoyé avec succès !');
     }
+
+    /**
+     * Clear pending level up celebration modal
+     */
+    public function clearLevelUp()
+    {
+        $user = Auth::guard('web')->user();
+        if ($user) {
+            $user->update(['pending_level_up' => null]);
+        }
+        return back();
+    }
 }

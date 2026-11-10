@@ -158,8 +158,8 @@
                 Commentaires &amp; Retours ({{ poc.comments?.length || 0 }})
               </h4>
 
-              <!-- Post Comment Form -->
-              <form @submit.prevent="submitComment" class="mb-5">
+              <!-- Post Comment Form (Only for logged-in users with active accounts) -->
+              <form v-if="$page.props.auth?.user && !$page.props.auth?.user?.is_banned" @submit.prevent="submitComment" class="mb-5">
                 <div class="mb-3">
                   <textarea 
                     v-model="commentForm.content" 
@@ -173,7 +173,7 @@
 
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                   <small class="text-muted">
-                    <i class="bi bi-shield-check text-success me-1"></i> Échanges bienveillants et constructifs
+                    <i class="bi bi-shield-check text-success me-1"></i> Échanges bienveillants et constructifs &bull; +3 XP
                   </small>
                   <button 
                     type="submit" 
@@ -186,6 +186,25 @@
                   </button>
                 </div>
               </form>
+
+              <!-- Authentication required callout -->
+              <div v-else class="card border-0 bg-light rounded-4 p-4 mb-5 text-center shadow-xs">
+                <div class="mb-2 text-primary fs-3">
+                  <i class="bi bi-lock-fill"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1">Connectez-vous pour participer à la discussion</h5>
+                <p class="text-muted small mb-3" style="max-width: 500px; margin: 0 auto;">
+                  Pour commenter cette mini-actualité (POC) et gagner des points d'expérience (XP), vous devez avoir un compte actif sur Tech237.
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                  <Link href="/login" class="btn btn-sm btn-dark rounded-pill px-4 fw-bold shadow-xs">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Se connecter
+                  </Link>
+                  <Link href="/register" class="btn btn-sm btn-outline-success rounded-pill px-4 fw-bold shadow-xs">
+                    Créer un compte
+                  </Link>
+                </div>
+              </div>
 
               <!-- Comments List -->
               <div v-if="poc.comments && poc.comments.length > 0" class="d-flex flex-column gap-3">

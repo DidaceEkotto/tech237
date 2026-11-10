@@ -46,6 +46,9 @@ class HandleInertiaRequests extends Middleware
                     'status' => $request->user('web')->status,
                     'is_banned' => $request->user('web')->isBanned(),
                     'ban_reason' => $request->user('web')->ban_reason,
+                    'xp' => $request->user('web')->xp ?? 0,
+                    'rank_title' => $request->user('web')->rank_title,
+                    'pending_level_up' => $request->user('web')->pending_level_up,
                 ] : null,
             ],
             'siteSettings' => fn () => $settings,
@@ -59,6 +62,9 @@ class HandleInertiaRequests extends Middleware
                 ->orderBy('order')
                 ->get(),
             'featuredDossiers' => fn () => Dossier::where('is_featured', true)->take(6)->get(),
+            'topContributors' => fn () => \App\Models\User::where(function($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'banned');
+            })->orderByDesc('xp')->take(3)->select('id', 'name', 'avatar', 'xp', 'rank_title')->get(),
             'adBanners' => fn () => AdBanner::where('is_active', true)->get()->groupBy('position'),
             'currentLocale' => fn () => session('locale', 'fr'),
             'seo' => [

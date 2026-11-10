@@ -146,6 +146,11 @@ Route::post('/invitations/{token}/bloquer', [App\Http\Controllers\User\ProjectCo
 // Public Author Profile
 Route::get('/auteur/{id}', [AuthorController::class, 'show'])->name('authors.show');
 
+// Gamification: Map des Gagnants (Candy Crush style) & Profil Public Membre
+Route::get('/carte-des-champions', [App\Http\Controllers\Front\CommunityController::class, 'map'])->name('community.map');
+Route::get('/map-des-gagnants', [App\Http\Controllers\Front\CommunityController::class, 'map']);
+Route::get('/communaute/profil/{id}', [App\Http\Controllers\Front\CommunityController::class, 'profile'])->name('community.profile');
+
 // Comments Submission
 Route::post('/api/comments', [CommentController::class, 'store'])->name('api.comments.store')->middleware('auth:web');
 
@@ -260,9 +265,11 @@ Route::middleware('auth:web')->group(function () {
     // Retention: Bookmarks & Alerts
     Route::post('/espace-utilisateur/favoris/toggle', [RetentionController::class, 'toggleBookmark'])->name('user.bookmarks.toggle');
     Route::post('/espace-utilisateur/alertes', [RetentionController::class, 'updateAlertPreferences'])->name('user.alerts.update');
+    Route::post('/espace-utilisateur/clear-level-up', [UserDashboardController::class, 'clearLevelUp'])->name('user.clear_level_up');
 
     // Kanban Project Management (Trello-style)
     Route::get('/espace-utilisateur/kanban', [KanbanController::class, 'index'])->name('user.kanban.index');
+    Route::get('/espace-utilisateur/kanban/guide', [KanbanController::class, 'guide'])->name('user.kanban.guide');
     Route::get('/espace-utilisateur/projets/{projectId}/kanban', [KanbanController::class, 'forProject'])->name('user.kanban.project');
     Route::get('/espace-utilisateur/kanban/{boardId}', [KanbanController::class, 'show'])->name('user.kanban.show');
     Route::post('/espace-utilisateur/kanban/boards', [KanbanController::class, 'storeBoard'])->name('user.kanban.boards.store');
@@ -378,6 +385,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Rétention & Communauté
         Route::get('/polls', AdminPollsIndex::class)->name('polls.index');
         Route::get('/pocs', AdminPocsIndex::class)->name('pocs.index');
+        Route::get('/messages', App\Livewire\Admin\Messages\Index::class)->name('messages.index');
         Route::get('/retention/upvotes', AdminUpvotesIndex::class)->name('retention.upvotes');
         Route::get('/retention/badges', AdminBadgesIndex::class)->name('retention.badges');
 
