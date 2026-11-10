@@ -1,224 +1,280 @@
 <template>
-  <div class="champions-arena-root min-vh-100 d-flex flex-column">
+  <div class="candy-game-root min-vh-100 position-relative d-flex flex-column overflow-x-hidden">
     <Head title="La Map des Champions & Gagnants • Tech237" />
 
-    <!-- Top Navigation Bar (Logo + Site Stats + Back to Home) -->
-    <header class="arena-header sticky-top">
-      <div class="container-fluid px-3 px-md-4 py-2 d-flex align-items-center justify-content-between">
-        
-        <!-- Site Logo & Arena Brand -->
-        <div class="d-flex align-items-center gap-3">
-          <Link href="/" class="d-inline-flex align-items-center text-decoration-none" title="Retour au site Tech237">
-            <img 
-              :src="logoUrl" 
-              alt="Tech237 Logo" 
-              class="arena-logo" 
-            />
-          </Link>
-          <div class="vr d-none d-sm-block opacity-25" style="height: 28px;"></div>
-          <div class="d-none d-md-flex flex-column">
-            <span class="arena-badge-tag">
-              <span class="pulse-dot"></span>
-              CAMPUS &bull; GAMIFICATION
-            </span>
-            <span class="arena-tagline">La Carte des Champions Tech237</span>
-          </div>
-        </div>
+    <!-- FLOATING TOP GAME HUD (Replaces generic header/navbar) -->
+    <header class="game-hud-bar position-fixed top-0 start-0 w-100 px-3 px-md-4 py-2 d-flex align-items-center justify-content-between">
+      
+      <!-- Left HUD: Site Logo & Retour Accueil Pill -->
+      <div class="d-flex align-items-center gap-2 gap-md-3">
+        <!-- Site Logo (from settings) -->
+        <Link href="/" class="game-hud-logo-wrap d-inline-flex align-items-center text-decoration-none shadow-sm" title="Retour au site Tech237">
+          <img 
+            :src="logoUrl" 
+            alt="Tech237" 
+            class="game-hud-logo" 
+          />
+        </Link>
 
-        <!-- Center Global Stats Pill -->
-        <div class="d-none d-lg-flex align-items-center gap-3 bg-white bg-opacity-75 rounded-pill px-4 py-2 shadow-2xs border border-amber-200">
-          <div class="d-flex align-items-center gap-2" title="Total XP distribué sur le site">
-            <span class="stat-icon-coin">⚡</span>
-            <div class="lh-1">
-              <strong class="d-block text-dark fw-bold small">{{ Number(totalXp).toLocaleString() }} XP</strong>
-              <span class="text-muted extra-small" style="font-size: 10px;">Énergie Totale</span>
-            </div>
-          </div>
-          <div class="vr opacity-25" style="height: 22px;"></div>
-          <div class="d-flex align-items-center gap-2" title="Membres enregistrés">
-            <span class="stat-icon-coin">👥</span>
-            <div class="lh-1">
-              <strong class="d-block text-dark fw-bold small">{{ totalPlayers }} Joueurs</strong>
-              <span class="text-muted extra-small" style="font-size: 10px;">Communauté</span>
-            </div>
-          </div>
-          <div v-if="currentUserRank" class="vr opacity-25" style="height: 22px;"></div>
-          <div v-if="currentUserRank" class="d-flex align-items-center gap-2" title="Votre rang actuel">
-            <span class="stat-icon-coin">🥇</span>
-            <div class="lh-1">
-              <strong class="d-block text-emerald-700 fw-bold small">Rang #{{ currentUserRank.position }}</strong>
-              <span class="text-muted extra-small" style="font-size: 10px;">{{ currentUserRank.xp }} XP</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Action: Return to Home Button -->
-        <div class="d-flex align-items-center gap-2">
-          <!-- User Profile shortcut if logged in -->
-          <Link 
-            v-if="$page.props.auth?.user" 
-            :href="'/communaute/profil/' + $page.props.auth.user.id" 
-            class="d-none d-sm-inline-flex align-items-center gap-2 btn btn-sm btn-light rounded-pill px-3 py-2 border shadow-2xs text-decoration-none"
-            title="Mon Profil Public"
-          >
-            <img 
-              v-if="$page.props.auth.user.avatar" 
-              :src="$page.props.auth.user.avatar.startsWith('/') ? $page.props.auth.user.avatar : '/' + $page.props.auth.user.avatar" 
-              class="rounded-circle" 
-              style="width: 22px; height: 22px; object-fit: cover;"
-            />
-            <span v-else class="rounded-circle bg-emerald-600 text-white fw-bold d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px; font-size: 10px;">
-              {{ getInitials($page.props.auth.user.name) }}
-            </span>
-            <span class="fw-semibold text-dark small text-truncate" style="max-width: 120px;">
-              {{ $page.props.auth.user.name }}
-            </span>
-          </Link>
-
-          <!-- Retour à l'accueil button -->
-          <Link 
-            href="/" 
-            class="btn-return-home d-inline-flex align-items-center gap-2 text-decoration-none"
-          >
-            <i class="bi bi-arrow-left"></i>
-            <span>Retour à l'accueil</span>
-          </Link>
-        </div>
-
+        <!-- Back to Home Button -->
+        <Link 
+          href="/" 
+          class="btn-game-home d-inline-flex align-items-center gap-2 text-decoration-none shadow-sm"
+          title="Quitter la Map et revenir à l'accueil du site"
+        >
+          <span class="btn-game-icon">🏠</span>
+          <span class="d-none d-sm-inline fw-bold">Retour à l'accueil</span>
+        </Link>
       </div>
+
+      <!-- Center HUD: Floating Live Global Community Stats -->
+      <div class="d-none d-lg-flex align-items-center gap-2 game-hud-stats-pill px-3 py-1 shadow-sm">
+        <div class="d-flex align-items-center gap-2 px-2 py-1">
+          <span class="hud-stat-emoji">⚡</span>
+          <div class="lh-1">
+            <strong class="d-block text-dark fw-bolder" style="font-size: 13px;">{{ Number(totalXp).toLocaleString() }} XP</strong>
+            <span class="text-muted" style="font-size: 10px;">Énergie Totale</span>
+          </div>
+        </div>
+        <div class="hud-stat-divider"></div>
+        <div class="d-flex align-items-center gap-2 px-2 py-1">
+          <span class="hud-stat-emoji">👥</span>
+          <div class="lh-1">
+            <strong class="d-block text-dark fw-bolder" style="font-size: 13px;">{{ totalPlayers }} Bâtisseurs</strong>
+            <span class="text-muted" style="font-size: 10px;">Communauté</span>
+          </div>
+        </div>
+        <div v-if="currentUserRank" class="hud-stat-divider"></div>
+        <div v-if="currentUserRank" class="d-flex align-items-center gap-2 px-2 py-1">
+          <span class="hud-stat-emoji">🥇</span>
+          <div class="lh-1">
+            <strong class="d-block text-emerald-700 fw-bolder" style="font-size: 13px;">Rang #{{ currentUserRank.position }}</strong>
+            <span class="text-muted" style="font-size: 10px;">{{ currentUserRank.xp }} XP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right HUD: Sound Toggle & User Profile Badge -->
+      <div class="d-flex align-items-center gap-2">
+        <!-- Sound Effect Toggle Button -->
+        <button 
+          type="button" 
+          @click="toggleSound" 
+          class="btn-game-hud-action rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+          :title="soundEnabled ? 'Désactiver les effets sonores' : 'Activer les effets sonores'"
+        >
+          <span style="font-size: 15px;">{{ soundEnabled ? '🔊' : '🔇' }}</span>
+        </button>
+
+        <!-- User Profile shortcut if logged in -->
+        <Link 
+          v-if="$page.props.auth?.user" 
+          :href="'/communaute/profil/' + $page.props.auth.user.id" 
+          class="btn-game-user-pill d-inline-flex align-items-center gap-2 text-decoration-none shadow-sm"
+          title="Voir mon Profil Public"
+        >
+          <img 
+            v-if="$page.props.auth.user.avatar" 
+            :src="$page.props.auth.user.avatar.startsWith('/') ? $page.props.auth.user.avatar : '/' + $page.props.auth.user.avatar" 
+            class="rounded-circle" 
+            style="width: 24px; height: 24px; object-fit: cover;"
+          />
+          <span v-else class="rounded-circle bg-emerald-600 text-white fw-bold d-inline-flex align-items-center justify-content-center" style="width: 24px; height: 24px; font-size: 11px;">
+            {{ getInitials($page.props.auth.user.name) }}
+          </span>
+          <span class="d-none d-md-inline fw-bold text-dark small text-truncate" style="max-width: 110px;">
+            {{ $page.props.auth.user.name }}
+          </span>
+        </Link>
+        <Link 
+          v-else 
+          href="/login" 
+          class="btn-game-home d-inline-flex align-items-center gap-1 text-decoration-none shadow-sm"
+        >
+          <span>Connexion</span>
+        </Link>
+      </div>
+
     </header>
 
-    <!-- Main Split-Screen Workspace -->
-    <main class="arena-main flex-grow-1 container-fluid px-3 px-md-4 py-4">
+    <!-- MAIN TWO-COLUMN SPLIT SCREEN (Full Height Arena) -->
+    <main class="game-arena-body flex-grow-1 container-fluid px-2 px-md-4 pt-5 pb-4 mt-4">
       <div class="row g-4 h-100">
 
-        <!-- PART 1: The Winding Champions Journey Map (Largest Section: ~62-65% width) -->
+        <!-- PART 1: THE CANDY CRUSH WINDING JOURNEY MAP (LARGEST SECTION: ~68% width) -->
         <section class="col-12 col-lg-7 col-xl-8 d-flex flex-column">
-          <div class="map-card-wrapper position-relative rounded-5 shadow-sm p-4 p-md-5 flex-grow-1 overflow-hidden">
+          <div class="candy-map-board position-relative rounded-5 shadow-lg p-3 p-sm-4 p-md-5 flex-grow-1 overflow-hidden">
             
-            <!-- Atmospheric Ambient Floating Elements -->
-            <div class="bg-island island-top-right"></div>
-            <div class="bg-island island-bottom-left"></div>
-            <div class="cloud-float cloud-pos-1">☁️</div>
-            <div class="cloud-float cloud-pos-2">☁️</div>
-            <div class="cloud-float cloud-pos-3">✨</div>
-            <div class="cloud-float cloud-pos-4">🚀</div>
+            <!-- Whimsical Layered Background Atmosphere (Candy Hills, Clouds, Treats) -->
+            <div class="candy-sky-backdrop"></div>
+            <div class="candy-hills-mid"></div>
+            <div class="candy-ground-bottom"></div>
 
-            <!-- Top Summit Banner: Highest Level -->
-            <div class="summit-crest-box text-center mb-5 position-relative z-2">
-              <div class="summit-crown-badge mx-auto mb-2">
-                👑
+            <!-- Floating Whimsical Clouds & Candies -->
+            <div class="float-decor cloud-1">☁️</div>
+            <div class="float-decor cloud-2">☁️</div>
+            <div class="float-decor cloud-3">☁️</div>
+            <div class="float-decor candy-1">🍭</div>
+            <div class="float-decor candy-2">🍬</div>
+            <div class="float-decor candy-3">🧁</div>
+            <div class="float-decor sparkle-1">✨</div>
+            <div class="float-decor sparkle-2">✨</div>
+            <div class="float-decor balloon-1">🎈</div>
+
+            <!-- TOP OF THE MAP: LE SOMMET DES CHAMPIONS (Highest XP Level) -->
+            <div class="summit-palace-crest text-center mb-5 position-relative z-3">
+              <div class="summit-castle-icon mx-auto mb-2">
+                <span class="crown-bob">👑</span>
               </div>
-              <h1 class="summit-heading mb-1">
+              <h1 class="summit-title mb-1 text-dark">
                 Le Sommet des Champions
               </h1>
-              <p class="summit-lead mb-0 text-muted">
+              <p class="summit-subtitle mb-2 mx-auto text-muted">
                 Grimpez les échelons du savoir : chaque POC publié, problème résolu et projet partagé vous rapproche de la Légende.
               </p>
-              <div class="mt-2 d-inline-flex align-items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-pill text-amber-900 extra-small fw-semibold">
-                <span>💡 Cliquez sur un palier XP pour afficher tous ses champions dans le panneau de droite</span>
+              <div class="d-inline-flex align-items-center gap-2 px-3 py-1 bg-white bg-opacity-90 border border-amber-300 rounded-pill shadow-xs extra-small fw-semibold text-amber-900">
+                <span class="fs-6">💡</span>
+                <span>Cliquez sur un palier XP pour afficher tous ses champions à droite</span>
               </div>
             </div>
 
-            <!-- Visual Vertical Serpent Roadmap from Top (Highest XP) to Bottom (0 XP) -->
-            <div class="roadmap-serpentine-track position-relative mx-auto my-3" style="max-width: 680px;">
+            <!-- THE SERPENTINE CANDY TRACK (Ordered from Top/Highest down to 0 XP at Bottom) -->
+            <div class="serpentine-track-container position-relative mx-auto my-3" style="max-width: 720px;">
               
-              <!-- Curved SVG Connecting Line winding between nodes -->
+              <!-- CANDY-CANE STRIPED SVG WINDING ROAD -->
               <svg 
-                class="roadmap-connecting-svg position-absolute w-100 h-100 pointer-events-none" 
-                viewBox="0 0 680 1400" 
+                class="candy-track-svg position-absolute w-100 h-100 pointer-events-none" 
+                viewBox="0 0 720 1500" 
                 preserveAspectRatio="none"
               >
-                <!-- Outer glow curve -->
+                <defs>
+                  <!-- Candy Cane Diagonal Stripes Pattern (Purple & White or Magenta & White) -->
+                  <pattern id="candyStripeRoad" width="32" height="32" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+                    <rect width="16" height="32" fill="#8B5CF6" />
+                    <rect x="16" width="16" height="32" fill="#FFFFFF" />
+                  </pattern>
+
+                  <!-- Inner Golden Dashed Core -->
+                  <filter id="roadShadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="rgba(109, 40, 217, 0.35)" />
+                  </filter>
+                </defs>
+
+                <!-- Track Deep Shadow Underneath -->
                 <path 
                   :d="computedCurvedSvgPath" 
                   fill="none" 
-                  stroke="rgba(251, 191, 36, 0.4)" 
-                  stroke-width="16" 
+                  stroke="rgba(0, 0, 0, 0.15)" 
+                  stroke-width="38" 
                   stroke-linecap="round"
                 />
-                <!-- Striped Candy-style dashed core curve -->
+
+                <!-- Outer Yellow/Gold Curb Rails -->
                 <path 
                   :d="computedCurvedSvgPath" 
                   fill="none" 
                   stroke="#F59E0B" 
-                  stroke-width="6" 
-                  stroke-dasharray="14 12" 
+                  stroke-width="32" 
                   stroke-linecap="round"
-                  class="svg-dash-animated"
+                />
+
+                <!-- Striped Candy Cane Main Road -->
+                <path 
+                  :d="computedCurvedSvgPath" 
+                  fill="none" 
+                  stroke="url(#candyStripeRoad)" 
+                  stroke-width="24" 
+                  stroke-linecap="round"
+                />
+
+                <!-- Center Golden Dash Navigation Dots -->
+                <path 
+                  :d="computedCurvedSvgPath" 
+                  fill="none" 
+                  stroke="#FDE047" 
+                  stroke-width="4" 
+                  stroke-dasharray="10 14" 
+                  stroke-linecap="round"
+                  class="svg-dash-flow"
                 />
               </svg>
 
-              <!-- List of XP Tiers ordered from Top (Highest XP) to Bottom (0 XP) -->
-              <div class="tiers-nodes-list d-flex flex-column position-relative z-2">
+              <!-- LIST OF XP MILESTONE NODES (Sorted Highest at Top -> 0 XP at Bottom) -->
+              <div class="milestones-nodes-flow d-flex flex-column position-relative z-3">
                 <div 
                   v-for="(tier, index) in sortedLevels" 
                   :key="tier.id"
-                  class="tier-node-row d-flex align-items-center my-4 position-relative"
+                  class="milestone-station-row d-flex align-items-center my-4 position-relative"
                   :class="getSerpentineAlignment(index, sortedLevels.length)"
                 >
-                  <!-- The Interactive XP Disc & Pod -->
+                  <!-- INTERACTIVE 3D CANDY XP POD -->
                   <div 
-                    class="tier-milestone-pod text-center position-relative"
+                    class="candy-milestone-pod text-center position-relative"
                     :class="{ 
-                      'is-selected': selectedTier && selectedTier.id === tier.id,
-                      'is-current-user': isCurrentUserTier(tier)
+                      'is-active-selected': selectedTier && selectedTier.id === tier.id,
+                      'is-user-current': isCurrentUserTier(tier)
                     }"
-                    @click="selectTier(tier)"
+                    @click="onSelectTier(tier)"
+                    @mouseenter="onHoverTier(tier)"
                     :title="'Cliquer pour explorer les champions du palier ' + tier.name"
                   >
-                    <!-- Halo Ripple when selected -->
-                    <div v-if="selectedTier && selectedTier.id === tier.id" class="pod-selected-halo"></div>
+                    
+                    <!-- Selected Ripple Halo Ring -->
+                    <div v-if="selectedTier && selectedTier.id === tier.id" class="pod-glow-ring"></div>
 
-                    <!-- Milestone Crown or Flag for the Summit node -->
-                    <div v-if="index === 0" class="summit-star-trophy position-absolute">
-                      <span class="trophy-bounce">🏆</span>
+                    <!-- Summit Crown on index 0 (Highest XP) -->
+                    <div v-if="index === 0" class="summit-milestone-crown position-absolute">
+                      <span class="bounce-crown">🏆</span>
                     </div>
 
-                    <!-- Interactive 3D Candy XP Disc -->
+                    <!-- 3D CANDY JEWEL BUTTON -->
                     <div 
-                      class="candy-xp-disc d-flex flex-column align-items-center justify-content-center mx-auto"
-                      :style="getTierDiscStyle(tier, index)"
+                      class="candy-jewel-disc d-flex flex-column align-items-center justify-content-center mx-auto"
+                      :style="getTierCandyDiscStyle(tier, index)"
                     >
-                      <div class="disc-gloss-shine"></div>
+                      <!-- Glossy Glass Arc Reflection -->
+                      <div class="jewel-gloss-reflection"></div>
                       
-                      <!-- Disc Content -->
-                      <span class="disc-xp-val fw-bolder">{{ tier.min_xp }}</span>
-                      <span class="disc-xp-label">XP</span>
+                      <!-- Disc XP Numeric Value -->
+                      <span class="jewel-xp-number fw-black">{{ tier.min_xp }}</span>
+                      <span class="jewel-xp-sub">XP</span>
 
-                      <!-- Selected Checkmark / Arrow indicator -->
-                      <div v-if="selectedTier && selectedTier.id === tier.id" class="active-check-badge">
-                        <i class="bi bi-eye-fill"></i>
+                      <!-- Checkmark badge if selected -->
+                      <div v-if="selectedTier && selectedTier.id === tier.id" class="jewel-active-check">
+                        <i class="bi bi-check-lg"></i>
                       </div>
 
-                      <!-- Current User "Vous êtes ici !" Floating Pin -->
-                      <div v-if="isCurrentUserTier(tier)" class="current-user-pin-chip position-absolute">
-                        <div class="pin-ring-pulse"></div>
-                        <span class="pin-label text-nowrap">Vous êtes ici ! 📍</span>
+                      <!-- Current User "Vous êtes ici !" Floating Game Pawn -->
+                      <div v-if="isCurrentUserTier(tier)" class="user-game-pawn position-absolute">
+                        <div class="pawn-pulse-aura"></div>
+                        <div class="pawn-chip d-flex align-items-center gap-1 shadow-sm">
+                          <span class="pawn-pin-icon">📍</span>
+                          <span class="pawn-text">Vous êtes ici !</span>
+                        </div>
                       </div>
                     </div>
 
-                    <!-- Tier Name Ribbon / Pill Under Disc -->
+                    <!-- Candy Tier Name Ribbon / Capsule Under Disc -->
                     <div 
-                      class="tier-label-capsule mt-2 px-3 py-1 rounded-pill fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
-                      :style="getTierCapsuleStyle(tier)"
+                      class="candy-tier-ribbon mt-2 px-3 py-1 rounded-pill fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+                      :style="getTierRibbonStyle(tier)"
                     >
                       <i class="bi" :class="tier.badge_icon || 'bi-award-fill'"></i>
                       <span>{{ tier.name }}</span>
                     </div>
 
-                    <!-- Quick Champions Counter Badge -->
+                    <!-- Members Counter Pill -->
                     <div class="mt-1">
                       <span 
-                        class="badge rounded-pill extra-small px-2 py-1 shadow-2xs fw-semibold"
-                        :class="(tier.players && tier.players.length) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
+                        class="badge rounded-pill extra-small px-2 py-1 shadow-2xs fw-bold"
+                        :class="(tier.players && tier.players.length) ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-white text-muted border'"
                       >
                         {{ (tier.players && tier.players.length) ? tier.players.length + ' champion(s)' : 'En attente' }}
                       </span>
                     </div>
 
                     <!-- Mini Stack of Avatars Perched at this Milestone -->
-                    <div v-if="tier.players && tier.players.length" class="perched-avatars-cluster d-flex justify-content-center align-items-center mt-2">
+                    <div v-if="tier.players && tier.players.length" class="milestone-perched-avatars d-flex justify-content-center align-items-center mt-2">
                       <div class="d-flex align-items-center -space-x-2">
                         <div 
                           v-for="p in tier.players.slice(0, 3)" 
@@ -253,21 +309,22 @@
                 </div>
               </div>
 
-              <!-- Bottom Start Gate: 0 XP (Novice Tech) -->
-              <div class="start-journey-gate text-center mt-5 pt-3 position-relative z-2">
-                <div class="start-gate-pill mx-auto px-4 py-2 rounded-pill shadow-md d-inline-flex align-items-center gap-2">
-                  <span class="fs-5">🏁</span>
+              <!-- BOTTOM OF THE MAP: DÉPART DU PARCOURS • NIVEAU 0 XP (NOVICE TECH) -->
+              <div class="journey-start-gate text-center mt-5 pt-3 position-relative z-3">
+                <div class="start-banner-pill mx-auto px-4 py-3 rounded-pill shadow-lg d-inline-flex align-items-center gap-3">
+                  <span class="fs-4">🏁</span>
                   <div class="text-start">
-                    <strong class="d-block text-white text-uppercase tracking-wider fw-bolder" style="font-size: 13px;">
+                    <strong class="d-block text-white text-uppercase tracking-wider fw-black" style="font-size: 14px;">
                       DÉPART DU PARCOURS &bull; NIVEAU 0 XP
                     </strong>
-                    <span class="text-white opacity-85 extra-small">
-                      Novice Tech &bull; Point d'entrée de tous les bâtisseurs
+                    <span class="text-white opacity-90 extra-small">
+                      Novice Tech &bull; Le point d'entrée officiel de tous les bâtisseurs
                     </span>
                   </div>
+                  <span class="fs-4">🚀</span>
                 </div>
                 <p class="text-muted extra-small mt-2 mb-0">
-                  Chaque nouvelle inscription démarre ici. Contribuez pour gravir la montagne !
+                  Chaque nouvelle inscription démarre ici. Contribuez pour gravir la montagne des champions !
                 </p>
               </div>
 
@@ -276,59 +333,67 @@
           </div>
         </section>
 
-        <!-- PART 2: Champions Roster Cadre (The Right Panel for Selected XP Tier) -->
+        <!-- PART 2: THE CHAMPIONS CADRE (THE RIGHT ROSTER PANEL FOR SELECTED XP TIER) -->
         <aside class="col-12 col-lg-5 col-xl-4 d-flex flex-column">
-          <div class="champions-cadre-card rounded-5 shadow-sm p-4 d-flex flex-column h-100 position-sticky" style="top: 80px;">
+          <div class="champions-cadre-board rounded-5 shadow-lg p-3 p-md-4 d-flex flex-column h-100 position-sticky" style="top: 80px;">
             
-            <!-- Cadre Header: Selected Tier Overview -->
-            <transition name="tier-header-fade" mode="out-in">
+            <!-- Cadre Header: Selected Tier Banner with Trophy Graphic matching screenshot -->
+            <transition name="tier-header-slide" mode="out-in">
               <div 
                 v-if="selectedTier" 
                 :key="selectedTier.id"
-                class="tier-roster-header p-3 rounded-4 mb-3 position-relative overflow-hidden shadow-xs"
-                :style="getRosterHeaderStyle(selectedTier)"
+                class="cadre-tier-banner p-3 rounded-4 mb-3 position-relative overflow-hidden shadow-xs"
+                :style="getCadreBannerStyle(selectedTier)"
               >
-                <div class="d-flex align-items-start justify-content-between gap-2 position-relative z-1">
-                  <div class="d-flex align-items-center gap-3">
-                    <div 
-                      class="tier-header-icon rounded-4 d-flex align-items-center justify-content-center shadow-sm"
-                      :style="{ backgroundColor: selectedTier.color || '#00A859' }"
-                    >
-                      <i class="bi fs-3 text-white" :class="selectedTier.badge_icon || 'bi-award-fill'"></i>
-                    </div>
-                    <div>
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-white text-dark rounded-pill extra-small fw-bold shadow-2xs">
-                          Palier {{ selectedTier.min_xp }} XP
-                        </span>
-                        <span v-if="isCurrentUserTier(selectedTier)" class="badge bg-danger text-white rounded-pill extra-small fw-bold">
-                          Votre rang
-                        </span>
-                      </div>
-                      <h2 class="h5 fw-bolder text-dark mb-0 mt-1">
-                        {{ selectedTier.name }}
-                      </h2>
-                    </div>
-                  </div>
-
-                  <!-- Champions Count Pill -->
-                  <div class="text-end">
-                    <span class="badge rounded-pill px-3 py-2 fw-bolder fs-6 shadow-2xs" style="background: rgba(255,255,255,0.9); color: #0F172A;">
-                      {{ selectedTierPlayers.length }}
-                    </span>
-                    <span class="d-block text-muted extra-small mt-1" style="font-size: 10px;">
-                      {{ selectedTierPlayers.length > 1 ? 'Membres' : 'Membre' }}
-                    </span>
-                  </div>
+                <!-- 3D Gold Trophy in top right -->
+                <div class="position-absolute end-0 top-0 mt-2 me-2 pointer-events-none" style="z-index: 1;">
+                  <svg width="68" height="64" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity: 0.9; filter: drop-shadow(0 4px 6px rgba(245, 158, 11, 0.25));">
+                    <path d="M35 25H85V60C85 73.8071 73.8071 85 60 85C46.1929 85 35 73.8071 35 60V25Z" fill="#F59E0B"/>
+                    <path d="M40 25H80V58C80 69.0457 71.0457 78 60 78C48.9543 78 40 69.0457 40 58V25Z" fill="#FBBF24"/>
+                    <path d="M35 32H18C15.7909 32 14 33.7909 14 36V48C14 56.8366 21.1634 64 30 64H35V54H28C25.7909 54 24 52.2091 24 50V40C24 38.8954 24.8954 38 26 38H35V32Z" fill="#F59E0B"/>
+                    <path d="M85 32H102C104.209 32 106 33.7909 106 36V48C106 56.8366 98.8366 64 90 64H85V54H92C94.2091 54 96 52.2091 96 50V40C96 38.8954 95.1046 38 94 38H85V32Z" fill="#F59E0B"/>
+                    <path d="M52 85H68V98H52V85Z" fill="#D97706"/>
+                    <path d="M40 98H80V106C80 108.209 78.2091 110 76 110H44C41.7909 110 40 108.209 40 106V98Z" fill="#F59E0B"/>
+                    <path d="M45 102H75" stroke="#FDE68A" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
                 </div>
 
-                <p class="text-dark opacity-80 small mt-3 mb-0 position-relative z-1">
-                  {{ selectedTier.description || 'Franchissez ce palier pour débloquer les privilèges de la communauté Tech237.' }}
-                </p>
+                <!-- Banner Content -->
+                <div class="position-relative z-2">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-white text-dark rounded-pill extra-small fw-bold shadow-xs">
+                      Palier {{ selectedTier.min_xp }} XP
+                    </span>
+                    <span v-if="isCurrentUserTier(selectedTier)" class="badge bg-danger text-white rounded-pill extra-small fw-bold">
+                      Votre Rang Actuel
+                    </span>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2">
+                    <div 
+                      class="cadre-icon-box rounded-circle d-flex align-items-center justify-content-center shadow-xs"
+                      :style="{ backgroundColor: selectedTier.color || '#00A859' }"
+                    >
+                      <i class="bi fs-4 text-white" :class="selectedTier.badge_icon || 'bi-award-fill'"></i>
+                    </div>
+                    <div>
+                      <h2 class="h5 fw-black text-dark mb-0">
+                        {{ selectedTier.name }}
+                      </h2>
+                      <span class="text-muted extra-small">
+                        {{ selectedTierPlayers.length }} champion(s) au total
+                      </span>
+                    </div>
+                  </div>
+
+                  <p class="text-dark opacity-85 small mt-2 mb-0">
+                    {{ selectedTier.description || 'Franchissez ce palier pour débloquer les privilèges de la communauté Tech237.' }}
+                  </p>
+                </div>
               </div>
             </transition>
 
-            <!-- Search Filter Bar within this tier's champions -->
+            <!-- Search Filter Bar in this tier -->
             <div class="mb-3 position-relative">
               <div class="input-group input-group-sm">
                 <span class="input-group-text bg-white border-end-0 rounded-start-pill ps-3 text-muted">
@@ -343,25 +408,29 @@
               </div>
             </div>
 
-            <!-- Champions List Stream with Smooth Transitions -->
-            <div class="champions-roster-scroll flex-grow-1 overflow-y-auto pe-1">
-              <transition name="roster-switch" mode="out-in">
+            <!-- Champions Roster Stream with Smooth Transitions -->
+            <div class="cadre-roster-scroll flex-grow-1 overflow-y-auto pe-1">
+              <transition name="roster-flip" mode="out-in">
                 
-                <!-- If there are players in this tier -->
+                <!-- IF PLAYERS EXIST IN THIS TIER -->
                 <div v-if="filteredTierPlayers.length > 0" :key="'list-' + (selectedTier ? selectedTier.id : 'none')" class="d-flex flex-column gap-2">
                   <div 
                     v-for="(player, pIdx) in filteredTierPlayers" 
                     :key="player.id"
-                    class="player-champion-item p-2 px-3 rounded-4 bg-white border d-flex align-items-center justify-content-between transition shadow-2xs"
-                    :class="{ 'highlight-user': isCurrentLoggedInUser(player) }"
+                    class="player-roster-card p-2 px-3 rounded-4 d-flex align-items-center justify-content-between transition"
+                    :class="{ 
+                      'highlight-leader': pIdx === 0,
+                      'highlight-self': isCurrentLoggedInUser(player)
+                    }"
+                    :style="pIdx === 0 ? 'background-color: #FEF9C3; border: 1.5px solid #FEF08A;' : 'background-color: #FFFFFF; border: 1px solid #F1F5F9;'"
                   >
                     <!-- Player Identity -->
-                    <div class="d-flex align-items-center gap-3 min-w-0">
-                      <!-- Rank or Medal -->
-                      <div class="player-rank-number text-center flex-shrink-0">
-                        <span v-if="pIdx === 0 && selectedTier.min_xp >= 100" class="fs-5">🥇</span>
-                        <span v-else-if="pIdx === 1 && selectedTier.min_xp >= 100" class="fs-5">🥈</span>
-                        <span v-else-if="pIdx === 2 && selectedTier.min_xp >= 100" class="fs-5">🥉</span>
+                    <div class="d-flex align-items-center gap-2 gap-sm-3 min-w-0">
+                      <!-- Medal / Rank Number -->
+                      <div class="text-center flex-shrink-0" style="width: 28px;">
+                        <span v-if="pIdx === 0" class="fs-5" title="1ère place">🥇</span>
+                        <span v-else-if="pIdx === 1" class="fs-5" title="2ème place">🥈</span>
+                        <span v-else-if="pIdx === 2" class="fs-5" title="3ème place">🥉</span>
                         <span v-else class="text-muted small fw-bold">#{{ pIdx + 1 }}</span>
                       </div>
 
@@ -371,25 +440,25 @@
                           v-if="player.avatar" 
                           :src="player.avatar.startsWith('/') ? player.avatar : '/' + player.avatar" 
                           :alt="player.name" 
-                          class="rounded-circle border border-2 border-white shadow-2xs" 
-                          style="width: 44px; height: 44px; object-fit: cover;"
+                          class="rounded-circle border" 
+                          style="width: 40px; height: 40px; object-fit: cover;"
                         />
                         <div 
                           v-else 
-                          class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-2xs"
-                          :style="{ width: '44px', height: '44px', backgroundColor: getPlayerColor(player.name), fontSize: '14px' }"
+                          class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-xs"
+                          :style="{ width: '40px', height: '40px', backgroundColor: pIdx === 0 ? '#059669' : (pIdx === 1 ? '#2563EB' : getPlayerColor(player.name)), fontSize: '13px' }"
                         >
                           {{ getInitials(player.name) }}
                         </div>
-                        <span v-if="isCurrentLoggedInUser(player)" class="user-self-dot" title="C'est vous !"></span>
+                        <span v-if="isCurrentLoggedInUser(player)" class="user-self-pip" title="C'est vous !"></span>
                       </div>
 
-                      <!-- Name & Rank Details -->
+                      <!-- Name & Rank Pill -->
                       <div class="min-w-0">
                         <div class="d-flex align-items-center gap-1">
                           <Link 
                             :href="'/communaute/profil/' + player.id" 
-                            class="player-name-link fw-bold text-dark text-truncate text-decoration-none small"
+                            class="player-name-anchor fw-bold text-dark text-truncate text-decoration-none small"
                             :title="player.name + ' - Ouvrir le profil public'"
                           >
                             {{ player.name }}
@@ -398,23 +467,21 @@
                             Moi
                           </span>
                         </div>
-                        <div class="d-flex align-items-center gap-1 mt-0">
-                          <span class="text-muted extra-small" style="font-size: 11px;">
-                            {{ player.rank_title || selectedTier?.name || 'Novice Tech' }}
-                          </span>
-                        </div>
+                        <span class="badge rounded-pill extra-small px-2 py-0 text-truncate" style="background-color: #FEF3C7; color: #92400E; font-size: 10px;">
+                          {{ player.rank_title || selectedTier?.name || 'Novice Tech 🌱' }}
+                        </span>
                       </div>
                     </div>
 
-                    <!-- Right XP Pill & Profile Button -->
+                    <!-- Points Badge Matching Screenshot (Mint green pill) & Link -->
                     <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                      <span class="player-xp-chip fw-bolder extra-small px-2 py-1 rounded-pill">
+                      <span class="badge rounded-pill fw-bold extra-small px-2 py-1 shadow-2xs" style="background-color: #D1FAE5; color: #065F46; font-size: 11px;">
                         {{ player.xp || 0 }} XP
                       </span>
                       <Link 
                         :href="'/communaute/profil/' + player.id" 
-                        class="btn-visit-profile btn btn-sm btn-light rounded-circle shadow-2xs p-0 d-flex align-items-center justify-content-center"
-                        style="width: 32px; height: 32px;"
+                        class="btn-open-profile btn btn-sm btn-light rounded-circle shadow-2xs p-0 d-flex align-items-center justify-content-center"
+                        style="width: 30px; height: 30px;"
                         title="Voir le profil public"
                       >
                         <i class="bi bi-chevron-right text-dark small"></i>
@@ -424,23 +491,23 @@
                   </div>
                 </div>
 
-                <!-- Empty State: No players in this tier yet -->
+                <!-- EMPTY STATE: NO PLAYERS IN THIS TIER YET -->
                 <div 
                   v-else-if="selectedTier && selectedTierPlayers.length === 0" 
                   :key="'empty-' + selectedTier.id"
-                  class="empty-tier-box text-center p-4 rounded-4 bg-white border border-dashed my-auto"
+                  class="empty-tier-notice text-center p-4 rounded-4 bg-white border border-dashed my-auto"
                 >
-                  <div class="empty-tier-badge mb-3">
+                  <div class="empty-tier-icon mb-2">
                     <span class="fs-1">🚩</span>
                   </div>
                   <h3 class="h6 fw-bolder text-dark mb-1">
                     Ce sommet est encore inexploré !
                   </h3>
                   <p class="text-muted extra-small mb-3">
-                    Aucun membre n'a encore atteint le palier <strong>{{ selectedTier.name }}</strong> ({{ selectedTier.min_xp }} XP requis). Soyez le premier pionnier à y hisser votre drapeau !
+                    Aucun membre n'a encore atteint le palier <strong>{{ selectedTier.name }}</strong> ({{ selectedTier.min_xp }} XP requis). Soyez le premier à y hisser votre drapeau !
                   </p>
                   
-                  <div class="how-to-earn-card text-start p-3 rounded-3 bg-light border mb-3">
+                  <div class="xp-rules-box text-start p-3 rounded-3 bg-light border mb-3">
                     <strong class="d-block extra-small text-dark fw-bold mb-2 text-uppercase tracking-wider">
                       🎯 Comment remporter des XP :
                     </strong>
@@ -459,7 +526,7 @@
                       </li>
                       <li class="d-flex align-items-center gap-2">
                         <span class="badge bg-secondary text-white rounded-pill px-2">+5 XP</span>
-                        <span>Commenter et participer aux sondages tech</span>
+                        <span>Commenter et participer aux sondages</span>
                       </li>
                     </ul>
                   </div>
@@ -480,7 +547,7 @@
                   </Link>
                 </div>
 
-                <!-- If search yields no result -->
+                <!-- EMPTY STATE: NO SEARCH RESULT -->
                 <div v-else :key="'no-search'" class="text-center py-4 text-muted extra-small">
                   <i class="bi bi-search fs-3 d-block mb-1 text-secondary opacity-50"></i>
                   Aucun membre ne correspond à « {{ searchQuery }} » dans ce palier.
@@ -489,8 +556,8 @@
               </transition>
             </div>
 
-            <!-- Cadre Footer: Quick Level Progress / Action -->
-            <div class="tier-roster-footer pt-3 mt-3 border-top">
+            <!-- Cadre Footer: Quick Progress & User Space Link -->
+            <div class="cadre-footer pt-3 mt-3 border-top">
               <div v-if="currentUserRank" class="d-flex align-items-center justify-content-between">
                 <div>
                   <span class="text-muted extra-small d-block">Votre progression</span>
@@ -561,6 +628,65 @@ const props = defineProps({
 const page = usePage()
 const searchQuery = ref('')
 const selectedTier = ref(null)
+const soundEnabled = ref(true)
+
+// Web Audio API Synthesizer (Zero asset dependencies, instant game feedback)
+let audioCtx = null
+
+function getAudioContext() {
+  if (!audioCtx && typeof window !== 'undefined') {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext
+    if (AudioContextClass) {
+      audioCtx = new AudioContextClass()
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume()
+  }
+  return audioCtx
+}
+
+function playHoverSound() {
+  if (!soundEnabled.value) return
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'triangle'
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime) // C5
+    osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.08) // E5
+    gain.gain.setValueAtTime(0.05, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.005, ctx.currentTime + 0.08)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.08)
+  } catch (e) {}
+}
+
+function playPopSound() {
+  if (!soundEnabled.value) return
+  try {
+    const ctx = getAudioContext()
+    if (!ctx) return
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime) // D5
+    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12) // A5
+    gain.gain.setValueAtTime(0.12, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + 0.15)
+  } catch (e) {}
+}
+
+function toggleSound() {
+  soundEnabled.value = !soundEnabled.value
+}
 
 // Logo from SiteSetting
 const logoUrl = computed(() => {
@@ -568,7 +694,7 @@ const logoUrl = computed(() => {
   return logo.startsWith('/') ? logo : '/' + logo
 })
 
-// Tiers ordered: Highest XP at the TOP (index 0) down to 0 XP at the BOTTOM
+// Tiers ordered: Highest XP at the TOP (Summit) down to 0 XP at the BOTTOM (Start)
 const sortedLevels = computed(() => {
   const list = [...(props.levels || [])].sort((a, b) => b.min_xp - a.min_xp)
   return list
@@ -606,9 +732,14 @@ const filteredTierPlayers = computed(() => {
 })
 
 // Action: Click a tier node to reveal its champions in the second frame
-function selectTier(tier) {
+function onSelectTier(tier) {
   selectedTier.value = tier
   searchQuery.value = ''
+  playPopSound()
+}
+
+function onHoverTier(tier) {
+  playHoverSound()
 }
 
 // Helpers
@@ -650,34 +781,34 @@ function getPlayerColor(name) {
 function getSerpentineAlignment(index, total) {
   const mod = index % 4
   if (mod === 0) return 'justify-content-center'
-  if (mod === 1) return 'justify-content-start ps-4 ps-md-5'
+  if (mod === 1) return 'justify-content-start ps-3 ps-md-5'
   if (mod === 2) return 'justify-content-center'
-  return 'justify-content-end pe-4 pe-md-5'
+  return 'justify-content-end pe-3 pe-md-5'
 }
 
-// Dynamic curved SVG path between the points
+// Dynamic curved SVG path between the points (Serpentine Candy Road)
 const computedCurvedSvgPath = computed(() => {
   const n = sortedLevels.value.length || 7
   let path = ''
-  const startY = 120
-  const endY = 1320
+  const startY = 130
+  const endY = 1420
   const stepY = (endY - startY) / Math.max(n - 1, 1)
 
   for (let i = 0; i < n; i++) {
     const y = startY + i * stepY
     const mod = i % 4
-    let x = 340 // center
-    if (mod === 1) x = 160 // left
-    if (mod === 3) x = 520 // right
+    let x = 360 // center
+    if (mod === 1) x = 180 // left curve
+    if (mod === 3) x = 540 // right curve
 
     if (i === 0) {
       path += `M ${x} ${y}`
     } else {
       const prevY = startY + (i - 1) * stepY
       const prevMod = (i - 1) % 4
-      let prevX = 340
-      if (prevMod === 1) prevX = 160
-      if (prevMod === 3) prevX = 520
+      let prevX = 360
+      if (prevMod === 1) prevX = 180
+      if (prevMod === 3) prevX = 540
 
       const cY1 = prevY + stepY * 0.5
       const cY2 = y - stepY * 0.5
@@ -688,38 +819,39 @@ const computedCurvedSvgPath = computed(() => {
   return path
 })
 
-// Disc Styling with physical 3D button depth & candy gradient
-function getTierDiscStyle(tier, index) {
+// Candy Crush 3D Jewel Disc Styling
+function getTierCandyDiscStyle(tier, index) {
   const baseColor = tier.color || '#00A859'
   const isSelected = selectedTier.value && selectedTier.value.id === tier.id
 
   return {
-    background: `linear-gradient(145deg, ${lightenColor(baseColor, 20)} 0%, ${baseColor} 70%, ${darkenColor(baseColor, 20)} 100%)`,
-    borderColor: lightenColor(baseColor, 40),
+    background: `radial-gradient(circle at 35% 30%, ${lightenColor(baseColor, 35)} 0%, ${baseColor} 55%, ${darkenColor(baseColor, 30)} 100%)`,
+    borderColor: '#FFFFFF',
     boxShadow: isSelected 
-      ? `0 12px 28px ${hexToRgba(baseColor, 0.45)}, 0 4px 0 ${darkenColor(baseColor, 35)}`
-      : `0 8px 18px ${hexToRgba(baseColor, 0.3)}, 0 4px 0 ${darkenColor(baseColor, 35)}`
+      ? `0 14px 28px ${hexToRgba(baseColor, 0.55)}, 0 6px 0 ${darkenColor(baseColor, 40)}, inset 0 -4px 8px rgba(0,0,0,0.3)`
+      : `0 8px 20px ${hexToRgba(baseColor, 0.35)}, 0 5px 0 ${darkenColor(baseColor, 40)}, inset 0 -4px 8px rgba(0,0,0,0.25)`
   }
 }
 
-function getTierCapsuleStyle(tier) {
+function getTierRibbonStyle(tier) {
   const baseColor = tier.color || '#00A859'
   return {
     backgroundColor: '#FFFFFF',
     color: '#0F172A',
-    border: `2px solid ${baseColor}`
+    border: `2px solid ${baseColor}`,
+    boxShadow: `0 3px 6px ${hexToRgba(baseColor, 0.2)}`
   }
 }
 
-function getRosterHeaderStyle(tier) {
+function getCadreBannerStyle(tier) {
   const baseColor = tier.color || '#00A859'
   return {
-    background: `linear-gradient(135deg, ${hexToRgba(baseColor, 0.12)} 0%, #FFFFFF 100%)`,
-    border: `1.5px solid ${hexToRgba(baseColor, 0.25)}`
+    background: `linear-gradient(135deg, ${hexToRgba(baseColor, 0.15)} 0%, #FFFFFF 100%)`,
+    border: `1.5px solid ${hexToRgba(baseColor, 0.3)}`
   }
 }
 
-// Color arithmetic helpers for custom lighting
+// Color arithmetic helpers for custom 3D lighting
 function hexToRgba(hex, alpha = 1) {
   if (!hex || !hex.startsWith('#')) return `rgba(0, 168, 89, ${alpha})`
   const clean = hex.replace('#', '')
@@ -745,216 +877,246 @@ function darkenColor(col, percent) {
 </script>
 
 <style scoped>
-/* Page Root & Ambient Canvas */
-.champions-arena-root {
-  background: radial-gradient(circle at 20% 15%, #FFFBEB 0%, #F8FAFC 50%, #F1F5F9 100%);
+/* ==========================================================================
+   CANDY CRUSH GAME ARENA ROOT & LANDSCAPE
+   ========================================================================== */
+.candy-game-root {
+  background: linear-gradient(180deg, #E0F2FE 0%, #DCFCE7 45%, #FEF08A 75%, #FCE7F3 100%);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #1E293B;
+  color: #0F172A;
   min-height: 100vh;
 }
 
-/* Header */
-.arena-header {
-  background: rgba(255, 255, 255, 0.92);
+/* ==========================================================================
+   FLOATING GAME HUD BAR (No default website navbar/footer)
+   ========================================================================== */
+.game-hud-bar {
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-  z-index: 1020;
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  z-index: 1050;
 }
 
-.arena-logo {
-  height: 40px;
-  max-width: 170px;
+.game-hud-logo-wrap {
+  padding: 4px 10px;
+  background: #FFFFFF;
+  border-radius: 999px;
+  border: 1px solid #E2E8F0;
+  transition: transform 0.2s ease;
+}
+
+.game-hud-logo-wrap:hover {
+  transform: scale(1.03);
+}
+
+.game-hud-logo {
+  height: 34px;
+  max-width: 140px;
   object-fit: contain;
 }
 
-.arena-badge-tag {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #D97706;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.pulse-dot {
-  width: 6px;
-  height: 6px;
-  background-color: #10B981;
-  border-radius: 999px;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
-  animation: pulseBeacon 1.8s infinite;
-}
-
-@keyframes pulseBeacon {
-  0% { transform: scale(0.9); opacity: 0.7; }
-  50% { transform: scale(1.3); opacity: 1; }
-  100% { transform: scale(0.9); opacity: 0.7; }
-}
-
-.arena-tagline {
-  font-size: 12px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.stat-icon-coin {
-  font-size: 16px;
-}
-
-/* Return Home Button */
-.btn-return-home {
+/* Game Home Button */
+.btn-game-home {
   background: linear-gradient(180deg, #F59E0B 0%, #D97706 100%);
   color: #FFFFFF !important;
-  font-weight: 700;
   font-size: 13px;
-  padding: 8px 18px;
+  padding: 7px 16px;
   border-radius: 999px;
+  border: 1px solid #FBBF24;
   box-shadow: 0 3px 0 #B45309, 0 6px 14px rgba(217, 119, 6, 0.25);
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.btn-return-home:hover {
+.btn-game-home:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 0 #B45309, 0 8px 18px rgba(217, 119, 6, 0.35);
+  color: #FFFFFF;
 }
 
-.btn-return-home:active {
+.btn-game-home:active {
   transform: translateY(2px);
   box-shadow: 0 1px 0 #B45309;
 }
 
-/* Left Map Section Container */
-.map-card-wrapper {
-  background: linear-gradient(180deg, #FFFFFF 0%, #FEFCE8 60%, #FEF3C7 100%);
+.btn-game-icon {
+  font-size: 14px;
+}
+
+/* Floating Stats Pill */
+.game-hud-stats-pill {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 999px;
   border: 1px solid #FDE68A;
+}
+
+.hud-stat-emoji {
+  font-size: 16px;
+}
+
+.hud-stat-divider {
+  width: 1px;
+  height: 22px;
+  background-color: #E2E8F0;
+}
+
+/* Sound & User Buttons */
+.btn-game-hud-action {
+  width: 36px;
+  height: 36px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-game-hud-action:hover {
+  transform: scale(1.08);
+  background: #F8FAFC;
+}
+
+.btn-game-user-pill {
+  background: #FFFFFF;
+  padding: 4px 12px 4px 5px;
+  border-radius: 999px;
+  border: 1px solid #E2E8F0;
+  transition: all 0.2s ease;
+}
+
+.btn-game-user-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* ==========================================================================
+   PART 1: CANDY MAP BOARD (Left Column)
+   ========================================================================== */
+.candy-map-board {
+  background: linear-gradient(180deg, #E0F2FE 0%, #F0FDF4 40%, #FEF9C3 75%, #FCE7F3 100%);
+  border: 4px solid #FFFFFF;
   min-height: calc(100vh - 120px);
 }
 
-/* Floating background islands and decor */
-.bg-island {
+/* Whimsical Ambient Decor */
+.float-decor {
   position: absolute;
-  border-radius: 999px;
-  filter: blur(60px);
   pointer-events: none;
-  opacity: 0.45;
+  user-select: none;
+  z-index: 2;
+  opacity: 0.85;
 }
 
-.island-top-right {
-  top: -60px;
-  right: -60px;
-  width: 320px;
-  height: 320px;
-  background: #FDE047;
-}
+.cloud-1 { top: 70px; left: 30px; font-size: 34px; animation: floatAir 10s infinite ease-in-out alternate; }
+.cloud-2 { top: 380px; right: 40px; font-size: 40px; animation: floatAir 12s infinite ease-in-out alternate-reverse; }
+.cloud-3 { bottom: 260px; left: 45px; font-size: 36px; animation: floatAir 9s infinite ease-in-out alternate; }
+.candy-1 { top: 220px; left: 55px; font-size: 26px; animation: floatAir 7s infinite ease-in-out alternate; }
+.candy-2 { bottom: 480px; right: 50px; font-size: 24px; animation: floatAir 8s infinite ease-in-out alternate-reverse; }
+.candy-3 { bottom: 120px; left: 35px; font-size: 28px; animation: floatAir 6s infinite ease-in-out alternate; }
+.sparkle-1 { top: 140px; right: 80px; font-size: 20px; animation: pulseSparkle 3s infinite ease-in-out; }
+.sparkle-2 { bottom: 360px; right: 90px; font-size: 22px; animation: pulseSparkle 4s infinite ease-in-out; }
+.balloon-1 { top: 40px; right: 45px; font-size: 32px; animation: floatAir 14s infinite ease-in-out alternate; }
 
-.island-bottom-left {
-  bottom: -40px;
-  left: -40px;
-  width: 280px;
-  height: 280px;
-  background: #BBF7D0;
-}
-
-.cloud-float {
-  position: absolute;
-  font-size: 28px;
-  pointer-events: none;
-  opacity: 0.7;
-  animation: floatCloud 8s infinite alternate ease-in-out;
-}
-
-.cloud-pos-1 { top: 60px; left: 30px; animation-duration: 9s; }
-.cloud-pos-2 { top: 220px; right: 40px; animation-duration: 11s; }
-.cloud-pos-3 { bottom: 300px; left: 50px; animation-duration: 7s; }
-.cloud-pos-4 { bottom: 120px; right: 60px; animation-duration: 10s; }
-
-@keyframes floatCloud {
-  0% { transform: translateY(0px) translateX(0px); }
-  50% { transform: translateY(-12px) translateX(8px); }
+@keyframes floatAir {
+  0% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-14px) translateX(8px); }
   100% { transform: translateY(6px) translateX(-6px); }
 }
 
-/* Summit Header */
-.summit-crest-box {
-  max-width: 540px;
+@keyframes pulseSparkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
 }
 
-.summit-crown-badge {
-  width: 58px;
-  height: 58px;
+/* Summit Header */
+.summit-castle-icon {
+  width: 64px;
+  height: 64px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #FEF08A 0%, #F59E0B 100%);
-  border: 3px solid #FDE68A;
-  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
-  font-size: 28px;
+  background: radial-gradient(circle at 35% 30%, #FEF08A 0%, #F59E0B 70%, #B45309 100%);
+  border: 4px solid #FFFFFF;
+  box-shadow: 0 10px 24px rgba(245, 158, 11, 0.4), 0 4px 0 #92400E;
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: crownBob 3s infinite ease-in-out;
+  font-size: 30px;
 }
 
-@keyframes crownBob {
+.crown-bob {
+  display: inline-block;
+  animation: crownHover 3s infinite ease-in-out;
+}
+
+@keyframes crownHover {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-6px); }
 }
 
-.summit-heading {
-  font-size: clamp(22px, 3vw, 32px);
+.summit-title {
+  font-size: clamp(24px, 3.2vw, 34px);
   font-weight: 900;
   letter-spacing: -0.02em;
-  color: #0F172A;
+  text-shadow: 0 2px 4px rgba(255, 255, 255, 0.8);
 }
 
-.summit-lead {
-  font-size: 14px;
+.summit-subtitle {
+  max-width: 500px;
+  font-size: 13px;
 }
 
-/* Serpentine Track & SVG Line */
-.roadmap-connecting-svg {
+/* ==========================================================================
+   SERPENTINE CANDY TRACK & MILESTONE JEWELS
+   ========================================================================== */
+.candy-track-svg {
   top: 0;
   left: 0;
   z-index: 1;
 }
 
-.svg-dash-animated {
-  animation: dashAnimation 25s linear infinite;
+.svg-dash-flow {
+  animation: flowDash 20s linear infinite;
 }
 
-@keyframes dashAnimation {
+@keyframes flowDash {
   from { stroke-dashoffset: 0; }
   to { stroke-dashoffset: 400; }
 }
 
-/* Pod & Interactive Disc */
-.tier-milestone-pod {
+/* Interactive Candy Pod */
+.candy-milestone-pod {
   cursor: pointer;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   user-select: none;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 8px;
 }
 
-/* Hover effect on XP tier */
-.tier-milestone-pod:hover {
-  transform: translateY(-8px) scale(1.08);
+/* FLUID CANDY HOVER ANIMATION */
+.candy-milestone-pod:hover {
+  transform: translateY(-10px) scale(1.15);
 }
 
-.tier-milestone-pod:active {
-  transform: translateY(-2px) scale(1.02);
+.candy-milestone-pod:hover .candy-jewel-disc {
+  filter: brightness(1.08) drop-shadow(0 0 14px rgba(245, 158, 11, 0.5));
 }
 
-.pod-selected-halo {
+.candy-milestone-pod:active {
+  transform: translateY(-2px) scale(1.04);
+}
+
+/* Selection Halo */
+.pod-glow-ring {
   position: absolute;
-  top: -12px;
+  top: -8px;
   left: 50%;
   transform: translateX(-50%);
   width: 104px;
   height: 104px;
   border-radius: 999px;
-  border: 3px dashed #F59E0B;
-  animation: haloSpin 12s linear infinite;
+  border: 3.5px dashed #F59E0B;
+  animation: haloSpin 10s linear infinite;
   pointer-events: none;
 }
 
@@ -963,108 +1125,125 @@ function darkenColor(col, percent) {
   to { transform: translateX(-50%) rotate(360deg); }
 }
 
-.summit-star-trophy {
-  top: -26px;
+/* Summit Crown on index 0 */
+.summit-milestone-crown {
+  top: -24px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 24px;
 }
 
-.trophy-bounce {
+.bounce-crown {
   display: inline-block;
-  animation: trophyBob 2s infinite ease-in-out;
+  animation: crownHover 2.2s infinite ease-in-out;
 }
 
-@keyframes trophyBob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-/* Candy 3D Disc */
-.candy-xp-disc {
-  width: 80px;
-  height: 80px;
+/* 3D CANDY JEWEL BUTTON */
+.candy-jewel-disc {
+  width: 82px;
+  height: 82px;
   border-radius: 999px;
   border: 4px solid #FFFFFF;
   position: relative;
   overflow: visible;
-  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.disc-gloss-shine {
+/* Glass Reflection Arc */
+.jewel-gloss-reflection {
   position: absolute;
   top: 4px;
   left: 10px;
   right: 10px;
-  height: 28px;
+  height: 30px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.05) 100%);
   pointer-events: none;
 }
 
-.disc-xp-val {
+.jewel-xp-number {
   font-size: 22px;
   color: #FFFFFF;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
   line-height: 1;
 }
 
-.disc-xp-label {
+.jewel-xp-sub {
   font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.05em;
+  font-weight: 900;
+  letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.95);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-.active-check-badge {
+.jewel-active-check {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
+  bottom: -3px;
+  right: -3px;
   width: 24px;
   height: 24px;
   background: #0F172A;
   color: #FBBF24;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
   border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
-/* Current user pin on map */
-.current-user-pin-chip {
-  top: -36px;
+/* User Pawn Pin */
+.user-game-pawn {
+  top: -38px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
+  pointer-events: none;
 }
 
-.pin-label {
-  background: #DC2626;
+.pawn-chip {
+  background: linear-gradient(180deg, #EF4444 0%, #DC2626 100%);
   color: #FFFFFF;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 2px solid #FFFFFF;
   font-size: 11px;
   font-weight: 800;
-  padding: 3px 9px;
-  border-radius: 999px;
-  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.4);
-  border: 2px solid #FFFFFF;
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.4);
+  white-space: nowrap;
 }
 
-/* Label under disc */
-.tier-label-capsule {
-  font-size: 13px;
+.pawn-pulse-aura {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.35);
+  animation: pulsePawn 1.8s infinite;
+  z-index: -1;
+}
+
+@keyframes pulsePawn {
+  0% { transform: translateX(-50%) scale(0.9); opacity: 0.8; }
+  100% { transform: translateX(-50%) scale(1.4); opacity: 0; }
+}
+
+/* Candy Ribbon Label Under Disc */
+.candy-tier-ribbon {
+  font-size: 12px;
   transition: all 0.25s ease;
 }
 
-.tier-milestone-pod:hover .tier-label-capsule {
+.candy-milestone-pod:hover .candy-tier-ribbon {
   transform: translateY(2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12) !important;
 }
 
-/* Avatars clustered at milestone */
+/* Avatars Perched at Milestone */
 .avatar-tiny-ring {
   width: 22px;
   height: 22px;
@@ -1072,63 +1251,55 @@ function darkenColor(col, percent) {
   overflow: hidden;
 }
 
-/* Start gate pill at bottom */
-.start-gate-pill {
+/* Start Banner at Bottom */
+.start-banner-pill {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  border: 3px solid #6EE7B7;
+  border: 3.5px solid #A7F3D0;
+  max-width: 520px;
 }
 
-/* RIGHT PANEL: Champions Cadre */
-.champions-cadre-card {
+/* ==========================================================================
+   PART 2: THE CHAMPIONS CADRE (Right Panel)
+   ========================================================================== */
+.champions-cadre-board {
   background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  border: 2px solid #F1F5F9;
   max-height: calc(100vh - 120px);
 }
 
-.tier-header-icon {
-  width: 52px;
-  height: 52px;
+.cadre-tier-banner {
+  border-radius: 20px;
+}
+
+.cadre-icon-box {
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
 }
 
-/* Scroll area for champions list */
-.champions-roster-scroll {
+/* Champions Scroll Stream */
+.cadre-roster-scroll {
   scrollbar-width: thin;
   scrollbar-color: #CBD5E1 transparent;
 }
 
-.player-champion-item {
-  border-color: #F1F5F9 !important;
+.player-roster-card {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.player-champion-item:hover {
+.player-roster-card:hover {
   transform: translateX(4px);
   background-color: #F8FAFC !important;
   border-color: #E2E8F0 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06) !important;
 }
 
-.player-champion-item.highlight-user {
+.player-roster-card.highlight-self {
   background-color: #ECFDF5 !important;
   border-color: #A7F3D0 !important;
 }
 
-.player-name-link {
-  transition: color 0.15s ease;
-}
-
-.player-name-link:hover {
-  color: #059669 !important;
-}
-
-.player-xp-chip {
-  background-color: #FEF3C7;
-  color: #92400E;
-  font-size: 11px;
-}
-
-.user-self-dot {
+.user-self-pip {
   position: absolute;
   bottom: 0;
   right: 0;
@@ -1139,47 +1310,55 @@ function darkenColor(col, percent) {
   border-radius: 999px;
 }
 
-.btn-visit-profile:hover {
+.player-name-anchor {
+  transition: color 0.15s ease;
+}
+
+.player-name-anchor:hover {
+  color: #059669 !important;
+}
+
+.btn-open-profile:hover {
   background-color: #0F172A !important;
   color: #FFFFFF !important;
 }
 
-.btn-visit-profile:hover i {
+.btn-open-profile:hover i {
   color: #FFFFFF !important;
 }
 
-/* Transitions */
-.tier-header-fade-enter-active,
-.tier-header-fade-leave-active {
+/* Smooth Vue Transitions */
+.tier-header-slide-enter-active,
+.tier-header-slide-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
-.tier-header-fade-enter-from {
+.tier-header-slide-enter-from {
   opacity: 0;
   transform: translateY(-8px);
 }
 
-.tier-header-fade-leave-to {
+.tier-header-slide-leave-to {
   opacity: 0;
   transform: translateY(8px);
 }
 
-.roster-switch-enter-active,
-.roster-switch-leave-active {
+.roster-flip-enter-active,
+.roster-flip-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 
-.roster-switch-enter-from {
+.roster-flip-enter-from {
   opacity: 0;
-  transform: translateY(10px);
+  transform: translateY(12px);
 }
 
-.roster-switch-leave-to {
+.roster-flip-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: translateY(-12px);
 }
 
-/* Utility classes */
+/* Utilities */
 .shadow-2xs {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
@@ -1188,12 +1367,16 @@ function darkenColor(col, percent) {
   font-size: 12px;
 }
 
+.fw-black {
+  font-weight: 900;
+}
+
 .-space-x-2 > * + * {
   margin-left: -6px;
 }
 
 @media (max-width: 991.98px) {
-  .champions-cadre-card {
+  .champions-cadre-board {
     position: static !important;
     max-height: none;
   }

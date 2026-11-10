@@ -196,6 +196,17 @@
                 $seoDesc = "Partagez de courtes actualités dans le domaine de la tech avec les autres membres de la communauté. ";
                 $seoImg = $defaultImg;
             }
+            elseif (Request::routeIs('user.portfolio') || Request::routeIs('user.portfolio.short')) {
+                $username = request()->route('username');
+                $portfolioUser = \App\Models\User::where('username', $username)->first();
+                if ($portfolioUser) {
+                    $headline = $portfolioUser->headline ? " — " . $portfolioUser->headline : " • Profil & Portfolio Tech";
+                    $seoTitle = $portfolioUser->name . $headline . " | " . $siteName;
+                    $seoDesc = $formatText($portfolioUser->bio ?: ($portfolioUser->name . " est un développeur et bâtisseur tech sur " . $siteName . ". Découvrez ses projets, POCs, compétences et réalisations."));
+                    $seoImg = $formatImage($portfolioUser->avatar);
+                    $ogType = 'profile';
+                }
+            }
         } catch (\Throwable $e) {
             // Safe fallback to site defaults
             $seoTitle = $siteName . ' - Là où les idées deviennent des projets';

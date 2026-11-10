@@ -151,6 +151,11 @@ Route::get('/carte-des-champions', [App\Http\Controllers\Front\CommunityControll
 Route::get('/map-des-gagnants', [App\Http\Controllers\Front\CommunityController::class, 'map']);
 Route::get('/communaute/profil/{id}', [App\Http\Controllers\Front\CommunityController::class, 'profile'])->name('community.profile');
 
+// Public Developer Portfolio & CV (@username and /portfolio/{username})
+Route::get('/@{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->where('username', '[a-zA-Z0-9_\-\.]+')->name('user.portfolio.short');
+Route::get('/portfolio/{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->name('user.portfolio');
+Route::get('/cv/{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->name('user.cv');
+
 // Comments Submission
 Route::post('/api/comments', [CommentController::class, 'store'])->name('api.comments.store')->middleware('auth:web');
 
@@ -295,6 +300,9 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/kanban/cards/{cardId}/toggle-completion', [KanbanController::class, 'toggleCardCompletion'])->name('user.kanban.cards.toggle_completion');
     Route::post('/espace-utilisateur/kanban/cards/{cardId}/archive', [KanbanController::class, 'archiveCard'])->name('user.kanban.cards.archive');
     Route::post('/espace-utilisateur/kanban/cards/{cardId}/unarchive', [KanbanController::class, 'unarchiveCard'])->name('user.kanban.cards.unarchive');
+
+    // Portfolio Settings & Customization
+    Route::post('/espace-utilisateur/portfolio/save', [App\Http\Controllers\User\PortfolioController::class, 'save'])->name('user.portfolio.save');
 });
 
 // Public Project Roadmap

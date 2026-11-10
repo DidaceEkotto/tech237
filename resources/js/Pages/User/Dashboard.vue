@@ -215,6 +215,16 @@
               </button>
 
               <button 
+                @click="setSection('portfolio')" 
+                class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+                :class="currentSection === 'portfolio' ? 'bg-danger text-white' : 'text-dark'"
+              >
+                <i class="bi bi-briefcase me-2 fs-5 text-warning"></i>
+                <span>Mon CV &amp; Portfolio</span>
+                <span class="badge bg-warning text-dark rounded-pill extra-small ms-auto fw-bold">Nouveau</span>
+              </button>
+
+              <button 
                 @click="setSection('profile')" 
                 class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
                 :class="currentSection === 'profile' ? 'bg-danger text-white' : 'text-dark'"
@@ -1835,6 +1845,841 @@
             </div>
           </div>
 
+          <!-- 10. MON CV & PORTFOLIO TECH UNIQUE -->
+          <div v-else-if="currentSection === 'portfolio'">
+            
+            <!-- Toast Feedback Alert -->
+            <div v-if="portfolioToastMsg" class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm p-3 mb-4 d-flex align-items-center justify-content-between" role="alert">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                <span class="fw-bold">{{ portfolioToastMsg }}</span>
+              </div>
+              <button type="button" class="btn-close" @click="portfolioToastMsg = ''"></button>
+            </div>
+
+            <!-- Top Hero Banner -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-4 bg-white position-relative overflow-hidden">
+              <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+                <div>
+                  <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-2 text-white fw-bold extra-small" style="background: linear-gradient(135deg, #0B2559 0%, #00A859 100%);">
+                    <i class="bi bi-briefcase-fill"></i>
+                    <span>Studio Portfolio &amp; CV Partageable</span>
+                  </div>
+                  <h3 class="fw-bold mb-1 text-dark">Mon Portfolio Tech &amp; CV Unique</h3>
+                  <p class="text-muted small mb-0">
+                    Personnalisez l'ordre de chaque bloc, le thème et le style pour que votre portfolio soit unique au monde. Partagez votre lien vérifié Tech237 pour séduire recruteurs et clients.
+                  </p>
+                </div>
+
+                <!-- Live Status & Save Button -->
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <span class="badge rounded-pill px-3 py-2 fw-bold extra-small" :class="portfolioForm.portfolio_published ? 'bg-success text-white' : 'bg-secondary text-white'">
+                    <i class="bi" :class="portfolioForm.portfolio_published ? 'bi-globe2' : 'bi-eye-slash'"></i>
+                    {{ portfolioForm.portfolio_published ? 'En ligne (Public)' : 'Mode Privé' }}
+                  </span>
+
+                  <button 
+                    type="button" 
+                    @click="savePortfolioSettings" 
+                    class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                    :disabled="isSavingPortfolio"
+                  >
+                    <span v-if="isSavingPortfolio" class="spinner-border spinner-border-sm"></span>
+                    <i v-else class="bi bi-check2-circle fs-6"></i>
+                    <span>{{ isSavingPortfolio ? 'Enregistrement...' : 'Enregistrer' }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Shareable Link Pill Box -->
+              <div class="p-3 rounded-4 bg-light border d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-2 min-w-0">
+                  <span class="rounded-circle bg-white text-primary p-2 d-flex align-items-center justify-content-center shadow-xs" style="width: 36px; height: 36px;">
+                    <i class="bi bi-link-45deg fs-5"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <small class="text-muted extra-small d-block fw-bold text-uppercase">Votre lien public vérifié :</small>
+                    <span class="fw-bold text-dark text-truncate d-block">{{ portfolioShareUrl }}</span>
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                  <button 
+                    type="button" 
+                    @click="copyPortfolioUrl" 
+                    class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-bold text-dark shadow-2xs d-inline-flex align-items-center gap-1"
+                  >
+                    <i class="bi" :class="isPortfolioCopied ? 'bi-check2 text-success' : 'bi-clipboard'"></i>
+                    <span>{{ isPortfolioCopied ? 'Copié !' : 'Copier le lien' }}</span>
+                  </button>
+
+                  <button 
+                    type="button" 
+                    @click="openPortfolioPublic" 
+                    class="btn btn-sm btn-dark rounded-pill px-3 fw-bold shadow-2xs d-inline-flex align-items-center gap-1"
+                  >
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    <span>Voir en direct</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sub-Tabs Navigation -->
+              <ul class="nav nav-pills mt-4 gap-2 border-top pt-3 flex-wrap">
+                <li class="nav-item">
+                  <button 
+                    type="button" 
+                    @click="portfolioSubTab = 'layout'" 
+                    class="nav-link rounded-pill px-4 fw-bold"
+                    :class="portfolioSubTab === 'layout' ? 'active bg-success text-white' : 'text-muted'"
+                  >
+                    <i class="bi bi-palette-fill me-1"></i> 1. Disposition des Blocs &amp; Thème
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button 
+                    type="button" 
+                    @click="portfolioSubTab = 'content'" 
+                    class="nav-link rounded-pill px-4 fw-bold"
+                    :class="portfolioSubTab === 'content' ? 'active bg-success text-white' : 'text-muted'"
+                  >
+                    <i class="bi bi-pencil-square me-1"></i> 2. Contenu du CV &amp; Parcours
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button 
+                    type="button" 
+                    @click="portfolioSubTab = 'share'" 
+                    class="nav-link rounded-pill px-4 fw-bold"
+                    :class="portfolioSubTab === 'share' ? 'active bg-success text-white' : 'text-muted'"
+                  >
+                    <i class="bi bi-share-fill me-1"></i> 3. Partage Viral &amp; Export PDF
+                  </button>
+                </li>
+              </ul>
+
+            </div>
+
+            <!-- TAB 1: 🎨 DISPOSITION DES BLOCS & THEME -->
+            <div v-if="portfolioSubTab === 'layout'" class="d-flex flex-column gap-4">
+              
+              <!-- 1.1 Thèmes & Palettes Visuelles -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                  <i class="bi bi-palette text-success"></i> Thème Visuel &amp; Ambiance
+                </h4>
+                <p class="text-muted small mb-4">
+                  Choisissez une identité graphique forte. Même avec 1 000 développeurs inscrits, votre portfolio aura un rendu distinctif.
+                </p>
+
+                <div class="row g-3 mb-4">
+                  <!-- Theme 1: Emerald -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
+                      :class="portfolioForm.portfolio_layout.theme === 'emerald' ? 'border-success border-2 bg-success-subtle bg-opacity-10' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.theme = 'emerald'; portfolioForm.portfolio_layout.accent_color = '#00A859'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #00A859;"></span>
+                        <strong class="small text-dark">Émeraude Tech237</strong>
+                      </div>
+                      <small class="text-muted extra-small d-block">Vert signature, frais, moderne et optimisé pour le dev 237.</small>
+                    </div>
+                  </div>
+
+                  <!-- Theme 2: Dark Cyberpunk -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
+                      :class="portfolioForm.portfolio_layout.theme === 'dark' ? 'border-success border-2 bg-dark text-white' : 'bg-dark text-white opacity-85'"
+                      @click="portfolioForm.portfolio_layout.theme = 'dark'; portfolioForm.portfolio_layout.accent_color = '#10B981'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #10B981;"></span>
+                        <strong class="small text-white">Dark Cyberpunk</strong>
+                      </div>
+                      <small class="text-white-50 extra-small d-block">Fond sombre ardoise, contrastes néon, look geek élégant.</small>
+                    </div>
+                  </div>
+
+                  <!-- Theme 3: Navy Corporate -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
+                      :class="portfolioForm.portfolio_layout.theme === 'navy' ? 'border-primary border-2 bg-primary-subtle bg-opacity-10' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.theme = 'navy'; portfolioForm.portfolio_layout.accent_color = '#2563EB'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #2563EB;"></span>
+                        <strong class="small text-dark">Bleu Nuit Tech</strong>
+                      </div>
+                      <small class="text-muted extra-small d-block">Bleu cobalt &amp; indigo, sérieux, adapté aux profils corporate.</small>
+                    </div>
+                  </div>
+
+                  <!-- Theme 4: Sunset Gold -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
+                      :class="portfolioForm.portfolio_layout.theme === 'sunset' ? 'border-warning border-2 bg-warning-subtle bg-opacity-15' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.theme = 'sunset'; portfolioForm.portfolio_layout.accent_color = '#F59E0B'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #F59E0B;"></span>
+                        <strong class="small text-dark">Ambre &amp; Sunset</strong>
+                      </div>
+                      <small class="text-muted extra-small d-block">Tons dorés et solaires, énergique et chaleureux.</small>
+                    </div>
+                  </div>
+
+                  <!-- Theme 5: Purple Innovator -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
+                      :class="portfolioForm.portfolio_layout.theme === 'purple' ? 'border-purple border-2' : 'bg-white'"
+                      style="border-color: #8B5CF6;"
+                      @click="portfolioForm.portfolio_layout.theme = 'purple'; portfolioForm.portfolio_layout.accent_color = '#8B5CF6'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #8B5CF6;"></span>
+                        <strong class="small text-dark">Royal Purple</strong>
+                      </div>
+                      <small class="text-muted extra-small d-block">Violet futuriste, idéal pour UI/UX, Web3 et créatifs.</small>
+                    </div>
+                  </div>
+
+                  <!-- Theme 6: Minimalist Pure -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
+                      :class="portfolioForm.portfolio_layout.theme === 'minimal' ? 'border-dark border-2 bg-light' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.theme = 'minimal'; portfolioForm.portfolio_layout.accent_color = '#18181b'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block bg-dark" style="width: 18px; height: 18px;"></span>
+                        <strong class="small text-dark">Minimal Noir &amp; Blanc</strong>
+                      </div>
+                      <small class="text-muted extra-small d-block">Épure absolue sans distractions, focus total sur le texte et le code.</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Custom Accent Color Picker & Card Style -->
+                <div class="row g-4 pt-3 border-top">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark mb-2">Couleur d'accentuation personnalisée</label>
+                    <div class="d-flex align-items-center gap-2">
+                      <input type="color" v-model="portfolioForm.portfolio_layout.accent_color" class="form-control form-control-color rounded-circle p-1" style="width: 44px; height: 44px;" />
+                      <input type="text" v-model="portfolioForm.portfolio_layout.accent_color" class="form-control form-control-sm font-monospace rounded-3" style="max-width: 120px;" />
+                      <div class="d-flex gap-1 ms-2">
+                        <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#00A859'" class="rounded-circle border-0 p-2" style="background: #00A859; width: 22px; height: 22px;"></button>
+                        <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#2563EB'" class="rounded-circle border-0 p-2" style="background: #2563EB; width: 22px; height: 22px;"></button>
+                        <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#F59E0B'" class="rounded-circle border-0 p-2" style="background: #F59E0B; width: 22px; height: 22px;"></button>
+                        <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#8B5CF6'" class="rounded-circle border-0 p-2" style="background: #8B5CF6; width: 22px; height: 22px;"></button>
+                        <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#DC2626'" class="rounded-circle border-0 p-2" style="background: #DC2626; width: 22px; height: 22px;"></button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark mb-2">Style des bordures de cartes</label>
+                    <div class="btn-group w-100" role="group">
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-outline-secondary"
+                        :class="{ 'active': portfolioForm.portfolio_layout.card_style === 'rounded' }"
+                        @click="portfolioForm.portfolio_layout.card_style = 'rounded'"
+                      >
+                        Arrondi doux (24px)
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-outline-secondary"
+                        :class="{ 'active': portfolioForm.portfolio_layout.card_style === 'sharp' }"
+                        @click="portfolioForm.portfolio_layout.card_style = 'sharp'"
+                      >
+                        Moderne net (6px)
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-outline-secondary"
+                        :class="{ 'active': portfolioForm.portfolio_layout.card_style === 'bordered' }"
+                        @click="portfolioForm.portfolio_layout.card_style = 'bordered'"
+                      >
+                        Contour marqué
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Block Variants (Hero, Projects, Skills) -->
+                <div class="row g-4 pt-4 mt-2 border-top">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold text-dark mb-1">Variante d'En-tête (Hero)</label>
+                    <select v-model="portfolioForm.portfolio_layout.hero_style" class="form-select form-select-sm rounded-3">
+                      <option value="centered">Centré moderne</option>
+                      <option value="split">Asymétrique (2 colonnes)</option>
+                      <option value="terminal">Console bash / Geek</option>
+                      <option value="minimal">Minimaliste sobre</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold text-dark mb-1">Variante d'affichage des Projets</label>
+                    <select v-model="portfolioForm.portfolio_layout.projects_style" class="form-select form-select-sm rounded-3">
+                      <option value="cards">Grille de cartes 2x2</option>
+                      <option value="timeline">Chronologie verticale</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold text-dark mb-1">Variante d'affichage Compétences</label>
+                    <select v-model="portfolioForm.portfolio_layout.skills_style" class="form-select form-select-sm rounded-3">
+                      <option value="chips">Pastilles / Chips colorées</option>
+                      <option value="bars">Barres de progression</option>
+                      <option value="categorized">Grille par domaine</option>
+                    </select>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- 1.2 Organisateur & Ordonnancement des Blocs (Le cœur de la personnalisation) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-layers-half text-primary"></i> Organisateur &amp; Ordre d'affichage des Blocs
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Montez ou descendez les blocs avec les boutons <strong>▲ / ▼</strong>. Activez ou masquez les sections selon vos priorités.
+                    </p>
+                  </div>
+
+                  <button type="button" @click="resetBlocksOrder" class="btn btn-sm btn-outline-secondary rounded-pill px-3 extra-small">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Ordre par défaut
+                  </button>
+                </div>
+
+                <!-- Blocks List with Up/Down Controls -->
+                <div class="d-flex flex-column gap-2 mt-3">
+                  <div 
+                    v-for="(blk, bIdx) in portfolioForm.portfolio_layout.blocks" 
+                    :key="blk.id"
+                    class="d-flex align-items-center justify-content-between p-3 rounded-4 border transition"
+                    :class="blk.enabled ? 'bg-white shadow-2xs' : 'bg-light opacity-60'"
+                  >
+                    <!-- Left: Position & Name -->
+                    <div class="d-flex align-items-center gap-3">
+                      <!-- Position Badge -->
+                      <span class="badge rounded-circle bg-dark text-white fw-bold d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 11px;">
+                        #{{ bIdx + 1 }}
+                      </span>
+
+                      <!-- Block Icon & Label -->
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi fs-5 text-secondary" :class="blk.icon || 'bi-square'"></i>
+                        <div>
+                          <strong class="d-block small text-dark">{{ blk.name }}</strong>
+                          <span class="extra-small text-muted">{{ blk.desc || 'Bloc de présentation' }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Right Controls: Move Up/Down + Toggle Switch -->
+                    <div class="d-flex align-items-center gap-2">
+                      <!-- Move Up -->
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center"
+                        style="width: 32px; height: 32px;"
+                        :disabled="bIdx === 0"
+                        @click="moveBlockUp(bIdx)"
+                        title="Monter ce bloc"
+                      >
+                        <i class="bi bi-arrow-up text-dark small"></i>
+                      </button>
+
+                      <!-- Move Down -->
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center"
+                        style="width: 32px; height: 32px;"
+                        :disabled="bIdx === portfolioForm.portfolio_layout.blocks.length - 1"
+                        @click="moveBlockDown(bIdx)"
+                        title="Descendre ce bloc"
+                      >
+                        <i class="bi bi-arrow-down text-dark small"></i>
+                      </button>
+
+                      <div class="vr mx-1" style="height: 24px;"></div>
+
+                      <!-- Enabled Toggle Switch -->
+                      <div class="form-check form-switch mb-0">
+                        <input 
+                          class="form-check-input cursor-pointer" 
+                          type="checkbox" 
+                          v-model="blk.enabled"
+                          :id="'blk_toggle_' + blk.id"
+                        />
+                        <label class="form-check-label extra-small fw-semibold ms-1 cursor-pointer" :for="'blk_toggle_' + blk.id">
+                          {{ blk.enabled ? 'Affiché' : 'Masqué' }}
+                        </label>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- TAB 2: ✍️ CONTENU DU CV & PARCOURS -->
+            <div v-else-if="portfolioSubTab === 'content'" class="d-flex flex-column gap-4">
+              
+              <!-- 2.1 Identifiant Unique & En-tête -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <h4 class="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                  <i class="bi bi-person-badge text-primary"></i> Identifiant &amp; En-tête du Profil
+                </h4>
+
+                <div class="row g-3">
+                  <!-- Username input -->
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark">
+                      Pseudo public pour votre lien (@username) <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light fw-bold text-muted">tech237.net/@</span>
+                      <input 
+                        type="text" 
+                        v-model="portfolioForm.username" 
+                        class="form-control font-monospace" 
+                        placeholder="didace-dev" 
+                        required 
+                        maxlength="50"
+                      />
+                    </div>
+                    <small class="text-muted extra-small">Uniquement lettres minuscules, chiffres, tirets et underscores.</small>
+                  </div>
+
+                  <!-- Headline -->
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark">Titre Professionnel (Headline)</label>
+                    <input 
+                      type="text" 
+                      v-model="portfolioForm.headline" 
+                      class="form-control" 
+                      placeholder="ex: Lead Developer Fullstack Laravel &amp; Vue.js | Mobile Flutter" 
+                      maxlength="150"
+                    />
+                  </div>
+
+                  <!-- Location -->
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark">Ville &amp; Pays</label>
+                    <input 
+                      type="text" 
+                      v-model="portfolioForm.location" 
+                      class="form-control" 
+                      placeholder="ex: Douala, Cameroun / Remote" 
+                      maxlength="100"
+                    />
+                  </div>
+
+                  <!-- Availability -->
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark">Disponibilité actuelle</label>
+                    <select v-model="portfolioForm.availability" class="form-select">
+                      <option value="open">🟢 Ouvert aux opportunités (Freelance &amp; CDI)</option>
+                      <option value="freelance">⚡ Disponible pour missions freelance</option>
+                      <option value="full_time">🎯 En recherche active d'un CDI / Emploi</option>
+                      <option value="not_available">⚪ Actuellement en poste (Non disponible)</option>
+                    </select>
+                  </div>
+
+                  <!-- Bio -->
+                  <div class="col-12">
+                    <label class="form-label small fw-bold text-dark">Présentation &amp; Biographie (Bio)</label>
+                    <textarea 
+                      v-model="portfolioForm.bio" 
+                      class="form-control" 
+                      rows="4" 
+                      placeholder="Décrivez votre parcours, vos technologies de prédilection, les défis techniques que vous aimez résoudre..."
+                    ></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2.2 Compétences Techniques (Skills) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-cpu text-success"></i> Compétences &amp; Stack Technique
+                    </h4>
+                    <p class="text-muted small mb-0">Ajoutez les technos que vous maîtrisez pour que les recruteurs vous repèrent en un clin d'œil.</p>
+                  </div>
+                </div>
+
+                <!-- Add Skill input -->
+                <div class="input-group mb-3">
+                  <input 
+                    type="text" 
+                    v-model="newSkillName" 
+                    @keyup.enter="addSkill" 
+                    class="form-control" 
+                    placeholder="Ajouter une compétence (ex: Docker, GraphQL, Flutter...)" 
+                  />
+                  <select v-model="newSkillCategory" class="form-select" style="max-width: 140px;">
+                    <option value="Backend">Backend</option>
+                    <option value="Frontend">Frontend</option>
+                    <option value="Mobile">Mobile</option>
+                    <option value="DevOps">DevOps</option>
+                    <option value="Database">Database</option>
+                    <option value="Outils">Outils</option>
+                  </select>
+                  <button type="button" @click="addSkill" class="btn btn-success fw-bold px-4">
+                    + Ajouter
+                  </button>
+                </div>
+
+                <!-- Quick add presets -->
+                <div class="d-flex align-items-center gap-1 flex-wrap mb-3">
+                  <span class="extra-small text-muted me-1">Suggestions rapides :</span>
+                  <button 
+                    v-for="s in ['PHP', 'Laravel', 'Vue.js', 'React', 'Flutter', 'Docker', 'Python', 'Node.js', 'PostgreSQL', 'TailwindCSS', 'TypeScript', 'Git']" 
+                    :key="s"
+                    type="button" 
+                    @click="addQuickSkill(s, 'Tech')"
+                    class="btn btn-xs btn-light border rounded-pill px-2 py-0 extra-small"
+                  >
+                    + {{ s }}
+                  </button>
+                </div>
+
+                <!-- Live Skills Tags -->
+                <div class="d-flex flex-wrap gap-2 p-3 bg-light rounded-4 min-h-60">
+                  <span 
+                    v-for="(sk, skIdx) in portfolioForm.skills" 
+                    :key="skIdx"
+                    class="badge bg-white text-dark border rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2 shadow-2xs fs-6"
+                  >
+                    <span>{{ typeof sk === 'object' ? sk.name : sk }}</span>
+                    <small v-if="typeof sk === 'object' && sk.category" class="text-muted extra-small">({{ sk.category }})</small>
+                    <i @click="removeSkill(skIdx)" class="bi bi-x-circle text-danger cursor-pointer fs-6"></i>
+                  </span>
+                  <span v-if="!portfolioForm.skills.length" class="text-muted extra-small my-auto">
+                    Aucune compétence ajoutée. Tapez un nom ci-dessus pour commencer !
+                  </span>
+                </div>
+              </div>
+
+              <!-- 2.3 Réseaux Sociaux & Liens Professionnels -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <h4 class="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                  <i class="bi bi-globe2 text-primary"></i> Réseaux Sociaux &amp; Contact Direct
+                </h4>
+
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="bi bi-github me-1"></i> Profil GitHub</label>
+                    <input type="url" v-model="portfolioForm.social_links.github" class="form-control form-control-sm" placeholder="https://github.com/mon-compte" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="bi bi-linkedin me-1 text-primary"></i> Profil LinkedIn</label>
+                    <input type="url" v-model="portfolioForm.social_links.linkedin" class="form-control form-control-sm" placeholder="https://linkedin.com/in/mon-profil" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="bi bi-twitter-x me-1"></i> Twitter / X</label>
+                    <input type="url" v-model="portfolioForm.social_links.twitter" class="form-control form-control-sm" placeholder="https://x.com/mon-pseudo" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="bi bi-globe me-1 text-success"></i> Site Web / Blog</label>
+                    <input type="url" v-model="portfolioForm.social_links.website" class="form-control form-control-sm" placeholder="https://monsite.cm" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark"><i class="bi bi-whatsapp me-1 text-success"></i> Numéro WhatsApp Pro</label>
+                    <input type="text" v-model="portfolioForm.social_links.whatsapp" class="form-control form-control-sm" placeholder="ex: 237699000000" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2.4 Expériences Professionnelles -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-briefcase text-warning"></i> Expériences Professionnelles
+                  </h4>
+                  <button type="button" @click="addExperience" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold">
+                    + Ajouter une expérience
+                  </button>
+                </div>
+
+                <div v-if="portfolioForm.experiences.length" class="d-flex flex-column gap-3">
+                  <div 
+                    v-for="(exp, eIdx) in portfolioForm.experiences" 
+                    :key="eIdx"
+                    class="p-3 rounded-4 border bg-light position-relative"
+                  >
+                    <button type="button" @click="removeExperience(eIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="row g-2">
+                      <div class="col-md-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Poste occupé</label>
+                        <input type="text" v-model="exp.role" class="form-control form-control-sm" placeholder="ex: Développeur Backend Laravel" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Entreprise / Client</label>
+                        <input type="text" v-model="exp.company" class="form-control form-control-sm" placeholder="ex: Tech Solutions SARL" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Période</label>
+                        <input type="text" v-model="exp.period" class="form-control form-control-sm" placeholder="ex: Jan 2024 - Présent (1 an)" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Localisation</label>
+                        <input type="text" v-model="exp.location" class="form-control form-control-sm" placeholder="ex: Douala / Remote" />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Réalisations &amp; Technologies clés</label>
+                        <textarea v-model="exp.description" class="form-control form-control-sm" rows="2" placeholder="Conception d'APIs REST, mise en place de la passerelle Mobile Money, gain de 40% en performance..."></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-3 text-muted extra-small">
+                  Aucune expérience saisie. Cliquez sur "+ Ajouter une expérience" pour enrichir votre CV.
+                </div>
+              </div>
+
+              <!-- 2.5 Formations & Certifications -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-mortarboard text-info"></i> Formations &amp; Diplômes
+                  </h4>
+                  <button type="button" @click="addEducation" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold">
+                    + Ajouter une formation
+                  </button>
+                </div>
+
+                <div v-if="portfolioForm.educations.length" class="d-flex flex-column gap-3">
+                  <div 
+                    v-for="(edu, dIdx) in portfolioForm.educations" 
+                    :key="dIdx"
+                    class="p-3 rounded-4 border bg-light position-relative"
+                  >
+                    <button type="button" @click="removeEducation(dIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="row g-2">
+                      <div class="col-md-5">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Diplôme / Certification</label>
+                        <input type="text" v-model="edu.degree" class="form-control form-control-sm" placeholder="ex: Licence Informatique / Certif AWS" />
+                      </div>
+                      <div class="col-md-5">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Établissement / École</label>
+                        <input type="text" v-model="edu.institution" class="form-control form-control-sm" placeholder="ex: Université de Yaoundé I" />
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Année</label>
+                        <input type="text" v-model="edu.year" class="form-control form-control-sm" placeholder="ex: 2023" />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Détails / Mention</label>
+                        <input type="text" v-model="edu.description" class="form-control form-control-sm" placeholder="ex: Spécialité Génie Logiciel" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-3 text-muted extra-small">
+                  Aucune formation enregistrée. Cliquez sur "+ Ajouter une formation".
+                </div>
+              </div>
+
+              <!-- 2.6 Sections Personnalisées Libres (Custom Blocks) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-stars text-warning"></i> Blocs Libres Personnalisés
+                    </h4>
+                    <small class="text-muted extra-small">Ajoutez des sections libres à votre guise : Services &amp; Tarifs, Recommandations, etc.</small>
+                  </div>
+                  <button type="button" @click="addCustomSection" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 fw-bold">
+                    + Ajouter un bloc libre
+                  </button>
+                </div>
+
+                <div v-if="portfolioForm.custom_sections.length" class="d-flex flex-column gap-3">
+                  <div 
+                    v-for="(cSec, csIdx) in portfolioForm.custom_sections" 
+                    :key="csIdx"
+                    class="p-3 rounded-4 border bg-light position-relative"
+                  >
+                    <button type="button" @click="removeCustomSection(csIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="row g-2">
+                      <div class="col-md-8">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Titre de la section</label>
+                        <input type="text" v-model="cSec.title" class="form-control form-control-sm" placeholder="ex: Mes Services de Développement Freelance" />
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Icône Bootstrap</label>
+                        <input type="text" v-model="cSec.icon" class="form-control form-control-sm font-monospace" placeholder="bi-stars" />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Contenu texte / descriptif</label>
+                        <textarea v-model="cSec.content" class="form-control form-control-sm" rows="3" placeholder="Détaillez vos offres, conditions, méthodologie ou recommandations..."></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-3 text-muted extra-small">
+                  Aucun bloc libre personnalisé. Vous pouvez en créer pour vous démarquer.
+                </div>
+              </div>
+
+            </div>
+
+            <!-- TAB 3: 🚀 PARTAGE VIRAL & EXPORT PDF -->
+            <div v-else-if="portfolioSubTab === 'share'" class="d-flex flex-column gap-4">
+              
+              <!-- Viral Social Media Banner -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                  <div class="rounded-circle bg-success bg-opacity-10 text-success p-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                    <i class="bi bi-share-fill fs-4"></i>
+                  </div>
+                  <div>
+                    <h4 class="h5 fw-bold text-dark mb-1">Viralité &amp; Référencement Réseaux Sociaux (SEO)</h4>
+                    <p class="text-muted small mb-0">
+                      Les balises <strong>Open Graph</strong> pour WhatsApp, LinkedIn et Twitter sont prêtes à l'emploi. Dès que vous partagez votre lien, les réseaux affichent une carte de prévisualisation élégante avec votre nom, votre titre et le logo officiel Tech237.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Direct Social Share Buttons -->
+                <div class="row g-3 mb-4">
+                  <!-- WhatsApp -->
+                  <div class="col-md-4">
+                    <a :href="whatsappPortfolioShareUrl" target="_blank" class="btn btn-success w-100 py-3 rounded-4 shadow-sm fw-bold d-flex align-items-center justify-content-center gap-2" style="background-color: #25D366; border-color: #25D366;">
+                      <i class="bi bi-whatsapp fs-5"></i>
+                      <span>Partager sur WhatsApp</span>
+                    </a>
+                  </div>
+
+                  <!-- LinkedIn -->
+                  <div class="col-md-4">
+                    <a :href="linkedinPortfolioShareUrl" target="_blank" class="btn btn-primary w-100 py-3 rounded-4 shadow-sm fw-bold d-flex align-items-center justify-content-center gap-2" style="background-color: #0A66C2; border-color: #0A66C2;">
+                      <i class="bi bi-linkedin fs-5"></i>
+                      <span>Partager sur LinkedIn</span>
+                    </a>
+                  </div>
+
+                  <!-- Twitter / X -->
+                  <div class="col-md-4">
+                    <a :href="twitterPortfolioShareUrl" target="_blank" class="btn btn-dark w-100 py-3 rounded-4 shadow-sm fw-bold d-flex align-items-center justify-content-center gap-2">
+                      <i class="bi bi-twitter-x fs-5"></i>
+                      <span>Partager sur X (Twitter)</span>
+                    </a>
+                  </div>
+                </div>
+
+                <!-- OpenGraph Meta Tags Preview Card -->
+                <div class="p-4 rounded-4 bg-light border">
+                  <span class="badge bg-secondary-subtle text-secondary rounded-pill extra-small fw-bold mb-2">Aperçu de la carte WhatsApp / LinkedIn :</span>
+                  <div class="card border rounded-3 p-3 bg-white shadow-2xs max-w-500">
+                    <div class="d-flex align-items-center gap-3">
+                      <img 
+                        v-if="user.avatar" 
+                        :src="user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar" 
+                        class="rounded-circle border" 
+                        style="width: 54px; height: 54px; object-fit: cover;" 
+                        :alt="user.name"
+                      />
+                      <div v-else class="rounded-circle bg-success text-white fw-bold d-flex align-items-center justify-content-center" style="width: 54px; height: 54px;">
+                        {{ (user.name || 'U').charAt(0) }}
+                      </div>
+                      <div class="min-w-0">
+                        <strong class="d-block text-dark text-truncate small mb-0">{{ user.name }} &bull; Portfolio Tech237</strong>
+                        <span class="extra-small text-muted d-block text-truncate">{{ portfolioForm.headline || 'Développeur & Bâtisseur Tech au Cameroun' }}</span>
+                        <span class="extra-small text-success fw-bold">tech237.net/@{{ portfolioForm.username || 'profil' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Export CV PDF Card -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                      <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                    </div>
+                    <div>
+                      <h4 class="h6 fw-bold text-dark mb-1">Télécharger &amp; Imprimer votre CV au format A4</h4>
+                      <p class="text-muted small mb-0">
+                        Votre page portfolio contient une feuille de style d'impression qui masque automatiquement les boutons pour générer un CV au format papier ou PDF parfait.
+                      </p>
+                    </div>
+                  </div>
+
+                  <a :href="portfolioShareUrl" target="_blank" class="btn btn-outline-danger rounded-pill px-4 py-2 fw-bold shadow-2xs">
+                    <i class="bi bi-download me-1"></i> Ouvrir &amp; Exporter PDF
+                  </a>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Sticky Bottom Action Bar -->
+            <div class="card border-0 shadow-lg rounded-4 p-3 bg-white sticky-bottom mt-4" style="z-index: 1020;">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                <div class="form-check form-switch mb-0">
+                  <input 
+                    class="form-check-input cursor-pointer" 
+                    type="checkbox" 
+                    v-model="portfolioForm.portfolio_published" 
+                    id="portfolio_published_check"
+                  />
+                  <label class="form-check-label small fw-bold text-dark cursor-pointer ms-1" for="portfolio_published_check">
+                    Portfolio Public (Accessible à tous via <code>/@{{ portfolioForm.username || 'pseudo' }}</code>)
+                  </label>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                  <button 
+                    type="button" 
+                    @click="openPortfolioPublic" 
+                    class="btn btn-sm btn-light border rounded-pill px-3 fw-bold"
+                  >
+                    Aperçu
+                  </button>
+
+                  <button 
+                    type="button" 
+                    @click="savePortfolioSettings" 
+                    class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                    :disabled="isSavingPortfolio"
+                  >
+                    <span v-if="isSavingPortfolio" class="spinner-border spinner-border-sm"></span>
+                    <i v-else class="bi bi-check2-circle fs-6"></i>
+                    <span>{{ isSavingPortfolio ? 'Enregistrement...' : 'Enregistrer mon Portfolio' }}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
 
       </div>
@@ -1937,6 +2782,13 @@
           :class="currentSection === 'bookmarks' ? 'bg-danger text-white' : 'text-dark'"
         >
           <i class="bi bi-bookmark-heart me-2"></i> Mes Favoris ({{ (bookmarks || []).length }})
+        </button>
+        <button 
+          @click="selectMobileSection('portfolio')" 
+          class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+          :class="currentSection === 'portfolio' ? 'bg-danger text-white' : 'text-dark'"
+        >
+          <i class="bi bi-briefcase me-2 text-warning"></i> Mon CV &amp; Portfolio
         </button>
         <button 
           @click="selectMobileSection('profile')" 
@@ -2216,6 +3068,7 @@ const props = defineProps({
   user: { type: Object, required: true },
   startups: { type: Array, default: () => [] },
   projects: { type: Array, default: () => [] },
+  pocs: { type: Array, default: () => [] },
   collaborativeProjects: { type: Array, default: () => [] },
   pendingInvitations: { type: Array, default: () => [] },
   pendingTimelines: { type: Array, default: () => [] },
@@ -3042,6 +3895,222 @@ function deleteDoc(id) {
       preserveScroll: true,
     })
   }
+}
+
+// --------------------------------------------------------------------------
+// MON CV & PORTFOLIO TECH CUSTOMIZER
+// --------------------------------------------------------------------------
+const portfolioSubTab = ref('layout')
+const isSavingPortfolio = ref(false)
+const portfolioToastMsg = ref('')
+const isPortfolioCopied = ref(false)
+const newSkillName = ref('')
+const newSkillCategory = ref('Backend')
+
+const defaultBlocksList = [
+  { id: 'hero', name: 'En-tête & Présentation', enabled: true, icon: 'bi-person-badge', desc: 'Photo, nom, titre pro, localisation et disponibilité' },
+  { id: 'about', name: 'À propos & Parcours', enabled: true, icon: 'bi-person-lines-fill', desc: 'Présentation détaillée et biographie de profil' },
+  { id: 'skills', name: 'Compétences & Stack technique', enabled: true, icon: 'bi-cpu', desc: 'Technologies, langages et outils maîtrisés' },
+  { id: 'projects', name: 'Projets Tech en vedette', enabled: true, icon: 'bi-rocket-takeoff', desc: 'Projets livrés et publiés sur Tech237' },
+  { id: 'pocs', name: 'Mini-Actus & POCs Tech237', enabled: true, icon: 'bi-lightning-charge', desc: 'Veille technologique et articles courts partagés' },
+  { id: 'experiences', name: 'Expériences professionnelles', enabled: true, icon: 'bi-briefcase', desc: 'Postes occupés, missions et réalisations en entreprise' },
+  { id: 'educations', name: 'Formations & Diplômes', enabled: true, icon: 'bi-mortarboard', desc: 'Études supérieures, certifications et diplômes' },
+  { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, icon: 'bi-trophy', desc: 'Niveau XP et distinctions officielles gagnées sur Tech237' },
+  { id: 'custom', name: 'Sections personnalisées libres', enabled: true, icon: 'bi-stars', desc: 'Blocs libres : services, tarifs, recommandations, etc.' },
+  { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, icon: 'bi-envelope', desc: 'Liens vers GitHub, LinkedIn, WhatsApp et email' },
+]
+
+const initialUserLayout = props.user.portfolio_layout || {}
+
+const portfolioForm = ref({
+  username: props.user.username || '',
+  headline: props.user.headline || '',
+  location: props.user.location || '',
+  availability: props.user.availability || 'open',
+  bio: props.user.bio || '',
+  portfolio_published: props.user.portfolio_published !== false,
+  skills: Array.isArray(props.user.skills) ? [...props.user.skills] : [],
+  social_links: props.user.social_links || { github: '', linkedin: '', twitter: '', website: '', whatsapp: '' },
+  experiences: Array.isArray(props.user.experiences) ? JSON.parse(JSON.stringify(props.user.experiences)) : [],
+  educations: Array.isArray(props.user.educations) ? JSON.parse(JSON.stringify(props.user.educations)) : [],
+  custom_sections: Array.isArray(props.user.custom_sections) ? JSON.parse(JSON.stringify(props.user.custom_sections)) : [],
+  portfolio_layout: {
+    theme: initialUserLayout.theme || 'emerald',
+    card_style: initialUserLayout.card_style || 'rounded',
+    accent_color: initialUserLayout.accent_color || '#00A859',
+    hero_style: initialUserLayout.hero_style || 'centered',
+    projects_style: initialUserLayout.projects_style || 'cards',
+    skills_style: initialUserLayout.skills_style || 'chips',
+    blocks: Array.isArray(initialUserLayout.blocks) && initialUserLayout.blocks.length > 0 
+      ? JSON.parse(JSON.stringify(initialUserLayout.blocks)) 
+      : JSON.parse(JSON.stringify(defaultBlocksList)),
+  }
+})
+
+// Block reordering & toggling
+function moveBlockUp(idx) {
+  if (idx > 0) {
+    const list = portfolioForm.value.portfolio_layout.blocks
+    const item = list.splice(idx, 1)[0]
+    list.splice(idx - 1, 0, item)
+  }
+}
+
+function moveBlockDown(idx) {
+  const list = portfolioForm.value.portfolio_layout.blocks
+  if (idx < list.length - 1) {
+    const item = list.splice(idx, 1)[0]
+    list.splice(idx + 1, 0, item)
+  }
+}
+
+function toggleBlock(idx) {
+  const b = portfolioForm.value.portfolio_layout.blocks[idx]
+  b.enabled = !b.enabled
+}
+
+function resetBlocksOrder() {
+  portfolioForm.value.portfolio_layout.blocks = JSON.parse(JSON.stringify(defaultBlocksList))
+}
+
+// Skills handling
+function addSkill() {
+  if (!newSkillName.value.trim()) return
+  const s = newSkillName.value.trim()
+  const exists = portfolioForm.value.skills.some(x => (typeof x === 'object' ? x.name : x).toLowerCase() === s.toLowerCase())
+  if (!exists) {
+    portfolioForm.value.skills.push({
+      name: s,
+      category: newSkillCategory.value || 'Général',
+      level: 'Avancé',
+    })
+  }
+  newSkillName.value = ''
+}
+
+function addQuickSkill(name, cat) {
+  const exists = portfolioForm.value.skills.some(x => (typeof x === 'object' ? x.name : x).toLowerCase() === name.toLowerCase())
+  if (!exists) {
+    portfolioForm.value.skills.push({
+      name,
+      category: cat || 'Tech',
+      level: 'Avancé',
+    })
+  }
+}
+
+function removeSkill(idx) {
+  portfolioForm.value.skills.splice(idx, 1)
+}
+
+// Experiences handling
+function addExperience() {
+  portfolioForm.value.experiences.push({
+    role: '',
+    company: '',
+    location: '',
+    period: '',
+    description: '',
+  })
+}
+
+function removeExperience(idx) {
+  portfolioForm.value.experiences.splice(idx, 1)
+}
+
+// Educations handling
+function addEducation() {
+  portfolioForm.value.educations.push({
+    degree: '',
+    institution: '',
+    year: '',
+    description: '',
+  })
+}
+
+function removeEducation(idx) {
+  portfolioForm.value.educations.splice(idx, 1)
+}
+
+// Custom Sections handling
+function addCustomSection() {
+  portfolioForm.value.custom_sections.push({
+    title: '',
+    icon: 'bi-stars',
+    content: '',
+  })
+}
+
+function removeCustomSection(idx) {
+  portfolioForm.value.custom_sections.splice(idx, 1)
+}
+
+// URLs and Sharing
+const portfolioShareUrl = computed(() => {
+  const pseudo = portfolioForm.value.username || props.user.username || 'profil'
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/@${pseudo}`
+  }
+  return `https://tech237.net/@${pseudo}`
+})
+
+const whatsappPortfolioShareUrl = computed(() => {
+  const text = encodeURIComponent(`Découvrez mon portfolio tech et mes projets sur Tech237 : ${portfolioShareUrl.value}`)
+  return `https://api.whatsapp.com/send?text=${text}`
+})
+
+const linkedinPortfolioShareUrl = computed(() => {
+  return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(portfolioShareUrl.value)}`
+})
+
+const twitterPortfolioShareUrl = computed(() => {
+  const text = encodeURIComponent(`Mon portfolio tech & projets sur @Tech237 : ${portfolioShareUrl.value}`)
+  return `https://twitter.com/intent/tweet?text=${text}`
+})
+
+function copyPortfolioUrl() {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(portfolioShareUrl.value)
+    isPortfolioCopied.value = true
+    setTimeout(() => { isPortfolioCopied.value = false }, 2500)
+  }
+}
+
+function openPortfolioPublic() {
+  window.open(portfolioShareUrl.value, '_blank')
+}
+
+// Save Portfolio to API
+function savePortfolioSettings() {
+  isSavingPortfolio.value = true
+  fetch('/espace-utilisateur/portfolio/save', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+    },
+    body: JSON.stringify(portfolioForm.value)
+  }).then(async r => {
+    const data = await r.json().catch(() => ({}))
+    if (!r.ok) {
+      throw new Error(data.message || 'Erreur lors de l\'enregistrement du portfolio.')
+    }
+    return data
+  }).then(data => {
+    if (data && data.success) {
+      portfolioToastMsg.value = data.message || 'Portfolio enregistré avec succès !'
+      if (data.user) {
+        Object.assign(props.user, data.user)
+      }
+      setTimeout(() => { portfolioToastMsg.value = '' }, 4000)
+    }
+  }).catch(err => {
+    alert(err.message || 'Une erreur est survenue lors de l\'enregistrement.')
+  }).finally(() => {
+    isSavingPortfolio.value = false
+  })
 }
 </script>
 

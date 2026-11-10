@@ -199,10 +199,13 @@ class DashboardController extends Controller
             ]
         ];
 
+        $pocs = \App\Models\Poc::where('user_id', $user->id)->latest()->get();
+
         return Inertia::render('User/Dashboard', [
             'user' => $user,
             'startups' => $startups,
             'projects' => $projects,
+            'pocs' => $pocs,
             'collaborativeProjects' => $collaborativeProjects,
             'pendingInvitations' => $pendingInvitations,
             'pendingTimelines' => $pendingTimelines,

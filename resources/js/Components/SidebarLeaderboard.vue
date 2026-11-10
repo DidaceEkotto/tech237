@@ -17,6 +17,10 @@
           <path d="M40 98H80V106C80 108.209 78.2091 110 76 110H44C41.7909 110 40 108.209 40 106V98Z" fill="#F59E0B"/>
           <path d="M45 102H75" stroke="#FDE68A" stroke-width="2" stroke-linecap="round"/>
         </svg>
+        <!-- Top player XP badge overlapping trophy base as seen in reference screenshot -->
+        <span v-if="topMembers && topMembers.length" class="badge rounded-pill fw-bold extra-small px-2 py-1 position-absolute shadow-xs" style="bottom: 0px; right: -2px; background-color: #D1FAE5; color: #065F46; font-size: 11px; z-index: 3;">
+          {{ topMembers[0].xp || 0 }} XP
+        </span>
       </div>
     </div>
 
