@@ -1933,7 +1933,7 @@
                     class="nav-link rounded-pill px-4 fw-bold"
                     :class="portfolioSubTab === 'layout' ? 'active bg-success text-white' : 'text-muted'"
                   >
-                    <i class="bi bi-palette-fill me-1"></i> 1. Disposition des Blocs &amp; Thème
+                    <i class="bi bi-palette-fill me-1"></i> 1. Agencement, Thème &amp; Design
                   </button>
                 </li>
                 <li class="nav-item">
@@ -1949,27 +1949,114 @@
                 <li class="nav-item">
                   <button 
                     type="button" 
+                    @click="portfolioSubTab = 'preview'" 
+                    class="nav-link rounded-pill px-4 fw-bold"
+                    :class="portfolioSubTab === 'preview' ? 'active bg-success text-white' : 'text-muted'"
+                  >
+                    <i class="bi bi-eye-fill me-1"></i> 3. Aperçu Live
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button 
+                    type="button" 
                     @click="portfolioSubTab = 'share'" 
                     class="nav-link rounded-pill px-4 fw-bold"
                     :class="portfolioSubTab === 'share' ? 'active bg-success text-white' : 'text-muted'"
                   >
-                    <i class="bi bi-share-fill me-1"></i> 3. Partage Viral &amp; Export PDF
+                    <i class="bi bi-share-fill me-1"></i> 4. Partage Viral &amp; Balises Réseaux
                   </button>
                 </li>
               </ul>
 
             </div>
 
-            <!-- TAB 1: 🎨 DISPOSITION DES BLOCS & THEME -->
+            <!-- TAB 1: 🎨 AGENCEMENT, THÈME & DESIGN (100% PERSONNALISABLE) -->
             <div v-if="portfolioSubTab === 'layout'" class="d-flex flex-column gap-4">
               
-              <!-- 1.1 Thèmes & Palettes Visuelles -->
+              <!-- 1.0 Mode de Structure Globale & Bouton Surprenez-moi -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-grid-1x2 text-success"></i> Structure &amp; Mode d'Agencement Global
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Définissez l'architecture de votre portfolio. Même parmi 1 000 profils, chaque membre possède une identité visuelle inimitable.
+                    </p>
+                  </div>
+                  
+                  <button 
+                    type="button" 
+                    @click="randomizeStylePreset" 
+                    class="btn btn-sm btn-outline-warning text-dark fw-bold rounded-pill px-3 py-2 shadow-2xs d-inline-flex align-items-center gap-2"
+                    title="Générer instantanément une combinaison harmonieuse et unique"
+                  >
+                    <span>✨ Surprenez-moi (Look Unique)</span>
+                  </button>
+                </div>
+
+                <div class="row g-3">
+                  <!-- Structure 1: Single Stream (Classic vertical) -->
+                  <div class="col-6 col-lg-3">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center"
+                      :class="portfolioForm.portfolio_layout.layout_structure === 'single' ? 'border-success border-2 bg-success-subtle bg-opacity-10' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.layout_structure = 'single'"
+                    >
+                      <div class="fs-3 mb-1">📜</div>
+                      <strong class="d-block small text-dark mb-1">Flux Vertical</strong>
+                      <small class="text-muted extra-small d-block">Lecture linéaire fluide, idéal pour un storytelling professionnel naturel.</small>
+                    </div>
+                  </div>
+
+                  <!-- Structure 2: Bento Grid Modern -->
+                  <div class="col-6 col-lg-3">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center"
+                      :class="portfolioForm.portfolio_layout.layout_structure === 'bento' ? 'border-success border-2 bg-success-subtle bg-opacity-10' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.layout_structure = 'bento'"
+                    >
+                      <div class="fs-3 mb-1">🍱</div>
+                      <strong class="d-block small text-dark mb-1">Grille Bento (Apple Style)</strong>
+                      <small class="text-muted extra-small d-block">Cartes asymétriques modernes avec blocs mi-largeur et pleine-largeur.</small>
+                    </div>
+                  </div>
+
+                  <!-- Structure 3: CV Split Executive -->
+                  <div class="col-6 col-lg-3">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center"
+                      :class="portfolioForm.portfolio_layout.layout_structure === 'cv_split' ? 'border-success border-2 bg-success-subtle bg-opacity-10' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.layout_structure = 'cv_split'"
+                    >
+                      <div class="fs-3 mb-1">📑</div>
+                      <strong class="d-block small text-dark mb-1">CV Split Suisse</strong>
+                      <small class="text-muted extra-small d-block">Colonne latérale fixe (Profil &amp; Skills) + colonne principale de réalisations.</small>
+                    </div>
+                  </div>
+
+                  <!-- Structure 4: Terminal Developer Console -->
+                  <div class="col-6 col-lg-3">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center bg-dark text-white"
+                      :class="portfolioForm.portfolio_layout.layout_structure === 'terminal' ? 'border-success border-2' : ''"
+                      @click="portfolioForm.portfolio_layout.layout_structure = 'terminal'; portfolioForm.portfolio_layout.theme = 'dark'; portfolioForm.portfolio_layout.font_family = 'mono'"
+                    >
+                      <div class="fs-3 mb-1 text-success">&gt;_</div>
+                      <strong class="d-block small text-white mb-1">Terminal Dev Console</strong>
+                      <small class="text-white-50 extra-small d-block">Fenêtre Unix geek avec commandes bash et syntaxe monospacée.</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.1 Thèmes & Palettes Visuelles (9 Thèmes) -->
               <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
                 <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                  <i class="bi bi-palette text-success"></i> Thème Visuel &amp; Ambiance
+                  <i class="bi bi-palette text-success"></i> Thème Visuel &amp; Ambiance (9 Palettes)
                 </h4>
                 <p class="text-muted small mb-4">
-                  Choisissez une identité graphique forte. Même avec 1 000 développeurs inscrits, votre portfolio aura un rendu distinctif.
+                  Choisissez une palette chromatique soignée qui correspond à votre univers.
                 </p>
 
                 <div class="row g-3 mb-4">
@@ -2012,7 +2099,7 @@
                     >
                       <div class="d-flex align-items-center gap-2 mb-2">
                         <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #2563EB;"></span>
-                        <strong class="small text-dark">Bleu Nuit Tech</strong>
+                        <strong class="small text-dark">Bleu Nuit Cobalt</strong>
                       </div>
                       <small class="text-muted extra-small d-block">Bleu cobalt &amp; indigo, sérieux, adapté aux profils corporate.</small>
                     </div>
@@ -2027,9 +2114,9 @@
                     >
                       <div class="d-flex align-items-center gap-2 mb-2">
                         <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #F59E0B;"></span>
-                        <strong class="small text-dark">Ambre &amp; Sunset</strong>
+                        <strong class="small text-dark">Sunset &amp; Terracotta</strong>
                       </div>
-                      <small class="text-muted extra-small d-block">Tons dorés et solaires, énergique et chaleureux.</small>
+                      <small class="text-muted extra-small d-block">Tons dorés et solaires, énergique, chaleureux et vibrant.</small>
                     </div>
                   </div>
 
@@ -2037,19 +2124,64 @@
                   <div class="col-6 col-md-4">
                     <div 
                       class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
-                      :class="portfolioForm.portfolio_layout.theme === 'purple' ? 'border-purple border-2' : 'bg-white'"
+                      :class="portfolioForm.portfolio_layout.theme === 'purple' ? 'border-purple border-2 bg-purple-subtle' : 'bg-white'"
                       style="border-color: #8B5CF6;"
                       @click="portfolioForm.portfolio_layout.theme = 'purple'; portfolioForm.portfolio_layout.accent_color = '#8B5CF6'"
                     >
                       <div class="d-flex align-items-center gap-2 mb-2">
                         <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #8B5CF6;"></span>
-                        <strong class="small text-dark">Royal Purple</strong>
+                        <strong class="small text-dark">Royal Purple Web3</strong>
                       </div>
                       <small class="text-muted extra-small d-block">Violet futuriste, idéal pour UI/UX, Web3 et créatifs.</small>
                     </div>
                   </div>
 
-                  <!-- Theme 6: Minimalist Pure -->
+                  <!-- Theme 6: Rose Quartz Creative -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
+                      :class="portfolioForm.portfolio_layout.theme === 'rose' ? 'border-danger border-2 bg-danger-subtle bg-opacity-10' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.theme = 'rose'; portfolioForm.portfolio_layout.accent_color = '#EC4899'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #EC4899;"></span>
+                        <strong class="small text-dark">Rose Quartz Creative</strong>
+                      </div>
+                      <small class="text-muted extra-small d-block">Tons blush &amp; magenta, artistique, moderne et percutant.</small>
+                    </div>
+                  </div>
+
+                  <!-- Theme 7: Matcha Earth -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
+                      :class="portfolioForm.portfolio_layout.theme === 'matcha' ? 'border-success border-2 bg-success-subtle bg-opacity-15' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.theme = 'matcha'; portfolioForm.portfolio_layout.accent_color = '#059669'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #059669;"></span>
+                        <strong class="small text-dark">Matcha &amp; Terre Chaude</strong>
+                      </div>
+                      <small class="text-muted extra-small d-block">Vert sauge et sable doux, esthétique éco-conçue et zen.</small>
+                    </div>
+                  </div>
+
+                  <!-- Theme 8: Synthwave Neon -->
+                  <div class="col-6 col-md-4">
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative bg-dark text-white"
+                      :class="portfolioForm.portfolio_layout.theme === 'synthwave' ? 'border-info border-2' : ''"
+                      @click="portfolioForm.portfolio_layout.theme = 'synthwave'; portfolioForm.portfolio_layout.accent_color = '#06B6D4'"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="rounded-circle d-inline-block" style="width: 18px; height: 18px; background-color: #06B6D4;"></span>
+                        <strong class="small text-white">Neon Synthwave</strong>
+                      </div>
+                      <small class="text-white-50 extra-small d-block">Noir profond, lueurs cyan et néons rétrofuturistes 80s.</small>
+                    </div>
+                  </div>
+
+                  <!-- Theme 9: Minimalist Pure -->
                   <div class="col-6 col-md-4">
                     <div 
                       class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs position-relative"
@@ -2058,58 +2190,92 @@
                     >
                       <div class="d-flex align-items-center gap-2 mb-2">
                         <span class="rounded-circle d-inline-block bg-dark" style="width: 18px; height: 18px;"></span>
-                        <strong class="small text-dark">Minimal Noir &amp; Blanc</strong>
+                        <strong class="small text-dark">Minimal Monochrome</strong>
                       </div>
-                      <small class="text-muted extra-small d-block">Épure absolue sans distractions, focus total sur le texte et le code.</small>
+                      <small class="text-muted extra-small d-block">Épure absolue noir et blanc, focus total sur le texte et les faits.</small>
                     </div>
                   </div>
                 </div>
 
-                <!-- Custom Accent Color Picker & Card Style -->
-                <div class="row g-4 pt-3 border-top">
+                <!-- Custom Accent Color Picker & Typography -->
+                <div class="row g-4 pt-4 border-top">
                   <div class="col-md-6">
                     <label class="form-label small fw-bold text-dark mb-2">Couleur d'accentuation personnalisée</label>
                     <div class="d-flex align-items-center gap-2">
                       <input type="color" v-model="portfolioForm.portfolio_layout.accent_color" class="form-control form-control-color rounded-circle p-1" style="width: 44px; height: 44px;" />
                       <input type="text" v-model="portfolioForm.portfolio_layout.accent_color" class="form-control form-control-sm font-monospace rounded-3" style="max-width: 120px;" />
-                      <div class="d-flex gap-1 ms-2">
+                      <div class="d-flex gap-1 ms-2 flex-wrap">
                         <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#00A859'" class="rounded-circle border-0 p-2" style="background: #00A859; width: 22px; height: 22px;"></button>
                         <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#2563EB'" class="rounded-circle border-0 p-2" style="background: #2563EB; width: 22px; height: 22px;"></button>
                         <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#F59E0B'" class="rounded-circle border-0 p-2" style="background: #F59E0B; width: 22px; height: 22px;"></button>
                         <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#8B5CF6'" class="rounded-circle border-0 p-2" style="background: #8B5CF6; width: 22px; height: 22px;"></button>
-                        <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#DC2626'" class="rounded-circle border-0 p-2" style="background: #DC2626; width: 22px; height: 22px;"></button>
+                        <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#EC4899'" class="rounded-circle border-0 p-2" style="background: #EC4899; width: 22px; height: 22px;"></button>
+                        <button type="button" @click="portfolioForm.portfolio_layout.accent_color = '#06B6D4'" class="rounded-circle border-0 p-2" style="background: #06B6D4; width: 22px; height: 22px;"></button>
                       </div>
                     </div>
                   </div>
 
                   <div class="col-md-6">
-                    <label class="form-label small fw-bold text-dark mb-2">Style des bordures de cartes</label>
+                    <label class="form-label small fw-bold text-dark mb-2">Style Typographique (Police)</label>
                     <div class="btn-group w-100" role="group">
                       <button 
                         type="button" 
                         class="btn btn-sm btn-outline-secondary"
-                        :class="{ 'active': portfolioForm.portfolio_layout.card_style === 'rounded' }"
-                        @click="portfolioForm.portfolio_layout.card_style = 'rounded'"
+                        :class="{ 'active': portfolioForm.portfolio_layout.font_family === 'poppins' }"
+                        @click="portfolioForm.portfolio_layout.font_family = 'poppins'"
                       >
-                        Arrondi doux (24px)
+                        Poppins Moderne
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-outline-secondary font-monospace"
+                        :class="{ 'active': portfolioForm.portfolio_layout.font_family === 'mono' }"
+                        @click="portfolioForm.portfolio_layout.font_family = 'mono'"
+                      >
+                        Fira Code (Geek)
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-outline-secondary font-serif"
+                        :class="{ 'active': portfolioForm.portfolio_layout.font_family === 'serif' }"
+                        @click="portfolioForm.portfolio_layout.font_family = 'serif'"
+                      >
+                        Serif Élégant
                       </button>
                       <button 
                         type="button" 
                         class="btn btn-sm btn-outline-secondary"
-                        :class="{ 'active': portfolioForm.portfolio_layout.card_style === 'sharp' }"
-                        @click="portfolioForm.portfolio_layout.card_style = 'sharp'"
+                        :class="{ 'active': portfolioForm.portfolio_layout.font_family === 'inter' }"
+                        @click="portfolioForm.portfolio_layout.font_family = 'inter'"
                       >
-                        Moderne net (6px)
-                      </button>
-                      <button 
-                        type="button" 
-                        class="btn btn-sm btn-outline-secondary"
-                        :class="{ 'active': portfolioForm.portfolio_layout.card_style === 'bordered' }"
-                        @click="portfolioForm.portfolio_layout.card_style = 'bordered'"
-                      >
-                        Contour marqué
+                        Inter Startup
                       </button>
                     </div>
+                  </div>
+                </div>
+
+                <!-- Background Pattern & Card Style -->
+                <div class="row g-4 pt-4 mt-2 border-top">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark mb-2">Motif &amp; Texture d'Arrière-Plan</label>
+                    <select v-model="portfolioForm.portfolio_layout.bg_pattern" class="form-select form-select-sm rounded-3">
+                      <option value="none">Uni épuré (Sans motif)</option>
+                      <option value="grid">Grille Blueprint / Architecture Tech</option>
+                      <option value="dots">Matrice de Points Fins (Dot Matrix)</option>
+                      <option value="mesh">Dégradé Mesh Radial Flouté</option>
+                      <option value="circuit">Lignes Circuits &amp; Hexagones</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark mb-2">Style des Bordures &amp; Cartes</label>
+                    <select v-model="portfolioForm.portfolio_layout.card_style" class="form-select form-select-sm rounded-3">
+                      <option value="rounded">Arrondi doux moderne (24px)</option>
+                      <option value="sharp">Moderne net tranché (6px)</option>
+                      <option value="glass">Glassmorphism (Verre dépoli flouté)</option>
+                      <option value="bordered">Contour marqué (Néo-brutalisme 2px)</option>
+                      <option value="terminal">Boîte Terminal Console (Noir / Gris code)</option>
+                    </select>
                   </div>
                 </div>
 
@@ -2153,50 +2319,77 @@
                       <i class="bi bi-layers-half text-primary"></i> Organisateur &amp; Ordre d'affichage des Blocs
                     </h4>
                     <p class="text-muted small mb-0">
-                      Montez ou descendez les blocs avec les boutons <strong>▲ / ▼</strong>. Activez ou masquez les sections selon vos priorités.
+                      Placez chaque bloc où vous le souhaitez avec <strong>🔝 / ▲ / ▼ / 🔻</strong>. Ajustez la largeur (100% ou 50% en Bento) et masquez les sections non désirées.
                     </p>
                   </div>
 
                   <button type="button" @click="resetBlocksOrder" class="btn btn-sm btn-outline-secondary rounded-pill px-3 extra-small">
-                    <i class="bi bi-arrow-counterclockwise me-1"></i> Ordre par défaut
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Réinitialiser l'ordre
                   </button>
                 </div>
 
-                <!-- Blocks List with Up/Down Controls -->
+                <!-- Blocks List with Up/Down/Top/Bottom Controls -->
                 <div class="d-flex flex-column gap-2 mt-3">
                   <div 
                     v-for="(blk, bIdx) in portfolioForm.portfolio_layout.blocks" 
                     :key="blk.id"
-                    class="d-flex align-items-center justify-content-between p-3 rounded-4 border transition"
+                    class="d-flex align-items-center justify-content-between p-3 rounded-4 border transition flex-wrap gap-2"
                     :class="blk.enabled ? 'bg-white shadow-2xs' : 'bg-light opacity-60'"
                   >
                     <!-- Left: Position & Name -->
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-3 min-w-0">
                       <!-- Position Badge -->
-                      <span class="badge rounded-circle bg-dark text-white fw-bold d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 11px;">
+                      <span class="badge rounded-circle bg-dark text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 28px; height: 28px; font-size: 11px;">
                         #{{ bIdx + 1 }}
                       </span>
 
                       <!-- Block Icon & Label -->
-                      <div class="d-flex align-items-center gap-2">
-                        <i class="bi fs-5 text-secondary" :class="blk.icon || 'bi-square'"></i>
-                        <div>
-                          <strong class="d-block small text-dark">{{ blk.name }}</strong>
-                          <span class="extra-small text-muted">{{ blk.desc || 'Bloc de présentation' }}</span>
+                      <div class="d-flex align-items-center gap-2 min-w-0">
+                        <i class="bi fs-5 text-secondary flex-shrink-0" :class="blk.icon || 'bi-square'"></i>
+                        <div class="min-w-0">
+                          <strong class="d-block small text-dark text-truncate">{{ blk.name }}</strong>
+                          <span class="extra-small text-muted d-block text-truncate">{{ blk.desc || 'Bloc de présentation' }}</span>
                         </div>
                       </div>
                     </div>
 
-                    <!-- Right Controls: Move Up/Down + Toggle Switch -->
-                    <div class="d-flex align-items-center gap-2">
+                    <!-- Right Controls: Move Top / Up / Down / Bottom + Bento Width + Toggle Switch -->
+                    <div class="d-flex align-items-center gap-1 gap-sm-2 flex-shrink-0">
+                      
+                      <!-- Width Badge in Bento mode -->
+                      <button 
+                        v-if="portfolioForm.portfolio_layout.layout_structure === 'bento'"
+                        type="button" 
+                        class="btn btn-xs rounded-pill px-2 py-1 extra-small border"
+                        :class="blk.width === 'half' ? 'btn-light text-primary fw-bold' : 'btn-light text-muted'"
+                        @click="toggleBlockWidth(blk)"
+                        title="Basculer entre demi-largeur (50%) et pleine-largeur (100%)"
+                      >
+                        {{ blk.width === 'half' ? '½ Largeur' : 'Pleine largeur' }}
+                      </button>
+
+                      <div class="vr mx-1" style="height: 24px;"></div>
+
+                      <!-- Move to Top -->
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center"
+                        style="width: 30px; height: 30px;"
+                        :disabled="bIdx === 0"
+                        @click="moveBlockToTop(bIdx)"
+                        title="Placer tout en haut"
+                      >
+                        <i class="bi bi-chevron-double-up text-dark extra-small"></i>
+                      </button>
+
                       <!-- Move Up -->
                       <button 
                         type="button" 
                         class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center"
-                        style="width: 32px; height: 32px;"
+                        style="width: 30px; height: 30px;"
                         :disabled="bIdx === 0"
                         @click="moveBlockUp(bIdx)"
-                        title="Monter ce bloc"
+                        title="Monter d'un cran"
                       >
                         <i class="bi bi-arrow-up text-dark small"></i>
                       </button>
@@ -2205,12 +2398,24 @@
                       <button 
                         type="button" 
                         class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center"
-                        style="width: 32px; height: 32px;"
+                        style="width: 30px; height: 30px;"
                         :disabled="bIdx === portfolioForm.portfolio_layout.blocks.length - 1"
                         @click="moveBlockDown(bIdx)"
-                        title="Descendre ce bloc"
+                        title="Descendre d'un cran"
                       >
                         <i class="bi bi-arrow-down text-dark small"></i>
+                      </button>
+
+                      <!-- Move to Bottom -->
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center"
+                        style="width: 30px; height: 30px;"
+                        :disabled="bIdx === portfolioForm.portfolio_layout.blocks.length - 1"
+                        @click="moveBlockToBottom(bIdx)"
+                        title="Placer tout en bas"
+                      >
+                        <i class="bi bi-chevron-double-down text-dark extra-small"></i>
                       </button>
 
                       <div class="vr mx-1" style="height: 24px;"></div>
@@ -2547,7 +2752,138 @@
 
             </div>
 
-            <!-- TAB 3: 🚀 PARTAGE VIRAL & EXPORT PDF -->
+            <!-- TAB 3: 👁️ APERÇU LIVE EN DIRECT -->
+            <div v-else-if="portfolioSubTab === 'preview'" class="d-flex flex-column gap-4">
+              
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+                  <div>
+                    <h4 class="h5 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-eye-fill text-success"></i> Aperçu Live de votre Portfolio
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Visualisez en direct le rendu de votre portfolio avec vos blocs ordonnés, votre thème <strong>{{ portfolioForm.portfolio_layout.theme }}</strong> et vos styles personnalisés.
+                    </p>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2">
+                    <button type="button" @click="openPortfolioPublic" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-bold">
+                      <i class="bi bi-box-arrow-up-right me-1"></i> Ouvrir dans un onglet
+                    </button>
+                    <button type="button" @click="savePortfolioSettings" class="btn btn-sm btn-success rounded-pill px-4 fw-bold">
+                      <i class="bi bi-check-circle me-1"></i> Enregistrer
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Simulated Browser Frame -->
+                <div class="browser-preview-frame rounded-4 border overflow-hidden shadow-sm">
+                  <!-- Browser Bar -->
+                  <div class="browser-address-bar bg-light p-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="rounded-circle bg-danger d-inline-block" style="width: 10px; height: 10px;"></span>
+                      <span class="rounded-circle bg-warning d-inline-block" style="width: 10px; height: 10px;"></span>
+                      <span class="rounded-circle bg-success d-inline-block" style="width: 10px; height: 10px;"></span>
+                    </div>
+                    <div class="bg-white border rounded-pill px-3 py-1 extra-small text-muted font-monospace d-flex align-items-center gap-1 shadow-2xs" style="max-width: 400px; width: 100%;">
+                      <i class="bi bi-lock-fill text-success extra-small"></i>
+                      <span class="text-truncate">https://tech237.net/@{{ portfolioForm.username || 'votre-pseudo' }}</span>
+                    </div>
+                    <span class="extra-small text-muted fw-bold d-none d-sm-inline">Aperçu Réactif</span>
+                  </div>
+
+                  <!-- Live Render Canvas using active form values -->
+                  <div 
+                    class="preview-viewport p-4 p-md-5"
+                    :class="[
+                      'theme-' + portfolioForm.portfolio_layout.theme,
+                      'card-style-' + portfolioForm.portfolio_layout.card_style,
+                      'font-' + portfolioForm.portfolio_layout.font_family,
+                      'bg-pattern-' + portfolioForm.portfolio_layout.bg_pattern,
+                      'structure-' + portfolioForm.portfolio_layout.layout_structure
+                    ]"
+                    :style="{ '--accent-color': portfolioForm.portfolio_layout.accent_color }"
+                  >
+                    <!-- Simulated Header/Hero -->
+                    <div class="hero-preview text-center p-4 rounded-4 bg-white border shadow-sm mb-4 position-relative">
+                      <div class="position-relative d-inline-block mb-2">
+                        <img 
+                          v-if="user.avatar" 
+                          :src="user.avatar.startsWith('/') ? user.avatar : '/' + user.avatar" 
+                          class="rounded-circle border border-3 border-white shadow-sm"
+                          style="width: 80px; height: 80px; object-fit: cover;"
+                        />
+                        <div 
+                          v-else 
+                          class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center mx-auto"
+                          style="width: 80px; height: 80px; font-size: 24px;"
+                          :style="{ backgroundColor: portfolioForm.portfolio_layout.accent_color }"
+                        >
+                          {{ (user.name || 'U').charAt(0) }}
+                        </div>
+                      </div>
+                      <h3 class="h5 fw-bold mb-1 text-dark">{{ user.name }}</h3>
+                      <p class="small fw-semibold mb-2" :style="{ color: portfolioForm.portfolio_layout.accent_color }">
+                        {{ portfolioForm.headline || 'Bâtisseur & Développeur Tech' }}
+                      </p>
+                      <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-2">
+                        <span v-if="portfolioForm.location" class="badge bg-light text-dark border extra-small">
+                          📍 {{ portfolioForm.location }}
+                        </span>
+                        <span class="badge bg-success-subtle text-success border extra-small fw-bold">
+                          ⚡ {{ user.xp || 0 }} XP &bull; {{ user.rank_title || 'Novice Tech' }}
+                        </span>
+                      </div>
+                      <p v-if="portfolioForm.bio" class="small text-muted mb-0 max-w-500 mx-auto" style="white-space: pre-line;">
+                        {{ portfolioForm.bio }}
+                      </p>
+                    </div>
+
+                    <!-- Ordered Blocks Preview Stream -->
+                    <div class="d-flex flex-column gap-3">
+                      <template v-for="b in portfolioForm.portfolio_layout.blocks" :key="b.id">
+                        <div v-if="b.enabled && b.id !== 'hero'" class="p-3 rounded-4 bg-white border shadow-2xs">
+                          <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-bold small text-dark d-flex align-items-center gap-2">
+                              <i class="bi" :class="b.icon || 'bi-square'" :style="{ color: portfolioForm.portfolio_layout.accent_color }"></i>
+                              {{ b.name }}
+                            </span>
+                            <span class="badge bg-light text-muted border extra-small">Bloc #{{ b.id }}</span>
+                          </div>
+                          
+                          <!-- Mini previews depending on block type -->
+                          <div v-if="b.id === 'skills'" class="d-flex flex-wrap gap-1">
+                            <span v-for="sk in portfolioForm.skills.slice(0, 8)" :key="sk.name || sk" class="badge bg-light text-dark border extra-small">
+                              {{ sk.name || sk }}
+                            </span>
+                            <span v-if="!portfolioForm.skills.length" class="extra-small text-muted italic">Aucune compétence renseignée</span>
+                          </div>
+
+                          <div v-else-if="b.id === 'experiences'" class="extra-small text-muted">
+                            <span v-if="portfolioForm.experiences.length">{{ portfolioForm.experiences.length }} expérience(s) configurée(s)</span>
+                            <span v-else class="italic">Aucune expérience ajoutée</span>
+                          </div>
+
+                          <div v-else-if="b.id === 'educations'" class="extra-small text-muted">
+                            <span v-if="portfolioForm.educations.length">{{ portfolioForm.educations.length }} formation(s) configurée(s)</span>
+                            <span v-else class="italic">Aucune formation ajoutée</span>
+                          </div>
+
+                          <div v-else class="extra-small text-muted">
+                            Contenu dynamique connecté à votre profil public Tech237.
+                          </div>
+                        </div>
+                      </template>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- TAB 4: 🚀 PARTAGE VIRAL & EXPORT PDF -->
             <div v-else-if="portfolioSubTab === 'share'" class="d-flex flex-column gap-4">
               
               <!-- Viral Social Media Banner -->
@@ -3908,16 +4244,16 @@ const newSkillName = ref('')
 const newSkillCategory = ref('Backend')
 
 const defaultBlocksList = [
-  { id: 'hero', name: 'En-tête & Présentation', enabled: true, icon: 'bi-person-badge', desc: 'Photo, nom, titre pro, localisation et disponibilité' },
-  { id: 'about', name: 'À propos & Parcours', enabled: true, icon: 'bi-person-lines-fill', desc: 'Présentation détaillée et biographie de profil' },
-  { id: 'skills', name: 'Compétences & Stack technique', enabled: true, icon: 'bi-cpu', desc: 'Technologies, langages et outils maîtrisés' },
-  { id: 'projects', name: 'Projets Tech en vedette', enabled: true, icon: 'bi-rocket-takeoff', desc: 'Projets livrés et publiés sur Tech237' },
-  { id: 'pocs', name: 'Mini-Actus & POCs Tech237', enabled: true, icon: 'bi-lightning-charge', desc: 'Veille technologique et articles courts partagés' },
-  { id: 'experiences', name: 'Expériences professionnelles', enabled: true, icon: 'bi-briefcase', desc: 'Postes occupés, missions et réalisations en entreprise' },
-  { id: 'educations', name: 'Formations & Diplômes', enabled: true, icon: 'bi-mortarboard', desc: 'Études supérieures, certifications et diplômes' },
-  { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, icon: 'bi-trophy', desc: 'Niveau XP et distinctions officielles gagnées sur Tech237' },
-  { id: 'custom', name: 'Sections personnalisées libres', enabled: true, icon: 'bi-stars', desc: 'Blocs libres : services, tarifs, recommandations, etc.' },
-  { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, icon: 'bi-envelope', desc: 'Liens vers GitHub, LinkedIn, WhatsApp et email' },
+  { id: 'hero', name: 'En-tête & Présentation', enabled: true, width: 'full', icon: 'bi-person-badge', desc: 'Photo, nom, titre pro, localisation et disponibilité' },
+  { id: 'about', name: 'À propos & Parcours', enabled: true, width: 'full', icon: 'bi-person-lines-fill', desc: 'Présentation détaillée et biographie de profil' },
+  { id: 'skills', name: 'Compétences & Stack technique', enabled: true, width: 'half', icon: 'bi-cpu', desc: 'Technologies, langages et outils maîtrisés' },
+  { id: 'projects', name: 'Projets Tech en vedette', enabled: true, width: 'full', icon: 'bi-rocket-takeoff', desc: 'Projets livrés et publiés sur Tech237' },
+  { id: 'pocs', name: 'Mini-Actus & POCs Tech237', enabled: true, width: 'half', icon: 'bi-lightning-charge', desc: 'Veille technologique et articles courts partagés' },
+  { id: 'experiences', name: 'Expériences professionnelles', enabled: true, width: 'full', icon: 'bi-briefcase', desc: 'Postes occupés, missions et réalisations en entreprise' },
+  { id: 'educations', name: 'Formations & Diplômes', enabled: true, width: 'half', icon: 'bi-mortarboard', desc: 'Études supérieures, certifications et diplômes' },
+  { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, width: 'half', icon: 'bi-trophy', desc: 'Niveau XP et distinctions officielles gagnées sur Tech237' },
+  { id: 'custom', name: 'Sections personnalisées libres', enabled: true, width: 'full', icon: 'bi-stars', desc: 'Blocs libres : services, tarifs, recommandations, etc.' },
+  { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, width: 'full', icon: 'bi-envelope', desc: 'Liens vers GitHub, LinkedIn, WhatsApp et email' },
 ]
 
 const initialUserLayout = props.user.portfolio_layout || {}
@@ -3937,6 +4273,9 @@ const portfolioForm = ref({
   portfolio_layout: {
     theme: initialUserLayout.theme || 'emerald',
     card_style: initialUserLayout.card_style || 'rounded',
+    layout_structure: initialUserLayout.layout_structure || 'single',
+    font_family: initialUserLayout.font_family || 'poppins',
+    bg_pattern: initialUserLayout.bg_pattern || 'none',
     accent_color: initialUserLayout.accent_color || '#00A859',
     hero_style: initialUserLayout.hero_style || 'centered',
     projects_style: initialUserLayout.projects_style || 'cards',
@@ -3947,7 +4286,15 @@ const portfolioForm = ref({
   }
 })
 
-// Block reordering & toggling
+// Block reordering & positioning
+function moveBlockToTop(idx) {
+  if (idx > 0) {
+    const list = portfolioForm.value.portfolio_layout.blocks
+    const item = list.splice(idx, 1)[0]
+    list.unshift(item)
+  }
+}
+
 function moveBlockUp(idx) {
   if (idx > 0) {
     const list = portfolioForm.value.portfolio_layout.blocks
@@ -3964,6 +4311,18 @@ function moveBlockDown(idx) {
   }
 }
 
+function moveBlockToBottom(idx) {
+  const list = portfolioForm.value.portfolio_layout.blocks
+  if (idx < list.length - 1) {
+    const item = list.splice(idx, 1)[0]
+    list.push(item)
+  }
+}
+
+function toggleBlockWidth(blk) {
+  blk.width = blk.width === 'half' ? 'full' : 'half'
+}
+
 function toggleBlock(idx) {
   const b = portfolioForm.value.portfolio_layout.blocks[idx]
   b.enabled = !b.enabled
@@ -3971,6 +4330,22 @@ function toggleBlock(idx) {
 
 function resetBlocksOrder() {
   portfolioForm.value.portfolio_layout.blocks = JSON.parse(JSON.stringify(defaultBlocksList))
+}
+
+function randomizeStylePreset() {
+  const themes = ['emerald', 'dark', 'navy', 'sunset', 'purple', 'rose', 'matcha', 'synthwave', 'minimal']
+  const cardStyles = ['rounded', 'sharp', 'bordered', 'glass', 'terminal']
+  const structures = ['single', 'bento', 'cv_split', 'terminal']
+  const fonts = ['poppins', 'mono', 'serif', 'inter']
+  const patterns = ['none', 'grid', 'dots', 'mesh', 'circuit']
+  const accents = ['#00A859', '#10B981', '#2563EB', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#18181b', '#059669', '#DC2626']
+
+  portfolioForm.value.portfolio_layout.theme = themes[Math.floor(Math.random() * themes.length)]
+  portfolioForm.value.portfolio_layout.card_style = cardStyles[Math.floor(Math.random() * cardStyles.length)]
+  portfolioForm.value.portfolio_layout.layout_structure = structures[Math.floor(Math.random() * structures.length)]
+  portfolioForm.value.portfolio_layout.font_family = fonts[Math.floor(Math.random() * fonts.length)]
+  portfolioForm.value.portfolio_layout.bg_pattern = patterns[Math.floor(Math.random() * patterns.length)]
+  portfolioForm.value.portfolio_layout.accent_color = accents[Math.floor(Math.random() * accents.length)]
 }
 
 // Skills handling

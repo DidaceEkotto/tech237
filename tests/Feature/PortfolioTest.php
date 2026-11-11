@@ -45,14 +45,17 @@ class PortfolioTest extends TestCase
             'portfolio_layout' => [
                 'theme' => 'dark',
                 'card_style' => 'sharp',
+                'layout_structure' => 'bento',
+                'font_family' => 'mono',
+                'bg_pattern' => 'grid',
                 'accent_color' => '#10B981',
                 'hero_style' => 'terminal',
                 'projects_style' => 'cards',
                 'skills_style' => 'chips',
                 'blocks' => [
-                    ['id' => 'hero', 'name' => 'En-tête', 'enabled' => true],
-                    ['id' => 'projects', 'name' => 'Projets', 'enabled' => true],
-                    ['id' => 'skills', 'name' => 'Compétences', 'enabled' => true],
+                    ['id' => 'hero', 'name' => 'En-tête', 'enabled' => true, 'width' => 'full'],
+                    ['id' => 'projects', 'name' => 'Projets', 'enabled' => true, 'width' => 'full'],
+                    ['id' => 'skills', 'name' => 'Compétences', 'enabled' => true, 'width' => 'half'],
                 ],
             ],
             'portfolio_published' => true,
@@ -88,6 +91,10 @@ class PortfolioTest extends TestCase
         // Public route /portfolio/alex-foko
         $responseLong = $this->get('/portfolio/alex-foko');
         $responseLong->assertStatus(200);
+
+        // Public route /cv/alex-foko
+        $responseCv = $this->get('/cv/alex-foko');
+        $responseCv->assertStatus(200);
 
         // Assert view counter incremented
         $this->assertGreaterThan(0, $user->fresh()->portfolio_views);

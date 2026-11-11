@@ -196,7 +196,7 @@
                 $seoDesc = "Partagez de courtes actualités dans le domaine de la tech avec les autres membres de la communauté. ";
                 $seoImg = $defaultImg;
             }
-            elseif (Request::routeIs('user.portfolio') || Request::routeIs('user.portfolio.short')) {
+            elseif (Request::routeIs('user.portfolio') || Request::routeIs('user.portfolio.short') || Request::routeIs('user.cv')) {
                 $username = request()->route('username');
                 $portfolioUser = \App\Models\User::where('username', $username)->first();
                 if ($portfolioUser) {
@@ -223,8 +223,12 @@
     <meta property="og:description" head-key="og:description" content="{{ $seoDesc }}">
     <meta property="og:url" head-key="og:url" content="{{ url()->current() }}">
     <meta property="og:image" head-key="og:image" content="{{ $seoImg }}">
+    <meta property="og:image:secure_url" head-key="og:image:secure_url" content="{{ $seoImg }}">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="627">
+    @if(isset($portfolioUser) && $portfolioUser)
+    <meta property="profile:username" content="{{ $portfolioUser->username }}">
+    @endif
     <meta name="twitter:card" head-key="twitter:card" content="summary_large_image">
     <meta name="twitter:title" head-key="twitter:title" content="{{ $seoTitle }}">
     <meta name="twitter:description" head-key="twitter:description" content="{{ $seoDesc }}">
