@@ -6298,7 +6298,8 @@ function triggerSlideUpload(idx) {
 
 async function uploadSlideFile(file, idx) {
   if (!file) return
-  if (!file.type.startsWith('image/')) {
+  const isImg = (file.type && file.type.startsWith('image/')) || /\.(jpg|jpeg|png|webp|gif|svg|avif)$/i.test(file.name || '')
+  if (!isImg) {
     slideUploadError.value = 'Le fichier sélectionné doit être une image (PNG, JPG, WebP, SVG, GIF).'
     return
   }
@@ -6329,7 +6330,7 @@ async function uploadSlideFile(file, idx) {
       portfolioForm.value.portfolio_layout.slideshow.enabled = true
       slideUploadError.value = ''
     } else {
-      slideUploadError.value = resData?.errors?.image?.[0] || resData?.errors?.slide?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de la diapositive.'
+      slideUploadError.value = resData?.error || resData?.errors?.image?.[0] || resData?.errors?.slide?.[0] || resData?.message || 'Erreur lors du téléversement de la diapositive.'
     }
   } catch (err) {
     slideUploadError.value = err.message || 'Erreur réseau lors du téléversement.'

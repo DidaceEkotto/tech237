@@ -66,7 +66,10 @@ class PortfolioController extends Controller
 
     public function uploadBg(Request $request)
     {
-        $file = $request->file('image') ?: $request->file('bg') ?: $request->file('file');
+        $file = $request->file('image') 
+            ?: $request->file('bg') 
+            ?: $request->file('file') 
+            ?: (count($request->allFiles()) > 0 ? array_values($request->allFiles())[0] : null);
         if (!$file) {
             return response()->json(['error' => 'Aucun fichier image trouvé. Veuillez sélectionner une image (PNG, JPG, WebP).'], 422);
         }
@@ -167,7 +170,10 @@ class PortfolioController extends Controller
 
     public function uploadSlide(Request $request)
     {
-        $file = $request->file('image') ?: $request->file('slide') ?: $request->file('file');
+        $file = $request->file('image') 
+            ?: $request->file('slide') 
+            ?: $request->file('file') 
+            ?: (count($request->allFiles()) > 0 ? array_values($request->allFiles())[0] : null);
         if (!$file) {
             return response()->json(['error' => 'Aucun fichier image trouvé. Veuillez sélectionner une image (PNG, JPG, WebP).'], 422);
         }
@@ -177,7 +183,7 @@ class PortfolioController extends Controller
         ], [
             'image.required' => 'Veuillez sélectionner un fichier image valide.',
             'image.file' => 'Le fichier sélectionné n\'est pas un fichier valide.',
-            'image.max' => 'L\'image d\'arrière-plan ne doit pas dépasser 15 Mo.',
+            'image.max' => 'L\'image de la diapositive ne doit pas dépasser 15 Mo.',
         ]);
 
         if ($validator->fails()) {
@@ -218,7 +224,10 @@ class PortfolioController extends Controller
 
     public function uploadPreloaderImage(Request $request)
     {
-        $file = $request->file('image') ?: $request->file('preloader') ?: $request->file('file');
+        $file = $request->file('image') 
+            ?: $request->file('preloader') 
+            ?: $request->file('file') 
+            ?: (count($request->allFiles()) > 0 ? array_values($request->allFiles())[0] : null);
         if (!$file) {
             return response()->json(['error' => 'Aucun fichier image trouvé. Veuillez sélectionner une image (PNG, JPG, WebP).'], 422);
         }
