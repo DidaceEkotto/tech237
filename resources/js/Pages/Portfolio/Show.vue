@@ -217,7 +217,7 @@
         :class="{ 'opacity-100 z-2': currentSlideIndex === sIdx, 'opacity-0 z-1 pointer-events-none': currentSlideIndex !== sIdx }"
       >
         <img 
-          :src="formatImageUrl(slide.url || slide)" 
+          :src="formatImageUrl(slide.image || slide.url || slide)" 
           :alt="slide.caption || 'Slide Tech237'" 
           class="w-100 h-100 object-fit-cover"
         />
@@ -1514,8 +1514,11 @@ const youtubeEmbedUrl = computed(() => {
 })
 
 // Slideshow banner
-const slideshowConfig = computed(() => layout.value.slideshow || { enabled: false, images: [] })
-const slideshowImages = computed(() => slideshowConfig.value.images || [])
+const slideshowConfig = computed(() => layout.value.slideshow || { enabled: false, slides: [], images: [] })
+const slideshowImages = computed(() => {
+  const list = slideshowConfig.value.slides || slideshowConfig.value.images || []
+  return Array.isArray(list) ? list.filter(s => (typeof s === 'string' ? !!s : !!(s?.image || s?.url))) : []
+})
 
 function nextSlide() {
   if (slideshowImages.value.length) {
@@ -1945,7 +1948,7 @@ onMounted(() => {
 
   // Slideshow autoplay
   if (slideshowConfig.value.enabled && slideshowConfig.value.autoplay !== false && slideshowImages.value.length > 1) {
-    const speed = (Number(slideshowConfig.value.speed) || 4) * 1000
+    const speed = (Number(slideshowConfig.value.interval || slideshowConfig.value.speed) || 4) * 1000
     slideshowInterval = setInterval(() => {
       nextSlide()
     }, speed)

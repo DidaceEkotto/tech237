@@ -213,6 +213,17 @@ class PortfolioTest extends TestCase
         $response->assertJson([
             'success' => true,
         ]);
+
+        // Test with 'slide' key as well
+        $file2 = \Illuminate\Http\UploadedFile::fake()->image('banner_slide_2.jpg', 1600, 600);
+        $response2 = $this->actingAs($user, 'web')->post('/espace-utilisateur/portfolio/upload-slide', [
+            'slide' => $file2,
+        ]);
+
+        $response2->assertStatus(200);
+        $response2->assertJson([
+            'success' => true,
+        ]);
     }
 
     public function test_user_can_upload_preloader_image()

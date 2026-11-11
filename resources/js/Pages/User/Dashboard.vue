@@ -2391,7 +2391,7 @@
                   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                     <div class="d-flex align-items-center gap-3 min-w-0">
                       <img 
-                        :src="portfolioForm.portfolio_layout.bg_image" 
+                        :src="formatPortfolioImg(portfolioForm.portfolio_layout.bg_image)" 
                         alt="Aperçu fond" 
                         class="rounded-3 border object-fit-cover shadow-2xs flex-shrink-0" 
                         style="width: 64px; height: 64px;" 
@@ -2536,14 +2536,18 @@
 
                     <div class="row g-3 align-items-center">
                       <div class="col-md-3 text-center">
-                        <div v-if="slide.image" class="position-relative">
-                          <img :src="slide.image" class="rounded-3 border object-fit-cover w-100" style="height: 90px;" alt="Slide preview" />
-                          <button type="button" @click="slide.image = ''" class="btn btn-xs btn-danger rounded-circle position-absolute top-0 end-0 m-1 p-1" style="width: 22px; height: 22px; font-size: 10px;">✕</button>
+                        <div v-if="slide.image || slide.url" class="position-relative">
+                          <img :src="formatPortfolioImg(slide.image || slide.url)" class="rounded-3 border object-fit-cover w-100 shadow-2xs" style="height: 90px;" alt="Aperçu diapositive" />
+                          <button type="button" @click="slide.image = ''; slide.url = ''" class="btn btn-xs btn-danger rounded-circle position-absolute top-0 end-0 m-1 p-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 22px; height: 22px; font-size: 11px;" title="Retirer l'image">✕</button>
                         </div>
-                        <div v-else class="dropzone-area p-2 border border-2 border-dashed rounded-3 text-center cursor-pointer bg-white" @click="triggerSlideUpload(sIdx)">
+                        <div v-else-if="uploadingSlideIdx === sIdx" class="dropzone-area p-3 border border-2 border-dashed rounded-3 text-center bg-white">
+                          <div class="spinner-border spinner-border-sm text-primary mb-1" role="status"></div>
+                          <span class="d-block extra-small text-muted fw-bold">Téléversement...</span>
+                        </div>
+                        <div v-else class="dropzone-area p-2 border border-2 border-dashed rounded-3 text-center cursor-pointer bg-white hover-bg-light transition" @click="triggerSlideUpload(sIdx)">
                           <input type="file" :id="'slideFileInput_' + sIdx" class="d-none" accept="image/*" @change="e => uploadSlideFile(e.target.files[0], sIdx)" />
                           <i class="bi bi-cloud-arrow-up text-primary fs-5"></i>
-                          <span class="d-block extra-small text-muted">Téléverser</span>
+                          <span class="d-block extra-small text-muted fw-semibold">Téléverser</span>
                         </div>
                       </div>
 
@@ -2551,7 +2555,13 @@
                         <div class="row g-2">
                           <div class="col-12">
                             <label class="form-label extra-small fw-bold text-dark mb-1">URL de l'image (si hébergée ailleurs)</label>
-                            <input type="url" v-model="slide.image" class="form-control form-control-sm rounded-3" placeholder="https://..." />
+                            <input 
+                              type="url" 
+                              v-model="slide.image" 
+                              @input="slide.url = $event.target.value"
+                              class="form-control form-control-sm rounded-3" 
+                              placeholder="https://..." 
+                            />
                           </div>
                           <div class="col-md-6">
                             <label class="form-label extra-small fw-bold text-dark mb-1">Légende / Titre</label>
@@ -2633,7 +2643,7 @@
                     <label class="form-label small fw-bold text-dark mb-1">Votre Logo ou Photo pour l'Écran de Chargement</label>
                     <div class="d-flex align-items-center gap-3 flex-wrap">
                       <div v-if="portfolioForm.portfolio_layout.preloader.custom_image" class="position-relative">
-                        <img :src="portfolioForm.portfolio_layout.preloader.custom_image" class="rounded-circle border shadow-sm object-fit-cover" style="width: 56px; height: 56px;" alt="Logo preloader" />
+                        <img :src="formatPortfolioImg(portfolioForm.portfolio_layout.preloader.custom_image)" class="rounded-circle border shadow-sm object-fit-cover" style="width: 56px; height: 56px;" alt="Logo preloader" />
                         <button type="button" @click="portfolioForm.portfolio_layout.preloader.custom_image = ''" class="btn btn-xs btn-danger rounded-circle position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: 10px;">✕</button>
                       </div>
                       <div class="d-flex align-items-center gap-2 flex-grow-1">
@@ -6087,8 +6097,18 @@ const cvUploadLoading = ref(false)
 const cvUploadError = ref('')
 const slideUploadLoading = ref(false)
 const slideUploadError = ref('')
+const uploadingSlideIdx = ref(null)
 const preloaderUploadLoading = ref(false)
 const preloaderUploadError = ref('')
+
+function formatPortfolioImg(path) {
+  if (!path) return ''
+  if (typeof path !== 'string') return ''
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path
+  }
+  return '/' + path.replace(/^\/+/, '')
+}
 
 const fontsList = [
   { id: 'poppins', name: 'Poppins', style: 'Signature Moderne' },
@@ -6158,6 +6178,8 @@ async function uploadBgFile(file) {
   try {
     const formData = new FormData()
     formData.append('image', file)
+    formData.append('bg', file)
+    formData.append('file', file)
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
     const response = await fetch('/espace-utilisateur/portfolio/upload-bg', {
       method: 'POST',
@@ -6168,8 +6190,10 @@ async function uploadBgFile(file) {
       body: formData
     })
     const resData = await response.json().catch(() => ({}))
-    if (response.ok && resData?.url) {
-      portfolioForm.value.portfolio_layout.bg_image = resData.url
+    if (response.ok && (resData?.url || resData?.path)) {
+      const finalUrl = resData?.url || (resData?.path ? '/' + resData.path.replace(/^\/+/, '') : '')
+      portfolioForm.value.portfolio_layout.bg_image = finalUrl
+      bgUploadError.value = ''
     } else {
       bgUploadError.value = resData?.errors?.image?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de l\'image.'
     }
@@ -6197,6 +6221,7 @@ async function uploadCvFile(file) {
   try {
     const formData = new FormData()
     formData.append('cv', file)
+    formData.append('file', file)
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
     const response = await fetch('/espace-utilisateur/portfolio/upload-cv', {
       method: 'POST',
@@ -6207,8 +6232,10 @@ async function uploadCvFile(file) {
       body: formData
     })
     const resData = await response.json().catch(() => ({}))
-    if (response.ok && resData?.url) {
-      portfolioForm.value.portfolio_layout.cv_file = resData.url
+    if (response.ok && (resData?.url || resData?.path)) {
+      const finalUrl = resData?.url || (resData?.path ? '/' + resData.path.replace(/^\/+/, '') : '')
+      portfolioForm.value.portfolio_layout.cv_file = finalUrl
+      cvUploadError.value = ''
     } else {
       cvUploadError.value = resData?.errors?.cv?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement du CV.'
     }
@@ -6226,11 +6253,18 @@ function triggerSlideUpload(idx) {
 
 async function uploadSlideFile(file, idx) {
   if (!file) return
+  if (!file.type.startsWith('image/')) {
+    slideUploadError.value = 'Le fichier sélectionné doit être une image (PNG, JPG, WebP, SVG, GIF).'
+    return
+  }
+  uploadingSlideIdx.value = idx
   slideUploadLoading.value = true
   slideUploadError.value = ''
   try {
     const formData = new FormData()
+    formData.append('image', file)
     formData.append('slide', file)
+    formData.append('file', file)
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
     const response = await fetch('/espace-utilisateur/portfolio/upload-slide', {
       method: 'POST',
@@ -6241,17 +6275,23 @@ async function uploadSlideFile(file, idx) {
       body: formData
     })
     const resData = await response.json().catch(() => ({}))
-    if (response.ok && resData?.url) {
+    if (response.ok && (resData?.url || resData?.path)) {
+      const finalUrl = resData?.url || (resData?.path ? '/' + resData.path.replace(/^\/+/, '') : '')
       if (portfolioForm.value.portfolio_layout.slideshow?.slides?.[idx]) {
-        portfolioForm.value.portfolio_layout.slideshow.slides[idx].image = resData.url
+        portfolioForm.value.portfolio_layout.slideshow.slides[idx].image = finalUrl
+        portfolioForm.value.portfolio_layout.slideshow.slides[idx].url = finalUrl
       }
+      slideUploadError.value = ''
     } else {
-      slideUploadError.value = resData?.errors?.slide?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de la diapositive.'
+      slideUploadError.value = resData?.errors?.image?.[0] || resData?.errors?.slide?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de la diapositive.'
     }
   } catch (err) {
     slideUploadError.value = err.message || 'Erreur réseau lors du téléversement.'
   } finally {
     slideUploadLoading.value = false
+    uploadingSlideIdx.value = null
+    const inputEl = document.getElementById('slideFileInput_' + idx)
+    if (inputEl) inputEl.value = ''
   }
 }
 
@@ -6270,6 +6310,7 @@ function addSlide() {
   }
   portfolioForm.value.portfolio_layout.slideshow.slides.push({
     image: '',
+    url: '',
     caption: '',
     link: ''
   })
@@ -6283,11 +6324,17 @@ function removeSlide(idx) {
 
 async function uploadPreloaderImageFile(file) {
   if (!file) return
+  if (!file.type.startsWith('image/')) {
+    preloaderUploadError.value = 'Le fichier doit être une image valide.'
+    return
+  }
   preloaderUploadLoading.value = true
   preloaderUploadError.value = ''
   try {
     const formData = new FormData()
     formData.append('image', file)
+    formData.append('preloader', file)
+    formData.append('file', file)
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
     const response = await fetch('/espace-utilisateur/portfolio/upload-preloader-image', {
       method: 'POST',
@@ -6298,12 +6345,14 @@ async function uploadPreloaderImageFile(file) {
       body: formData
     })
     const resData = await response.json().catch(() => ({}))
-    if (response.ok && resData?.url) {
+    if (response.ok && (resData?.url || resData?.path)) {
+      const finalUrl = resData?.url || (resData?.path ? '/' + resData.path.replace(/^\/+/, '') : '')
       if (!portfolioForm.value.portfolio_layout.preloader) {
         portfolioForm.value.portfolio_layout.preloader = {}
       }
-      portfolioForm.value.portfolio_layout.preloader.custom_image = resData.url
+      portfolioForm.value.portfolio_layout.preloader.custom_image = finalUrl
       portfolioForm.value.portfolio_layout.preloader.style = 'custom_image'
+      preloaderUploadError.value = ''
     } else {
       preloaderUploadError.value = resData?.errors?.image?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de l\'image preloader.'
     }
@@ -6311,6 +6360,7 @@ async function uploadPreloaderImageFile(file) {
     preloaderUploadError.value = err.message || 'Erreur réseau lors du téléversement.'
   } finally {
     preloaderUploadLoading.value = false
+    if (preloaderFileInput.value) preloaderFileInput.value.value = ''
   }
 }
 

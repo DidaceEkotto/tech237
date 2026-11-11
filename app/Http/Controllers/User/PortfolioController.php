@@ -66,12 +66,20 @@ class PortfolioController extends Controller
 
     public function uploadBg(Request $request)
     {
-        $request->validate([
+        $file = $request->file('image') ?: $request->file('bg') ?: $request->file('file');
+        if (!$file) {
+            return response()->json(['error' => 'Aucun fichier image trouvé. Veuillez sélectionner une image (PNG, JPG, WebP).'], 422);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make(['image' => $file], [
             'image' => 'required|file|max:15360',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 422);
+        }
+
         try {
-            $file = $request->file('image');
             $extension = strtolower($file->getClientOriginalExtension() ?: 'png');
             $filename = 'bg_' . time() . '_' . Str::random(8) . '.' . $extension;
 
@@ -95,6 +103,7 @@ class PortfolioController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => asset('storage/' . $path),
+                'relative_url' => '/storage/' . $path,
                 'path' => 'storage/' . $path,
             ]);
         } catch (\Throwable $e) {
@@ -105,12 +114,20 @@ class PortfolioController extends Controller
 
     public function uploadCv(Request $request)
     {
-        $request->validate([
+        $file = $request->file('cv') ?: $request->file('file');
+        if (!$file) {
+            return response()->json(['error' => 'Aucun fichier CV trouvé. Veuillez sélectionner un document PDF ou Word.'], 422);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make(['cv' => $file], [
             'cv' => 'required|file|mimes:pdf,doc,docx,odt,rtf|max:20480',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 422);
+        }
+
         try {
-            $file = $request->file('cv');
             $originalName = $file->getClientOriginalName();
             $extension = strtolower($file->getClientOriginalExtension() ?: 'pdf');
             $filename = 'cv_' . time() . '_' . Str::random(8) . '.' . $extension;
@@ -134,6 +151,7 @@ class PortfolioController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => asset('storage/' . $path),
+                'relative_url' => '/storage/' . $path,
                 'path' => 'storage/' . $path,
                 'filename' => $originalName,
             ]);
@@ -145,12 +163,20 @@ class PortfolioController extends Controller
 
     public function uploadSlide(Request $request)
     {
-        $request->validate([
+        $file = $request->file('image') ?: $request->file('slide') ?: $request->file('file');
+        if (!$file) {
+            return response()->json(['error' => 'Aucun fichier image trouvé. Veuillez sélectionner une image (PNG, JPG, WebP).'], 422);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make(['image' => $file], [
             'image' => 'required|file|max:15360',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 422);
+        }
+
         try {
-            $file = $request->file('image');
             $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
             $filename = 'slide_' . time() . '_' . Str::random(8) . '.' . $extension;
 
@@ -173,6 +199,7 @@ class PortfolioController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => asset('storage/' . $path),
+                'relative_url' => '/storage/' . $path,
                 'path' => 'storage/' . $path,
             ]);
         } catch (\Throwable $e) {
@@ -183,12 +210,20 @@ class PortfolioController extends Controller
 
     public function uploadPreloaderImage(Request $request)
     {
-        $request->validate([
+        $file = $request->file('image') ?: $request->file('preloader') ?: $request->file('file');
+        if (!$file) {
+            return response()->json(['error' => 'Aucun fichier image trouvé. Veuillez sélectionner une image (PNG, JPG, WebP).'], 422);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make(['image' => $file], [
             'image' => 'required|file|max:10240',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 422);
+        }
+
         try {
-            $file = $request->file('image');
             $extension = strtolower($file->getClientOriginalExtension() ?: 'png');
             $filename = 'preloader_' . time() . '_' . Str::random(8) . '.' . $extension;
 
@@ -211,6 +246,7 @@ class PortfolioController extends Controller
             return response()->json([
                 'success' => true,
                 'url' => asset('storage/' . $path),
+                'relative_url' => '/storage/' . $path,
                 'path' => 'storage/' . $path,
             ]);
         } catch (\Throwable $e) {
