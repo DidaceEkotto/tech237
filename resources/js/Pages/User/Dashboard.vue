@@ -6326,6 +6326,7 @@ async function uploadSlideFile(file, idx) {
         portfolioForm.value.portfolio_layout.slideshow.slides[idx].image = finalUrl
         portfolioForm.value.portfolio_layout.slideshow.slides[idx].url = finalUrl
       }
+      portfolioForm.value.portfolio_layout.slideshow.enabled = true
       slideUploadError.value = ''
     } else {
       slideUploadError.value = resData?.errors?.image?.[0] || resData?.errors?.slide?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de la diapositive.'
@@ -6350,6 +6351,7 @@ function addSlide() {
       slides: []
     }
   }
+  portfolioForm.value.portfolio_layout.slideshow.enabled = true
   if (!Array.isArray(portfolioForm.value.portfolio_layout.slideshow.slides)) {
     portfolioForm.value.portfolio_layout.slideshow.slides = []
   }

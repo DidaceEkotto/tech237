@@ -206,24 +206,36 @@
 
     <!-- TOP HERO BANNER SLIDESHOW / CAROUSEL -->
     <div 
-      v-if="slideshowConfig.enabled && slideshowImages.length" 
+      v-if="isSlideshowVisible" 
       class="portfolio-top-slideshow position-relative overflow-hidden w-100 d-print-none shadow-sm"
-      :style="{ height: slideshowConfig.height || '340px' }"
+      :style="{ height: slideshowHeight, minHeight: '220px' }"
     >
       <div 
         v-for="(slide, sIdx) in slideshowImages" 
         :key="sIdx"
-        class="slideshow-item position-absolute top-0 start-0 w-100 h-100 transition-opacity"
-        :class="{ 'opacity-100 z-2': currentSlideIndex === sIdx, 'opacity-0 z-1 pointer-events-none': currentSlideIndex !== sIdx }"
+        class="slideshow-item position-absolute top-0 start-0 w-100 h-100"
+        :style="{
+          opacity: currentSlideIndex === sIdx ? '1' : '0',
+          zIndex: currentSlideIndex === sIdx ? '2' : '1',
+          pointerEvents: currentSlideIndex === sIdx ? 'auto' : 'none',
+          transition: 'opacity 0.6s ease-in-out'
+        }"
       >
-        <img 
-          :src="formatImageUrl(slide.image || slide.url || slide)" 
-          :alt="slide.caption || 'Slide Tech237'" 
-          class="w-100 h-100 object-fit-cover"
-        />
-        <div v-if="slide.caption" class="slideshow-caption position-absolute bottom-0 start-0 w-100 p-3 p-md-4 text-white text-center" style="background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%);">
-          <p class="mb-0 fs-6 fw-bold text-shadow">{{ slide.caption }}</p>
-        </div>
+        <component
+          :is="slide.link ? 'a' : 'div'"
+          :href="slide.link || undefined"
+          :target="slide.link ? '_blank' : undefined"
+          class="d-block w-100 h-100 position-relative text-decoration-none"
+        >
+          <img 
+            :src="formatImageUrl(slide.image || slide.url || slide)" 
+            :alt="slide.caption || 'Slide Tech237'" 
+            class="w-100 h-100 object-fit-cover"
+          />
+          <div v-if="slide.caption" class="slideshow-caption position-absolute bottom-0 start-0 w-100 p-3 p-md-4 text-white text-center" style="background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%);">
+            <p class="mb-0 fs-6 fw-bold text-shadow">{{ slide.caption }}</p>
+          </div>
+        </component>
       </div>
 
       <!-- Navigation Arrows -->
@@ -1529,9 +1541,37 @@ const youtubeEmbedUrl = computed(() => {
 
 // Slideshow banner
 const slideshowConfig = computed(() => layout.value.slideshow || { enabled: false, slides: [], images: [] })
+const slideshowHeight = computed(() => {
+  const h = slideshowConfig.value.height
+  if (!h) return '340px'
+  const str = String(h).trim()
+  return str.endsWith('px') ? str : `${str}px`
+})
 const slideshowImages = computed(() => {
   const list = slideshowConfig.value.slides || slideshowConfig.value.images || []
-  return Array.isArray(list) ? list.filter(s => (typeof s === 'string' ? !!s : !!(s?.image || s?.url))) : []
+  if (!Array.isArray(list)) return []
+  return list.map(s => {
+    if (typeof s === 'string') {
+      return { image: s, url: s, caption: '', link: '' }
+    }
+    const img = s?.image || s?.url || s?.path || ''
+    return {
+      ...s,
+      image: img,
+      url: img,
+      caption: s?.caption || '',
+      link: s?.link || ''
+    }
+  }).filter(s => !!s.image)
+})
+
+const isSlideshowVisible = computed(() => {
+  if (!slideshowImages.value.length) return false
+  const s = slideshowConfig.value
+  if (s.enabled === false || s.enabled === 'false' || s.enabled === 0 || s.enabled === '0') {
+    return false
+  }
+  return true
 })
 
 function nextSlide() {
@@ -1968,7 +2008,7 @@ onMounted(() => {
   }
 
   // Slideshow autoplay
-  if (slideshowConfig.value.enabled && slideshowConfig.value.autoplay !== false && slideshowImages.value.length > 1) {
+  if (isSlideshowVisible.value && slideshowConfig.value.autoplay !== false && slideshowImages.value.length > 1) {
     const speed = (Number(slideshowConfig.value.interval || slideshowConfig.value.speed) || 4) * 1000
     slideshowInterval = setInterval(() => {
       nextSlide()
