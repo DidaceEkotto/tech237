@@ -2190,40 +2190,17 @@
                   </div>
 
                   <div class="col-md-6">
-                    <label class="form-label small fw-bold text-dark mb-2">Style Typographique (Police)</label>
-                    <div class="btn-group w-100" role="group">
-                      <button 
-                        type="button" 
-                        class="btn btn-sm btn-outline-secondary"
-                        :class="{ 'active': portfolioForm.portfolio_layout.font_family === 'poppins' }"
-                        @click="portfolioForm.portfolio_layout.font_family = 'poppins'"
-                      >
-                        Poppins Moderne
-                      </button>
-                      <button 
-                        type="button" 
-                        class="btn btn-sm btn-outline-secondary font-monospace"
-                        :class="{ 'active': portfolioForm.portfolio_layout.font_family === 'mono' }"
-                        @click="portfolioForm.portfolio_layout.font_family = 'mono'"
-                      >
-                        Fira Code (Geek)
-                      </button>
-                      <button 
-                        type="button" 
-                        class="btn btn-sm btn-outline-secondary font-serif"
-                        :class="{ 'active': portfolioForm.portfolio_layout.font_family === 'serif' }"
-                        @click="portfolioForm.portfolio_layout.font_family = 'serif'"
-                      >
-                        Serif Élégant
-                      </button>
-                      <button 
-                        type="button" 
-                        class="btn btn-sm btn-outline-secondary"
-                        :class="{ 'active': portfolioForm.portfolio_layout.font_family === 'inter' }"
-                        @click="portfolioForm.portfolio_layout.font_family = 'inter'"
-                      >
-                        Inter Startup
-                      </button>
+                    <label class="form-label small fw-bold text-dark mb-2">Style Typographique (Police d'Écriture)</label>
+                    <select v-model="portfolioForm.portfolio_layout.font_family" class="form-select form-select-sm rounded-3">
+                      <option v-for="f in fontsList" :key="f.id" :value="f.id">
+                        {{ f.name }} — {{ f.style }}
+                      </option>
+                    </select>
+                    <div class="mt-2 p-2 bg-light rounded-3 d-flex align-items-center justify-content-between">
+                      <span class="extra-small text-muted">Aperçu direct :</span>
+                      <strong class="small text-dark" :class="'font-' + portfolioForm.portfolio_layout.font_family">
+                        Aa Bb Gg 123 • Bâtisseur Tech237
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -2264,6 +2241,7 @@
                       <option value="minimal">Minimaliste sobre</option>
                       <option value="cover_banner">Grande bannière couverture</option>
                       <option value="cyberpunk">Cyberpunk Sci-Fi HUD</option>
+                      <option value="executive">Executive Résumé Recruteur</option>
                     </select>
                   </div>
 
@@ -2278,7 +2256,7 @@
 
                   <div class="col-md-3">
                     <label class="form-label small fw-bold text-dark mb-1">Colonnes de Projets</label>
-                    <select v-model="portfolioForm.portfolio_layout.projects_columns" class="form-select form-select-sm rounded-3">
+                    <select v-model.number="portfolioForm.portfolio_layout.projects_columns" class="form-select form-select-sm rounded-3">
                       <option :value="1">1 colonne (Pleine largeur)</option>
                       <option :value="2">2 colonnes (Standard)</option>
                       <option :value="3">3 colonnes (Grille dense)</option>
@@ -2345,7 +2323,7 @@
                       <i class="bi bi-image text-primary"></i> Image d'Arrière-Plan Personnalisée
                     </h4>
                     <p class="text-muted small mb-0">
-                      Téléversez une image de fond personnalisée (via la dropzone ou par URL) avec contrôle de transparence et de flou.
+                      Téléversez une image de fond personnalisée (via la dropzone ou par URL directe) avec contrôle en temps réel de transparence, de flou et de répétition.
                     </p>
                   </div>
                 </div>
@@ -2370,26 +2348,46 @@
                     <i class="bi bi-cloud-arrow-up-fill"></i>
                   </div>
                   <strong class="d-block text-dark small mb-1">Glissez-déposez une image ici ou cliquez pour choisir</strong>
-                  <span class="text-muted extra-small d-block">PNG, JPG, WEBP ou SVG (Max 10 Mo)</span>
+                  <span class="text-muted extra-small d-block">PNG, JPG, WEBP, SVG ou GIF (Max 10 Mo)</span>
                 </div>
 
                 <div v-if="bgUploadError" class="alert alert-danger py-2 px-3 small rounded-3 mb-3">
                   {{ bgUploadError }}
                 </div>
 
-                <!-- Background Image Preview & Controls -->
-                <div v-if="portfolioForm.portfolio_layout.bg_image" class="p-3 bg-light rounded-4 mb-3 border">
+                <!-- Direct URL Input with Live Inline Preview -->
+                <div class="input-group input-group-sm mb-3">
+                  <span class="input-group-text bg-white text-muted"><i class="bi bi-link-45deg me-1"></i> URL directe de l'image</span>
+                  <input 
+                    type="url" 
+                    v-model="portfolioForm.portfolio_layout.bg_image" 
+                    class="form-control" 
+                    placeholder="https://images.unsplash.com/photo-..." 
+                  />
+                  <button 
+                    v-if="portfolioForm.portfolio_layout.bg_image" 
+                    type="button" 
+                    @click="portfolioForm.portfolio_layout.bg_image = ''" 
+                    class="btn btn-outline-danger"
+                  >
+                    Effacer
+                  </button>
+                </div>
+
+                <!-- Background Image Preview & Sliders Controls -->
+                <div v-if="portfolioForm.portfolio_layout.bg_image" class="p-3 bg-light rounded-4 mb-2 border">
                   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-3 min-w-0">
                       <img 
                         :src="portfolioForm.portfolio_layout.bg_image" 
                         alt="Aperçu fond" 
-                        class="rounded-3 border object-fit-cover" 
-                        style="width: 60px; height: 60px;" 
+                        class="rounded-3 border object-fit-cover shadow-2xs flex-shrink-0" 
+                        style="width: 64px; height: 64px;" 
                       />
-                      <div>
+                      <div class="min-w-0">
                         <strong class="d-block small text-dark">Image de fond active</strong>
-                        <span class="text-muted extra-small text-truncate d-inline-block" style="max-width: 250px;">{{ portfolioForm.portfolio_layout.bg_image }}</span>
+                        <span class="text-muted extra-small text-truncate d-block" style="max-width: 320px;">{{ portfolioForm.portfolio_layout.bg_image }}</span>
+                        <span class="badge bg-success-subtle text-success extra-small mt-1">Prête pour le rendu</span>
                       </div>
                     </div>
                     <button 
@@ -2405,7 +2403,7 @@
                     <!-- Opacity slider -->
                     <div class="col-md-4">
                       <label class="form-label extra-small fw-bold text-dark mb-1">
-                        Opacité : {{ portfolioForm.portfolio_layout.bg_image_opacity ?? 30 }}%
+                        Opacité du fond : {{ portfolioForm.portfolio_layout.bg_image_opacity ?? 30 }}%
                       </label>
                       <input 
                         type="range" 
@@ -2432,33 +2430,133 @@
                     </div>
                     <!-- Size / Repeat -->
                     <div class="col-md-4">
-                      <label class="form-label extra-small fw-bold text-dark mb-1">Remplissage</label>
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Mode de Remplissage</label>
                       <select v-model="portfolioForm.portfolio_layout.bg_image_size" class="form-select form-select-sm rounded-3">
-                        <option value="cover">Plein écran (Cover)</option>
-                        <option value="contain">Ajusté (Contain)</option>
-                        <option value="repeat">Motif répété (Tile)</option>
+                        <option value="cover">Plein écran (Cover - Recommandé)</option>
+                        <option value="contain">Ajusté entier (Contain)</option>
+                        <option value="repeat">Motif répété en mosaïque (Tile)</option>
                       </select>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <!-- Direct URL Fallback -->
-                <div class="input-group input-group-sm">
-                  <span class="input-group-text bg-white text-muted">Ou URL directe de l'image</span>
-                  <input 
-                    type="url" 
-                    v-model="portfolioForm.portfolio_layout.bg_image" 
-                    class="form-control" 
-                    placeholder="https://images.unsplash.com/photo-..." 
-                  />
-                  <button 
-                    v-if="portfolioForm.portfolio_layout.bg_image" 
-                    type="button" 
-                    @click="portfolioForm.portfolio_layout.bg_image = ''" 
-                    class="btn btn-outline-secondary"
-                  >
-                    Effacer
-                  </button>
+              <!-- 1.3.B Carrousel / Slideshow d'images en haut du Portfolio -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-images text-warning"></i> Carrousel / Diaporama d'En-Tête (Slideshow)
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Faites défiler un carrousel d'images panoramiques ou de captures en haut de votre portfolio avec légendes et transitions.
+                    </p>
+                  </div>
+                  <div class="form-check form-switch fs-5">
+                    <input 
+                      class="form-check-input cursor-pointer" 
+                      type="checkbox" 
+                      v-model="portfolioForm.portfolio_layout.slideshow.enabled" 
+                      id="slideshowToggle"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.slideshow.enabled" class="d-flex flex-column gap-3 pt-2">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label small fw-bold text-dark mb-1">
+                        Hauteur de la bannière : {{ portfolioForm.portfolio_layout.slideshow.height || 320 }}px
+                      </label>
+                      <input 
+                        type="range" 
+                        v-model.number="portfolioForm.portfolio_layout.slideshow.height" 
+                        min="180" 
+                        max="520" 
+                        step="20" 
+                        class="form-range" 
+                      />
+                    </div>
+                    <div class="col-md-4">
+                      <div class="form-check form-switch pt-4">
+                        <input 
+                          class="form-check-input cursor-pointer" 
+                          type="checkbox" 
+                          v-model="portfolioForm.portfolio_layout.slideshow.autoplay" 
+                          id="slideshowAutoplay"
+                        />
+                        <label class="form-check-label small fw-bold cursor-pointer" for="slideshowAutoplay">
+                          Défilement automatique (Autoplay)
+                        </label>
+                      </div>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label small fw-bold text-dark mb-1">
+                        Intervalle : {{ portfolioForm.portfolio_layout.slideshow.interval || 4 }}s
+                      </label>
+                      <input 
+                        type="range" 
+                        v-model.number="portfolioForm.portfolio_layout.slideshow.interval" 
+                        min="2" 
+                        max="10" 
+                        step="1" 
+                        class="form-range" 
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Slides List -->
+                  <div class="d-flex align-items-center justify-content-between pt-2">
+                    <strong class="small text-dark">Diapositives du carrousel ({{ (portfolioForm.portfolio_layout.slideshow.slides || []).length }})</strong>
+                    <button type="button" @click="addSlide" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold">
+                      + Ajouter une diapositive
+                    </button>
+                  </div>
+
+                  <div v-if="slideUploadError" class="alert alert-danger py-2 px-3 small rounded-3">
+                    {{ slideUploadError }}
+                  </div>
+
+                  <div v-for="(slide, sIdx) in portfolioForm.portfolio_layout.slideshow.slides" :key="sIdx" class="p-3 bg-light rounded-4 border position-relative">
+                    <button type="button" @click="removeSlide(sIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2" title="Supprimer cette diapositive">
+                      <i class="bi bi-trash"></i>
+                    </button>
+
+                    <div class="row g-3 align-items-center">
+                      <div class="col-md-3 text-center">
+                        <div v-if="slide.image" class="position-relative">
+                          <img :src="slide.image" class="rounded-3 border object-fit-cover w-100" style="height: 90px;" alt="Slide preview" />
+                          <button type="button" @click="slide.image = ''" class="btn btn-xs btn-danger rounded-circle position-absolute top-0 end-0 m-1 p-1" style="width: 22px; height: 22px; font-size: 10px;">✕</button>
+                        </div>
+                        <div v-else class="dropzone-area p-2 border border-2 border-dashed rounded-3 text-center cursor-pointer bg-white" @click="triggerSlideUpload(sIdx)">
+                          <input type="file" :id="'slideFileInput_' + sIdx" class="d-none" accept="image/*" @change="e => uploadSlideFile(e.target.files[0], sIdx)" />
+                          <i class="bi bi-cloud-arrow-up text-primary fs-5"></i>
+                          <span class="d-block extra-small text-muted">Téléverser</span>
+                        </div>
+                      </div>
+
+                      <div class="col-md-9">
+                        <div class="row g-2">
+                          <div class="col-12">
+                            <label class="form-label extra-small fw-bold text-dark mb-1">URL de l'image (si hébergée ailleurs)</label>
+                            <input type="url" v-model="slide.image" class="form-control form-control-sm rounded-3" placeholder="https://..." />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label extra-small fw-bold text-dark mb-1">Légende / Titre</label>
+                            <input type="text" v-model="slide.caption" class="form-control form-control-sm rounded-3" placeholder="ex: Présentation de notre architecture Cloud" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label extra-small fw-bold text-dark mb-1">Lien de redirection (Optionnel)</label>
+                            <input type="url" v-model="slide.link" class="form-control form-control-sm rounded-3" placeholder="https://..." />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="!portfolioForm.portfolio_layout.slideshow.slides?.length" class="text-center py-3 text-muted extra-small">
+                    Aucune diapositive ajoutée. Cliquez sur « + Ajouter une diapositive » pour créer votre carrousel !
+                  </div>
                 </div>
               </div>
 
@@ -2470,7 +2568,7 @@
                       <i class="bi bi-hourglass-split text-info"></i> Écran de Chargement (Splash Screen / Preloader)
                     </h4>
                     <p class="text-muted small mb-0">
-                      Affichez un écran de chargement dynamique avec un temps d'attente artificiel pour admirer l'animation de démarrage.
+                      Affichez un écran de chargement dynamique avec logo, animation ou photo personnalisée pour sublimer le démarrage de votre portfolio.
                     </p>
                   </div>
                   <div class="form-check form-switch fs-5">
@@ -2489,6 +2587,7 @@
                     <select v-model="portfolioForm.portfolio_layout.preloader.style" class="form-select form-select-sm rounded-3">
                       <option value="spinner">Spinner classique épuré</option>
                       <option value="pulse_logo">Logo pulsant Tech237</option>
+                      <option value="custom_image">🖼️ Mon Image / Logo / Photo perso</option>
                       <option value="progress_bar">Barre de progression fluide</option>
                       <option value="terminal">Terminal boot hacker Unix</option>
                       <option value="dots">Points rebondissants dynamiques</option>
@@ -2516,6 +2615,28 @@
                       class="form-range" 
                     />
                   </div>
+
+                  <!-- Custom Image Upload for Preloader -->
+                  <div v-if="portfolioForm.portfolio_layout.preloader.style === 'custom_image'" class="col-12 mt-2 pt-2 border-top">
+                    <label class="form-label small fw-bold text-dark mb-1">Votre Logo ou Photo pour l'Écran de Chargement</label>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                      <div v-if="portfolioForm.portfolio_layout.preloader.custom_image" class="position-relative">
+                        <img :src="portfolioForm.portfolio_layout.preloader.custom_image" class="rounded-circle border shadow-sm object-fit-cover" style="width: 56px; height: 56px;" alt="Logo preloader" />
+                        <button type="button" @click="portfolioForm.portfolio_layout.preloader.custom_image = ''" class="btn btn-xs btn-danger rounded-circle position-absolute top-0 end-0 p-0 d-flex align-items-center justify-content-center" style="width: 20px; height: 20px; font-size: 10px;">✕</button>
+                      </div>
+                      <div class="d-flex align-items-center gap-2 flex-grow-1">
+                        <input type="file" ref="preloaderFileInput" class="d-none" accept="image/*" @change="e => uploadPreloaderImageFile(e.target.files[0])" />
+                        <button type="button" @click="$refs.preloaderFileInput.click()" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold" :disabled="preloaderUploadLoading">
+                          <span v-if="preloaderUploadLoading" class="spinner-border spinner-border-sm me-1"></span>
+                          <i v-else class="bi bi-upload me-1"></i> Téléverser une image
+                        </button>
+                        <input type="url" v-model="portfolioForm.portfolio_layout.preloader.custom_image" class="form-control form-control-sm rounded-3" placeholder="Ou coller une URL d'image (https://...)" />
+                      </div>
+                    </div>
+                    <div v-if="preloaderUploadError" class="alert alert-danger py-2 px-3 small rounded-3 mt-2 mb-0">
+                      {{ preloaderUploadError }}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -2527,7 +2648,7 @@
                       <i class="bi bi-segmented-nav text-success"></i> Menu à Onglets (Site Web Multi-Pages)
                     </h4>
                     <p class="text-muted small mb-0">
-                      Transformez votre portfolio en authentique application web avec onglets (Présentation, Stack, Projets, Parcours, Contact).
+                      Transformez votre portfolio en authentique application web avec onglets (Présentation, Stack, Projets, Parcours, Contact) enrichis d'icônes Bootstrap officielles.
                     </p>
                   </div>
                   <div class="form-check form-switch fs-5">
@@ -2541,24 +2662,54 @@
                 </div>
 
                 <div v-if="portfolioForm.portfolio_layout.tabbed_nav.enabled || (portfolioForm.portfolio_layout.layout_structure && portfolioForm.portfolio_layout.layout_structure.startsWith('tabbed'))" class="row g-3 pt-2">
-                  <div class="col-md-6">
-                    <label class="form-label small fw-bold text-dark mb-1">Onglet d'atterrissage par défaut</label>
+                  <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1">Onglet par défaut</label>
                     <select v-model="portfolioForm.portfolio_layout.tabbed_nav.default_tab" class="form-select form-select-sm rounded-3">
-                      <option value="all">🌟 Vue Globale (Tout afficher)</option>
-                      <option value="about">👤 À Propos &amp; Bio</option>
-                      <option value="skills">⚡ Compétences &amp; Stack</option>
-                      <option value="projects">🚀 Projets &amp; Réalisations</option>
-                      <option value="experiences">💼 Parcours &amp; Expériences</option>
-                      <option value="contact">📬 Contact &amp; Réseaux</option>
+                      <option value="all">Vue Globale (Tout afficher)</option>
+                      <option value="about">À Propos &amp; Bio</option>
+                      <option value="skills">Compétences &amp; Stack</option>
+                      <option value="projects">Projets &amp; Réalisations</option>
+                      <option value="experiences">Parcours &amp; Expériences</option>
+                      <option value="contact">Contact &amp; Réseaux</option>
                     </select>
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-md-3">
                     <label class="form-label small fw-bold text-dark mb-1">Style des Onglets</label>
                     <select v-model="portfolioForm.portfolio_layout.tabbed_nav.style" class="form-select form-select-sm rounded-3">
-                      <option value="pills">Pastilles Pilules modernes avec badges</option>
+                      <option value="pills">Pastilles Pilules modernes</option>
                       <option value="underline">Ligne soulignée épurée</option>
                       <option value="bordered">Boutons encadrés 3D</option>
                     </select>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1">Taille des Onglets</label>
+                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.size" class="form-select form-select-sm rounded-3">
+                      <option value="sm">Petite (Compacte)</option>
+                      <option value="md">Moyenne (Standard)</option>
+                      <option value="lg">Grande (Confort)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1">Arrondis des Onglets</label>
+                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.radius" class="form-select form-select-sm rounded-3">
+                      <option value="full">Pilules rondes (999px)</option>
+                      <option value="rounded">Arrondi doux (14px)</option>
+                      <option value="sharp">Tranché moderne (4px)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold text-dark mb-1">Alignement horizontal</label>
+                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.alignment" class="form-select form-select-sm rounded-3">
+                      <option value="center">Centré au milieu</option>
+                      <option value="start">Aligné à gauche</option>
+                      <option value="end">Aligné à droite</option>
+                    </select>
+                  </div>
+                  <div class="col-md-8">
+                    <div class="p-2 bg-light rounded-3 mt-md-4 extra-small text-muted d-flex align-items-center gap-2">
+                      <i class="bi bi-info-circle-fill text-success"></i>
+                      <span>Icônes Bootstrap vectorielles intégrées : &lt;i class="bi bi-person-circle"&gt;, &lt;i class="bi bi-cpu"&gt;, etc.</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2867,6 +3018,34 @@
                     <small class="text-muted extra-small">Affiché en badge dans l'en-tête, les stats et le CV.</small>
                   </div>
 
+                  <!-- Google Maps URL -->
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark">
+                      <i class="bi bi-geo-alt-fill text-danger me-1"></i> Lien Google Maps (Localisation interactive)
+                    </label>
+                    <input 
+                      type="url" 
+                      v-model="portfolioForm.portfolio_layout.google_maps_url" 
+                      class="form-control" 
+                      placeholder="https://maps.google.com/?q=Douala+Cameroun" 
+                    />
+                    <small class="text-muted extra-small">Permet aux recruteurs et clients d'ouvrir votre ville dans Google Maps.</small>
+                  </div>
+
+                  <!-- YouTube Pitch Video -->
+                  <div class="col-12">
+                    <label class="form-label small fw-bold text-dark">
+                      <i class="bi bi-youtube text-danger me-1"></i> Lien Vidéo YouTube (Pitch / Démo de vos projets)
+                    </label>
+                    <input 
+                      type="url" 
+                      v-model="portfolioForm.portfolio_layout.youtube_url" 
+                      class="form-control" 
+                      placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..." 
+                    />
+                    <small class="text-muted extra-small">Intègre un lecteur vidéo immersif 16:9 dans votre portfolio pour vous présenter en vidéo.</small>
+                  </div>
+
                   <!-- Bio -->
                   <div class="col-12">
                     <label class="form-label small fw-bold text-dark">Présentation &amp; Biographie (Bio)</label>
@@ -2877,6 +3056,128 @@
                       placeholder="Décrivez votre parcours, vos technologies de prédilection, les défis techniques que vous aimez résoudre..."
                     ></textarea>
                     <small class="text-muted extra-small">Supporte le formatage HTML (&lt;b&gt;, &lt;i&gt;, retours à la ligne...).</small>
+                  </div>
+                </div>
+
+                <!-- CV Personnel (Upload PDF & Lien) -->
+                <div class="mt-4 pt-4 border-top">
+                  <h5 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                    <i class="bi bi-file-earmark-pdf-fill text-danger"></i> Votre CV Personnel (Document Téléchargeable)
+                  </h5>
+                  <p class="text-muted small mb-3">
+                    Permettez aux recruteurs de télécharger directement votre CV au format PDF ou document depuis votre portfolio.
+                  </p>
+
+                  <div class="row g-3 align-items-center">
+                    <div class="col-md-6">
+                      <div 
+                        class="dropzone-area p-3 border border-2 border-dashed rounded-4 text-center cursor-pointer transition bg-light"
+                        @click="$refs.cvFileInput.click()"
+                      >
+                        <input 
+                          type="file" 
+                          ref="cvFileInput" 
+                          class="d-none" 
+                          accept=".pdf,.doc,.docx" 
+                          @change="e => uploadCvFile(e.target.files[0])" 
+                        />
+                        <div v-if="cvUploadLoading" class="spinner-border spinner-border-sm text-danger mb-1" role="status"></div>
+                        <div v-else class="fs-4 text-danger mb-1">
+                          <i class="bi bi-file-earmark-arrow-up-fill"></i>
+                        </div>
+                        <strong class="d-block small text-dark">Glissez votre CV ici ou cliquez pour choisir</strong>
+                        <span class="text-muted extra-small">PDF, DOC ou DOCX (Max 10 Mo)</span>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Ou lien externe vers votre CV (Google Drive, Dropbox, Notion...)</label>
+                      <input 
+                        type="url" 
+                        v-model="portfolioForm.portfolio_layout.cv_url" 
+                        class="form-control form-control-sm rounded-3" 
+                        placeholder="https://drive.google.com/file/d/..." 
+                      />
+                      <small class="text-muted extra-small d-block mt-1">Utilisé comme lien alternatif si aucun fichier direct n'est importé.</small>
+                    </div>
+
+                    <div v-if="cvUploadError" class="col-12">
+                      <div class="alert alert-danger py-2 px-3 small rounded-3 mb-0">
+                        {{ cvUploadError }}
+                      </div>
+                    </div>
+
+                    <!-- Current Active CV Badge -->
+                    <div v-if="portfolioForm.portfolio_layout.cv_file" class="col-12">
+                      <div class="p-3 bg-light rounded-4 border d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi bi-file-pdf fs-4 text-danger"></i>
+                          <div>
+                            <strong class="d-block small text-dark">Fichier CV actif disponible</strong>
+                            <a :href="portfolioForm.portfolio_layout.cv_file" target="_blank" class="extra-small text-primary text-decoration-none fw-bold">
+                              Tester le téléchargement &rarr;
+                            </a>
+                          </div>
+                        </div>
+                        <button 
+                          type="button" 
+                          @click="portfolioForm.portfolio_layout.cv_file = ''" 
+                          class="btn btn-sm btn-outline-danger rounded-pill px-3 extra-small"
+                        >
+                          <i class="bi bi-trash3 me-1"></i> Supprimer ce fichier CV
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Formulaire de Contact Automatisé (avec 2 emails) -->
+                <div class="mt-4 pt-4 border-top">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <div>
+                      <h5 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                        <i class="bi bi-envelope-check-fill text-success"></i> Formulaire de Contact Interactif &amp; Automatisé
+                      </h5>
+                      <p class="text-muted small mb-0">
+                        Permettez aux recruteurs et clients de vous envoyer un message (Nom, Prénom, Email, Sujet, Message) directement depuis votre portfolio.
+                      </p>
+                    </div>
+                    <div class="form-check form-switch fs-5">
+                      <input 
+                        class="form-check-input cursor-pointer" 
+                        type="checkbox" 
+                        v-model="portfolioForm.portfolio_layout.contact_form.enabled" 
+                        id="contactFormToggle"
+                      />
+                    </div>
+                  </div>
+
+                  <div v-if="portfolioForm.portfolio_layout.contact_form.enabled" class="p-3 bg-light rounded-4 border mt-3">
+                    <div class="alert alert-success-subtle text-success-emphasis border-0 py-2 px-3 extra-small rounded-3 mb-3 d-flex align-items-center gap-2">
+                      <i class="bi bi-send-check-fill fs-6"></i>
+                      <span><strong>Double email automatique activé :</strong> Un email de notification instantanée vous est envoyé, et un email d'accusé de réception bienveillant est expédié au visiteur.</span>
+                    </div>
+
+                    <div class="row g-2">
+                      <div class="col-md-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Titre de la section contact</label>
+                        <input 
+                          type="text" 
+                          v-model="portfolioForm.portfolio_layout.contact_form.title" 
+                          class="form-control form-control-sm rounded-3" 
+                          placeholder="M'envoyer un message direct" 
+                        />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Sous-titre / Message d'accueil</label>
+                        <input 
+                          type="text" 
+                          v-model="portfolioForm.portfolio_layout.contact_form.subtitle" 
+                          class="form-control form-control-sm rounded-3" 
+                          placeholder="Une question, une mission freelance ou une opportunité ? Écrivez-moi !" 
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3189,6 +3490,23 @@
                     ]"
                     :style="{ '--accent-color': portfolioForm.portfolio_layout.accent_color }"
                   >
+                    <!-- Top Slideshow Banner Preview (If Enabled) -->
+                    <div 
+                      v-if="portfolioForm.portfolio_layout.slideshow?.enabled && portfolioForm.portfolio_layout.slideshow?.slides?.length"
+                      class="slideshow-preview-card rounded-4 overflow-hidden mb-4 border position-relative shadow-sm"
+                      :style="{ height: Math.min(portfolioForm.portfolio_layout.slideshow.height || 320, 240) + 'px' }"
+                    >
+                      <img 
+                        :src="portfolioForm.portfolio_layout.slideshow.slides[0].image || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&q=80'" 
+                        class="w-100 h-100 object-fit-cover" 
+                        alt="Bannière carrousel" 
+                      />
+                      <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-dark bg-opacity-60 text-white d-flex align-items-center justify-content-between">
+                        <span class="small fw-bold text-truncate">{{ portfolioForm.portfolio_layout.slideshow.slides[0].caption || 'Bannière Carrousel Active' }}</span>
+                        <span class="badge bg-warning text-dark extra-small fw-bold">1 / {{ portfolioForm.portfolio_layout.slideshow.slides.length }} slides</span>
+                      </div>
+                    </div>
+
                     <!-- Simulated Header/Hero -->
                     <div class="hero-preview text-center p-4 rounded-4 bg-white border shadow-sm mb-4 position-relative">
                       <div class="position-relative d-inline-block mb-2">
@@ -3213,16 +3531,30 @@
                       </p>
                       <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap mb-2">
                         <span v-if="portfolioForm.location" class="badge bg-light text-dark border extra-small">
-                          📍 {{ portfolioForm.location }}
+                          <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ portfolioForm.location }}
                         </span>
                         <span v-if="portfolioForm.portfolio_layout.years_of_experience" class="badge bg-primary-subtle text-primary border extra-small fw-bold">
-                          💼 {{ portfolioForm.portfolio_layout.years_of_experience }}
+                          <i class="bi bi-briefcase-fill me-1"></i>{{ portfolioForm.portfolio_layout.years_of_experience }}
                         </span>
                         <span class="badge bg-success-subtle text-success border extra-small fw-bold">
                           ⚡ {{ user.xp || 0 }} XP &bull; {{ user.rank_title || 'Novice Tech' }}
                         </span>
                       </div>
-                      <p v-if="portfolioForm.bio" class="small text-muted mb-0 max-w-500 mx-auto" style="white-space: pre-line;">
+
+                      <!-- Buttons Strip Preview (CV, Maps, Contact) -->
+                      <div class="d-flex align-items-center justify-content-center gap-2 flex-wrap mt-2">
+                        <span v-if="portfolioForm.portfolio_layout.cv_file || portfolioForm.portfolio_layout.cv_url" class="btn btn-xs btn-outline-danger rounded-pill px-3 fw-bold extra-small">
+                          <i class="bi bi-download me-1"></i> Mon CV (PDF)
+                        </span>
+                        <span v-if="portfolioForm.portfolio_layout.youtube_url" class="btn btn-xs btn-outline-danger rounded-pill px-3 fw-bold extra-small">
+                          <i class="bi bi-play-circle-fill me-1"></i> Vidéo Pitch
+                        </span>
+                        <span v-if="portfolioForm.portfolio_layout.google_maps_url" class="btn btn-xs btn-outline-secondary rounded-pill px-3 fw-semibold extra-small">
+                          <i class="bi bi-map-fill me-1"></i> Google Maps
+                        </span>
+                      </div>
+
+                      <p v-if="portfolioForm.bio" class="small text-muted mb-0 max-w-500 mx-auto mt-2" style="white-space: pre-line;">
                         {{ portfolioForm.bio }}
                       </p>
                     </div>
@@ -3258,6 +3590,18 @@
                             <span v-else class="italic">Aucune formation ajoutée</span>
                           </div>
 
+                          <div v-else-if="b.id === 'contact' && portfolioForm.portfolio_layout.contact_form?.enabled" class="p-2 bg-light rounded-3">
+                            <span class="extra-small fw-bold text-dark d-block mb-1">{{ portfolioForm.portfolio_layout.contact_form.title || 'Formulaire de Contact Direct' }}</span>
+                            <div class="d-flex flex-column gap-1">
+                              <div class="d-flex gap-1">
+                                <input type="text" class="form-control form-control-sm py-0 extra-small bg-white" placeholder="Prénom" disabled />
+                                <input type="text" class="form-control form-control-sm py-0 extra-small bg-white" placeholder="Nom" disabled />
+                              </div>
+                              <input type="text" class="form-control form-control-sm py-0 extra-small bg-white" placeholder="Email" disabled />
+                              <button type="button" class="btn btn-xs btn-dark rounded-pill py-0 extra-small" disabled>Envoyer (Double email automatique)</button>
+                            </div>
+                          </div>
+
                           <div v-else class="extra-small text-muted">
                             Contenu dynamique connecté à votre profil public Tech237.
                           </div>
@@ -3273,6 +3617,16 @@
                       <small class="extra-small text-muted d-block">
                         © Tech237 &bull; Portfolio certifié hébergé sur Tech237
                       </small>
+                    </div>
+
+                    <!-- Floating Round Back-To-Top Button Preview (Right bottom) -->
+                    <div 
+                      v-if="portfolioForm.portfolio_layout.footer?.show_back_to_top"
+                      class="position-absolute bottom-0 end-0 m-3 rounded-circle bg-dark text-white shadow d-flex align-items-center justify-content-center"
+                      style="width: 38px; height: 38px; z-index: 10;"
+                      title="Bouton flottant Revenir en haut (apparaît au défilement)"
+                    >
+                      <i class="bi bi-chevron-up"></i>
                     </div>
 
                   </div>
@@ -4645,6 +4999,27 @@ const newSkillCategory = ref('Backend')
 const newSkillLevel = ref('Avancé')
 const bgUploadLoading = ref(false)
 const bgUploadError = ref('')
+const cvUploadLoading = ref(false)
+const cvUploadError = ref('')
+const slideUploadLoading = ref(false)
+const slideUploadError = ref('')
+const preloaderUploadLoading = ref(false)
+const preloaderUploadError = ref('')
+
+const fontsList = [
+  { id: 'poppins', name: 'Poppins', style: 'Signature Moderne' },
+  { id: 'montserrat', name: 'Montserrat', style: 'Géométrique & Pro' },
+  { id: 'roboto', name: 'Roboto', style: 'Épuré & Neutre' },
+  { id: 'jakarta', name: 'Plus Jakarta Sans', style: 'Startup & Tech' },
+  { id: 'outfit', name: 'Outfit', style: 'Moderne & Créatif' },
+  { id: 'raleway', name: 'Raleway', style: 'Élégant & Fin' },
+  { id: 'firacode', name: 'Fira Code', style: 'Monospace Geek' },
+  { id: 'space', name: 'Space Grotesk', style: 'Futuriste Web3' },
+  { id: 'playfair', name: 'Playfair Display', style: 'Éditorial & Luxe' },
+  { id: 'cinzel', name: 'Cinzel', style: 'Classique Royal' },
+  { id: 'lexend', name: 'Lexend', style: 'Ultra Lisible' },
+  { id: 'inter', name: 'Inter', style: 'Interface SaaS' },
+]
 
 const layoutStructuresList = [
   { id: 'single', name: 'Flux Vertical Standard', icon: '📜', desc: 'Lecture linéaire fluide, idéal pour un storytelling professionnel naturel.' },
@@ -4691,7 +5066,7 @@ function getSkillLevelBadgeClass(level) {
 async function uploadBgFile(file) {
   if (!file) return
   if (!file.type.startsWith('image/')) {
-    bgUploadError.value = 'Le fichier doit être une image (PNG, JPG, WEBP, SVG).'
+    bgUploadError.value = 'Le fichier doit être une image (PNG, JPG, WEBP, SVG, GIF).'
     return
   }
   bgUploadLoading.value = true
@@ -4699,14 +5074,23 @@ async function uploadBgFile(file) {
   try {
     const formData = new FormData()
     formData.append('image', file)
-    const res = await axios.post('/espace-utilisateur/portfolio/upload-bg', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const response = await fetch('/espace-utilisateur/portfolio/upload-bg', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: formData
     })
-    if (res.data && res.data.url) {
-      portfolioForm.value.portfolio_layout.bg_image = res.data.url
+    const resData = await response.json().catch(() => ({}))
+    if (response.ok && resData?.url) {
+      portfolioForm.value.portfolio_layout.bg_image = resData.url
+    } else {
+      bgUploadError.value = resData?.errors?.image?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de l\'image.'
     }
   } catch (err) {
-    bgUploadError.value = err.response?.data?.error || 'Erreur lors du téléversement de l\'image.'
+    bgUploadError.value = err.message || 'Erreur réseau lors du téléversement.'
   } finally {
     bgUploadLoading.value = false
   }
@@ -4720,6 +5104,130 @@ function handleBgDrop(e) {
 function handleBgFileSelect(e) {
   const file = e.target?.files?.[0]
   if (file) uploadBgFile(file)
+}
+
+async function uploadCvFile(file) {
+  if (!file) return
+  cvUploadLoading.value = true
+  cvUploadError.value = ''
+  try {
+    const formData = new FormData()
+    formData.append('cv', file)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const response = await fetch('/espace-utilisateur/portfolio/upload-cv', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: formData
+    })
+    const resData = await response.json().catch(() => ({}))
+    if (response.ok && resData?.url) {
+      portfolioForm.value.portfolio_layout.cv_file = resData.url
+    } else {
+      cvUploadError.value = resData?.errors?.cv?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement du CV.'
+    }
+  } catch (err) {
+    cvUploadError.value = err.message || 'Erreur réseau lors du téléversement.'
+  } finally {
+    cvUploadLoading.value = false
+  }
+}
+
+function triggerSlideUpload(idx) {
+  const el = document.getElementById('slideFileInput_' + idx)
+  if (el) el.click()
+}
+
+async function uploadSlideFile(file, idx) {
+  if (!file) return
+  slideUploadLoading.value = true
+  slideUploadError.value = ''
+  try {
+    const formData = new FormData()
+    formData.append('slide', file)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const response = await fetch('/espace-utilisateur/portfolio/upload-slide', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: formData
+    })
+    const resData = await response.json().catch(() => ({}))
+    if (response.ok && resData?.url) {
+      if (portfolioForm.value.portfolio_layout.slideshow?.slides?.[idx]) {
+        portfolioForm.value.portfolio_layout.slideshow.slides[idx].image = resData.url
+      }
+    } else {
+      slideUploadError.value = resData?.errors?.slide?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de la diapositive.'
+    }
+  } catch (err) {
+    slideUploadError.value = err.message || 'Erreur réseau lors du téléversement.'
+  } finally {
+    slideUploadLoading.value = false
+  }
+}
+
+function addSlide() {
+  if (!portfolioForm.value.portfolio_layout.slideshow) {
+    portfolioForm.value.portfolio_layout.slideshow = {
+      enabled: true,
+      autoplay: true,
+      interval: 4,
+      height: 320,
+      slides: []
+    }
+  }
+  if (!Array.isArray(portfolioForm.value.portfolio_layout.slideshow.slides)) {
+    portfolioForm.value.portfolio_layout.slideshow.slides = []
+  }
+  portfolioForm.value.portfolio_layout.slideshow.slides.push({
+    image: '',
+    caption: '',
+    link: ''
+  })
+}
+
+function removeSlide(idx) {
+  if (portfolioForm.value.portfolio_layout.slideshow?.slides) {
+    portfolioForm.value.portfolio_layout.slideshow.slides.splice(idx, 1)
+  }
+}
+
+async function uploadPreloaderImageFile(file) {
+  if (!file) return
+  preloaderUploadLoading.value = true
+  preloaderUploadError.value = ''
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const response = await fetch('/espace-utilisateur/portfolio/upload-preloader-image', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: formData
+    })
+    const resData = await response.json().catch(() => ({}))
+    if (response.ok && resData?.url) {
+      if (!portfolioForm.value.portfolio_layout.preloader) {
+        portfolioForm.value.portfolio_layout.preloader = {}
+      }
+      portfolioForm.value.portfolio_layout.preloader.custom_image = resData.url
+      portfolioForm.value.portfolio_layout.preloader.style = 'custom_image'
+    } else {
+      preloaderUploadError.value = resData?.errors?.image?.[0] || resData?.error || resData?.message || 'Erreur lors du téléversement de l\'image preloader.'
+    }
+  } catch (err) {
+    preloaderUploadError.value = err.message || 'Erreur réseau lors du téléversement.'
+  } finally {
+    preloaderUploadLoading.value = false
+  }
 }
 
 const defaultBlocksList = [
@@ -4758,7 +5266,7 @@ const portfolioForm = ref({
     accent_color: initialUserLayout.accent_color || '#00A859',
     hero_style: initialUserLayout.hero_style || 'centered',
     projects_style: initialUserLayout.projects_style || 'cards',
-    projects_columns: initialUserLayout.projects_columns || 2,
+    projects_columns: Number(initialUserLayout.projects_columns) || 2,
     skills_style: initialUserLayout.skills_style || 'chips',
     ambient_effect: initialUserLayout.ambient_effect || 'none',
     page_animation: initialUserLayout.page_animation || 'fade',
@@ -4767,16 +5275,36 @@ const portfolioForm = ref({
     bg_image_blur: initialUserLayout.bg_image_blur ?? 0,
     bg_image_size: initialUserLayout.bg_image_size || 'cover',
     years_of_experience: initialUserLayout.years_of_experience || '',
+    google_maps_url: initialUserLayout.google_maps_url || '',
+    youtube_url: initialUserLayout.youtube_url || '',
+    cv_file: initialUserLayout.cv_file || '',
+    cv_url: initialUserLayout.cv_url || '',
+    slideshow: initialUserLayout.slideshow || {
+      enabled: false,
+      autoplay: true,
+      interval: 4,
+      height: 320,
+      slides: []
+    },
+    contact_form: initialUserLayout.contact_form || {
+      enabled: true,
+      title: 'Me contacter directement',
+      subtitle: 'Une question, une mission freelance ou une opportunité ? Écrivez-moi !'
+    },
     tabbed_nav: initialUserLayout.tabbed_nav || {
       enabled: false,
       style: 'pills',
+      size: 'md',
+      radius: 'full',
+      alignment: 'center',
       default_tab: 'all'
     },
     preloader: initialUserLayout.preloader || {
       enabled: false,
       style: 'spinner',
       text: 'Chargement du portfolio...',
-      duration: 1.0
+      duration: 1.0,
+      custom_image: ''
     },
     footer: initialUserLayout.footer || {
       custom_text: '',
@@ -4839,10 +5367,11 @@ function resetBlocksOrder() {
 function randomizeStylePreset() {
   const themes = ['emerald', 'dark', 'navy', 'sunset', 'purple', 'rose', 'matcha', 'synthwave', 'minimal']
   const cardStyles = ['rounded', 'sharp', 'bordered', 'glass', 'terminal']
-  const structures = ['single', 'bento', 'cv_split', 'terminal']
-  const fonts = ['poppins', 'mono', 'serif', 'inter']
+  const structures = layoutStructuresList.map(s => s.id)
+  const fonts = fontsList.map(f => f.id)
   const patterns = ['none', 'grid', 'dots', 'mesh', 'circuit']
   const accents = ['#00A859', '#10B981', '#2563EB', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#18181b', '#059669', '#DC2626']
+  const heroStyles = ['centered', 'split', 'terminal', 'minimal', 'cover_banner', 'cyberpunk', 'executive']
 
   portfolioForm.value.portfolio_layout.theme = themes[Math.floor(Math.random() * themes.length)]
   portfolioForm.value.portfolio_layout.card_style = cardStyles[Math.floor(Math.random() * cardStyles.length)]
@@ -4850,6 +5379,7 @@ function randomizeStylePreset() {
   portfolioForm.value.portfolio_layout.font_family = fonts[Math.floor(Math.random() * fonts.length)]
   portfolioForm.value.portfolio_layout.bg_pattern = patterns[Math.floor(Math.random() * patterns.length)]
   portfolioForm.value.portfolio_layout.accent_color = accents[Math.floor(Math.random() * accents.length)]
+  portfolioForm.value.portfolio_layout.hero_style = heroStyles[Math.floor(Math.random() * heroStyles.length)]
 }
 
 // Skills handling
@@ -5006,4 +5536,17 @@ function savePortfolioSettings() {
 .extra-small {
   font-size: 11px;
 }
+.font-poppins { font-family: 'Poppins', sans-serif; }
+.font-montserrat { font-family: 'Montserrat', sans-serif; }
+.font-inter { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+.font-roboto { font-family: 'Roboto', sans-serif; }
+.font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+.font-outfit { font-family: 'Outfit', sans-serif; }
+.font-raleway { font-family: 'Raleway', sans-serif; }
+.font-fira, .font-firacode { font-family: 'Fira Code', monospace; }
+.font-mono { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
+.font-space { font-family: 'Space Grotesk', sans-serif; }
+.font-playfair { font-family: 'Playfair Display', Georgia, serif; }
+.font-cinzel { font-family: 'Cinzel', serif; }
+.font-lexend { font-family: 'Lexend', sans-serif; }
 </style>

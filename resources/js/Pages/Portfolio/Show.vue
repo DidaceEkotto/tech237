@@ -2050,7 +2050,7 @@ onUnmounted(() => {
 .font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
 .font-outfit { font-family: 'Outfit', sans-serif; }
 .font-raleway { font-family: 'Raleway', sans-serif; }
-.font-fira { font-family: 'Fira Code', monospace; }
+.font-fira, .font-firacode { font-family: 'Fira Code', monospace; }
 .font-mono { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
 .font-space { font-family: 'Space Grotesk', sans-serif; }
 .font-playfair { font-family: 'Playfair Display', Georgia, serif; }

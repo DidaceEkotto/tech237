@@ -173,4 +173,90 @@ class PortfolioTest extends TestCase
         $this->assertTrue($user->portfolio_layout['tabbed_nav']['enabled']);
         $this->assertEquals('Expert', $user->skills[0]['level']);
     }
+
+    public function test_user_can_upload_cv_document()
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $user = User::factory()->create([
+            'username' => 'cvdev237',
+        ]);
+
+        $file = \Illuminate\Http\UploadedFile::fake()->create('mon_cv_technique.pdf', 500, 'application/pdf');
+
+        $response = $this->actingAs($user, 'web')->post('/espace-utilisateur/portfolio/upload-cv', [
+            'cv' => $file,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+        $this->assertNotEmpty($response->json('url'));
+    }
+
+    public function test_user_can_upload_slideshow_image()
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $user = User::factory()->create([
+            'username' => 'slidedev',
+        ]);
+
+        $file = \Illuminate\Http\UploadedFile::fake()->image('banner_slide.jpg', 1600, 600);
+
+        $response = $this->actingAs($user, 'web')->post('/espace-utilisateur/portfolio/upload-slide', [
+            'image' => $file,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+    }
+
+    public function test_user_can_upload_preloader_image()
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $user = User::factory()->create([
+            'username' => 'preloaderdev',
+        ]);
+
+        $file = \Illuminate\Http\UploadedFile::fake()->image('avatar_logo.png', 200, 200);
+
+        $response = $this->actingAs($user, 'web')->post('/espace-utilisateur/portfolio/upload-preloader-image', [
+            'image' => $file,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+    }
+
+    public function test_visitor_can_submit_contact_form()
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+
+        $owner = User::factory()->create([
+            'username' => 'targetdev',
+            'email' => 'targetdev@tech237.cm',
+        ]);
+
+        $payload = [
+            'first_name' => 'Jean',
+            'last_name' => 'Dupont',
+            'email' => 'jean.dupont@partner.cm',
+            'subject' => 'Opportunité Mission Freelance',
+            'message' => 'Bonjour, nous souhaitons vous confier le développement d\'une plateforme SaaS.',
+        ];
+
+        $response = $this->postJson('/portfolio/targetdev/contact', $payload);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+    }
 }
