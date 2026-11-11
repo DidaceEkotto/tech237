@@ -98,6 +98,11 @@
                 </Link>
               </li>
               <li>
+                <Link href="/espace-utilisateur?section=heartbeat" class="dropdown-item py-2">
+                  <i class="bi bi-heart-pulse me-2 text-danger"></i> Tech237 Heartbeat (Uptime)
+                </Link>
+              </li>
+              <li>
                 <Link href="/espace-utilisateur?section=messages" class="dropdown-item py-2">
                   <i class="bi bi-envelope me-2 text-warning"></i> Messages
                 </Link>

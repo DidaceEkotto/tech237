@@ -202,6 +202,10 @@ class DashboardController extends Controller
         $pocs = \App\Models\Poc::where('user_id', $user->id)->latest()->get();
         $freelanceQuotes = \App\Models\FreelanceQuote::where('user_id', $user->id)->latest()->get();
         $freelanceSetting = \App\Models\FreelanceSetting::where('user_id', $user->id)->first();
+        $heartbeatMonitors = \App\Models\HeartbeatMonitor::where('user_id', $user->id)
+            ->with(['project:id,name', 'recentChecks'])
+            ->latest()
+            ->get();
 
         return Inertia::render('User/Dashboard', [
             'user' => $user,
@@ -210,6 +214,7 @@ class DashboardController extends Controller
             'pocs' => $pocs,
             'freelanceQuotes' => $freelanceQuotes,
             'freelanceSetting' => $freelanceSetting,
+            'heartbeatMonitors' => $heartbeatMonitors,
             'collaborativeProjects' => $collaborativeProjects,
             'pendingInvitations' => $pendingInvitations,
             'pendingTimelines' => $pendingTimelines,

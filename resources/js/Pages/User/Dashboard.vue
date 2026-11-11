@@ -237,6 +237,18 @@
               </button>
 
               <button 
+                @click="setSection('heartbeat')" 
+                class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+                :class="currentSection === 'heartbeat' ? 'bg-danger text-white' : 'text-dark'"
+              >
+                <i class="bi bi-heart-pulse me-2 fs-5 text-danger"></i>
+                <span>Tech237 Heartbeat</span>
+                <span class="badge rounded-pill ms-auto extra-small fw-bold" :class="currentSection === 'heartbeat' ? 'bg-white text-danger' : 'bg-danger-subtle text-danger'">
+                  {{ (heartbeatMonitorsList || []).length ? (heartbeatMonitorsList.length + ' sites') : 'Uptime' }}
+                </span>
+              </button>
+
+              <button 
                 @click="setSection('profile')" 
                 class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
                 :class="currentSection === 'profile' ? 'bg-danger text-white' : 'text-dark'"
@@ -4897,6 +4909,370 @@
 
           </div>
 
+          <!-- 12. TECH237 HEARTBEAT (PING & SURVEILLANCE UPTIME) -->
+          <div v-else-if="currentSection === 'heartbeat'">
+            <!-- Feedback Toast -->
+            <div v-if="heartbeatToastMsg" class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm p-3 mb-4 d-flex align-items-center justify-content-between" role="alert">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                <span class="fw-bold">{{ heartbeatToastMsg }}</span>
+              </div>
+              <button type="button" @click="heartbeatToastMsg = ''" class="btn-close shadow-none" aria-label="Close"></button>
+            </div>
+
+            <!-- Header Hero Banner -->
+            <div class="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden text-white" style="background: linear-gradient(135deg, #0B2559 0%, #17387a 60%, #1e1b4b 100%);">
+              <div class="card-body p-4 p-md-5">
+                <div class="row align-items-center g-4">
+                  <div class="col-lg-8">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-danger bg-opacity-25 text-white border border-danger border-opacity-50 extra-small fw-bold mb-3">
+                      <span class="spinner-grow spinner-grow-sm text-danger" style="width: 8px; height: 8px;" role="status"></span>
+                      SURVEILLANCE CONTINUE 24/7 EN DIRECT
+                    </div>
+                    <h2 class="fw-black mb-2 text-white display-6">
+                      Tech237 <span class="text-danger">Heartbeat</span>
+                    </h2>
+                    <p class="text-white-50 fs-6 mb-3">
+                      Surveillez la disponibilité, la latence et l'uptime de vos sites, POCs et APIs hébergés sur VPS, Render, Vercel ou serveurs locaux. Recevez une alerte email instantanée dès qu'une panne est détectée.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                      <button @click="openCreateMonitorModal" class="btn btn-danger rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
+                        <i class="bi bi-plus-circle-fill"></i>
+                        <span>+ Surveiller un Nouveau Site</span>
+                      </button>
+                      <button @click="fetchHeartbeatMonitors" :disabled="isFetchingMonitors" class="btn btn-outline-light rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-arrow-clockwise" :class="{ 'spin-anim': isFetchingMonitors }"></i>
+                        <span>Actualiser</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-lg-4 text-center d-none d-lg-block">
+                    <div class="p-4 rounded-4 bg-white bg-opacity-10 backdrop-blur border border-white border-opacity-10 text-center">
+                      <i class="bi bi-broadcast-pin text-danger" style="font-size: 52px;"></i>
+                      <div class="fw-bold mt-2 text-white">Zéro configuration requise</div>
+                      <div class="extra-small text-white-50 mt-1">Pings automatisés toutes les 1 à 60 minutes avec sondes multi-protocoles.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Metric Summary Cards -->
+            <div class="row g-3 mb-4">
+              <div class="col-6 col-md-4 col-xl-2">
+                <div class="card border-0 rounded-4 shadow-sm h-100 p-3 bg-white border-start border-4 border-primary">
+                  <span class="text-muted extra-small fw-bold text-uppercase">Sites Surveillés</span>
+                  <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="fs-3 fw-black text-dark">{{ heartbeatStats.total }}</span>
+                    <span class="extra-small text-muted">sites</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-6 col-md-4 col-xl-2">
+                <div class="card border-0 rounded-4 shadow-sm h-100 p-3 bg-white border-start border-4 border-success">
+                  <span class="text-success extra-small fw-bold text-uppercase">En Ligne (Up)</span>
+                  <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="fs-3 fw-black text-success">{{ heartbeatStats.up }}</span>
+                    <span class="extra-small text-success fw-bold">actifs</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-6 col-md-4 col-xl-2">
+                <div class="card border-0 rounded-4 shadow-sm h-100 p-3 bg-white border-start border-4 border-danger">
+                  <span class="text-danger extra-small fw-bold text-uppercase">Hors-Ligne (Down)</span>
+                  <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="fs-3 fw-black text-danger">{{ heartbeatStats.down }}</span>
+                    <span class="extra-small text-danger fw-bold" v-if="heartbeatStats.down > 0">incident !</span>
+                    <span class="extra-small text-muted" v-else>aucun</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-6 col-md-4 col-xl-3">
+                <div class="card border-0 rounded-4 shadow-sm h-100 p-3 bg-white border-start border-4 border-info">
+                  <span class="text-muted extra-small fw-bold text-uppercase">Latence Moyenne</span>
+                  <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="fs-3 fw-black text-dark">{{ heartbeatStats.avgLatency }}</span>
+                    <span class="extra-small text-muted">ms</span>
+                    <span class="badge extra-small rounded-pill ms-auto" :class="getLatencyBadgeClass(heartbeatStats.avgLatency)">
+                      {{ heartbeatStats.avgLatency < 300 ? 'Rapide' : 'Moyen' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12 col-md-4 col-xl-3">
+                <div class="card border-0 rounded-4 shadow-sm h-100 p-3 bg-white border-start border-4 border-emerald">
+                  <span class="text-muted extra-small fw-bold text-uppercase">Uptime Global</span>
+                  <div class="d-flex align-items-baseline gap-2 mt-1">
+                    <span class="fs-3 fw-black text-success">{{ heartbeatStats.avgUptime }}%</span>
+                    <div class="progress flex-grow-1 ms-2" style="height: 6px;">
+                      <div class="progress-bar bg-success" :style="{ width: heartbeatStats.avgUptime + '%' }"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter & Search Toolbar -->
+            <div class="card border-0 rounded-4 shadow-sm p-3 mb-4 bg-white">
+              <div class="row g-3 align-items-center justify-content-between">
+                <div class="col-md-7 d-flex flex-wrap gap-2">
+                  <button 
+                    @click="heartbeatFilter = 'all'" 
+                    class="btn btn-sm rounded-pill px-3 fw-bold"
+                    :class="heartbeatFilter === 'all' ? 'btn-dark' : 'btn-light text-muted'"
+                  >
+                    Tous ({{ heartbeatStats.total }})
+                  </button>
+                  <button 
+                    @click="heartbeatFilter = 'up'" 
+                    class="btn btn-sm rounded-pill px-3 fw-bold"
+                    :class="heartbeatFilter === 'up' ? 'btn-success' : 'btn-light text-success'"
+                  >
+                    <i class="bi bi-check-circle-fill me-1"></i> En Ligne ({{ heartbeatStats.up }})
+                  </button>
+                  <button 
+                    @click="heartbeatFilter = 'down'" 
+                    class="btn btn-sm rounded-pill px-3 fw-bold"
+                    :class="heartbeatFilter === 'down' ? 'btn-danger' : 'btn-light text-danger'"
+                  >
+                    <i class="bi bi-x-circle-fill me-1"></i> Hors Ligne ({{ heartbeatStats.down }})
+                  </button>
+                  <button 
+                    @click="heartbeatFilter = 'paused'" 
+                    class="btn btn-sm rounded-pill px-3 fw-bold"
+                    :class="heartbeatFilter === 'paused' ? 'btn-secondary text-white' : 'btn-light text-muted'"
+                  >
+                    <i class="bi bi-pause-circle me-1"></i> En Pause ({{ heartbeatStats.paused }})
+                  </button>
+                </div>
+
+                <div class="col-md-5">
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light border-end-0 rounded-start-pill text-muted ps-3">
+                      <i class="bi bi-search"></i>
+                    </span>
+                    <input 
+                      type="text" 
+                      v-model="heartbeatSearch" 
+                      placeholder="Rechercher par nom de site ou URL..." 
+                      class="form-control bg-light border-start-0 rounded-end-pill shadow-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Empty State -->
+            <div v-if="!filteredHeartbeatMonitors.length" class="card border-0 rounded-4 shadow-sm p-5 text-center bg-white">
+              <div class="py-4">
+                <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-inline-flex align-items-center justify-content-center p-4 mb-3" style="width: 80px; height: 80px;">
+                  <i class="bi bi-heart-pulse fs-1"></i>
+                </div>
+                <h4 class="fw-black text-dark mb-2">Aucun site surveillé trouvé</h4>
+                <p class="text-muted max-w-md mx-auto mb-4" style="max-width: 480px;">
+                  Ajoutez l'URL de votre projet, site e-commerce, portfolio ou API pour être notifié par email automatiquement si votre serveur tombe en panne.
+                </p>
+                <button @click="openCreateMonitorModal" class="btn btn-danger rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
+                  <i class="bi bi-plus-circle-fill"></i>
+                  <span>Ajouter mon premier site</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Monitored Sites List -->
+            <div v-else class="row g-3">
+              <div v-for="m in filteredHeartbeatMonitors" :key="m.id" class="col-12">
+                <div class="card border-0 rounded-4 shadow-sm overflow-hidden bg-white transition hover-shadow-md">
+                  <!-- Status line indicator -->
+                  <div 
+                    class="w-100" 
+                    style="height: 4px;"
+                    :class="{
+                      'bg-success': m.is_active && m.status === 'up',
+                      'bg-danger': m.is_active && m.status === 'down',
+                      'bg-warning': m.is_active && m.status === 'pending',
+                      'bg-secondary': !m.is_active || m.status === 'paused'
+                    }"
+                  ></div>
+
+                  <div class="card-body p-3 p-md-4">
+                    <div class="row align-items-center g-3">
+                      <!-- Left column: Name, URL, Status Badge -->
+                      <div class="col-lg-5">
+                        <div class="d-flex align-items-start gap-3">
+                          <!-- Status Pulsing Icon -->
+                          <div class="mt-1">
+                            <span v-if="m.is_active && m.status === 'up'" class="badge rounded-circle p-2 bg-success bg-opacity-10 text-success d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;" title="En Ligne">
+                              <span class="spinner-grow spinner-grow-sm text-success" style="width: 10px; height: 10px;" role="status"></span>
+                            </span>
+                            <span v-else-if="m.is_active && m.status === 'down'" class="badge rounded-circle p-2 bg-danger bg-opacity-10 text-danger d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;" title="Hors Ligne">
+                              <span class="spinner-grow spinner-grow-sm text-danger" style="width: 10px; height: 10px;" role="status"></span>
+                            </span>
+                            <span v-else-if="!m.is_active || m.status === 'paused'" class="badge rounded-circle p-2 bg-secondary bg-opacity-10 text-secondary d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;" title="En Pause">
+                              <i class="bi bi-pause-fill fs-5"></i>
+                            </span>
+                            <span v-else class="badge rounded-circle p-2 bg-warning bg-opacity-10 text-warning d-inline-flex align-items-center justify-content-center" style="width: 36px; height: 36px;" title="En Attente">
+                              <i class="bi bi-clock-history fs-5"></i>
+                            </span>
+                          </div>
+
+                          <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                              <h5 class="fw-black text-dark mb-0 text-truncate" :title="m.name">{{ m.name }}</h5>
+                              <span v-if="m.project" class="badge bg-light text-primary border extra-small fw-semibold">
+                                <i class="bi bi-kanban me-1"></i>{{ m.project.name }}
+                              </span>
+                              <span 
+                                class="badge rounded-pill extra-small fw-bold"
+                                :class="{
+                                  'bg-success-subtle text-success': m.is_active && m.status === 'up',
+                                  'bg-danger-subtle text-danger': m.is_active && m.status === 'down',
+                                  'bg-secondary-subtle text-secondary': !m.is_active || m.status === 'paused',
+                                  'bg-warning-subtle text-warning': m.is_active && m.status === 'pending'
+                                }"
+                              >
+                                {{ !m.is_active ? 'En Pause' : (m.status === 'up' ? 'En Ligne (' + (m.last_status_code || 200) + ')' : (m.status === 'down' ? 'Hors Ligne' : 'En Attente')) }}
+                              </span>
+                            </div>
+
+                            <a :href="m.url" target="_blank" rel="noopener noreferrer" class="small text-muted text-decoration-none d-inline-flex align-items-center gap-1 hover-text-primary text-truncate" style="max-width: 100%;">
+                              <span class="text-truncate">{{ m.url }}</span>
+                              <i class="bi bi-box-arrow-up-right extra-small text-muted"></i>
+                            </a>
+
+                            <!-- Down Error Banner -->
+                            <div v-if="m.is_active && m.status === 'down' && m.last_error_message" class="mt-2 p-2 rounded-3 bg-danger bg-opacity-10 border border-danger border-opacity-25 extra-small text-danger fw-semibold d-flex align-items-center gap-2">
+                              <i class="bi bi-exclamation-triangle-fill"></i>
+                              <span>{{ m.last_error_message }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Middle column: Metrics & Visual Check Blocks -->
+                      <div class="col-lg-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                          <div class="text-center">
+                            <div class="extra-small text-muted fw-bold text-uppercase">Uptime</div>
+                            <div class="fw-black text-dark">{{ m.uptime_percentage ? Number(m.uptime_percentage).toFixed(1) : 100 }}%</div>
+                          </div>
+                          <div class="text-center">
+                            <div class="extra-small text-muted fw-bold text-uppercase">Latence</div>
+                            <div class="fw-black" :class="m.last_response_time_ms < 300 ? 'text-success' : (m.last_response_time_ms < 800 ? 'text-warning' : 'text-danger')">
+                              {{ m.last_response_time_ms ? m.last_response_time_ms + ' ms' : '--' }}
+                            </div>
+                          </div>
+                          <div class="text-center">
+                            <div class="extra-small text-muted fw-bold text-uppercase">Fréquence</div>
+                            <div class="fw-bold text-muted small">{{ m.check_interval_minutes || 5 }} min</div>
+                          </div>
+                          <div class="text-center">
+                            <div class="extra-small text-muted fw-bold text-uppercase">Dernier test</div>
+                            <div class="fw-bold text-muted small">{{ formatRelativeTime(m.last_checked_at) }}</div>
+                          </div>
+                        </div>
+
+                        <!-- 15-Point Heartbeat Bar of recent checks -->
+                        <div class="d-flex align-items-center gap-1 mt-2 p-1 bg-light rounded-3">
+                          <template v-if="(m.recent_checks || []).length">
+                            <div 
+                              v-for="(c, cIdx) in (m.recent_checks || []).slice(0, 15).reverse()" 
+                              :key="c.id || cIdx"
+                              class="flex-grow-1 rounded-pill"
+                              style="height: 14px;"
+                              :class="c.is_up ? 'bg-success' : 'bg-danger'"
+                              :title="c.is_up ? `✔ En ligne : ${c.response_time_ms}ms (HTTP ${c.status_code}) à ${new Date(c.checked_at).toLocaleTimeString()}` : `✖ Hors ligne : ${c.error_message || 'Échec'} à ${new Date(c.checked_at).toLocaleTimeString()}`"
+                            ></div>
+                          </template>
+                          <template v-else>
+                            <div class="w-100 text-center extra-small text-muted py-1">En attente des premiers pings...</div>
+                          </template>
+                        </div>
+                      </div>
+
+                      <!-- Right column: Action Buttons -->
+                      <div class="col-lg-3 text-lg-end">
+                        <div class="d-flex flex-wrap gap-1 justify-content-lg-end align-items-center">
+                          <!-- Ping Now -->
+                          <button 
+                            @click="pingMonitorAction(m)" 
+                            :disabled="isPingingMonitorId === m.id || !m.is_active" 
+                            class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1"
+                            title="Exécuter un test immédiat"
+                          >
+                            <span v-if="isPingingMonitorId === m.id" class="spinner-border spinner-border-sm" role="status"></span>
+                            <i v-else class="bi bi-lightning-charge-fill text-warning"></i>
+                            <span>{{ isPingingMonitorId === m.id ? 'Test...' : 'Ping' }}</span>
+                          </button>
+
+                          <!-- History Logs -->
+                          <button 
+                            @click="openHistoryModal(m)" 
+                            class="btn btn-sm btn-light border rounded-pill px-2 fw-semibold" 
+                            title="Historique des tests"
+                          >
+                            <i class="bi bi-clock-history"></i>
+                          </button>
+
+                          <!-- Badge SVG Modal -->
+                          <button 
+                            @click="openBadgeModal(m)" 
+                            class="btn btn-sm btn-light border rounded-pill px-2 fw-semibold" 
+                            title="Obtenir le badge Uptime pour votre README"
+                          >
+                            <i class="bi bi-shield-check text-success"></i>
+                          </button>
+
+                          <!-- Test Email Alert -->
+                          <button 
+                            @click="testMonitorAlertAction(m)" 
+                            :disabled="isTestingAlertId === m.id" 
+                            class="btn btn-sm btn-light border rounded-pill px-2 fw-semibold" 
+                            title="Tester l'alerte email"
+                          >
+                            <i class="bi bi-bell"></i>
+                          </button>
+
+                          <!-- Pause / Resume Toggle -->
+                          <button 
+                            @click="toggleMonitorActiveAction(m)" 
+                            class="btn btn-sm btn-light border rounded-pill px-2 fw-semibold" 
+                            :title="m.is_active ? 'Mettre en pause' : 'Réactiver'"
+                          >
+                            <i :class="m.is_active ? 'bi bi-pause-fill text-secondary' : 'bi bi-play-fill text-success'"></i>
+                          </button>
+
+                          <!-- Edit -->
+                          <button 
+                            @click="openEditMonitorModal(m)" 
+                            class="btn btn-sm btn-light border rounded-pill px-2 fw-semibold" 
+                            title="Modifier"
+                          >
+                            <i class="bi bi-pencil"></i>
+                          </button>
+
+                          <!-- Delete -->
+                          <button 
+                            @click="deleteMonitorAction(m.id)" 
+                            class="btn btn-sm btn-light border rounded-pill px-2 text-danger fw-semibold" 
+                            title="Supprimer ce site"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
 
       </div>
@@ -5014,6 +5390,14 @@
         >
           <i class="bi bi-calculator me-2 text-success"></i> Calculateur &amp; Devis FCFA
           <span class="badge bg-success-subtle text-success rounded-pill extra-small ms-auto fw-bold">Pro</span>
+        </button>
+        <button 
+          @click="selectMobileSection('heartbeat')" 
+          class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+          :class="currentSection === 'heartbeat' ? 'bg-danger text-white' : 'text-dark'"
+        >
+          <i class="bi bi-heart-pulse me-2 text-danger"></i> Tech237 Heartbeat (Uptime)
+          <span class="badge bg-danger-subtle text-danger rounded-pill extra-small ms-auto fw-bold">Live</span>
         </button>
         <button 
           @click="selectMobileSection('profile')" 
@@ -5281,6 +5665,244 @@
       </div>
     </div>
 
+    <!-- MODAL: ADD / EDIT HEARTBEAT MONITOR -->
+    <div v-if="monitorModalOpen" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;" @click.self="closeMonitorModal">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+          <div class="modal-header bg-dark text-white p-4">
+            <h5 class="modal-title fw-black d-flex align-items-center gap-2">
+              <i class="bi bi-heart-pulse text-danger"></i>
+              <span>{{ isEditingMonitor ? 'Modifier la surveillance du site' : 'Ajouter un nouveau site à surveiller' }}</span>
+            </h5>
+            <button type="button" @click="closeMonitorModal" class="btn-close btn-close-white shadow-none"></button>
+          </div>
+          <form @submit.prevent="saveMonitorSubmit">
+            <div class="modal-body p-4 bg-light">
+              <div class="row g-3">
+                <div class="col-md-7">
+                  <label class="form-label small fw-bold text-dark mb-1">Nom du Site ou Projet <span class="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    v-model="monitorForm.name" 
+                    class="form-control rounded-3" 
+                    placeholder="Ex: Mon API Microservice ou Mon Site E-commerce" 
+                    required 
+                  />
+                  <span class="extra-small text-muted">Donnez un nom explicite pour identifier le site dans les notifications.</span>
+                </div>
+
+                <div class="col-md-5">
+                  <label class="form-label small fw-bold text-dark mb-1">Associer à un projet Tech237 (Optionnel)</label>
+                  <select v-model="monitorForm.project_id" class="form-select rounded-3">
+                    <option :value="''">-- Aucun projet associé --</option>
+                    <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+                  </select>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label small fw-bold text-dark mb-1">URL Complète à surveiller <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-link-45deg"></i></span>
+                    <input 
+                      type="text" 
+                      v-model="monitorForm.url" 
+                      class="form-control rounded-end-3" 
+                      placeholder="https://monsite.cm ou https://api.monsite.cm/health" 
+                      required 
+                    />
+                  </div>
+                  <span class="extra-small text-muted">Vous pouvez surveiller n'importe quelle URL publique (site web, route API JSON, etc.).</span>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold text-dark mb-1">Fréquence de vérification</label>
+                  <select v-model.number="monitorForm.check_interval_minutes" class="form-select rounded-3">
+                    <option :value="1">Toutes les 1 minute (Temps réel)</option>
+                    <option :value="3">Toutes les 3 minutes</option>
+                    <option :value="5">Toutes les 5 minutes (Recommandé)</option>
+                    <option :value="10">Toutes les 10 minutes</option>
+                    <option :value="15">Toutes les 15 minutes</option>
+                    <option :value="30">Toutes les 30 minutes</option>
+                    <option :value="60">Toutes les 60 minutes (1 heure)</option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold text-dark mb-1">Méthode HTTP</label>
+                  <select v-model="monitorForm.http_method" class="form-select rounded-3">
+                    <option value="GET">GET (Standard)</option>
+                    <option value="HEAD">HEAD (Léger, en-têtes seuls)</option>
+                    <option value="POST">POST</option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold text-dark mb-1">Délai Max (Timeout)</label>
+                  <select v-model.number="monitorForm.timeout_seconds" class="form-select rounded-3">
+                    <option :value="5">5 secondes</option>
+                    <option :value="10">10 secondes (Recommandé)</option>
+                    <option :value="20">20 secondes</option>
+                    <option :value="30">30 secondes</option>
+                  </select>
+                </div>
+
+                <div class="col-12">
+                  <div class="card border p-3 rounded-4 bg-white">
+                    <div class="form-check form-switch mb-2">
+                      <input 
+                        class="form-check-input cursor-pointer" 
+                        type="checkbox" 
+                        id="notifyEmailCheck" 
+                        v-model="monitorForm.notify_email" 
+                      />
+                      <label class="form-check-label fw-bold small text-dark cursor-pointer" for="notifyEmailCheck">
+                        Recevoir des alertes email immédiates en cas de panne et de rétablissement
+                      </label>
+                    </div>
+
+                    <div v-if="monitorForm.notify_email" class="mt-2">
+                      <label class="form-label extra-small fw-bold text-muted mb-1">Adresse email de destination des alertes</label>
+                      <input 
+                        type="email" 
+                        v-model="monitorForm.email_recipient" 
+                        class="form-control form-control-sm rounded-3" 
+                        :placeholder="user?.email || 'votre-email@domaine.com'" 
+                      />
+                      <span class="extra-small text-muted">Par défaut, les alertes sont envoyées à l'email de votre compte Tech237.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer p-3 bg-white d-flex justify-content-between">
+              <button type="button" @click="closeMonitorModal" class="btn btn-light rounded-pill px-4 fw-bold">Annuler</button>
+              <button type="submit" :disabled="isSavingMonitor" class="btn btn-danger rounded-pill px-4 fw-bold d-inline-flex align-items-center gap-2 shadow-sm">
+                <span v-if="isSavingMonitor" class="spinner-border spinner-border-sm" role="status"></span>
+                <span>{{ isEditingMonitor ? 'Enregistrer les modifications' : 'Enregistrer & Tester' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: EMBEDDABLE BADGE & README SNIPPET -->
+    <div v-if="monitorBadgeModalOpen && activeBadgeMonitor" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;" @click.self="monitorBadgeModalOpen = false">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+          <div class="modal-header bg-dark text-white p-4">
+            <h5 class="modal-title fw-black d-flex align-items-center gap-2">
+              <i class="bi bi-shield-check text-success"></i>
+              <span>Badge Uptime Dynamique</span>
+            </h5>
+            <button type="button" @click="monitorBadgeModalOpen = false" class="btn-close btn-close-white shadow-none"></button>
+          </div>
+          <div class="modal-body p-4 bg-light">
+            <p class="small text-muted mb-3">
+              Affichez l'état de santé de <strong>{{ activeBadgeMonitor.name }}</strong> directement dans votre README GitHub ou sur votre site web avec ce badge auto-actualisé :
+            </p>
+
+            <!-- Live SVG Preview -->
+            <div class="p-3 bg-white rounded-3 border text-center mb-4 shadow-2xs">
+              <img :src="`/api/heartbeat/badge/${activeBadgeMonitor.uuid}`" alt="Badge Uptime" class="img-fluid" />
+            </div>
+
+            <!-- Markdown Snippet -->
+            <div class="mb-3">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="form-label extra-small fw-bold text-dark mb-0">Code Markdown (pour README.md)</label>
+                <button type="button" @click="copyToClipboard(`[![Tech237 Uptime](${baseUrl}/api/heartbeat/badge/${activeBadgeMonitor.uuid})](${baseUrl})`, 'Code Markdown copié !')" class="btn btn-xs btn-outline-primary rounded-pill px-2">
+                  <i class="bi bi-clipboard me-1"></i> Copier
+                </button>
+              </div>
+              <input type="text" readonly :value="`[![Tech237 Uptime](${baseUrl}/api/heartbeat/badge/${activeBadgeMonitor.uuid})](${baseUrl})`" class="form-control form-control-sm bg-white font-monospace extra-small" />
+            </div>
+
+            <!-- HTML Snippet -->
+            <div>
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="form-label extra-small fw-bold text-dark mb-0">Code HTML (pour site web)</label>
+                <button type="button" @click="copyToClipboard(`<img src=&quot;${baseUrl}/api/heartbeat/badge/${activeBadgeMonitor.uuid}&quot; alt=&quot;Tech237 Uptime&quot; />`, 'Code HTML copié !')" class="btn btn-xs btn-outline-primary rounded-pill px-2">
+                  <i class="bi bi-clipboard me-1"></i> Copier
+                </button>
+              </div>
+              <input type="text" readonly :value="`<img src=&quot;${baseUrl}/api/heartbeat/badge/${activeBadgeMonitor.uuid}&quot; alt=&quot;Tech237 Uptime&quot; />`" class="form-control form-control-sm bg-white font-monospace extra-small" />
+            </div>
+          </div>
+          <div class="modal-footer p-3 bg-white">
+            <button type="button" @click="monitorBadgeModalOpen = false" class="btn btn-dark rounded-pill px-4 fw-bold">Fermer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: HEARTBEAT CHECKS HISTORY -->
+    <div v-if="historyModalOpen && activeHistoryMonitor" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.6); z-index: 1060;" @click.self="historyModalOpen = false">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+          <div class="modal-header bg-dark text-white p-4">
+            <h5 class="modal-title fw-black d-flex align-items-center gap-2">
+              <i class="bi bi-clock-history text-warning"></i>
+              <span>Historique des Pings • {{ activeHistoryMonitor.name }}</span>
+            </h5>
+            <button type="button" @click="historyModalOpen = false" class="btn-close btn-close-white shadow-none"></button>
+          </div>
+          <div class="modal-body p-0 bg-white">
+            <div class="p-3 bg-light border-bottom d-flex align-items-center justify-content-between">
+              <div class="small text-muted">
+                URL : <strong class="text-dark">{{ activeHistoryMonitor.url }}</strong>
+              </div>
+              <div class="small text-muted">
+                Uptime global : <strong class="text-success">{{ activeHistoryMonitor.uptime_percentage }}%</strong>
+              </div>
+            </div>
+
+            <div class="table-responsive" style="max-height: 400px;">
+              <table class="table table-hover align-middle mb-0 extra-small">
+                <thead class="table-light sticky-top">
+                  <tr>
+                    <th>Statut</th>
+                    <th>Code HTTP</th>
+                    <th>Temps de Réponse</th>
+                    <th>Date &amp; Heure</th>
+                    <th>Détails / Erreur</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="c in (activeHistoryMonitor.recent_checks || [])" :key="c.id">
+                    <td>
+                      <span class="badge rounded-pill" :class="c.is_up ? 'bg-success' : 'bg-danger'">
+                        {{ c.is_up ? 'En Ligne' : 'Hors Ligne' }}
+                      </span>
+                    </td>
+                    <td class="fw-bold font-monospace">{{ c.status_code || '--' }}</td>
+                    <td>
+                      <span class="badge" :class="getLatencyBadgeClass(c.response_time_ms)">
+                        {{ c.response_time_ms ? c.response_time_ms + ' ms' : '--' }}
+                      </span>
+                    </td>
+                    <td class="text-muted">{{ new Date(c.checked_at).toLocaleString('fr-FR') }}</td>
+                    <td class="text-truncate" style="max-width: 200px;" :title="c.error_message || ''">
+                      <span v-if="c.error_message" class="text-danger fw-semibold">{{ c.error_message }}</span>
+                      <span v-else class="text-success">Réponse valide</span>
+                    </td>
+                  </tr>
+                  <tr v-if="!(activeHistoryMonitor.recent_checks || []).length">
+                    <td colspan="5" class="text-center py-4 text-muted">
+                      Aucun historique enregistré pour le moment.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer p-3 bg-light">
+            <button type="button" @click="historyModalOpen = false" class="btn btn-dark rounded-pill px-4 fw-bold">Fermer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </FrontLayout>
 </template>
 
@@ -5314,6 +5936,7 @@ const props = defineProps({
   stats: { type: Object, default: () => ({}) },
   freelanceQuotes: { type: Array, default: () => [] },
   freelanceSetting: { type: Object, default: () => null },
+  heartbeatMonitors: { type: Array, default: () => [] },
 })
 
 // Bookmarks Logic
@@ -5454,7 +6077,9 @@ function validateImageAction(imageId, action) {
   }
 }
 
-const initialSec = ['freelance', 'devis', 'calculateur'].includes(props.activeSection) ? 'freelance' : (props.activeSection || 'dashboard')
+const initialSec = ['freelance', 'devis', 'calculateur'].includes(props.activeSection) 
+  ? 'freelance' 
+  : (['heartbeat', 'uptime', 'monitoring'].includes(props.activeSection) ? 'heartbeat' : (props.activeSection || 'dashboard'))
 const currentSection = ref(initialSec)
 const mobileDrawerOpen = ref(false)
 const chartPeriod = ref('day')
@@ -7304,6 +7929,345 @@ async function updateQuoteStatusAction(q, newStatus) {
   } catch (err) {
     alert('Erreur réseau : ' + err.message)
   }
+}
+
+// ==========================================
+// TECH237 HEARTBEAT (MONITORING & PING UPTIME)
+// ==========================================
+const heartbeatMonitorsList = ref(Array.isArray(props.heartbeatMonitors) ? JSON.parse(JSON.stringify(props.heartbeatMonitors)) : [])
+const heartbeatToastMsg = ref('')
+const heartbeatFilter = ref('all') // 'all', 'up', 'down', 'paused'
+const heartbeatSearch = ref('')
+const isFetchingMonitors = ref(false)
+const isPingingMonitorId = ref(null)
+const isSavingMonitor = ref(false)
+const monitorModalOpen = ref(false)
+const isEditingMonitor = ref(false)
+const monitorBadgeModalOpen = ref(false)
+const activeBadgeMonitor = ref(null)
+const historyModalOpen = ref(false)
+const activeHistoryMonitor = ref(null)
+const isTestingAlertId = ref(null)
+const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tech237.net'
+
+const monitorForm = ref({
+  id: null,
+  name: '',
+  url: '',
+  project_id: '',
+  check_interval_minutes: 5,
+  expected_status_code: 200,
+  http_method: 'GET',
+  timeout_seconds: 10,
+  notify_email: true,
+  email_recipient: props.user?.email || '',
+})
+
+const filteredHeartbeatMonitors = computed(() => {
+  let list = heartbeatMonitorsList.value || []
+  if (heartbeatFilter.value === 'up') {
+    list = list.filter(m => m.is_active && m.status === 'up')
+  } else if (heartbeatFilter.value === 'down') {
+    list = list.filter(m => m.is_active && m.status === 'down')
+  } else if (heartbeatFilter.value === 'paused') {
+    list = list.filter(m => !m.is_active || m.status === 'paused')
+  }
+
+  if (heartbeatSearch.value.trim()) {
+    const q = heartbeatSearch.value.trim().toLowerCase()
+    list = list.filter(m => 
+      (m.name && m.name.toLowerCase().includes(q)) || 
+      (m.url && m.url.toLowerCase().includes(q))
+    )
+  }
+  return list
+})
+
+const heartbeatStats = computed(() => {
+  const list = heartbeatMonitorsList.value || []
+  const total = list.length
+  const up = list.filter(m => m.is_active && m.status === 'up').length
+  const down = list.filter(m => m.is_active && m.status === 'down').length
+  const paused = list.filter(m => !m.is_active).length
+
+  const activeUp = list.filter(m => m.is_active && m.status === 'up' && m.last_response_time_ms != null)
+  const avgLatency = activeUp.length > 0
+    ? Math.round(activeUp.reduce((acc, m) => acc + (m.last_response_time_ms || 0), 0) / activeUp.length)
+    : 0
+
+  const avgUptime = total > 0
+    ? (list.reduce((acc, m) => acc + (parseFloat(m.uptime_percentage) || 100), 0) / total).toFixed(1)
+    : '100.0'
+
+  return { total, up, down, paused, avgLatency, avgUptime }
+})
+
+async function fetchHeartbeatMonitors() {
+  isFetchingMonitors.value = true
+  try {
+    const res = await fetch('/espace-utilisateur/heartbeat/monitors', {
+      headers: { 'Accept': 'application/json' }
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      heartbeatMonitorsList.value = data.monitors
+      heartbeatToastMsg.value = 'Données de surveillance actualisées.'
+      setTimeout(() => { heartbeatToastMsg.value = '' }, 3000)
+    }
+  } catch (err) {
+    // silent fail
+  } finally {
+    isFetchingMonitors.value = false
+  }
+}
+
+function openCreateMonitorModal() {
+  isEditingMonitor.value = false
+  monitorForm.value = {
+    id: null,
+    name: '',
+    url: '',
+    project_id: '',
+    check_interval_minutes: 5,
+    expected_status_code: 200,
+    http_method: 'GET',
+    timeout_seconds: 10,
+    notify_email: true,
+    email_recipient: props.user?.email || '',
+  }
+  monitorModalOpen.value = true
+}
+
+function openEditMonitorModal(m) {
+  isEditingMonitor.value = true
+  monitorForm.value = {
+    id: m.id,
+    name: m.name,
+    url: m.url,
+    project_id: m.project_id || '',
+    check_interval_minutes: m.check_interval_minutes || 5,
+    expected_status_code: m.expected_status_code || 200,
+    http_method: m.http_method || 'GET',
+    timeout_seconds: m.timeout_seconds || 10,
+    notify_email: m.notify_email !== false,
+    email_recipient: m.email_recipient || props.user?.email || '',
+  }
+  monitorModalOpen.value = true
+}
+
+function closeMonitorModal() {
+  monitorModalOpen.value = false
+}
+
+async function saveMonitorSubmit() {
+  if (!monitorForm.value.name.trim()) {
+    alert('Veuillez saisir un nom pour le site à surveiller.')
+    return
+  }
+  if (!monitorForm.value.url.trim()) {
+    alert('Veuillez saisir l\'URL du site.')
+    return
+  }
+
+  isSavingMonitor.value = true
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const isEdit = !!monitorForm.value.id
+    const url = isEdit 
+      ? `/espace-utilisateur/heartbeat/monitors/${monitorForm.value.id}` 
+      : '/espace-utilisateur/heartbeat/monitors'
+    const method = isEdit ? 'PUT' : 'POST'
+
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(monitorForm.value)
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      if (isEdit) {
+        const idx = heartbeatMonitorsList.value.findIndex(x => x.id === data.monitor.id)
+        if (idx !== -1) heartbeatMonitorsList.value[idx] = data.monitor
+      } else {
+        heartbeatMonitorsList.value.unshift(data.monitor)
+      }
+      closeMonitorModal()
+      heartbeatToastMsg.value = data.message || 'Site enregistré avec succès !'
+      setTimeout(() => { heartbeatToastMsg.value = '' }, 4000)
+    } else {
+      alert(data.message || 'Erreur lors de l\'enregistrement du site.')
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message)
+  } finally {
+    isSavingMonitor.value = false
+  }
+}
+
+async function pingMonitorAction(m) {
+  isPingingMonitorId.value = m.id
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const res = await fetch(`/espace-utilisateur/heartbeat/monitors/${m.id}/ping`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      }
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      const idx = heartbeatMonitorsList.value.findIndex(x => x.id === m.id)
+      if (idx !== -1) {
+        heartbeatMonitorsList.value[idx] = data.monitor
+      }
+      heartbeatToastMsg.value = data.message
+      setTimeout(() => { heartbeatToastMsg.value = '' }, 4000)
+    } else {
+      alert(data.message || 'Erreur lors du ping.')
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message)
+  } finally {
+    isPingingMonitorId.value = null
+  }
+}
+
+async function toggleMonitorActiveAction(m) {
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const res = await fetch(`/espace-utilisateur/heartbeat/monitors/${m.id}/toggle`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      }
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      const idx = heartbeatMonitorsList.value.findIndex(x => x.id === m.id)
+      if (idx !== -1) {
+        heartbeatMonitorsList.value[idx] = data.monitor
+      }
+      heartbeatToastMsg.value = data.message
+      setTimeout(() => { heartbeatToastMsg.value = '' }, 3500)
+    }
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function deleteMonitorAction(id) {
+  if (!confirm('Êtes-vous sûr de vouloir retirer ce site de la surveillance ? Tous les historiques de ping seront supprimés.')) return
+
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const res = await fetch(`/espace-utilisateur/heartbeat/monitors/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      }
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      heartbeatMonitorsList.value = heartbeatMonitorsList.value.filter(x => x.id !== id)
+      heartbeatToastMsg.value = 'Site retiré de la surveillance.'
+      setTimeout(() => { heartbeatToastMsg.value = '' }, 3000)
+    }
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  }
+}
+
+async function testMonitorAlertAction(m) {
+  isTestingAlertId.value = m.id
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const res = await fetch(`/espace-utilisateur/heartbeat/monitors/${m.id}/test-alert`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      }
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      heartbeatToastMsg.value = data.message
+      setTimeout(() => { heartbeatToastMsg.value = '' }, 4000)
+    } else {
+      alert(data.message || 'Échec de l\'envoi du test.')
+    }
+  } catch (err) {
+    alert('Erreur : ' + err.message)
+  } finally {
+    isTestingAlertId.value = null
+  }
+}
+
+function openBadgeModal(m) {
+  activeBadgeMonitor.value = m
+  monitorBadgeModalOpen.value = true
+}
+
+function openHistoryModal(m) {
+  activeHistoryMonitor.value = m
+  historyModalOpen.value = true
+}
+
+function copyToClipboard(text, msg = 'Copié dans le presse-papier !') {
+  if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      heartbeatToastMsg.value = msg
+      setTimeout(() => { heartbeatToastMsg.value = '' }, 3000)
+    }).catch(() => {
+      fallbackCopy(text, msg)
+    })
+  } else {
+    fallbackCopy(text, msg)
+  }
+}
+
+function fallbackCopy(text, msg) {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.style.position = 'fixed'
+  ta.style.left = '-9999px'
+  document.body.appendChild(ta)
+  ta.select()
+  try {
+    document.execCommand('copy')
+    heartbeatToastMsg.value = msg
+    setTimeout(() => { heartbeatToastMsg.value = '' }, 3000)
+  } catch (e) {
+    alert('Impossible de copier.')
+  }
+  document.body.removeChild(ta)
+}
+
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return 'Jamais'
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffSec = Math.floor((now - date) / 1000)
+  if (diffSec < 60) return 'À l\'instant'
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `Il y a ${diffMin} min`
+  const diffHours = Math.floor(diffMin / 60)
+  if (diffHours < 24) return `Il y a ${diffHours} h`
+  const diffDays = Math.floor(diffHours / 24)
+  return `Il y a ${diffDays} j`
+}
+
+function getLatencyBadgeClass(ms) {
+  if (ms == null) return 'bg-secondary text-white'
+  if (ms < 300) return 'bg-success text-white'
+  if (ms < 800) return 'bg-warning text-dark'
+  return 'bg-danger text-white'
 }
 </script>
 

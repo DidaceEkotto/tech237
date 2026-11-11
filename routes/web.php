@@ -317,7 +317,24 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/freelance/quotes/{id}/duplicate', [App\Http\Controllers\User\FreelanceQuoteController::class, 'duplicateQuote'])->name('user.freelance.quotes.duplicate');
     Route::post('/espace-utilisateur/freelance/quotes/{id}/status', [App\Http\Controllers\User\FreelanceQuoteController::class, 'updateQuoteStatus'])->name('user.freelance.quotes.status');
     Route::post('/espace-utilisateur/freelance/upload-logo', [App\Http\Controllers\User\FreelanceQuoteController::class, 'uploadLogo'])->name('user.freelance.upload-logo');
+
+    // Tech237 Heartbeat (Surveillance Uptime & Santé des Projets)
+    Route::get('/espace-utilisateur/heartbeat/monitors', [App\Http\Controllers\User\HeartbeatController::class, 'index'])->name('user.heartbeat.index');
+    Route::post('/espace-utilisateur/heartbeat/monitors', [App\Http\Controllers\User\HeartbeatController::class, 'store'])->name('user.heartbeat.store');
+    Route::put('/espace-utilisateur/heartbeat/monitors/{id}', [App\Http\Controllers\User\HeartbeatController::class, 'update'])->name('user.heartbeat.update');
+    Route::delete('/espace-utilisateur/heartbeat/monitors/{id}', [App\Http\Controllers\User\HeartbeatController::class, 'destroy'])->name('user.heartbeat.destroy');
+    Route::post('/espace-utilisateur/heartbeat/monitors/{id}/ping', [App\Http\Controllers\User\HeartbeatController::class, 'pingNow'])->name('user.heartbeat.ping');
+    Route::post('/espace-utilisateur/heartbeat/monitors/{id}/toggle', [App\Http\Controllers\User\HeartbeatController::class, 'toggleActive'])->name('user.heartbeat.toggle');
+    Route::post('/espace-utilisateur/heartbeat/monitors/{id}/test-alert', [App\Http\Controllers\User\HeartbeatController::class, 'sendTestAlert'])->name('user.heartbeat.test-alert');
 });
+
+// Quick alias for Tech237 Heartbeat
+Route::get('/espace-utilisateur/heartbeat', function () {
+    return redirect()->route('user.dashboard', ['section' => 'heartbeat']);
+})->name('user.heartbeat.redirect');
+
+// Public embeddable SVG status badge
+Route::get('/api/heartbeat/badge/{uuid}', [App\Http\Controllers\User\HeartbeatController::class, 'badge'])->name('heartbeat.badge');
 
 // Quick alias for freelance calculator & quotes
 Route::get('/espace-utilisateur/devis', function () {
