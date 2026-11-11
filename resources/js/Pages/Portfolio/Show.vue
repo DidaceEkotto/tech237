@@ -17,8 +17,8 @@
       <meta property="og:description" :content="seoDescription">
       <meta property="og:type" content="profile">
       <meta property="og:url" :content="shareUrl">
-      <meta property="og:image" :content="portfolioUser.avatar ? (portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar) : '/assets/images/logo.png'">
-      <meta property="og:image:secure_url" :content="portfolioUser.avatar ? (portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar) : '/assets/images/logo.png'">
+      <meta property="og:image" :content="formatImageUrl(portfolioUser.avatar || '/assets/images/logo.png')">
+      <meta property="og:image:secure_url" :content="formatImageUrl(portfolioUser.avatar || '/assets/images/logo.png')">
       <meta property="profile:username" :content="portfolioUser.username">
       <meta name="twitter:card" content="summary_large_image">
       <meta name="twitter:title" :content="seoTitle">
@@ -39,7 +39,19 @@
         class="preloader-overlay position-fixed top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center d-print-none"
         :class="'theme-' + currentTheme"
       >
-        <div v-if="preloaderConfig.style === 'pulse_logo'" class="text-center p-4">
+        <!-- Custom User Image/Logo Preloader -->
+        <div v-if="preloaderConfig.custom_image || preloaderConfig.style === 'custom_image'" class="text-center p-4">
+          <img 
+            :src="formatImageUrl(preloaderConfig.custom_image || portfolioUser.avatar || '/assets/images/logo.png')" 
+            :alt="portfolioUser.name" 
+            class="preloader-custom-img mb-3 rounded-circle shadow-lg border border-3 border-white object-fit-cover" 
+            style="width: 80px; height: 80px;"
+          >
+          <h3 class="fw-bold fs-5 text-dark mb-1">{{ portfolioUser.name }}</h3>
+          <p class="text-muted small mb-0">{{ preloaderConfig.text || 'Chargement du portfolio...' }}</p>
+        </div>
+
+        <div v-else-if="preloaderConfig.style === 'pulse_logo'" class="text-center p-4">
           <img src="/assets/images/logo.png" alt="Tech237" class="preloader-pulse-logo mb-3" style="height: 68px; object-fit: contain;">
           <h3 class="fw-bold fs-5 text-dark mb-1">{{ portfolioUser.name }}</h3>
           <p class="text-muted small mb-0">{{ preloaderConfig.text || 'Chargement du portfolio...' }}</p>
@@ -154,8 +166,20 @@
             <i class="bi bi-linkedin text-white" style="font-size: 13px;"></i>
           </a>
 
-          <!-- Download CV / Print Button -->
+          <!-- Download CV Button (Custom File or PDF Print) -->
+          <a 
+            v-if="cvFileUrl" 
+            :href="cvFileUrl" 
+            target="_blank" 
+            download
+            class="btn btn-sm btn-nav-action rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1 text-decoration-none"
+            title="Télécharger mon CV au format officiel"
+          >
+            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+            <span class="d-none d-md-inline">Télécharger CV</span>
+          </a>
           <button 
+            v-else 
             type="button" 
             @click="printCV" 
             class="btn btn-sm btn-nav-action rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1"
@@ -180,21 +204,90 @@
       </div>
     </header>
 
-    <!-- TABBED MULTI-PAGE NAVIGATION BAR (When structure is tabbed or use_tabs is enabled) -->
-    <div v-if="isTabbedMode" class="portfolio-tabbed-bar sticky-top py-2 px-3 d-print-none backdrop-blur border-bottom shadow-xs position-relative z-10" style="top: 50px;">
-      <div class="container d-flex align-items-center justify-content-center flex-wrap gap-2">
+    <!-- TOP HERO BANNER SLIDESHOW / CAROUSEL -->
+    <div 
+      v-if="slideshowConfig.enabled && slideshowImages.length" 
+      class="portfolio-top-slideshow position-relative overflow-hidden w-100 d-print-none shadow-sm"
+      :style="{ height: slideshowConfig.height || '340px' }"
+    >
+      <div 
+        v-for="(slide, sIdx) in slideshowImages" 
+        :key="sIdx"
+        class="slideshow-item position-absolute top-0 start-0 w-100 h-100 transition-opacity"
+        :class="{ 'opacity-100 z-2': currentSlideIndex === sIdx, 'opacity-0 z-1 pointer-events-none': currentSlideIndex !== sIdx }"
+      >
+        <img 
+          :src="formatImageUrl(slide.url || slide)" 
+          :alt="slide.caption || 'Slide Tech237'" 
+          class="w-100 h-100 object-fit-cover"
+        />
+        <div v-if="slide.caption" class="slideshow-caption position-absolute bottom-0 start-0 w-100 p-3 p-md-4 text-white text-center" style="background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%);">
+          <p class="mb-0 fs-6 fw-bold text-shadow">{{ slide.caption }}</p>
+        </div>
+      </div>
+
+      <!-- Navigation Arrows -->
+      <button 
+        v-if="slideshowImages.length > 1" 
+        type="button" 
+        @click="prevSlide" 
+        class="slideshow-arrow prev btn btn-sm btn-dark bg-opacity-50 text-white rounded-circle position-absolute top-50 start-0 translate-middle-y ms-3 z-3 d-flex align-items-center justify-content-center"
+        style="width: 40px; height: 40px;"
+      >
+        <i class="bi bi-chevron-left fs-5"></i>
+      </button>
+      <button 
+        v-if="slideshowImages.length > 1" 
+        type="button" 
+        @click="nextSlide" 
+        class="slideshow-arrow next btn btn-sm btn-dark bg-opacity-50 text-white rounded-circle position-absolute top-50 end-0 translate-middle-y me-3 z-3 d-flex align-items-center justify-content-center"
+        style="width: 40px; height: 40px;"
+      >
+        <i class="bi bi-chevron-right fs-5"></i>
+      </button>
+
+      <!-- Dots Indicator -->
+      <div v-if="slideshowImages.length > 1" class="position-absolute bottom-0 start-50 translate-middle-x mb-2 z-3 d-flex gap-2">
+        <span 
+          v-for="(_, dIdx) in slideshowImages" 
+          :key="dIdx" 
+          @click="currentSlideIndex = dIdx" 
+          class="cursor-pointer rounded-pill transition"
+          :style="{
+            width: currentSlideIndex === dIdx ? '24px' : '8px',
+            height: '8px',
+            backgroundColor: currentSlideIndex === dIdx ? (accentColor || '#FFFFFF') : 'rgba(255,255,255,0.5)'
+          }"
+        ></span>
+      </div>
+    </div>
+
+    <!-- TABBED MULTI-PAGE NAVIGATION BAR (Bootstrap Icons, fully customizable) -->
+    <div 
+      v-if="isTabbedMode" 
+      class="portfolio-tabbed-bar sticky-top py-2 px-3 d-print-none backdrop-blur border-bottom shadow-xs position-relative z-10" 
+      style="top: 50px;"
+      :class="['tabs-align-' + tabAlignment, 'tabs-style-' + tabStyle]"
+    >
+      <div class="container d-flex align-items-center flex-wrap gap-2" :class="getTabJustifyClass()">
         <button 
           v-for="t in availableTabs" 
           :key="t.id"
           type="button" 
           @click="activeTab = t.id" 
-          class="btn btn-sm rounded-pill px-3 py-1 fw-bold transition d-inline-flex align-items-center gap-2"
-          :class="activeTab === t.id ? 'btn-primary shadow-sm text-white' : 'btn-light border text-dark'"
-          :style="activeTab === t.id ? { backgroundColor: accentColor, borderColor: accentColor } : {}"
+          class="btn transition d-inline-flex align-items-center gap-2 tab-nav-btn"
+          :class="[
+            getTabBtnClass(t.id),
+            'tab-size-' + tabSize,
+            'tab-radius-' + tabRadius
+          ]"
+          :style="activeTab === t.id ? { backgroundColor: accentColor, borderColor: accentColor, color: '#FFFFFF' } : {}"
         >
-          <span>{{ t.icon }}</span>
+          <i class="bi" :class="t.iconClass"></i>
           <span>{{ t.label }}</span>
-          <span v-if="t.count !== undefined" class="badge bg-white text-dark rounded-pill extra-small px-2">{{ t.count }}</span>
+          <span v-if="t.count !== undefined" class="badge rounded-pill extra-small px-2" :class="activeTab === t.id ? 'bg-white text-dark' : 'bg-secondary-subtle text-secondary'">
+            {{ t.count }}
+          </span>
         </button>
       </div>
     </div>
@@ -214,7 +307,7 @@
               <div class="text-center mb-3">
                 <img 
                   v-if="portfolioUser.avatar" 
-                  :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                  :src="formatImageUrl(portfolioUser.avatar)" 
                   :alt="portfolioUser.name"
                   class="rounded-circle border border-4 border-white shadow-md hero-avatar mx-auto mb-2"
                 />
@@ -237,18 +330,25 @@
 
               <!-- Quick Meta Details -->
               <div class="pt-3 border-top mb-3">
+                <!-- Location & Google Maps -->
                 <div v-if="portfolioUser.location" class="d-flex align-items-center gap-2 small text-muted mb-2">
                   <i class="bi bi-geo-alt-fill text-danger"></i>
-                  <span>{{ portfolioUser.location }}</span>
+                  <a v-if="googleMapsUrl" :href="googleMapsUrl" target="_blank" class="text-decoration-none text-muted fw-semibold">
+                    {{ portfolioUser.location }} <i class="bi bi-box-arrow-up-right extra-small text-primary ms-1"></i>
+                  </a>
+                  <span v-else>{{ portfolioUser.location }}</span>
                 </div>
+
                 <div v-if="yearsOfExperience" class="d-flex align-items-center gap-2 small text-muted mb-2">
                   <i class="bi bi-briefcase-fill text-primary"></i>
                   <span><strong>Expérience :</strong> {{ yearsOfExperience }}</span>
                 </div>
+
                 <div class="d-flex align-items-center gap-2 small text-muted mb-2">
                   <i class="bi bi-trophy-fill text-warning"></i>
                   <span>{{ portfolioUser.rank_title || currentTier?.name || 'Novice Tech' }} &bull; {{ portfolioUser.xp || 0 }} XP</span>
                 </div>
+
                 <div v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" class="d-flex align-items-center gap-2 small text-muted mb-2">
                   <i class="bi bi-whatsapp text-success"></i>
                   <span>{{ portfolioUser.phone }}</span>
@@ -297,7 +397,18 @@
                 >
                   <i class="bi bi-whatsapp me-1"></i> WhatsApp Direct
                 </a>
-                <button type="button" @click="printCV" class="btn btn-outline-secondary rounded-pill btn-sm py-2">
+
+                <!-- Download CV Button -->
+                <a 
+                  v-if="cvFileUrl" 
+                  :href="cvFileUrl" 
+                  target="_blank" 
+                  download 
+                  class="btn btn-outline-dark rounded-pill btn-sm py-2 fw-semibold text-decoration-none"
+                >
+                  <i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i> Télécharger CV PDF
+                </a>
+                <button v-else type="button" @click="printCV" class="btn btn-outline-secondary rounded-pill btn-sm py-2">
                   <i class="bi bi-download me-1"></i> Imprimer CV PDF
                 </button>
               </div>
@@ -314,6 +425,16 @@
                 <i class="bi bi-person-lines-fill" :style="{ color: accentColor }"></i> À propos de moi
               </h2>
               <div class="text-content leading-relaxed mb-0" v-html="formatHtml(portfolioUser.bio)"></div>
+            </div>
+
+            <!-- YouTube Video Showcase in CV Split -->
+            <div v-if="youtubeEmbedUrl && isBlockActiveInTab('video')" class="card p-4 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-play-btn-fill text-danger"></i> Vidéo de Présentation &amp; Pitch
+              </h2>
+              <div class="ratio ratio-16x9 rounded-3 overflow-hidden shadow-xs border">
+                <iframe :src="youtubeEmbedUrl" title="Vidéo présentation portfolio" allowfullscreen></iframe>
+              </div>
             </div>
 
             <!-- Experiences -->
@@ -346,13 +467,12 @@
 
               <!-- Slider or Multi-Column Grid -->
               <div v-if="projectsStyle === 'carousel'">
-                <!-- Project Carousel Item -->
                 <div v-if="projects[currentProjectSlide]" class="p-3 rounded-4 bg-light border">
                   <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="d-flex align-items-center gap-3">
                       <img 
                         v-if="projects[currentProjectSlide].logo" 
-                        :src="projects[currentProjectSlide].logo.startsWith('/') ? projects[currentProjectSlide].logo : '/' + projects[currentProjectSlide].logo" 
+                        :src="formatImageUrl(projects[currentProjectSlide].logo)" 
                         class="rounded-3 border" 
                         style="width: 48px; height: 48px; object-fit: contain;" 
                         :alt="projects[currentProjectSlide].name"
@@ -381,7 +501,7 @@
                       <div class="d-flex align-items-center gap-2 mb-2">
                         <img 
                           v-if="proj.logo" 
-                          :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
+                          :src="formatImageUrl(proj.logo)" 
                           class="rounded-2 border flex-shrink-0" 
                           style="width: 36px; height: 36px; object-fit: contain;" 
                           :alt="proj.name"
@@ -430,6 +550,17 @@
               <div class="text-content leading-relaxed" v-html="formatHtml(sec.content)"></div>
             </div>
 
+            <!-- Contact Block in CV Split -->
+            <div v-if="isBlockActiveInTab('contact')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-envelope-fill" :style="{ color: accentColor }"></i> Me Contacter Directement
+              </h2>
+              <contact-form-component 
+                :recipient-username="portfolioUser.username" 
+                :accent-color="accentColor" 
+              />
+            </div>
+
           </section>
 
         </div>
@@ -438,7 +569,7 @@
       <!-- MODE B: STANDARD, BENTO, TERMINAL & ALL OTHER 28 STRUCTURES -->
       <main v-else class="container py-4 py-md-5" :style="{ maxWidth: containerMaxWidth }">
         
-        <!-- Terminal Console Window Wrapper (If Structure === 'terminal') -->
+        <!-- Terminal Super Window Wrapper (If Structure === 'terminal') -->
         <div v-if="currentStructure === 'terminal'" class="terminal-super-window rounded-4 shadow-lg mb-4 overflow-hidden border border-secondary border-opacity-50">
           <div class="terminal-bar bg-dark px-3 py-2 d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25">
             <div class="d-flex align-items-center gap-2">
@@ -448,6 +579,18 @@
             </div>
             <span class="font-monospace extra-small text-white-50">bash — {{ portfolioUser.username }}@tech237:~$ portfolio</span>
             <span class="badge bg-secondary extra-small font-monospace">ONLINE</span>
+          </div>
+        </div>
+
+        <!-- Code Editor IDE Window Wrapper (If Structure === 'code_editor') -->
+        <div v-if="currentStructure === 'code_editor'" class="ide-super-window rounded-4 shadow-lg mb-4 overflow-hidden border border-secondary border-opacity-50">
+          <div class="ide-tab-bar bg-dark px-3 py-2 d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary-subtle text-primary extra-small font-monospace"><i class="bi bi-file-code me-1"></i>portfolio.vue</span>
+              <span class="badge bg-secondary-subtle text-muted extra-small font-monospace d-none d-sm-inline">skills.json</span>
+              <span class="badge bg-secondary-subtle text-muted extra-small font-monospace d-none d-sm-inline">projects.ts</span>
+            </div>
+            <span class="badge bg-success-subtle text-success extra-small font-monospace"><i class="bi bi-check2-all me-1"></i>0 Errors</span>
           </div>
         </div>
 
@@ -471,7 +614,7 @@
                     <div class="d-inline-block position-relative mb-3">
                       <img 
                         v-if="portfolioUser.avatar" 
-                        :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                        :src="formatImageUrl(portfolioUser.avatar)" 
                         :alt="portfolioUser.name"
                         class="rounded-circle border border-4 border-white shadow-md hero-avatar"
                       />
@@ -500,7 +643,11 @@
                     <!-- Location, Availability & Experience Pills -->
                     <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-3">
                       <span v-if="portfolioUser.location" class="badge rounded-pill px-3 py-2 meta-pill">
-                        <i class="bi bi-geo-alt-fill me-1 text-danger"></i> {{ portfolioUser.location }}
+                        <i class="bi bi-geo-alt-fill me-1 text-danger"></i>
+                        <a v-if="googleMapsUrl" :href="googleMapsUrl" target="_blank" class="text-decoration-none text-dark">
+                          {{ portfolioUser.location }} <i class="bi bi-box-arrow-up-right extra-small text-primary ms-1"></i>
+                        </a>
+                        <span v-else>{{ portfolioUser.location }}</span>
                       </span>
 
                       <!-- Years of Experience Badge -->
@@ -529,7 +676,7 @@
                         style="background-color: #25D366;"
                       >
                         <i class="bi bi-whatsapp"></i>
-                        <span>Me contacter sur WhatsApp</span>
+                        <span>WhatsApp Direct</span>
                       </a>
 
                       <Link 
@@ -542,7 +689,19 @@
                         <span>Envoyer un message</span>
                       </Link>
 
+                      <!-- Download CV Button -->
+                      <a 
+                        v-if="cvFileUrl" 
+                        :href="cvFileUrl" 
+                        target="_blank" 
+                        download 
+                        class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2 text-decoration-none shadow-sm"
+                      >
+                        <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                        <span>Télécharger CV</span>
+                      </a>
                       <button 
+                        v-else 
                         type="button" 
                         @click="printCV" 
                         class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1"
@@ -560,7 +719,7 @@
                     <div class="col-md-4 text-center text-md-start">
                       <img 
                         v-if="portfolioUser.avatar" 
-                        :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                        :src="formatImageUrl(portfolioUser.avatar)" 
                         :alt="portfolioUser.name"
                         class="rounded-4 border border-4 border-white shadow-md hero-avatar-sq"
                       />
@@ -583,7 +742,11 @@
                       </p>
                       <div class="d-flex align-items-center gap-3 flex-wrap justify-content-center justify-content-md-start mb-3">
                         <span v-if="portfolioUser.location" class="meta-pill-text small">
-                          <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ portfolioUser.location }}
+                          <i class="bi bi-geo-alt-fill text-danger me-1"></i>
+                          <a v-if="googleMapsUrl" :href="googleMapsUrl" target="_blank" class="text-decoration-none text-muted">
+                            {{ portfolioUser.location }}
+                          </a>
+                          <span v-else>{{ portfolioUser.location }}</span>
                         </span>
                         <span v-if="yearsOfExperience" class="meta-pill-text small">
                           <i class="bi bi-briefcase-fill text-primary me-1"></i>{{ yearsOfExperience }}
@@ -604,7 +767,16 @@
                         >
                           <i class="bi bi-whatsapp me-1"></i> WhatsApp
                         </a>
-                        <button type="button" @click="printCV" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold">
+                        <a 
+                          v-if="cvFileUrl" 
+                          :href="cvFileUrl" 
+                          target="_blank" 
+                          download 
+                          class="btn btn-outline-dark rounded-pill px-3 py-2 fw-semibold"
+                        >
+                          <i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i> Télécharger CV
+                        </a>
+                        <button v-else type="button" @click="printCV" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold">
                           <i class="bi bi-download me-1"></i> Exporter PDF
                         </button>
                       </div>
@@ -640,7 +812,7 @@
                   <div class="p-4 text-center position-relative content-card">
                     <img 
                       v-if="portfolioUser.avatar" 
-                      :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                      :src="formatImageUrl(portfolioUser.avatar)" 
                       :alt="portfolioUser.name"
                       class="rounded-circle border border-4 border-white shadow-md hero-avatar mx-auto mb-2"
                       style="margin-top: -65px;"
@@ -660,7 +832,7 @@
                     <div class="extra-small text-emerald-400 font-monospace mb-2">[ IDENT_SYS_V2.37 // OPERATOR_PROFILE ]</div>
                     <img 
                       v-if="portfolioUser.avatar" 
-                      :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                      :src="formatImageUrl(portfolioUser.avatar)" 
                       :alt="portfolioUser.name"
                       class="rounded-circle border border-2 border-emerald-400 shadow hero-avatar mb-3"
                     />
@@ -674,12 +846,39 @@
                   </div>
                 </div>
 
+                <!-- Variant: Executive C-Level Recruiter -->
+                <div v-else-if="heroStyle === 'executive'" class="hero-box hero-executive p-4 p-md-5 rounded-4 shadow-sm border border-2 content-card h-100">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 pb-3 border-bottom mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                      <img 
+                        v-if="portfolioUser.avatar" 
+                        :src="formatImageUrl(portfolioUser.avatar)" 
+                        :alt="portfolioUser.name"
+                        class="rounded-circle border hero-avatar"
+                        style="width: 72px; height: 72px;"
+                      />
+                      <div>
+                        <h1 class="h3 fw-bold mb-0 text-dark">{{ portfolioUser.name }}</h1>
+                        <p class="small text-muted mb-0 fw-bold">{{ portfolioUser.headline }}</p>
+                      </div>
+                    </div>
+                    <span class="badge rounded-pill px-3 py-2 availability-pill" :class="getAvailabilityClass(portfolioUser.availability)">
+                      {{ getAvailabilityLabel(portfolioUser.availability) }}
+                    </span>
+                  </div>
+                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <span v-if="yearsOfExperience" class="small text-muted fw-bold"><i class="bi bi-briefcase text-primary me-1"></i>{{ yearsOfExperience }}</span>
+                    <span v-if="portfolioUser.location" class="small text-muted"><i class="bi bi-geo-alt text-danger me-1"></i>{{ portfolioUser.location }}</span>
+                    <span class="small text-muted"><i class="bi bi-trophy text-warning me-1"></i>{{ portfolioUser.rank_title || 'Novice Tech' }} ({{ portfolioUser.xp || 0 }} XP)</span>
+                  </div>
+                </div>
+
                 <!-- Variant: Minimal (Default Fallback) -->
                 <div v-else class="hero-box hero-minimal p-4 p-md-5 rounded-4 shadow-sm border content-card h-100">
                   <div class="d-flex align-items-center gap-4 flex-wrap">
                     <img 
                       v-if="portfolioUser.avatar" 
-                      :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                      :src="formatImageUrl(portfolioUser.avatar)" 
                       :alt="portfolioUser.name"
                       class="rounded-circle border hero-avatar"
                     />
@@ -707,6 +906,21 @@
                     <h2 class="h5 fw-bold mb-0 section-heading">À propos de moi</h2>
                   </div>
                   <div class="text-content leading-relaxed mb-0" v-html="formatHtml(portfolioUser.bio)"></div>
+                </div>
+              </section>
+
+              <!-- YOUTUBE VIDEO SHOWCASE BLOCK -->
+              <section v-else-if="block.id === 'video' && youtubeEmbedUrl" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="section-icon-badge text-danger">
+                      <i class="bi bi-play-btn-fill fs-5"></i>
+                    </span>
+                    <h2 class="h5 fw-bold mb-0 section-heading">Vidéo de Présentation &amp; Pitch</h2>
+                  </div>
+                  <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-xs border">
+                    <iframe :src="youtubeEmbedUrl" title="Vidéo pitch portfolio" allowfullscreen></iframe>
+                  </div>
                 </div>
               </section>
 
@@ -806,7 +1020,7 @@
                       <div class="d-flex align-items-center gap-3">
                         <img 
                           v-if="projects[currentProjectSlide].logo" 
-                          :src="projects[currentProjectSlide].logo.startsWith('/') ? projects[currentProjectSlide].logo : '/' + projects[currentProjectSlide].logo" 
+                          :src="formatImageUrl(projects[currentProjectSlide].logo)" 
                           class="rounded-3 border flex-shrink-0" 
                           style="width: 56px; height: 56px; object-fit: contain;" 
                           :alt="projects[currentProjectSlide].name"
@@ -888,7 +1102,7 @@
                         <div class="d-flex align-items-center gap-3 mb-3">
                           <img 
                             v-if="proj.logo" 
-                            :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
+                            :src="formatImageUrl(proj.logo)" 
                             class="rounded-3 border flex-shrink-0" 
                             style="width: 48px; height: 48px; object-fit: contain;" 
                             :alt="proj.name"
@@ -1039,7 +1253,7 @@
                 </div>
               </section>
 
-              <!-- 10. CONTACT BLOCK -->
+              <!-- 10. CONTACT BLOCK WITH INTERACTIVE EMAIL FORM -->
               <section v-else-if="block.id === 'contact'" class="portfolio-block h-100">
                 <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card text-center h-100">
                   <div class="mx-auto mb-2 section-icon-badge" :style="{ color: accentColor }">
@@ -1047,10 +1261,11 @@
                   </div>
                   <h2 class="h4 fw-bold mb-2">Entrons en contact</h2>
                   <p class="text-muted small max-w-md mx-auto mb-4">
-                    Un projet innovant, une opportunité ou envie d'échanger sur la tech au Cameroun ? Je suis toujours à l'écoute des nouvelles idées.
+                    Un projet innovant, une opportunité ou envie d'échanger sur la tech au Cameroun ? Envoyez-moi un message direct ci-dessous.
                   </p>
 
-                  <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-3">
+                  <!-- Direct Contact Shortcuts -->
+                  <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-4">
                     <a 
                       v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" 
                       :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
@@ -1062,17 +1277,72 @@
                     </a>
 
                     <a 
-                      v-if="portfolioUser.email" 
-                      :href="'mailto:' + portfolioUser.email" 
-                      class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2"
+                      v-if="googleMapsUrl" 
+                      :href="googleMapsUrl" 
+                      target="_blank" 
+                      class="btn btn-outline-danger rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2"
                     >
-                      <i class="bi bi-envelope-fill"></i>
-                      <span>Email direct</span>
+                      <i class="bi bi-geo-alt-fill"></i>
+                      <span>Voir sur Google Maps</span>
                     </a>
                   </div>
 
+                  <!-- INTERACTIVE CONTACT FORM -->
+                  <div class="text-start mx-auto p-4 rounded-4 bg-light border" style="max-width: 680px; width: 100%;">
+                    <h3 class="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                      <i class="bi bi-envelope-paper-fill" :style="{ color: accentColor }"></i> Formulaire de Contact Direct
+                    </h3>
+
+                    <div v-if="contactSuccessMsg" class="alert alert-success d-flex align-items-center gap-2 py-3 rounded-3 shadow-2xs">
+                      <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                      <div class="small fw-semibold">{{ contactSuccessMsg }}</div>
+                    </div>
+
+                    <div v-if="contactErrorMsg" class="alert alert-danger d-flex align-items-center gap-2 py-2 rounded-3 shadow-2xs">
+                      <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                      <div class="small">{{ contactErrorMsg }}</div>
+                    </div>
+
+                    <form v-if="!contactSuccessMsg" @submit.prevent="submitContactForm">
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Prénom <span class="text-danger">*</span></label>
+                          <input type="text" v-model="contactForm.first_name" class="form-control form-control-sm rounded-3" placeholder="Votre prénom" required />
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Nom</label>
+                          <input type="text" v-model="contactForm.last_name" class="form-control form-control-sm rounded-3" placeholder="Votre nom" />
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Adresse Email <span class="text-danger">*</span></label>
+                          <input type="email" v-model="contactForm.email" class="form-control form-control-sm rounded-3" placeholder="votre.email@domaine.com" required />
+                        </div>
+                        <div class="col-md-6">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Sujet <span class="text-danger">*</span></label>
+                          <input type="text" v-model="contactForm.subject" class="form-control form-control-sm rounded-3" placeholder="ex: Proposition de projet ou mission" required />
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Description / Message <span class="text-danger">*</span></label>
+                          <textarea v-model="contactForm.message" class="form-control form-control-sm rounded-3" rows="4" placeholder="Détaillez votre message..." required></textarea>
+                        </div>
+                        <div class="col-12 text-end">
+                          <button 
+                            type="submit" 
+                            class="btn btn-sm rounded-pill px-4 py-2 fw-bold text-white shadow-2xs" 
+                            :style="{ backgroundColor: accentColor }"
+                            :disabled="isSubmittingContact"
+                          >
+                            <span v-if="isSubmittingContact" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            <i v-else class="bi bi-send-fill me-1"></i>
+                            <span>{{ isSubmittingContact ? 'Envoi en cours...' : 'Envoyer mon message' }}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+
                   <!-- Social Links in Contact Block -->
-                  <div v-if="hasSocialLinks" class="d-flex align-items-center justify-content-center gap-2 pt-3 border-top mt-2">
+                  <div v-if="hasSocialLinks" class="d-flex align-items-center justify-content-center gap-2 pt-4 border-top mt-4">
                     <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
                       <i class="bi bi-github"></i>
                     </a>
@@ -1127,15 +1397,22 @@
           <p v-if="footerConfig.show_tech237_badge !== false" class="extra-small text-muted mb-0">
             Portfolio vérifié hébergé sur Tech237 &bull; Le média et réseau d'innovation tech au Cameroun.
           </p>
-
-          <!-- Back to top button if enabled -->
-          <div v-if="footerConfig.show_back_to_top !== false" class="mt-3">
-            <button type="button" @click="scrollToTop" class="btn btn-xs btn-outline-secondary rounded-pill px-3 py-1 extra-small">
-              <i class="bi bi-arrow-up me-1"></i> Haut de page
-            </button>
-          </div>
         </div>
       </footer>
+
+      <!-- FLOATING ROUND BACK TO TOP BUTTON (Bottom-Right, Appears on scroll) -->
+      <transition name="fade">
+        <button 
+          v-if="showBackToTopBtn && footerConfig.show_back_to_top !== false" 
+          type="button" 
+          @click="scrollToTop" 
+          class="btn-floating-back-to-top rounded-circle shadow-lg border-0 d-flex align-items-center justify-content-center d-print-none cursor-pointer"
+          :style="{ backgroundColor: accentColor, color: '#FFFFFF' }"
+          title="Revenir en haut de la page"
+        >
+          <i class="bi bi-arrow-up fs-5"></i>
+        </button>
+      </transition>
 
     </div>
 
@@ -1143,7 +1420,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -1159,7 +1436,50 @@ const props = defineProps({
 
 const isCopied = ref(false)
 const currentProjectSlide = ref(0)
+const currentSlideIndex = ref(0)
 const showPreloader = ref(false)
+const showBackToTopBtn = ref(false)
+
+// Contact form state
+const contactForm = ref({
+  first_name: '',
+  last_name: '',
+  email: '',
+  subject: '',
+  message: '',
+})
+const isSubmittingContact = ref(false)
+const contactSuccessMsg = ref('')
+const contactErrorMsg = ref('')
+
+async function submitContactForm() {
+  isSubmittingContact.value = true
+  contactSuccessMsg.value = ''
+  contactErrorMsg.value = ''
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const response = await fetch(`/portfolio/${props.portfolioUser.username}/contact`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: JSON.stringify(contactForm.value)
+    })
+    const resData = await response.json()
+    if (response.ok && resData?.success) {
+      contactSuccessMsg.value = resData.message || 'Votre message a bien été envoyé !'
+      contactForm.value = { first_name: '', last_name: '', email: '', subject: '', message: '' }
+    } else {
+      contactErrorMsg.value = resData?.message || resData?.error || 'Erreur lors de l\'envoi du message.'
+    }
+  } catch (err) {
+    contactErrorMsg.value = err?.message || 'Erreur réseau lors de l\'envoi du message.'
+  } finally {
+    isSubmittingContact.value = false
+  }
+}
 
 const layout = computed(() => {
   return props.portfolioUser.portfolio_layout || {}
@@ -1178,6 +1498,36 @@ const skillsStyle = computed(() => layout.value.skills_style || 'chips')
 const ambientEffect = computed(() => layout.value.ambient_effect || 'none')
 const pageAnimation = computed(() => layout.value.page_animation || 'fade')
 const yearsOfExperience = computed(() => layout.value.years_of_experience || '')
+const googleMapsUrl = computed(() => layout.value.google_maps_url || '')
+const cvFileUrl = computed(() => {
+  const file = layout.value.cv_file
+  return file ? formatImageUrl(file) : null
+})
+
+// YouTube presentation video
+const youtubeEmbedUrl = computed(() => {
+  const url = layout.value.youtube_url
+  if (!url) return null
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
+  const match = url.match(regExp)
+  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null
+})
+
+// Slideshow banner
+const slideshowConfig = computed(() => layout.value.slideshow || { enabled: false, images: [] })
+const slideshowImages = computed(() => slideshowConfig.value.images || [])
+
+function nextSlide() {
+  if (slideshowImages.value.length) {
+    currentSlideIndex.value = (currentSlideIndex.value + 1) % slideshowImages.value.length
+  }
+}
+
+function prevSlide() {
+  if (slideshowImages.value.length) {
+    currentSlideIndex.value = (currentSlideIndex.value - 1 + slideshowImages.value.length) % slideshowImages.value.length
+  }
+}
 
 // Preloader & Footer
 const preloaderConfig = computed(() => layout.value.preloader || {
@@ -1195,7 +1545,10 @@ const footerConfig = computed(() => layout.value.footer || {
 })
 
 // Custom Background
-const bgImageUrl = computed(() => layout.value.bg_image || '')
+const bgImageUrl = computed(() => {
+  const img = layout.value.bg_image
+  return img ? formatImageUrl(img) : ''
+})
 const bgImageOpacity = computed(() => (layout.value.bg_image_opacity ?? 30) / 100)
 const bgImageBlur = computed(() => layout.value.bg_image_blur ?? 0)
 const bgImageSize = computed(() => layout.value.bg_image_size || 'cover')
@@ -1210,36 +1563,56 @@ const customBgStyle = computed(() => ({
   zIndex: 0
 }))
 
-// Tabbed multi-page website mode
+// Tabbed multi-page website mode (NO EMOJIS, Bootstrap Icons)
 const isTabbedMode = computed(() => {
   return currentStructure.value.startsWith('tabbed') || Boolean(layout.value.tabbed_nav?.enabled)
 })
 
 const activeTab = ref(layout.value.tabbed_nav?.default_tab || 'all')
+const tabStyle = computed(() => layout.value.tabbed_nav?.style || 'pills')
+const tabSize = computed(() => layout.value.tabbed_nav?.size || 'md')
+const tabRadius = computed(() => layout.value.tabbed_nav?.radius || 'full')
+const tabAlignment = computed(() => layout.value.tabbed_nav?.alignment || 'center')
+
+function getTabJustifyClass() {
+  if (tabAlignment.value === 'start') return 'justify-content-start'
+  if (tabAlignment.value === 'end') return 'justify-content-end'
+  return 'justify-content-center'
+}
+
+function getTabBtnClass(tabId) {
+  if (activeTab.value === tabId) {
+    return 'btn-primary shadow-sm text-white'
+  }
+  return 'btn-light border text-dark'
+}
 
 const availableTabs = computed(() => {
   const tabs = [
-    { id: 'all', label: 'Vue Globale', icon: '🌟' }
+    { id: 'all', label: 'Vue Globale', iconClass: 'bi-grid-fill' }
   ]
   if (props.portfolioUser.bio) {
-    tabs.push({ id: 'about', label: 'À Propos', icon: '👤' })
+    tabs.push({ id: 'about', label: 'À Propos', iconClass: 'bi-person-lines-fill' })
+  }
+  if (youtubeEmbedUrl.value) {
+    tabs.push({ id: 'video', label: 'Vidéo Pitch', iconClass: 'bi-play-btn-fill' })
   }
   if (props.portfolioUser.skills && props.portfolioUser.skills.length) {
-    tabs.push({ id: 'skills', label: 'Stack & Compétences', icon: '⚡', count: props.portfolioUser.skills.length })
+    tabs.push({ id: 'skills', label: 'Compétences', iconClass: 'bi-cpu-fill', count: props.portfolioUser.skills.length })
   }
   if (props.projects && props.projects.length) {
-    tabs.push({ id: 'projects', label: 'Projets', icon: '🚀', count: props.projects.length })
+    tabs.push({ id: 'projects', label: 'Projets', iconClass: 'bi-rocket-takeoff-fill', count: props.projects.length })
   }
   if (props.portfolioUser.experiences && props.portfolioUser.experiences.length) {
-    tabs.push({ id: 'experiences', label: 'Parcours', icon: '💼' })
+    tabs.push({ id: 'experiences', label: 'Parcours', iconClass: 'bi-briefcase-fill' })
   }
   if (props.portfolioUser.educations && props.portfolioUser.educations.length) {
-    tabs.push({ id: 'educations', label: 'Formations', icon: '🎓' })
+    tabs.push({ id: 'educations', label: 'Formations', iconClass: 'bi-mortarboard-fill' })
   }
   if (props.pocs && props.pocs.length) {
-    tabs.push({ id: 'pocs', label: 'POCs', icon: '⚡', count: props.pocs.length })
+    tabs.push({ id: 'pocs', label: 'POCs', iconClass: 'bi-lightning-charge-fill', count: props.pocs.length })
   }
-  tabs.push({ id: 'contact', label: 'Contact', icon: '📬' })
+  tabs.push({ id: 'contact', label: 'Contact', iconClass: 'bi-envelope-fill' })
   return tabs
 })
 
@@ -1307,6 +1680,7 @@ const cssVars = computed(() => {
 const defaultBlocks = [
   { id: 'hero', name: 'En-tête & Présentation', enabled: true, width: 'full' },
   { id: 'about', name: 'À propos & Parcours', enabled: true, width: 'full' },
+  { id: 'video', name: 'Vidéo de Présentation', enabled: true, width: 'full' },
   { id: 'skills', name: 'Compétences & Stack technique', enabled: true, width: 'half' },
   { id: 'projects', name: 'Projets Tech en vedette', enabled: true, width: 'full' },
   { id: 'pocs', name: 'Mini-Actus & POCs Tech237', enabled: true, width: 'half' },
@@ -1326,6 +1700,7 @@ const orderedBlocks = computed(() => {
 
 function shouldRenderBlock(id) {
   if (id === 'about') return Boolean(props.portfolioUser.bio)
+  if (id === 'video') return Boolean(youtubeEmbedUrl.value)
   if (id === 'skills') return Boolean(props.portfolioUser.skills && props.portfolioUser.skills.length)
   if (id === 'projects') return Boolean(props.projects && props.projects.length)
   if (id === 'pocs') return Boolean(props.pocs && props.pocs.length)
@@ -1388,6 +1763,10 @@ function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+function handleScroll() {
+  showBackToTopBtn.value = window.scrollY > 280
+}
+
 function getInitials(name) {
   if (!name) return 'U'
   const p = name.trim().split(' ')
@@ -1402,6 +1781,14 @@ function cleanPhone(phone) {
 function formatDateShort(dateStr) {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function formatImageUrl(path) {
+  if (!path) return ''
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path
+  }
+  return '/' + path.replace(/^\/+/, '')
 }
 
 function getAvailabilityLabel(val) {
@@ -1542,13 +1929,33 @@ function getBubbleStyle(n) {
   }
 }
 
+let slideshowInterval = null
+
 onMounted(() => {
+  window.addEventListener('scroll', handleScroll)
+  handleScroll()
+
   if (preloaderConfig.value?.enabled) {
     showPreloader.value = true
     const duration = Math.max(0.5, Math.min(5, Number(preloaderConfig.value?.duration || 1.2))) * 1000
     setTimeout(() => {
       showPreloader.value = false
     }, duration)
+  }
+
+  // Slideshow autoplay
+  if (slideshowConfig.value.enabled && slideshowConfig.value.autoplay !== false && slideshowImages.value.length > 1) {
+    const speed = (Number(slideshowConfig.value.speed) || 4) * 1000
+    slideshowInterval = setInterval(() => {
+      nextSlide()
+    }, speed)
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  if (slideshowInterval) {
+    clearInterval(slideshowInterval)
   }
 })
 </script>
@@ -1609,6 +2016,12 @@ onMounted(() => {
   background: #050505;
   color: #00FF66;
 }
+.theme-cyber .content-card,
+.theme-cyber .hero-box {
+  background-color: #0d1117;
+  border-color: #00FF66 !important;
+  box-shadow: 0 0 15px rgba(0, 255, 102, 0.15);
+}
 .theme-minimal {
   background: #FFFFFF;
   color: #171717;
@@ -1627,6 +2040,23 @@ onMounted(() => {
   border-color: rgba(236, 72, 153, 0.3) !important;
 }
 
+/* ==========================================================================
+   EXPANDED TYPOGRAPHY FONTS (Montserrat, Roboto, Jakarta, etc.)
+   ========================================================================== */
+.font-poppins { font-family: 'Poppins', sans-serif; }
+.font-montserrat { font-family: 'Montserrat', sans-serif; }
+.font-inter { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+.font-roboto { font-family: 'Roboto', sans-serif; }
+.font-jakarta { font-family: 'Plus Jakarta Sans', sans-serif; }
+.font-outfit { font-family: 'Outfit', sans-serif; }
+.font-raleway { font-family: 'Raleway', sans-serif; }
+.font-fira { font-family: 'Fira Code', monospace; }
+.font-mono { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
+.font-space { font-family: 'Space Grotesk', sans-serif; }
+.font-playfair { font-family: 'Playfair Display', Georgia, serif; }
+.font-cinzel { font-family: 'Cinzel', serif; }
+.font-lexend { font-family: 'Lexend', sans-serif; }
+
 /* BACKGROUND PATTERNS */
 .bg-pattern-grid {
   background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px);
@@ -1644,12 +2074,71 @@ onMounted(() => {
   background-size: 32px 32px;
 }
 
-/* FONT FAMILIES */
-.font-poppins { font-family: 'Poppins', sans-serif; }
-.font-inter { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-.font-mono { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
-.font-playfair { font-family: 'Playfair Display', Georgia, serif; }
-.font-space { font-family: 'Space Grotesk', sans-serif; }
+/* ==========================================================================
+   30 GLOBAL STRUCTURE ARCHITECTURES
+   ========================================================================== */
+.structure-brutalist .content-card,
+.structure-brutalist .hero-box {
+  border: 3px solid #000000 !important;
+  box-shadow: 6px 6px 0px #000000 !important;
+  border-radius: 0px !important;
+}
+
+.structure-glassmorphism .content-card,
+.structure-glassmorphism .hero-box {
+  background: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+.structure-neumorphism .content-card,
+.structure-neumorphism .hero-box {
+  background: #f0f3f8;
+  border-radius: 20px;
+  box-shadow: 8px 8px 16px #d1d9e6, -8px -8px 16px #ffffff;
+}
+
+.structure-cyberpunk .content-card,
+.structure-cyberpunk .hero-box {
+  border: 1px solid #10b981 !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+}
+
+.structure-retro_90s .content-card,
+.structure-retro_90s .hero-box {
+  border-top: 3px solid #ffffff !important;
+  border-left: 3px solid #ffffff !important;
+  border-right: 3px solid #555555 !important;
+  border-bottom: 3px solid #555555 !important;
+  background-color: #c0c0c0;
+  border-radius: 0 !important;
+}
+
+.structure-zen {
+  padding-top: 2rem;
+  padding-bottom: 4rem;
+}
+.structure-zen .content-card,
+.structure-zen .hero-box {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.structure-smartphone {
+  max-width: 440px;
+  margin: 2rem auto;
+  border: 12px solid #1e293b;
+  border-radius: 40px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+.structure-dashboard_saas .content-card {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
 
 /* CARD STYLES */
 .content-card, .hero-box {
@@ -1774,6 +2263,47 @@ onMounted(() => {
 }
 
 /* ==========================================================================
+   TABS CUSTOMIZATION
+   ========================================================================== */
+.tab-size-sm { font-size: 12px; padding: 4px 10px; }
+.tab-size-md { font-size: 14px; padding: 6px 16px; }
+.tab-size-lg { font-size: 16px; padding: 8px 22px; font-weight: 700; }
+
+.tab-radius-full { border-radius: 9999px !important; }
+.tab-radius-rounded { border-radius: 8px !important; }
+.tab-radius-sharp { border-radius: 0px !important; }
+
+.tabs-style-underline .tab-nav-btn {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  color: #64748b;
+}
+.tabs-style-underline .tab-nav-btn.btn-primary {
+  border-bottom-color: var(--accent-color) !important;
+  color: var(--accent-color) !important;
+}
+
+/* ==========================================================================
+   FLOATING BACK TO TOP BUTTON
+   ========================================================================== */
+.btn-floating-back-to-top {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 48px;
+  height: 48px;
+  z-index: 1040;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-floating-back-to-top:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* ==========================================================================
    AMBIENT PARTICLE EFFECTS (Snow, Confetti, Stars, Matrix, Bubbles)
    ========================================================================== */
 .ambient-effects-layer {
@@ -1883,6 +2413,9 @@ onMounted(() => {
 .preloader-pulse-logo {
   animation: pulseLogo 1.6s infinite ease-in-out;
 }
+.preloader-custom-img {
+  animation: pulseLogo 1.6s infinite ease-in-out;
+}
 @keyframes pulseLogo {
   0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(0, 168, 89, 0)); }
   50% { transform: scale(1.08); filter: drop-shadow(0 0 12px rgba(0, 168, 89, 0.4)); }
@@ -1957,7 +2490,7 @@ onMounted(() => {
    PRINT / PDF EXPORT OPTIMIZATIONS
    ========================================================================== */
 @media print {
-  .portfolio-nav, .btn, .d-print-none, .ambient-effects-layer, .preloader-overlay, .portfolio-tabbed-bar {
+  .portfolio-nav, .btn, .d-print-none, .ambient-effects-layer, .preloader-overlay, .portfolio-tabbed-bar, .portfolio-top-slideshow, .btn-floating-back-to-top {
     display: none !important;
   }
   .portfolio-root {

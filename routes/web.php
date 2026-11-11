@@ -155,6 +155,7 @@ Route::get('/communaute/profil/{id}', [App\Http\Controllers\Front\CommunityContr
 Route::get('/@{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->where('username', '[a-zA-Z0-9_\-\.]+')->name('user.portfolio.short');
 Route::get('/portfolio/{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->name('user.portfolio');
 Route::get('/cv/{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->name('user.cv');
+Route::post('/portfolio/{username}/contact', [App\Http\Controllers\User\PortfolioController::class, 'submitContact'])->name('portfolio.contact.submit');
 
 // Comments Submission
 Route::post('/api/comments', [CommentController::class, 'store'])->name('api.comments.store')->middleware('auth:web');
@@ -304,6 +305,9 @@ Route::middleware('auth:web')->group(function () {
     // Portfolio Settings & Customization
     Route::post('/espace-utilisateur/portfolio/save', [App\Http\Controllers\User\PortfolioController::class, 'save'])->name('user.portfolio.save');
     Route::post('/espace-utilisateur/portfolio/upload-bg', [App\Http\Controllers\User\PortfolioController::class, 'uploadBg'])->name('user.portfolio.upload-bg');
+    Route::post('/espace-utilisateur/portfolio/upload-cv', [App\Http\Controllers\User\PortfolioController::class, 'uploadCv'])->name('user.portfolio.upload-cv');
+    Route::post('/espace-utilisateur/portfolio/upload-slide', [App\Http\Controllers\User\PortfolioController::class, 'uploadSlide'])->name('user.portfolio.upload-slide');
+    Route::post('/espace-utilisateur/portfolio/upload-preloader-image', [App\Http\Controllers\User\PortfolioController::class, 'uploadPreloaderImage'])->name('user.portfolio.upload-preloader-image');
 });
 
 // Public Project Roadmap
