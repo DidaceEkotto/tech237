@@ -2525,8 +2525,9 @@
                     </button>
                   </div>
 
-                  <div v-if="slideUploadError" class="alert alert-danger py-2 px-3 small rounded-3">
-                    {{ slideUploadError }}
+                  <div v-if="slideUploadError" class="alert alert-danger py-2 px-3 small rounded-3 d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ slideUploadError }}</span>
+                    <button type="button" @click="slideUploadError = ''" class="btn btn-xs btn-link text-danger p-0 ms-2 text-decoration-none fw-bold" title="Fermer cette notification">✕</button>
                   </div>
 
                   <div v-for="(slide, sIdx) in portfolioForm.portfolio_layout.slideshow.slides" :key="sIdx" class="p-3 bg-light rounded-4 border position-relative">
@@ -2544,7 +2545,13 @@
                           <div class="spinner-border spinner-border-sm text-primary mb-1" role="status"></div>
                           <span class="d-block extra-small text-muted fw-bold">Téléversement...</span>
                         </div>
-                        <div v-else class="dropzone-area p-2 border border-2 border-dashed rounded-3 text-center cursor-pointer bg-white hover-bg-light transition" @click="triggerSlideUpload(sIdx)">
+                        <div 
+                          v-else 
+                          class="dropzone-area p-2 border border-2 border-dashed rounded-3 text-center cursor-pointer bg-white hover-bg-light transition" 
+                          @dragover.prevent
+                          @drop.prevent="e => { const f = e.dataTransfer?.files?.[0]; if (f) uploadSlideFile(f, sIdx); }"
+                          @click="triggerSlideUpload(sIdx)"
+                        >
                           <input type="file" :id="'slideFileInput_' + sIdx" class="d-none" accept="image/*" @change="e => uploadSlideFile(e.target.files[0], sIdx)" />
                           <i class="bi bi-cloud-arrow-up text-primary fs-5"></i>
                           <span class="d-block extra-small text-muted fw-semibold">Téléverser</span>
@@ -2558,7 +2565,7 @@
                             <input 
                               type="url" 
                               v-model="slide.image" 
-                              @input="slide.url = $event.target.value"
+                              @input="slide.url = $event.target.value; slideUploadError = ''"
                               class="form-control form-control-sm rounded-3" 
                               placeholder="https://..." 
                             />
@@ -3056,8 +3063,11 @@
 
                   <!-- YouTube Pitch Video -->
                   <div class="col-12">
-                    <label class="form-label small fw-bold text-dark">
-                      <i class="bi bi-youtube text-danger me-1"></i> Lien Vidéo YouTube (Pitch / Démo de vos projets)
+                    <label class="form-label small fw-bold text-dark d-flex align-items-center justify-content-between">
+                      <span><i class="bi bi-youtube text-danger me-1"></i> Lien Vidéo YouTube (Pitch / Démo de vos projets)</span>
+                      <span v-if="youtubeEmbedPreview" class="badge bg-danger-subtle text-danger extra-small">
+                        <i class="bi bi-play-circle-fill me-1"></i> Lecteur prêt
+                      </span>
                     </label>
                     <input 
                       type="url" 
@@ -3065,7 +3075,35 @@
                       class="form-control" 
                       placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..." 
                     />
-                    <small class="text-muted extra-small">Intègre un lecteur vidéo immersif 16:9 dans votre portfolio pour vous présenter en vidéo.</small>
+                    <small class="text-muted extra-small d-block mt-1">Intègre un lecteur vidéo immersif 16:9 dans votre portfolio pour vous présenter en vidéo.</small>
+
+                    <!-- Live YouTube Video Preview Player -->
+                    <div v-if="youtubeEmbedPreview" class="mt-3 p-3 bg-light rounded-4 border">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="small fw-bold text-dark d-flex align-items-center gap-1">
+                          <i class="bi bi-play-btn-fill text-danger"></i> Aperçu direct du lecteur vidéo
+                        </span>
+                        <button 
+                          type="button" 
+                          @click="portfolioForm.portfolio_layout.youtube_url = ''" 
+                          class="btn btn-xs btn-outline-danger rounded-pill px-2 py-0 extra-small"
+                          title="Effacer ce lien vidéo"
+                        >
+                          <i class="bi bi-trash me-1"></i> Retirer
+                        </button>
+                      </div>
+                      <div class="ratio ratio-16x9 rounded-3 overflow-hidden shadow-xs border bg-dark">
+                        <iframe 
+                          :src="youtubeEmbedPreview" 
+                          title="Aperçu vidéo YouTube pitch" 
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                          allowfullscreen
+                        ></iframe>
+                      </div>
+                      <span class="text-success extra-small fw-semibold d-block mt-2">
+                        <i class="bi bi-check-circle-fill me-1"></i> Vidéo validée ! Ce lecteur sera visible sur votre portfolio public.
+                      </span>
+                    </div>
                   </div>
 
                   <!-- Bio -->
@@ -3594,7 +3632,14 @@
                           </div>
                           
                           <!-- Mini previews depending on block type -->
-                          <div v-if="b.id === 'skills'" class="d-flex flex-wrap gap-1">
+                          <div v-if="b.id === 'video'">
+                            <div v-if="youtubeEmbedPreview" class="ratio ratio-16x9 rounded-3 overflow-hidden shadow-xs border bg-dark">
+                              <iframe :src="youtubeEmbedPreview" title="Aperçu vidéo YouTube" allowfullscreen></iframe>
+                            </div>
+                            <span v-else class="extra-small text-muted italic">Aucun lien vidéo YouTube renseigné</span>
+                          </div>
+
+                          <div v-else-if="b.id === 'skills'" class="d-flex flex-wrap gap-1">
                             <span v-for="sk in portfolioForm.skills.slice(0, 8)" :key="sk.name || sk" class="badge bg-light text-dark border extra-small d-inline-flex align-items-center gap-1">
                               <span>{{ sk.name || sk }}</span>
                               <span v-if="sk.level" class="badge bg-secondary extra-small py-0 px-1" style="font-size: 9px;">{{ sk.level }}</span>
@@ -6367,6 +6412,7 @@ async function uploadPreloaderImageFile(file) {
 const defaultBlocksList = [
   { id: 'hero', name: 'En-tête & Présentation', enabled: true, width: 'full', icon: 'bi-person-badge', desc: 'Photo, nom, titre pro, localisation et disponibilité' },
   { id: 'about', name: 'À propos & Parcours', enabled: true, width: 'full', icon: 'bi-person-lines-fill', desc: 'Présentation détaillée et biographie de profil' },
+  { id: 'video', name: 'Vidéo de Présentation (YouTube)', enabled: true, width: 'full', icon: 'bi-youtube text-danger', desc: 'Lecteur vidéo immersif 16:9 de pitch ou démo' },
   { id: 'skills', name: 'Compétences & Stack technique', enabled: true, width: 'half', icon: 'bi-cpu', desc: 'Technologies, langages et outils maîtrisés' },
   { id: 'projects', name: 'Projets Tech en vedette', enabled: true, width: 'full', icon: 'bi-rocket-takeoff', desc: 'Projets livrés et publiés sur Tech237' },
   { id: 'pocs', name: 'Mini-Actus & POCs Tech237', enabled: true, width: 'half', icon: 'bi-lightning-charge', desc: 'Veille technologique et articles courts partagés' },
@@ -6376,6 +6422,24 @@ const defaultBlocksList = [
   { id: 'custom', name: 'Sections personnalisées libres', enabled: true, width: 'full', icon: 'bi-stars', desc: 'Blocs libres : services, tarifs, recommandations, etc.' },
   { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, width: 'full', icon: 'bi-envelope', desc: 'Liens vers GitHub, LinkedIn, WhatsApp et email' },
 ]
+
+function extractYouTubeEmbedUrl(url) {
+  if (!url || typeof url !== 'string') return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return `https://www.youtube.com/embed/${trimmed}`
+  }
+
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i
+  const match = trimmed.match(regExp)
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}`
+  }
+
+  return null
+}
 
 const initialUserLayout = props.user.portfolio_layout || {}
 
@@ -6446,10 +6510,22 @@ const portfolioForm = ref({
       show_tech237_badge: true,
       show_back_to_top: true
     },
-    blocks: Array.isArray(initialUserLayout.blocks) && initialUserLayout.blocks.length > 0 
-      ? JSON.parse(JSON.stringify(initialUserLayout.blocks)) 
-      : JSON.parse(JSON.stringify(defaultBlocksList)),
+    blocks: (() => {
+      let list = Array.isArray(initialUserLayout.blocks) && initialUserLayout.blocks.length > 0 
+        ? JSON.parse(JSON.stringify(initialUserLayout.blocks)) 
+        : JSON.parse(JSON.stringify(defaultBlocksList))
+      if (!list.some(b => b.id === 'video')) {
+        const aboutIdx = list.findIndex(b => b.id === 'about')
+        const insertIdx = aboutIdx !== -1 ? aboutIdx + 1 : 1
+        list.splice(insertIdx, 0, { id: 'video', name: 'Vidéo de Présentation (YouTube)', enabled: true, width: 'full', icon: 'bi-youtube text-danger', desc: 'Lecteur vidéo immersif 16:9 de pitch ou démo' })
+      }
+      return list
+    })(),
   }
+})
+
+const youtubeEmbedPreview = computed(() => {
+  return extractYouTubeEmbedUrl(portfolioForm.value.portfolio_layout?.youtube_url)
 })
 
 // Block reordering & positioning

@@ -1504,13 +1504,27 @@ const cvFileUrl = computed(() => {
   return file ? formatImageUrl(file) : null
 })
 
+function extractYouTubeEmbedUrl(url) {
+  if (!url || typeof url !== 'string') return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return `https://www.youtube.com/embed/${trimmed}`
+  }
+
+  const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/i
+  const match = trimmed.match(regExp)
+  if (match && match[1]) {
+    return `https://www.youtube.com/embed/${match[1]}`
+  }
+
+  return null
+}
+
 // YouTube presentation video
 const youtubeEmbedUrl = computed(() => {
-  const url = layout.value.youtube_url
-  if (!url) return null
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-  const match = url.match(regExp)
-  return (match && match[2].length === 11) ? `https://www.youtube.com/embed/${match[2]}` : null
+  return extractYouTubeEmbedUrl(layout.value.youtube_url)
 })
 
 // Slideshow banner
@@ -1695,10 +1709,17 @@ const defaultBlocks = [
 ]
 
 const orderedBlocks = computed(() => {
-  if (Array.isArray(layout.value.blocks) && layout.value.blocks.length > 0) {
-    return layout.value.blocks
+  let list = Array.isArray(layout.value.blocks) && layout.value.blocks.length > 0 
+    ? [...layout.value.blocks] 
+    : [...defaultBlocks]
+
+  if (youtubeEmbedUrl.value && !list.some(b => b.id === 'video')) {
+    const aboutIdx = list.findIndex(b => b.id === 'about')
+    const insertIdx = aboutIdx !== -1 ? aboutIdx + 1 : 1
+    list.splice(insertIdx, 0, { id: 'video', name: 'Vidéo de Présentation', enabled: true, width: 'full' })
   }
-  return defaultBlocks
+
+  return list
 })
 
 function shouldRenderBlock(id) {

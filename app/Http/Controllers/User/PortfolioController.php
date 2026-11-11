@@ -73,6 +73,10 @@ class PortfolioController extends Controller
 
         $validator = \Illuminate\Support\Facades\Validator::make(['image' => $file], [
             'image' => 'required|file|max:15360',
+        ], [
+            'image.required' => 'Veuillez sélectionner un fichier image valide.',
+            'image.file' => 'Le fichier sélectionné n\'est pas un fichier valide.',
+            'image.max' => 'L\'image d\'arrière-plan ne doit pas dépasser 15 Mo.',
         ]);
 
         if ($validator->fails()) {
@@ -170,6 +174,10 @@ class PortfolioController extends Controller
 
         $validator = \Illuminate\Support\Facades\Validator::make(['image' => $file], [
             'image' => 'required|file|max:15360',
+        ], [
+            'image.required' => 'Veuillez sélectionner un fichier image valide.',
+            'image.file' => 'Le fichier sélectionné n\'est pas un fichier valide.',
+            'image.max' => 'L\'image d\'arrière-plan ne doit pas dépasser 15 Mo.',
         ]);
 
         if ($validator->fails()) {
@@ -217,6 +225,10 @@ class PortfolioController extends Controller
 
         $validator = \Illuminate\Support\Facades\Validator::make(['image' => $file], [
             'image' => 'required|file|max:10240',
+        ], [
+            'image.required' => 'Veuillez sélectionner un fichier image valide.',
+            'image.file' => 'Le fichier sélectionné n\'est pas un fichier valide.',
+            'image.max' => 'L\'image de préchargement ne doit pas dépasser 10 Mo.',
         ]);
 
         if ($validator->fails()) {
