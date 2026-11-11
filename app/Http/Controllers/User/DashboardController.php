@@ -200,12 +200,16 @@ class DashboardController extends Controller
         ];
 
         $pocs = \App\Models\Poc::where('user_id', $user->id)->latest()->get();
+        $freelanceQuotes = \App\Models\FreelanceQuote::where('user_id', $user->id)->latest()->get();
+        $freelanceSetting = \App\Models\FreelanceSetting::where('user_id', $user->id)->first();
 
         return Inertia::render('User/Dashboard', [
             'user' => $user,
             'startups' => $startups,
             'projects' => $projects,
             'pocs' => $pocs,
+            'freelanceQuotes' => $freelanceQuotes,
+            'freelanceSetting' => $freelanceSetting,
             'collaborativeProjects' => $collaborativeProjects,
             'pendingInvitations' => $pendingInvitations,
             'pendingTimelines' => $pendingTimelines,

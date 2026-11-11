@@ -308,7 +308,28 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/portfolio/upload-cv', [App\Http\Controllers\User\PortfolioController::class, 'uploadCv'])->name('user.portfolio.upload-cv');
     Route::post('/espace-utilisateur/portfolio/upload-slide', [App\Http\Controllers\User\PortfolioController::class, 'uploadSlide'])->name('user.portfolio.upload-slide');
     Route::post('/espace-utilisateur/portfolio/upload-preloader-image', [App\Http\Controllers\User\PortfolioController::class, 'uploadPreloaderImage'])->name('user.portfolio.upload-preloader-image');
+
+    // Freelance Calculator & Devis FCFA
+    Route::post('/espace-utilisateur/freelance/settings', [App\Http\Controllers\User\FreelanceQuoteController::class, 'saveSettings'])->name('user.freelance.settings.save');
+    Route::post('/espace-utilisateur/freelance/quotes', [App\Http\Controllers\User\FreelanceQuoteController::class, 'storeQuote'])->name('user.freelance.quotes.store');
+    Route::post('/espace-utilisateur/freelance/quotes/{id}', [App\Http\Controllers\User\FreelanceQuoteController::class, 'updateQuote'])->name('user.freelance.quotes.update');
+    Route::delete('/espace-utilisateur/freelance/quotes/{id}', [App\Http\Controllers\User\FreelanceQuoteController::class, 'deleteQuote'])->name('user.freelance.quotes.delete');
+    Route::post('/espace-utilisateur/freelance/quotes/{id}/duplicate', [App\Http\Controllers\User\FreelanceQuoteController::class, 'duplicateQuote'])->name('user.freelance.quotes.duplicate');
+    Route::post('/espace-utilisateur/freelance/quotes/{id}/status', [App\Http\Controllers\User\FreelanceQuoteController::class, 'updateQuoteStatus'])->name('user.freelance.quotes.status');
 });
+
+// Quick alias for freelance calculator & quotes
+Route::get('/espace-utilisateur/devis', function () {
+    return redirect()->route('user.dashboard', ['section' => 'freelance']);
+})->name('user.devis.index');
+
+Route::get('/espace-utilisateur/calculateur', function () {
+    return redirect()->route('user.dashboard', ['section' => 'freelance']);
+})->name('user.calculateur.index');
+
+// Public Quote Link & Client Acceptance
+Route::get('/devis/{uuid}', [App\Http\Controllers\User\FreelanceQuoteController::class, 'showPublic'])->name('quotes.public.show');
+Route::post('/devis/{uuid}/accept', [App\Http\Controllers\User\FreelanceQuoteController::class, 'acceptPublic'])->name('quotes.public.accept');
 
 // Public Project Roadmap
 Route::get('/projet/{slug}/roadmap', [KanbanController::class, 'publicRoadmap'])->name('projects.roadmap');

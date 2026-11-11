@@ -225,6 +225,18 @@
               </button>
 
               <button 
+                @click="setSection('freelance')" 
+                class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+                :class="currentSection === 'freelance' ? 'bg-danger text-white' : 'text-dark'"
+              >
+                <i class="bi bi-calculator me-2 fs-5 text-success"></i>
+                <span>Calculateur &amp; Devis FCFA</span>
+                <span class="badge rounded-pill ms-auto extra-small fw-bold" :class="currentSection === 'freelance' ? 'bg-white text-danger' : 'bg-success-subtle text-success'">
+                  {{ (freelanceQuotesList || []).length ? (freelanceQuotesList.length + ' devis') : 'Pro' }}
+                </span>
+              </button>
+
+              <button 
                 @click="setSection('profile')" 
                 class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
                 :class="currentSection === 'profile' ? 'bg-danger text-white' : 'text-dark'"
@@ -3769,6 +3781,899 @@
 
           </div>
 
+          <!-- 11. CALCULATEUR FREELANCE & DEVIS EN FCFA -->
+          <div v-else-if="currentSection === 'freelance'">
+            <!-- Feedback Toast -->
+            <div v-if="freelanceToastMsg" class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm p-3 mb-4 d-flex align-items-center justify-content-between" role="alert">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                <span class="fw-bold">{{ freelanceToastMsg }}</span>
+              </div>
+              <button type="button" class="btn-close" @click="freelanceToastMsg = ''"></button>
+            </div>
+
+            <!-- Top Hero Banner & Navigation Tabs -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mb-4 bg-white position-relative overflow-hidden">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                <div>
+                  <div class="d-inline-flex align-items-center gap-2 badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small mb-2">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Studio Freelance Tech237 • Zone CEMAC &amp; International</span>
+                  </div>
+                  <h3 class="fw-bold mb-1 text-dark">Calculateur Freelance &amp; Devis FCFA</h3>
+                  <p class="text-muted small mb-0" style="max-width: 680px;">
+                    Simulez votre TJM réaliste adapté aux réalités locales (Internet, énergie, outils, congés) et générez des devis professionnels prêts à être signés, envoyés sur WhatsApp ou imprimés en PDF.
+                  </p>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <button 
+                    type="button" 
+                    @click="resetQuoteForm(); freelanceSubTab = 'editor'" 
+                    class="btn btn-danger rounded-pill px-3 py-2 fw-bold shadow-sm d-flex align-items-center gap-2"
+                  >
+                    <i class="bi bi-plus-circle"></i>
+                    <span>Nouveau Devis</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sub-Tabs Navigation -->
+              <div class="d-flex gap-2 border-bottom pb-2 flex-wrap">
+                <button 
+                  type="button" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2"
+                  :class="freelanceSubTab === 'calculator' ? 'btn-success shadow-sm' : 'btn-light text-muted'"
+                  @click="freelanceSubTab = 'calculator'"
+                >
+                  <i class="bi bi-calculator"></i>
+                  <span>1. Simulateur TJM &amp; Rentabilité</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2"
+                  :class="freelanceSubTab === 'editor' ? 'btn-success shadow-sm' : 'btn-light text-muted'"
+                  @click="freelanceSubTab = 'editor'"
+                >
+                  <i class="bi bi-file-earmark-text"></i>
+                  <span>2. Éditeur de Devis &amp; Factures</span>
+                </button>
+
+                <button 
+                  type="button" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2"
+                  :class="freelanceSubTab === 'quotes' ? 'btn-success shadow-sm' : 'btn-light text-muted'"
+                  @click="freelanceSubTab = 'quotes'"
+                >
+                  <i class="bi bi-collection"></i>
+                  <span>3. Mes Devis &amp; Suivi</span>
+                  <span class="badge bg-white text-success rounded-pill extra-small ms-1">
+                    {{ (freelanceQuotesList || []).length }}
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- SUB-TAB 1: SIMULATEUR TJM & RENTABILITÉ                          -->
+            <!-- ================================================================= -->
+            <div v-if="freelanceSubTab === 'calculator'">
+              <div class="row g-4">
+                <!-- Left Column: Inputs Form -->
+                <div class="col-lg-7">
+                  <!-- 1. Revenu Net Visé -->
+                  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                    <h5 class="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                      <i class="bi bi-cash-stack text-success"></i> 1. Revenu Net Mensuel Souhaité
+                    </h5>
+                    <div class="mb-3">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label extra-small text-muted mb-0">Combien souhaitez-vous empocher net par mois ?</label>
+                        <span class="badge bg-success-subtle text-success fs-6 font-monospace fw-bold px-2 py-1">
+                          {{ formatFcfa(tjmForm.target_monthly_net) }} FCFA
+                        </span>
+                      </div>
+                      <input 
+                        type="range" 
+                        class="form-range" 
+                        min="150000" 
+                        max="2500000" 
+                        step="25000" 
+                        v-model.number="tjmForm.target_monthly_net" 
+                      />
+                      <div class="d-flex justify-content-between extra-small text-muted font-monospace">
+                        <span>150 000 FCFA</span>
+                        <span>1 000 000 FCFA</span>
+                        <span>2 500 000 FCFA</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 2. Charges Réelles du Contexte Africain -->
+                  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <h5 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                        <i class="bi bi-lightning-charge text-warning"></i> 2. Charges Réelles Mensuelles (Local)
+                      </h5>
+                      <span class="badge bg-light text-dark font-monospace extra-small">
+                        Total : {{ formatFcfa(totalMonthlyExpenses) }} FCFA/mois
+                      </span>
+                    </div>
+
+                    <div class="row g-3">
+                      <div class="col-sm-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Internet (Fibre, Starlink, Data)</label>
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control" v-model.number="tjmForm.expenses.internet" />
+                          <span class="input-group-text bg-white text-muted">FCFA</span>
+                        </div>
+                      </div>
+
+                      <div class="col-sm-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Énergie (Eneo, Groupe, Onduleur)</label>
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control" v-model.number="tjmForm.expenses.electricity" />
+                          <span class="input-group-text bg-white text-muted">FCFA</span>
+                        </div>
+                      </div>
+
+                      <div class="col-sm-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Outils &amp; Licences (Copilot, Figma, VPS)</label>
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control" v-model.number="tjmForm.expenses.software" />
+                          <span class="input-group-text bg-white text-muted">FCFA</span>
+                        </div>
+                      </div>
+
+                      <div class="col-sm-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Espace Bureau / Coworking</label>
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control" v-model.number="tjmForm.expenses.rent" />
+                          <span class="input-group-text bg-white text-muted">FCFA</span>
+                        </div>
+                      </div>
+
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Autres dépenses professionnelles</label>
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control" v-model.number="tjmForm.expenses.other" />
+                          <span class="input-group-text bg-white text-muted">FCFA</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 3. Disponibilité & Temps Facturable -->
+                  <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+                    <h5 class="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                      <i class="bi bi-calendar-check text-primary"></i> 3. Temps de Travail Réel &amp; Disponibilité
+                    </h5>
+
+                    <div class="row g-3">
+                      <div class="col-sm-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Semaines travaillées / an</label>
+                        <select class="form-select form-select-sm" v-model.number="tjmForm.work_weeks_per_year">
+                          <option :value="44">44 semaines (8 sem. congés/fêtes)</option>
+                          <option :value="46">46 semaines (6 sem. congés/fêtes - Recommandé)</option>
+                          <option :value="48">48 semaines (4 sem. congés)</option>
+                          <option :value="50">50 semaines (2 sem. congés)</option>
+                        </select>
+                      </div>
+
+                      <div class="col-sm-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Jours travaillés / semaine</label>
+                        <select class="form-select form-select-sm" v-model.number="tjmForm.work_days_per_week">
+                          <option :value="4">4 jours / semaine</option>
+                          <option :value="5">5 jours / semaine (Standard)</option>
+                          <option :value="6">6 jours / semaine</option>
+                        </select>
+                      </div>
+
+                      <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                          <label class="form-label extra-small text-dark fw-bold mb-0">Temps non facturable (Prospection, devis, réunions, veille) :</label>
+                          <span class="badge bg-secondary-subtle text-dark font-monospace">{{ tjmForm.non_billable_percent }}%</span>
+                        </div>
+                        <input 
+                          type="range" 
+                          class="form-range" 
+                          min="10" 
+                          max="45" 
+                          step="5" 
+                          v-model.number="tjmForm.non_billable_percent" 
+                        />
+                        <span class="extra-small text-muted d-block">
+                          Soit environ <strong>{{ billableDaysPerMonth }} jours facturés par mois</strong> pour vos missions clients.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 4. Fiscalité & Sauvegarde -->
+                  <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                    <h5 class="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                      <i class="bi bi-receipt text-danger"></i> 4. Fiscalité &amp; Sauvegarde
+                    </h5>
+                    <div class="row g-3 align-items-center">
+                      <div class="col-sm-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Régime fiscal / Précompte</label>
+                        <select class="form-select form-select-sm" v-model.number="tjmForm.tax_percent">
+                          <option :value="0">0% (Sans retenue / Particulier)</option>
+                          <option :value="5.5">5.5% (Régime simplifié Cameroun)</option>
+                          <option :value="11">11% (Régime du réel / Retenue standard)</option>
+                        </select>
+                      </div>
+
+                      <div class="col-sm-6 text-sm-end pt-3 pt-sm-0">
+                        <button 
+                          type="button" 
+                          @click="saveFreelanceSettings" 
+                          :disabled="isSavingTjm"
+                          class="btn btn-outline-success rounded-pill px-3 py-2 fw-bold extra-small shadow-2xs d-inline-flex align-items-center gap-1"
+                        >
+                          <span v-if="isSavingTjm" class="spinner-border spinner-border-sm me-1"></span>
+                          <i v-else class="bi bi-bookmark-check"></i>
+                          <span>Sauvegarder ma config</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Right Column: Results Dashboard -->
+                <div class="col-lg-5">
+                  <div class="sticky-top" style="top: 20px;">
+                    <!-- Highlight Result Card -->
+                    <div class="card border-0 rounded-4 shadow-sm p-4 text-white mb-4 bg-gradient" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
+                      <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 extra-small fw-bold mb-3 d-inline-block">
+                        TARIFICATION CONSEILLÉE TECH237
+                      </span>
+
+                      <div class="mb-4">
+                        <small class="text-white-50 extra-small d-block text-uppercase fw-bold">Taux Journalier Moyen (TJM) :</small>
+                        <div class="display-6 fw-bold text-emerald-400 font-monospace my-1">
+                          {{ formatFcfa(calculatedTjm) }} <span class="fs-5 text-white-50">FCFA/jour</span>
+                        </div>
+                        <span class="extra-small text-white-50">
+                          Taux Horaire Moyen (THM) : <strong class="text-white font-monospace">{{ formatFcfa(calculatedThm) }} FCFA/h</strong> (base 7h/j)
+                        </span>
+                      </div>
+
+                      <div class="p-3 rounded-3 bg-white bg-opacity-10 mb-4 border border-white border-opacity-10">
+                        <div class="d-flex justify-content-between align-items-center mb-2 small">
+                          <span class="text-white-50">Chiffre d'Affaires Brut / mois :</span>
+                          <strong class="font-monospace text-warning">{{ formatFcfa(minimumMonthlyTurnover) }} FCFA</strong>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center small">
+                          <span class="text-white-50">Jours facturables / mois :</span>
+                          <strong class="font-monospace text-white">{{ billableDaysPerMonth }} jours</strong>
+                        </div>
+                      </div>
+
+                      <!-- Action Button to Apply to Quote -->
+                      <button 
+                        type="button" 
+                        @click="applyTjmToQuote" 
+                        class="btn btn-success w-100 py-3 rounded-pill fw-bold shadow d-flex align-items-center justify-content-center gap-2"
+                      >
+                        <i class="bi bi-file-earmark-plus fs-5"></i>
+                        <span>Appliquer ce TJM et créer un Devis</span>
+                      </button>
+                    </div>
+
+                    <!-- Currency & Markets Conversion Grid -->
+                    <div class="card border-0 rounded-4 shadow-sm p-4 bg-white">
+                      <h6 class="fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-globe text-primary"></i> Équivalents selon le Marché Client
+                      </h6>
+
+                      <div class="d-flex flex-column gap-2">
+                        <!-- Local Market -->
+                        <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center">
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="fs-5">🇨🇲</span>
+                            <div>
+                              <strong class="d-block small text-dark">Client Local Cameroun</strong>
+                              <span class="extra-small text-muted">Tarif recommandé CEMAC</span>
+                            </div>
+                          </div>
+                          <strong class="font-monospace text-dark">{{ formatFcfa(calculatedTjm) }} FCFA</strong>
+                        </div>
+
+                        <!-- Diaspora / Europe -->
+                        <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center">
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="fs-5">🇪🇺</span>
+                            <div>
+                              <strong class="d-block small text-dark">Diaspora / Client Europe</strong>
+                              <span class="extra-small text-muted">Conversion 1 € ≈ 656 FCFA</span>
+                            </div>
+                          </div>
+                          <strong class="font-monospace text-primary fs-6">{{ tjmEur }} € / jour</strong>
+                        </div>
+
+                        <!-- International / US -->
+                        <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center">
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="fs-5">🇺🇸</span>
+                            <div>
+                              <strong class="d-block small text-dark">Client International / US</strong>
+                              <span class="extra-small text-muted">Conversion 1 $ ≈ 600 FCFA</span>
+                            </div>
+                          </div>
+                          <strong class="font-monospace text-success fs-6">{{ tjmUsd }} $ / jour</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- SUB-TAB 2: ÉDITEUR DE DEVIS & FACTURES                           -->
+            <!-- ================================================================= -->
+            <div v-else-if="freelanceSubTab === 'editor'">
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4 pb-3 border-bottom">
+                  <div>
+                    <h4 class="h5 fw-bold text-dark mb-1">
+                      {{ quoteForm.id ? 'Modifier le Devis / Facture' : 'Créer un Nouveau Devis / Facture' }}
+                    </h4>
+                    <p class="text-muted small mb-0">Remplissez les informations de la mission et des prestations ci-dessous.</p>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary" 
+                        :class="{ 'active': quoteForm.type === 'quote' }"
+                        @click="quoteForm.type = 'quote'"
+                      >
+                        Devis
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-outline-secondary" 
+                        :class="{ 'active': quoteForm.type === 'invoice' }"
+                        @click="quoteForm.type = 'invoice'"
+                      >
+                        Facture
+                      </button>
+                    </div>
+
+                    <button 
+                      type="button" 
+                      @click="resetQuoteForm" 
+                      class="btn btn-sm btn-outline-secondary rounded-pill"
+                    >
+                      Nouveau vierge
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Quote Meta (Number, Title, Dates) -->
+                <div class="row g-3 mb-4">
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Numéro de document</label>
+                    <input type="text" class="form-control form-control-sm font-monospace fw-bold" v-model="quoteForm.quote_number" />
+                  </div>
+
+                  <div class="col-md-5">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Intitulé de la mission / Projet</label>
+                    <input type="text" class="form-control form-control-sm" v-model="quoteForm.title" placeholder="Ex: Développement Application Mobile & API" />
+                  </div>
+
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Date d'émission</label>
+                    <input type="date" class="form-control form-control-sm" v-model="quoteForm.issue_date" />
+                  </div>
+
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Validité / Échéance</label>
+                    <input type="date" class="form-control form-control-sm" v-model="quoteForm.due_date" />
+                  </div>
+                </div>
+
+                <!-- Client Information Box -->
+                <div class="p-3 bg-light rounded-4 border mb-4">
+                  <span class="extra-small fw-bold text-uppercase text-dark d-block mb-2">
+                    <i class="bi bi-person-badge text-primary me-1"></i> Coordonnées du Client
+                  </span>
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label extra-small text-muted mb-1">Nom complet du client *</label>
+                      <input type="text" class="form-control form-control-sm" v-model="quoteForm.client_name" placeholder="Ex: Jean Dupont" />
+                    </div>
+
+                    <div class="col-md-4">
+                      <label class="form-label extra-small text-muted mb-1">Entreprise / Société (Optionnel)</label>
+                      <input type="text" class="form-control form-control-sm" v-model="quoteForm.client_company" placeholder="Ex: Tech Solutions SARL" />
+                    </div>
+
+                    <div class="col-md-4">
+                      <label class="form-label extra-small text-muted mb-1">Téléphone WhatsApp (pour envoi 1-clic)</label>
+                      <input type="tel" class="form-control form-control-sm" v-model="quoteForm.client_phone" placeholder="Ex: +237 690 00 00 00" />
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="form-label extra-small text-muted mb-1">Email du client</label>
+                      <input type="email" class="form-control form-control-sm" v-model="quoteForm.client_email" placeholder="client@entreprise.cm" />
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="form-label extra-small text-muted mb-1">Ville / Pays</label>
+                      <input type="text" class="form-control form-control-sm" v-model="quoteForm.client_address" placeholder="Ex: Douala, Cameroun" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Prestations Items Table -->
+                <div class="mb-4">
+                  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                    <span class="extra-small fw-bold text-uppercase text-dark">
+                      <i class="bi bi-list-check text-success me-1"></i> Prestations &amp; Réalisations
+                    </span>
+                    <div class="d-flex gap-2">
+                      <button 
+                        type="button" 
+                        @click="insertTjmLine" 
+                        class="btn btn-2xs btn-outline-success rounded-pill px-2"
+                      >
+                        <i class="bi bi-plus me-1"></i>Insérer 1 jour au TJM ({{ formatFcfa(calculatedTjm) }} FCFA)
+                      </button>
+                      <button 
+                        type="button" 
+                        @click="addQuoteItem" 
+                        class="btn btn-2xs btn-outline-primary rounded-pill px-2"
+                      >
+                        <i class="bi bi-plus-lg me-1"></i>Ajouter une ligne
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-2">
+                      <thead class="table-light extra-small text-uppercase text-muted">
+                        <tr>
+                          <th style="width: 45%;">Description de la Prestation</th>
+                          <th style="width: 15%;">Unité</th>
+                          <th style="width: 10%;" class="text-center">Qté</th>
+                          <th style="width: 15%;" class="text-end">Prix Unitaire (FCFA)</th>
+                          <th style="width: 15%;" class="text-end">Total</th>
+                          <th style="width: 5%;" class="text-center"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(item, idx) in quoteForm.items" :key="idx">
+                          <td>
+                            <input 
+                              type="text" 
+                              class="form-control form-control-sm" 
+                              v-model="item.description" 
+                              placeholder="Description de la tâche / livrable" 
+                            />
+                          </td>
+                          <td>
+                            <select class="form-select form-select-sm" v-model="item.unit">
+                              <option value="Jours">Jours</option>
+                              <option value="Heures">Heures</option>
+                              <option value="Forfait">Forfait</option>
+                              <option value="Mois">Mois</option>
+                              <option value="Page">Page / Écran</option>
+                            </select>
+                          </td>
+                          <td>
+                            <input 
+                              type="number" 
+                              class="form-control form-control-sm text-center" 
+                              step="0.5" 
+                              min="0.5" 
+                              v-model.number="item.quantity" 
+                              @input="recalculateQuoteTotals" 
+                            />
+                          </td>
+                          <td>
+                            <input 
+                              type="number" 
+                              class="form-control form-control-sm text-end font-monospace" 
+                              step="1000" 
+                              min="0" 
+                              v-model.number="item.unit_price" 
+                              @input="recalculateQuoteTotals" 
+                            />
+                          </td>
+                          <td class="text-end font-monospace fw-bold small text-dark">
+                            {{ formatFcfa(item.total) }}
+                          </td>
+                          <td class="text-center">
+                            <button 
+                              type="button" 
+                              @click="removeQuoteItem(idx)" 
+                              :disabled="quoteForm.items.length <= 1"
+                              class="btn btn-sm btn-link text-danger p-0"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Totals & Milestones Settings -->
+                <div class="row g-4 mb-4">
+                  <!-- Left: Acomptes & Coordonnées -->
+                  <div class="col-md-6">
+                    <!-- Standard Milestones Switch -->
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="extra-small fw-bold text-dark text-uppercase">
+                          <i class="bi bi-pie-chart text-primary me-1"></i> Échéancier d'Acomptes (40% / 30% / 30%)
+                        </span>
+                        <div class="form-check form-switch mb-0">
+                          <input 
+                            class="form-check-input cursor-pointer" 
+                            type="checkbox" 
+                            v-model="quoteForm.apply_standard_milestones"
+                            @change="recalculateQuoteTotals"
+                          />
+                        </div>
+                      </div>
+                      <div v-if="quoteForm.apply_standard_milestones" class="extra-small text-muted">
+                        <div class="d-flex justify-content-between py-1 border-bottom-dashed">
+                          <span>1. Acompte au démarrage (40%) :</span>
+                          <strong class="font-monospace text-dark">{{ formatFcfa(Math.round(quoteForm.total_amount * 0.4)) }} FCFA</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-1 border-bottom-dashed">
+                          <span>2. Version de test V1 (30%) :</span>
+                          <strong class="font-monospace text-dark">{{ formatFcfa(Math.round(quoteForm.total_amount * 0.3)) }} FCFA</strong>
+                        </div>
+                        <div class="d-flex justify-content-between py-1">
+                          <span>3. Solde à la mise en ligne (30%) :</span>
+                          <strong class="font-monospace text-dark">{{ formatFcfa(Math.round(quoteForm.total_amount * 0.3)) }} FCFA</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Payment Information Fields -->
+                    <div class="p-3 bg-light rounded-3 border">
+                      <span class="extra-small fw-bold text-dark text-uppercase d-block mb-2">
+                        <i class="bi bi-wallet2 text-success me-1"></i> Coordonnées Mobile Money / Banque du Prestataire
+                      </span>
+                      <div class="row g-2 extra-small">
+                        <div class="col-sm-6">
+                          <label class="text-muted mb-1">Orange Money (Téléphone)</label>
+                          <input type="tel" class="form-control form-control-sm" v-model="quoteForm.payment_methods.orange_money.phone" placeholder="+237 690..." />
+                        </div>
+                        <div class="col-sm-6">
+                          <label class="text-muted mb-1">Orange Money (Nom)</label>
+                          <input type="text" class="form-control form-control-sm" v-model="quoteForm.payment_methods.orange_money.name" placeholder="Nom du titulaire" />
+                        </div>
+                        <div class="col-sm-6">
+                          <label class="text-muted mb-1">MTN MoMo (Téléphone)</label>
+                          <input type="tel" class="form-control form-control-sm" v-model="quoteForm.payment_methods.mtn_momo.phone" placeholder="+237 670..." />
+                        </div>
+                        <div class="col-sm-6">
+                          <label class="text-muted mb-1">MTN MoMo (Nom)</label>
+                          <input type="text" class="form-control form-control-sm" v-model="quoteForm.payment_methods.mtn_momo.name" placeholder="Nom du titulaire" />
+                        </div>
+                        <div class="col-12 mt-2">
+                          <label class="text-muted mb-1">RIB Bancaire (Banque &amp; Numéro de compte)</label>
+                          <input type="text" class="form-control form-control-sm" v-model="quoteForm.payment_methods.bank.account_number" placeholder="Ex: UBA Cameroun - 10033 00001..." />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Right: Subtotal, Taxes & Grand Total -->
+                  <div class="col-md-6">
+                    <div class="p-3 bg-light rounded-3 border">
+                      <div class="d-flex justify-content-between align-items-center py-1 small">
+                        <span class="text-muted">Sous-total Hors Taxes :</span>
+                        <strong class="font-monospace text-dark">{{ formatFcfa(quoteForm.subtotal) }} FCFA</strong>
+                      </div>
+
+                      <div class="row g-2 align-items-center py-2 border-top">
+                        <div class="col-6">
+                          <label class="extra-small text-muted mb-0">Remise commerciale (FCFA) :</label>
+                        </div>
+                        <div class="col-6">
+                          <input 
+                            type="number" 
+                            class="form-control form-control-sm text-end font-monospace" 
+                            min="0" 
+                            step="1000" 
+                            v-model.number="quoteForm.discount_amount"
+                            @input="recalculateQuoteTotals"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="row g-2 align-items-center py-2 border-top">
+                        <div class="col-6">
+                          <label class="extra-small text-muted mb-0">TVA / Précompte fiscal :</label>
+                        </div>
+                        <div class="col-6">
+                          <select class="form-select form-select-sm text-end" v-model.number="quoteForm.tax_rate" @change="recalculateQuoteTotals">
+                            <option :value="0">0% (Sans taxe)</option>
+                            <option :value="5.5">5.5% (Précompte simplifié)</option>
+                            <option :value="19.25">19.25% (TVA standard)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div v-if="quoteForm.tax_amount > 0" class="d-flex justify-content-between align-items-center py-1 small text-muted">
+                        <span>Montant de la taxe :</span>
+                        <span class="font-monospace">+ {{ formatFcfa(quoteForm.tax_amount) }} FCFA</span>
+                      </div>
+
+                      <div class="d-flex justify-content-between align-items-center pt-3 mt-2 border-top">
+                        <strong class="text-dark">Net à payer :</strong>
+                        <span class="h4 fw-bold text-danger font-monospace mb-0">
+                          {{ formatFcfa(quoteForm.total_amount) }} FCFA
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mt-3">
+                      <label class="form-label extra-small text-muted mb-1">Notes et conditions particulières</label>
+                      <textarea class="form-control form-control-sm" rows="3" v-model="quoteForm.notes"></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer Action Buttons -->
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-3 border-top">
+                  <div>
+                    <button 
+                      v-if="quoteForm.uuid" 
+                      type="button" 
+                      @click="copyQuoteLink(quoteForm.uuid)" 
+                      class="btn btn-sm btn-outline-secondary rounded-pill me-2"
+                    >
+                      <i class="bi bi-link-45deg me-1"></i> Copier le lien client
+                    </button>
+                    <a 
+                      v-if="quoteForm.uuid" 
+                      :href="'/devis/' + quoteForm.uuid" 
+                      target="_blank" 
+                      class="btn btn-sm btn-outline-dark rounded-pill me-2"
+                    >
+                      <i class="bi bi-box-arrow-up-right me-1"></i> Ouvrir la vue client
+                    </a>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <button 
+                      v-if="quoteForm.uuid && quoteForm.client_phone" 
+                      type="button" 
+                      @click="shareQuoteWhatsApp(quoteForm)" 
+                      class="btn btn-sm btn-success rounded-pill px-3 fw-bold"
+                    >
+                      <i class="bi bi-whatsapp me-1"></i> Envoyer sur WhatsApp
+                    </button>
+
+                    <button 
+                      type="button" 
+                      @click="saveQuoteSubmit" 
+                      :disabled="isSavingQuote"
+                      class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-1"
+                    >
+                      <span v-if="isSavingQuote" class="spinner-border spinner-border-sm me-1"></span>
+                      <i v-else class="bi bi-check-circle-fill"></i>
+                      <span>{{ quoteForm.id ? 'Mettre à jour le Devis' : 'Enregistrer le Devis' }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- SUB-TAB 3: MES DEVIS & SUIVI COMMERCIAL                          -->
+            <!-- ================================================================= -->
+            <div v-else-if="freelanceSubTab === 'quotes'">
+              <!-- KPI Cards -->
+              <div class="row g-3 mb-4">
+                <div class="col-sm-6 col-lg-3">
+                  <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div>
+                        <small class="text-muted extra-small text-uppercase fw-bold">Total Devis Émis</small>
+                        <h4 class="fw-bold mb-0 text-dark">{{ (freelanceQuotesList || []).length }}</h4>
+                      </div>
+                      <span class="rounded-circle bg-primary-subtle text-primary p-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-file-earmark-text fs-5"></i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-sm-6 col-lg-3">
+                  <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div>
+                        <small class="text-muted extra-small text-uppercase fw-bold">Total Facturé</small>
+                        <h4 class="fw-bold mb-0 text-dark font-monospace" style="font-size: 17px;">
+                          {{ formatFcfa(quotesStats.totalBilled) }} FCFA
+                        </h4>
+                      </div>
+                      <span class="rounded-circle bg-success-subtle text-success p-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-cash-stack fs-5"></i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-sm-6 col-lg-3">
+                  <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div>
+                        <small class="text-muted extra-small text-uppercase fw-bold">Devis Acceptés</small>
+                        <h4 class="fw-bold mb-0 text-success">{{ quotesStats.acceptedCount }}</h4>
+                      </div>
+                      <span class="rounded-circle bg-success-subtle text-success p-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-check-circle-fill fs-5"></i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-sm-6 col-lg-3">
+                  <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div>
+                        <small class="text-muted extra-small text-uppercase fw-bold">Devis Payés</small>
+                        <h4 class="fw-bold mb-0 text-primary">{{ quotesStats.paidCount }}</h4>
+                      </div>
+                      <span class="rounded-circle bg-info-subtle text-info p-3 d-flex align-items-center justify-content-center">
+                        <i class="bi bi-wallet2 fs-5"></i>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quotes Table Card -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                  <h5 class="h6 fw-bold text-dark mb-0">Historique des Devis &amp; Factures</h5>
+                  <button 
+                    type="button" 
+                    @click="resetQuoteForm(); freelanceSubTab = 'editor'" 
+                    class="btn btn-sm btn-danger rounded-pill px-3 fw-bold"
+                  >
+                    <i class="bi bi-plus-circle me-1"></i> Nouveau Devis
+                  </button>
+                </div>
+
+                <div v-if="!freelanceQuotesList || !freelanceQuotesList.length" class="text-center py-5 text-muted">
+                  <i class="bi bi-file-earmark-plus display-4 d-block mb-3 text-muted opacity-50"></i>
+                  <p class="mb-2">Vous n'avez pas encore émis de devis ou facture.</p>
+                  <button 
+                    type="button" 
+                    @click="resetQuoteForm(); freelanceSubTab = 'editor'" 
+                    class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                  >
+                    Créer mon premier devis en FCFA
+                  </button>
+                </div>
+
+                <div v-else class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light extra-small text-uppercase text-muted">
+                      <tr>
+                        <th>Réf / Type</th>
+                        <th>Client &amp; Projet</th>
+                        <th>Date</th>
+                        <th class="text-end">Montant</th>
+                        <th class="text-center">Statut</th>
+                        <th class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="q in freelanceQuotesList" :key="q.id">
+                        <td>
+                          <span class="badge bg-light text-dark font-monospace extra-small border d-block mb-1">
+                            {{ q.quote_number }}
+                          </span>
+                          <span class="extra-small text-muted text-uppercase">
+                            {{ q.type === 'invoice' ? 'Facture' : 'Devis' }}
+                          </span>
+                        </td>
+                        <td>
+                          <strong class="d-block small text-dark">{{ q.client_name }}</strong>
+                          <span class="extra-small text-muted text-truncate d-block" style="max-width: 220px;">
+                            {{ q.title }}
+                          </span>
+                        </td>
+                        <td class="extra-small text-muted">
+                          {{ q.issue_date }}
+                        </td>
+                        <td class="text-end font-monospace fw-bold small text-dark">
+                          {{ formatFcfa(q.total_amount) }} {{ q.currency || 'FCFA' }}
+                        </td>
+                        <td class="text-center">
+                          <select 
+                            class="form-select form-select-xs extra-small rounded-pill"
+                            :value="q.status"
+                            @change="updateQuoteStatusAction(q, $event.target.value)"
+                            style="width: 120px; margin: auto;"
+                          >
+                            <option value="draft">Brouillon</option>
+                            <option value="sent">Envoyé</option>
+                            <option value="accepted">Accepté</option>
+                            <option value="paid">Payé</option>
+                            <option value="rejected">Refusé</option>
+                          </select>
+                        </td>
+                        <td class="text-end">
+                          <div class="btn-group btn-group-sm">
+                            <!-- Public Link -->
+                            <a 
+                              :href="'/devis/' + q.uuid" 
+                              target="_blank" 
+                              class="btn btn-outline-secondary" 
+                              title="Voir en ligne"
+                            >
+                              <i class="bi bi-eye"></i>
+                            </a>
+
+                            <!-- WhatsApp -->
+                            <button 
+                              v-if="q.client_phone" 
+                              type="button" 
+                              @click="shareQuoteWhatsApp(q)" 
+                              class="btn btn-outline-success" 
+                              title="Partager sur WhatsApp"
+                            >
+                              <i class="bi bi-whatsapp"></i>
+                            </button>
+
+                            <!-- Edit -->
+                            <button 
+                              type="button" 
+                              @click="editQuote(q)" 
+                              class="btn btn-outline-primary" 
+                              title="Modifier"
+                            >
+                              <i class="bi bi-pencil"></i>
+                            </button>
+
+                            <!-- Duplicate -->
+                            <button 
+                              type="button" 
+                              @click="duplicateQuoteAction(q.id)" 
+                              class="btn btn-outline-secondary" 
+                              title="Dupliquer"
+                            >
+                              <i class="bi bi-files"></i>
+                            </button>
+
+                            <!-- Delete -->
+                            <button 
+                              type="button" 
+                              @click="deleteQuoteAction(q.id)" 
+                              class="btn btn-outline-danger" 
+                              title="Supprimer"
+                            >
+                              <i class="bi bi-trash"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
         </div>
 
       </div>
@@ -3878,6 +4783,14 @@
           :class="currentSection === 'portfolio' ? 'bg-danger text-white' : 'text-dark'"
         >
           <i class="bi bi-briefcase me-2 text-warning"></i> Mon CV &amp; Portfolio
+        </button>
+        <button 
+          @click="selectMobileSection('freelance')" 
+          class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+          :class="currentSection === 'freelance' ? 'bg-danger text-white' : 'text-dark'"
+        >
+          <i class="bi bi-calculator me-2 text-success"></i> Calculateur &amp; Devis FCFA
+          <span class="badge bg-success-subtle text-success rounded-pill extra-small ms-auto fw-bold">Pro</span>
         </button>
         <button 
           @click="selectMobileSection('profile')" 
@@ -4176,6 +5089,8 @@ const props = defineProps({
   banReason: { type: String, default: null },
   activeSection: { type: String, default: 'dashboard' },
   stats: { type: Object, default: () => ({}) },
+  freelanceQuotes: { type: Array, default: () => [] },
+  freelanceSetting: { type: Object, default: () => null },
 })
 
 // Bookmarks Logic
@@ -4316,7 +5231,8 @@ function validateImageAction(imageId, action) {
   }
 }
 
-const currentSection = ref(props.activeSection || 'dashboard')
+const initialSec = ['freelance', 'devis', 'calculateur'].includes(props.activeSection) ? 'freelance' : (props.activeSection || 'dashboard')
+const currentSection = ref(initialSec)
 const mobileDrawerOpen = ref(false)
 const chartPeriod = ref('day')
 const chartCanvasRef = ref(null)
@@ -5521,6 +6437,512 @@ function savePortfolioSettings() {
     isSavingPortfolio.value = false
   })
 }
+
+// =============================================================================
+// FREELANCE CALCULATOR & QUOTE GENERATOR IN FCFA
+// =============================================================================
+const freelanceQuotesList = ref([...(props.freelanceQuotes || [])])
+const freelanceSettingData = ref(props.freelanceSetting || null)
+const freelanceSubTab = ref('calculator')
+const freelanceToastMsg = ref('')
+const isSavingTjm = ref(false)
+const isSavingQuote = ref(false)
+
+const tjmForm = ref({
+  target_monthly_net: props.freelanceSetting?.target_monthly_net ?? 450000,
+  work_weeks_per_year: props.freelanceSetting?.work_weeks_per_year ?? 46,
+  work_days_per_week: props.freelanceSetting?.work_days_per_week ?? 5,
+  non_billable_percent: props.freelanceSetting?.non_billable_percent ?? 25,
+  tax_percent: props.freelanceSetting?.tax_percent ?? 5.5,
+  expenses: {
+    internet: props.freelanceSetting?.expenses?.internet ?? 35000,
+    electricity: props.freelanceSetting?.expenses?.electricity ?? 25000,
+    software: props.freelanceSetting?.expenses?.software ?? 30000,
+    rent: props.freelanceSetting?.expenses?.rent ?? 25000,
+    other: props.freelanceSetting?.expenses?.other ?? 15000,
+  },
+  payment_info: {
+    orange_money_phone: props.freelanceSetting?.payment_info?.orange_money_phone || (props.user?.phone || ''),
+    orange_money_name: props.freelanceSetting?.payment_info?.orange_money_name || (props.user?.name || ''),
+    mtn_momo_phone: props.freelanceSetting?.payment_info?.mtn_momo_phone || (props.user?.phone || ''),
+    mtn_momo_name: props.freelanceSetting?.payment_info?.mtn_momo_name || (props.user?.name || ''),
+    bank_name: props.freelanceSetting?.payment_info?.bank_name || '',
+    account_name: props.freelanceSetting?.payment_info?.account_name || (props.user?.name || ''),
+    account_number: props.freelanceSetting?.payment_info?.account_number || '',
+    iban: props.freelanceSetting?.payment_info?.iban || '',
+  }
+})
+
+const totalMonthlyExpenses = computed(() => {
+  const exp = tjmForm.value.expenses || {}
+  return Number(exp.internet || 0) + Number(exp.electricity || 0) + Number(exp.software || 0) + Number(exp.rent || 0) + Number(exp.other || 0)
+})
+
+const totalWorkDaysPerYear = computed(() => {
+  return Number(tjmForm.value.work_weeks_per_year || 46) * Number(tjmForm.value.work_days_per_week || 5)
+})
+
+const billableDaysPerYear = computed(() => {
+  const nonBillableRatio = (Number(tjmForm.value.non_billable_percent || 25) / 100)
+  return Math.max(1, Math.round(totalWorkDaysPerYear.value * (1 - nonBillableRatio)))
+})
+
+const billableDaysPerMonth = computed(() => {
+  return Math.max(1, Math.round(billableDaysPerYear.value / 12))
+})
+
+const annualGrossTotal = computed(() => {
+  const netYear = Number(tjmForm.value.target_monthly_net || 0) * 12
+  const expYear = totalMonthlyExpenses.value * 12
+  const preTax = netYear + expYear
+  const taxRatio = Number(tjmForm.value.tax_percent || 0) / 100
+  return Math.round(preTax / Math.max(0.01, (1 - taxRatio)))
+})
+
+const calculatedTjm = computed(() => {
+  const days = Math.max(1, billableDaysPerYear.value)
+  const raw = annualGrossTotal.value / days
+  return Math.round(raw / 500) * 500 // Arrondi aux 500 FCFA les plus proches
+})
+
+const calculatedThm = computed(() => {
+  const raw = calculatedTjm.value / 7
+  return Math.round(raw / 100) * 100
+})
+
+const minimumMonthlyTurnover = computed(() => {
+  return Math.round(annualGrossTotal.value / 12)
+})
+
+const tjmEur = computed(() => {
+  return Math.round(calculatedTjm.value / 655.957)
+})
+
+const tjmUsd = computed(() => {
+  return Math.round(calculatedTjm.value / 600)
+})
+
+// Quotes KPI Statistics
+const quotesStats = computed(() => {
+  const list = freelanceQuotesList.value || []
+  let totalBilled = 0
+  let acceptedCount = 0
+  let paidCount = 0
+
+  list.forEach(q => {
+    totalBilled += Number(q.total_amount || 0)
+    if (q.status === 'accepted') acceptedCount++
+    if (q.status === 'paid') paidCount++
+  })
+
+  return { totalBilled, acceptedCount, paidCount }
+})
+
+// Active Quote Form State
+const quoteForm = ref({
+  id: null,
+  uuid: null,
+  type: 'quote',
+  quote_number: 'DEV-' + new Date().getFullYear() + '-' + String((props.freelanceQuotes?.length || 0) + 1).padStart(3, '0'),
+  title: 'Développement Solution Digitale & API',
+  client_name: '',
+  client_company: '',
+  client_email: '',
+  client_phone: '',
+  client_address: '',
+  issue_date: new Date().toISOString().substring(0, 10),
+  due_date: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
+  currency: 'XAF',
+  items: [
+    { description: 'Conception UI/UX & Architecture technique', unit: 'Jours', quantity: 3, unit_price: 45000, total: 135000 },
+    { description: 'Développement Backend API Laravel & Base de données', unit: 'Jours', quantity: 5, unit_price: 45000, total: 225000 },
+    { description: 'Intégration Frontend Vue.js & Déploiement', unit: 'Jours', quantity: 4, unit_price: 45000, total: 180000 },
+  ],
+  subtotal: 540000,
+  tax_rate: 0,
+  tax_amount: 0,
+  discount_amount: 0,
+  total_amount: 540000,
+  apply_standard_milestones: true,
+  payment_milestones: [
+    { label: 'Acompte au démarrage', percentage: 40, amount: 216000, due_trigger: 'À la signature' },
+    { label: 'Validation Version Test (V1)', percentage: 30, amount: 162000, due_trigger: 'Livraison V1' },
+    { label: 'Solde à la livraison finale', percentage: 30, amount: 162000, due_trigger: 'Mise en ligne' },
+  ],
+  payment_methods: {
+    orange_money: {
+      phone: props.freelanceSetting?.payment_info?.orange_money_phone || props.user?.phone || '',
+      name: props.freelanceSetting?.payment_info?.orange_money_name || props.user?.name || '',
+    },
+    mtn_momo: {
+      phone: props.freelanceSetting?.payment_info?.mtn_momo_phone || props.user?.phone || '',
+      name: props.freelanceSetting?.payment_info?.mtn_momo_name || props.user?.name || '',
+    },
+    bank: {
+      bank_name: props.freelanceSetting?.payment_info?.bank_name || '',
+      account_name: props.freelanceSetting?.payment_info?.account_name || props.user?.name || '',
+      account_number: props.freelanceSetting?.payment_info?.account_number || '',
+      iban: props.freelanceSetting?.payment_info?.iban || '',
+    },
+  },
+  notes: 'Disponibilité immédiate. Accompagnement et garantie corrective inclus pendant 30 jours après mise en ligne.',
+  terms: 'Validité de l\'offre : 30 jours calendaires. Propriété intellectuelle et code source cédés dès règlement intégral.',
+  status: 'draft',
+})
+
+function formatFcfa(val) {
+  const num = Number(val || 0)
+  return num.toLocaleString('fr-FR')
+}
+
+function recalculateQuoteTotals() {
+  let sub = 0
+  quoteForm.value.items.forEach(item => {
+    const q = Number(item.quantity || 0)
+    const p = Number(item.unit_price || 0)
+    item.total = Math.round(q * p)
+    sub += item.total
+  })
+  quoteForm.value.subtotal = sub
+
+  const discount = Number(quoteForm.value.discount_amount || 0)
+  const taxable = Math.max(0, sub - discount)
+
+  const taxRatio = Number(quoteForm.value.tax_rate || 0) / 100
+  const tax = Math.round(taxable * taxRatio)
+  quoteForm.value.tax_amount = tax
+
+  quoteForm.value.total_amount = taxable + tax
+
+  // Update milestones if standard 40/30/30
+  if (quoteForm.value.apply_standard_milestones) {
+    const tot = quoteForm.value.total_amount
+    quoteForm.value.payment_milestones = [
+      { label: 'Acompte au démarrage', percentage: 40, amount: Math.round(tot * 0.4), due_trigger: 'À la signature' },
+      { label: 'Validation Version Test (V1)', percentage: 30, amount: Math.round(tot * 0.3), due_trigger: 'Livraison V1' },
+      { label: 'Solde à la livraison finale', percentage: 30, amount: Math.round(tot * 0.3), due_trigger: 'Mise en ligne' },
+    ]
+  }
+}
+
+function addQuoteItem() {
+  quoteForm.value.items.push({
+    description: '',
+    unit: 'Jours',
+    quantity: 1,
+    unit_price: calculatedTjm.value || 45000,
+    total: calculatedTjm.value || 45000,
+  })
+  recalculateQuoteTotals()
+}
+
+function removeQuoteItem(idx) {
+  if (quoteForm.value.items.length <= 1) return
+  quoteForm.value.items.splice(idx, 1)
+  recalculateQuoteTotals()
+}
+
+function insertTjmLine() {
+  quoteForm.value.items.push({
+    description: 'Prestation développement / mission tech (Journée)',
+    unit: 'Jours',
+    quantity: 1,
+    unit_price: calculatedTjm.value || 45000,
+    total: calculatedTjm.value || 45000,
+  })
+  recalculateQuoteTotals()
+}
+
+function applyTjmToQuote() {
+  const tjm = calculatedTjm.value
+  quoteForm.value.items.forEach(item => {
+    if (item.unit === 'Jours' || !item.unit_price) {
+      item.unit_price = tjm
+    }
+  })
+  recalculateQuoteTotals()
+  freelanceSubTab.value = 'editor'
+  freelanceToastMsg.value = `TJM de ${formatFcfa(tjm)} FCFA appliqué à vos prestations !`
+  setTimeout(() => { freelanceToastMsg.value = '' }, 3500)
+}
+
+function resetQuoteForm() {
+  const count = (freelanceQuotesList.value?.length || 0) + 1
+  quoteForm.value = {
+    id: null,
+    uuid: null,
+    type: 'quote',
+    quote_number: 'DEV-' + new Date().getFullYear() + '-' + String(count).padStart(3, '0'),
+    title: 'Développement Solution Digitale & API',
+    client_name: '',
+    client_company: '',
+    client_email: '',
+    client_phone: '',
+    client_address: '',
+    issue_date: new Date().toISOString().substring(0, 10),
+    due_date: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
+    currency: 'XAF',
+    items: [
+      { description: 'Conception UI/UX & Architecture technique', unit: 'Jours', quantity: 3, unit_price: calculatedTjm.value || 45000, total: (calculatedTjm.value || 45000) * 3 },
+      { description: 'Développement Backend API Laravel & Base de données', unit: 'Jours', quantity: 5, unit_price: calculatedTjm.value || 45000, total: (calculatedTjm.value || 45000) * 5 },
+      { description: 'Intégration Frontend Vue.js & Déploiement', unit: 'Jours', quantity: 4, unit_price: calculatedTjm.value || 45000, total: (calculatedTjm.value || 45000) * 4 },
+    ],
+    subtotal: 0,
+    tax_rate: 0,
+    tax_amount: 0,
+    discount_amount: 0,
+    total_amount: 0,
+    apply_standard_milestones: true,
+    payment_milestones: [],
+    payment_methods: {
+      orange_money: {
+        phone: tjmForm.value.payment_info?.orange_money_phone || props.user?.phone || '',
+        name: tjmForm.value.payment_info?.orange_money_name || props.user?.name || '',
+      },
+      mtn_momo: {
+        phone: tjmForm.value.payment_info?.mtn_momo_phone || props.user?.phone || '',
+        name: tjmForm.value.payment_info?.mtn_momo_name || props.user?.name || '',
+      },
+      bank: {
+        bank_name: tjmForm.value.payment_info?.bank_name || '',
+        account_name: tjmForm.value.payment_info?.account_name || props.user?.name || '',
+        account_number: tjmForm.value.payment_info?.account_number || '',
+        iban: tjmForm.value.payment_info?.iban || '',
+      },
+    },
+    notes: 'Disponibilité immédiate. Accompagnement et garantie corrective inclus pendant 30 jours après mise en ligne.',
+    terms: 'Validité de l\'offre : 30 jours calendaires. Propriété intellectuelle et code source cédés dès règlement intégral.',
+    status: 'draft',
+  }
+  recalculateQuoteTotals()
+}
+
+function editQuote(q) {
+  quoteForm.value = {
+    id: q.id,
+    uuid: q.uuid,
+    type: q.type || 'quote',
+    quote_number: q.quote_number,
+    title: q.title,
+    client_name: q.client_name,
+    client_company: q.client_company || '',
+    client_email: q.client_email || '',
+    client_phone: q.client_phone || '',
+    client_address: q.client_address || '',
+    issue_date: q.issue_date,
+    due_date: q.due_date,
+    currency: q.currency || 'XAF',
+    items: Array.isArray(q.items) ? JSON.parse(JSON.stringify(q.items)) : [],
+    subtotal: q.subtotal || 0,
+    tax_rate: q.tax_rate || 0,
+    tax_amount: q.tax_amount || 0,
+    discount_amount: q.discount_amount || 0,
+    total_amount: q.total_amount || 0,
+    apply_standard_milestones: true,
+    payment_milestones: Array.isArray(q.payment_milestones) ? JSON.parse(JSON.stringify(q.payment_milestones)) : [],
+    payment_methods: q.payment_methods || {
+      orange_money: { phone: '', name: '' },
+      mtn_momo: { phone: '', name: '' },
+      bank: { bank_name: '', account_name: '', account_number: '', iban: '' },
+    },
+    notes: q.notes || '',
+    terms: q.terms || '',
+    status: q.status || 'draft',
+  }
+  recalculateQuoteTotals()
+  freelanceSubTab.value = 'editor'
+}
+
+function copyQuoteLink(uuid) {
+  if (!uuid) return
+  const url = `${window.location.origin}/devis/${uuid}`
+  navigator.clipboard.writeText(url).then(() => {
+    alert(`Lien du devis copié dans le presse-papier :\n${url}`)
+  }).catch(() => {
+    prompt('Copiez le lien suivant :', url)
+  })
+}
+
+function shareQuoteWhatsApp(q) {
+  if (!q.client_phone) {
+    alert('Veuillez renseigner un numéro de téléphone pour ce client.')
+    return
+  }
+  const cleanPhone = q.client_phone.replace(/[^0-9]/g, '')
+  const link = `${window.location.origin}/devis/${q.uuid}`
+  const docType = q.type === 'invoice' ? 'facture' : 'devis'
+  const text = encodeURIComponent(`Bonjour ${q.client_name},\n\nVoici votre ${docType} N° ${q.quote_number} concernant le projet "${q.title}" d'un montant de ${formatFcfa(q.total_amount)} FCFA.\n\nVous pouvez le consulter, le valider ou le télécharger en PDF directement ici :\n${link}\n\nRestant à votre entière disposition.`)
+  window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank')
+}
+
+async function saveFreelanceSettings() {
+  isSavingTjm.value = true
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const payload = {
+      target_monthly_net: tjmForm.value.target_monthly_net,
+      work_weeks_per_year: tjmForm.value.work_weeks_per_year,
+      work_days_per_week: tjmForm.value.work_days_per_week,
+      non_billable_percent: tjmForm.value.non_billable_percent,
+      tax_percent: tjmForm.value.tax_percent,
+      expenses: tjmForm.value.expenses,
+      computed_tjm: calculatedTjm.value,
+      computed_thm: calculatedThm.value,
+      payment_info: tjmForm.value.payment_info,
+    }
+
+    const res = await fetch('/espace-utilisateur/freelance/settings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    const data = await res.json()
+    if (res.ok && data.success) {
+      freelanceSettingData.value = data.setting
+      freelanceToastMsg.value = data.message || 'Configuration TJM sauvegardée avec succès !'
+      setTimeout(() => { freelanceToastMsg.value = '' }, 4000)
+    } else {
+      alert(data.message || 'Erreur lors de la sauvegarde.')
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message)
+  } finally {
+    isSavingTjm.value = false
+  }
+}
+
+async function saveQuoteSubmit() {
+  if (!quoteForm.value.client_name) {
+    alert('Veuillez renseigner le nom du client.')
+    return
+  }
+  if (!quoteForm.value.items || !quoteForm.value.items.length) {
+    alert('Veuillez ajouter au moins une ligne de prestation.')
+    return
+  }
+
+  isSavingQuote.value = true
+  recalculateQuoteTotals()
+
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const url = quoteForm.value.id
+      ? `/espace-utilisateur/freelance/quotes/${quoteForm.value.id}`
+      : '/espace-utilisateur/freelance/quotes'
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(quoteForm.value),
+    })
+
+    const data = await res.json()
+    if (res.ok && data.success) {
+      const savedQuote = data.quote
+      quoteForm.value.id = savedQuote.id
+      quoteForm.value.uuid = savedQuote.uuid
+
+      // Update in quotes list
+      const idx = freelanceQuotesList.value.findIndex(x => x.id === savedQuote.id)
+      if (idx !== -1) {
+        freelanceQuotesList.value[idx] = savedQuote
+      } else {
+        freelanceQuotesList.value.unshift(savedQuote)
+      }
+
+      freelanceToastMsg.value = data.message || 'Devis enregistré avec succès !'
+      setTimeout(() => { freelanceToastMsg.value = '' }, 4000)
+    } else {
+      alert(data.message || 'Erreur lors de l\'enregistrement du devis.')
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message)
+  } finally {
+    isSavingQuote.value = false
+  }
+}
+
+async function deleteQuoteAction(id) {
+  if (!confirm('Êtes-vous sûr de vouloir supprimer définitivement ce devis ?')) return
+
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const res = await fetch(`/espace-utilisateur/freelance/quotes/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      freelanceQuotesList.value = freelanceQuotesList.value.filter(x => x.id !== id)
+      if (quoteForm.value.id === id) {
+        resetQuoteForm()
+      }
+      freelanceToastMsg.value = 'Devis supprimé avec succès.'
+      setTimeout(() => { freelanceToastMsg.value = '' }, 3500)
+    } else {
+      alert(data.message || 'Erreur lors de la suppression.')
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message)
+  }
+}
+
+async function duplicateQuoteAction(id) {
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const res = await fetch(`/espace-utilisateur/freelance/quotes/${id}/duplicate`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      freelanceQuotesList.value.unshift(data.quote)
+      editQuote(data.quote)
+      freelanceToastMsg.value = 'Devis dupliqué avec succès.'
+      setTimeout(() => { freelanceToastMsg.value = '' }, 3500)
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message)
+  }
+}
+
+async function updateQuoteStatusAction(q, newStatus) {
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const res = await fetch(`/espace-utilisateur/freelance/quotes/${q.id}/status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ status: newStatus }),
+    })
+    const data = await res.json()
+    if (res.ok && data.success) {
+      q.status = newStatus
+      freelanceToastMsg.value = `Statut mis à jour : ${newStatus}`
+      setTimeout(() => { freelanceToastMsg.value = '' }, 3000)
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message)
+  }
+}
 </script>
 
 <style scoped>
@@ -5535,6 +6957,17 @@ function savePortfolioSettings() {
 }
 .extra-small {
   font-size: 11px;
+}
+.form-select-xs {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+.btn-2xs {
+  font-size: 11px;
+  padding: 2px 8px;
+}
+.border-bottom-dashed {
+  border-bottom: 1px dashed #e2e8f0;
 }
 .font-poppins { font-family: 'Poppins', sans-serif; }
 .font-montserrat { font-family: 'Montserrat', sans-serif; }

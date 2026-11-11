@@ -183,6 +183,16 @@ class User extends Authenticatable
         return $this->hasOne(UserAlertPreference::class);
     }
 
+    public function freelanceQuotes(): HasMany
+    {
+        return $this->hasMany(FreelanceQuote::class);
+    }
+
+    public function freelanceSetting(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(FreelanceSetting::class);
+    }
+
     public function addXp(int $points): void
     {
         $currentXp = $this->xp ?? 0;
