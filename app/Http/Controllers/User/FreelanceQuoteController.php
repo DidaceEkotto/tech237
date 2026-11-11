@@ -62,6 +62,7 @@ class FreelanceQuoteController extends Controller
             'client_address' => 'nullable|string|max:255',
             'issue_date' => 'required|date',
             'due_date' => 'nullable|date',
+            'logo_url' => 'nullable|string|max:500',
             'currency' => 'nullable|string|max:10',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
@@ -114,6 +115,7 @@ class FreelanceQuoteController extends Controller
             'client_address' => 'nullable|string|max:255',
             'issue_date' => 'required|date',
             'due_date' => 'nullable|date',
+            'logo_url' => 'nullable|string|max:500',
             'currency' => 'nullable|string|max:10',
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
@@ -259,5 +261,45 @@ class FreelanceQuoteController extends Controller
             'message' => 'Merci ! Vous avez accepté ce devis. Le prestataire en a été informé.',
             'quote' => $quote->fresh(),
         ]);
+    }
+
+    /**
+     * Téléversement du logo du freelance pour ses devis / factures
+     */
+    public function uploadLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|file|image|max:10240',
+        ]);
+
+        try {
+            $file = $request->file('logo');
+            $extension = strtolower($file->getClientOriginalExtension() ?: 'png');
+            $filename = 'logo_' . time() . '_' . Str::random(8) . '.' . $extension;
+
+            $storageFolder = storage_path('app/public/freelance_logos');
+            if (!is_dir($storageFolder)) {
+                @mkdir($storageFolder, 0777, true);
+            }
+            $publicFolder = public_path('storage/freelance_logos');
+            if (!is_dir($publicFolder)) {
+                @mkdir($publicFolder, 0777, true);
+            }
+
+            $path = $file->storeAs('freelance_logos', $filename, 'public');
+
+            $storedPath = storage_path('app/public/' . $path);
+            if (is_dir($publicFolder) && file_exists($storedPath)) {
+                @copy($storedPath, $publicFolder . '/' . $filename);
+            }
+
+            return response()->json([
+                'success' => true,
+                'url' => asset('storage/' . $path),
+                'path' => 'storage/' . $path,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => 'Erreur lors du téléversement du logo : ' . $e->getMessage()], 422);
+        }
     }
 }

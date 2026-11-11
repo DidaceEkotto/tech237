@@ -3859,6 +3859,70 @@
             <!-- SUB-TAB 1: SIMULATEUR TJM & RENTABILITÉ                          -->
             <!-- ================================================================= -->
             <div v-if="freelanceSubTab === 'calculator'">
+              <!-- GUIDE PEDAGOGIQUE TJM -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white border-start border-4 border-success">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center p-3 flex-shrink-0" style="width: 48px; height: 48px;">
+                      <i class="bi bi-book-half fs-4"></i>
+                    </div>
+                    <div>
+                      <h5 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                        Guide Pratique : Comprendre le TJM &amp; Comment bien l'utiliser
+                      </h5>
+                      <span class="extra-small text-muted">Pourquoi diviser son salaire par 30 est une erreur fatale et comment rentabiliser vos missions tech au Cameroun &amp; en Afrique.</span>
+                    </div>
+                  </div>
+                  <button 
+                    type="button" 
+                    @click="showTjmGuide = !showTjmGuide" 
+                    class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold d-flex align-items-center gap-1"
+                  >
+                    <i class="bi" :class="showTjmGuide ? 'bi-chevron-up' : 'bi-question-circle'"></i>
+                    <span>{{ showTjmGuide ? 'Masquer le guide' : 'Lire le guide TJM' }}</span>
+                  </button>
+                </div>
+
+                <div v-if="showTjmGuide" class="mt-4 pt-3 border-top">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <div class="p-3 bg-light rounded-3 h-100 border">
+                        <strong class="d-block small text-dark mb-1 d-flex align-items-center gap-1">
+                          <i class="bi bi-patch-question-fill text-success"></i> 1. C'est quoi le TJM ?
+                        </strong>
+                        <p class="extra-small text-muted mb-0">
+                          Le <strong>Taux Journalier Moyen (TJM)</strong> est le prix hors taxes facturé pour <strong>1 journée de prestation (~7 heures)</strong>. En tant que freelance, vous n'avez pas de salaire garanti ni de congés payés : le TJM doit financer vos revenus, vos charges et vos temps de repos.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="col-md-4">
+                      <div class="p-3 bg-light rounded-3 h-100 border">
+                        <strong class="d-block small text-dark mb-1 d-flex align-items-center gap-1">
+                          <i class="bi bi-exclamation-triangle-fill text-danger"></i> 2. L'erreur du Salaire ÷ 30
+                        </strong>
+                        <p class="extra-small text-muted mb-0">
+                          Un mois ne compte que ~21 jours ouvrés. Après déduction des périodes de prospection, devis, coupures de courant et congés, vous ne facturez en réalité que <strong>12 à 15 jours par mois</strong>. Si vous divisiez votre salaire par 30, vous travailleriez à perte !
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="col-md-4">
+                      <div class="p-3 bg-light rounded-3 h-100 border">
+                        <strong class="d-block small text-dark mb-1 d-flex align-items-center gap-1">
+                          <i class="bi bi-check2-circle text-primary"></i> 3. Comment l'utiliser ici ?
+                        </strong>
+                        <p class="extra-small text-muted mb-0">
+                          1. Renseignez votre <strong>revenu net souhaité</strong>.<br/>
+                          2. Ajustez vos <strong>charges locales</strong> (Internet, groupe/Eneo, outils).<br/>
+                          3. Cliquez sur <strong>« Appliquer ce TJM et créer un Devis »</strong> pour générer immédiatement une proposition rentable !
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="row g-4">
                 <!-- Left Column: Inputs Form -->
                 <div class="col-lg-7">
@@ -4024,30 +4088,49 @@
                 <!-- Right Column: Results Dashboard -->
                 <div class="col-lg-5">
                   <div class="sticky-top" style="top: 20px;">
-                    <!-- Highlight Result Card -->
-                    <div class="card border-0 rounded-4 shadow-sm p-4 text-white mb-4 bg-gradient" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
-                      <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1 extra-small fw-bold mb-3 d-inline-block">
-                        TARIFICATION CONSEILLÉE TECH237
-                      </span>
-
-                      <div class="mb-4">
-                        <small class="text-white-50 extra-small d-block text-uppercase fw-bold">Taux Journalier Moyen (TJM) :</small>
-                        <div class="display-6 fw-bold text-emerald-400 font-monospace my-1">
-                          {{ formatFcfa(calculatedTjm) }} <span class="fs-5 text-white-50">FCFA/jour</span>
-                        </div>
-                        <span class="extra-small text-white-50">
-                          Taux Horaire Moyen (THM) : <strong class="text-white font-monospace">{{ formatFcfa(calculatedThm) }} FCFA/h</strong> (base 7h/j)
+                    <!-- Highlight Result Card (TARIFICATION CONSEILLÉE TECH237) -->
+                    <div 
+                      class="card border-0 rounded-4 shadow-lg p-4 mb-4 position-relative overflow-hidden" 
+                      style="background-color: #0b1329 !important; background: linear-gradient(145deg, #0f172a 0%, #0b1329 100%) !important; color: #ffffff !important; border: 1px solid #1e293b !important;"
+                    >
+                      <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span 
+                          class="badge rounded-pill px-3 py-1 extra-small fw-bold"
+                          style="background-color: #064e3b !important; color: #34d399 !important; border: 1px solid #059669 !important;"
+                        >
+                          TARIFICATION CONSEILLÉE TECH237
+                        </span>
+                        <span class="badge border extra-small font-monospace" style="background-color: #1e293b !important; color: #94a3b8 !important; border-color: #334155 !important;">
+                          Zone CEMAC
                         </span>
                       </div>
 
-                      <div class="p-3 rounded-3 bg-white bg-opacity-10 mb-4 border border-white border-opacity-10">
+                      <div class="mb-4">
+                        <span class="extra-small d-block text-uppercase fw-bold" style="color: #94a3b8 !important;">
+                          Taux Journalier Moyen (TJM) Recommandé :
+                        </span>
+                        <div class="font-monospace my-1 d-flex align-items-baseline gap-2 flex-wrap">
+                          <span style="color: #10B981 !important; font-size: 2.2rem; font-weight: 800; line-height: 1.1;">
+                            {{ formatFcfa(calculatedTjm) }}
+                          </span>
+                          <span class="fs-6 fw-bold" style="color: #64748b !important;">FCFA / jour</span>
+                        </div>
+                        <div class="extra-small mt-1" style="color: #cbd5e1 !important;">
+                          Taux Horaire Moyen (THM) : <strong class="font-monospace" style="color: #38bdf8 !important;">{{ formatFcfa(calculatedThm) }} FCFA/h</strong> (base 7h/j)
+                        </div>
+                      </div>
+
+                      <div 
+                        class="p-3 rounded-3 mb-4" 
+                        style="background-color: rgba(30, 41, 59, 0.75) !important; border: 1px solid rgba(255, 255, 255, 0.1) !important;"
+                      >
                         <div class="d-flex justify-content-between align-items-center mb-2 small">
-                          <span class="text-white-50">Chiffre d'Affaires Brut / mois :</span>
-                          <strong class="font-monospace text-warning">{{ formatFcfa(minimumMonthlyTurnover) }} FCFA</strong>
+                          <span style="color: #94a3b8 !important;">Chiffre d'Affaires Brut / mois :</span>
+                          <strong class="font-monospace" style="color: #fbbf24 !important;">{{ formatFcfa(minimumMonthlyTurnover) }} FCFA</strong>
                         </div>
                         <div class="d-flex justify-content-between align-items-center small">
-                          <span class="text-white-50">Jours facturables / mois :</span>
-                          <strong class="font-monospace text-white">{{ billableDaysPerMonth }} jours</strong>
+                          <span style="color: #94a3b8 !important;">Jours facturables réels / mois :</span>
+                          <strong class="font-monospace" style="color: #f1f5f9 !important;">{{ billableDaysPerMonth }} jours</strong>
                         </div>
                       </div>
 
@@ -4151,6 +4234,91 @@
                     >
                       Nouveau vierge
                     </button>
+                  </div>
+                </div>
+
+                <!-- LOGO OU PHOTO DE PROFIL SUR LE DEVIS -->
+                <div class="p-3 bg-light rounded-4 border mb-4">
+                  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <span class="extra-small fw-bold text-uppercase text-dark d-flex align-items-center gap-2">
+                      <i class="bi bi-image text-danger fs-6"></i> Logo ou Photo de Profil sur le Devis / Facture
+                    </span>
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-outline-secondary"
+                        :class="{ 'active': !quoteForm.use_custom_logo }"
+                        @click="quoteForm.use_custom_logo = false; quoteForm.logo_url = ''"
+                      >
+                        <i class="bi bi-person-circle me-1"></i>Ma Photo de Profil Tech237
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn btn-sm btn-outline-secondary"
+                        :class="{ 'active': quoteForm.use_custom_logo }"
+                        @click="quoteForm.use_custom_logo = true"
+                      >
+                        <i class="bi bi-building me-1"></i>Logo Personnalisé (Entreprise / Studio)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <!-- Preview Image -->
+                    <div class="d-flex align-items-center gap-3 bg-white p-2 px-3 rounded-3 border">
+                      <img 
+                        :src="effectiveQuoteLogo" 
+                        alt="Logo ou Photo" 
+                        class="border rounded-2 object-fit-contain bg-white shadow-2xs" 
+                        style="width: 56px; height: 56px;" 
+                      />
+                      <div>
+                        <strong class="d-block small text-dark">
+                          {{ quoteForm.use_custom_logo ? 'Logo Personnalisé' : 'Photo de profil active' }}
+                        </strong>
+                        <span class="extra-small text-muted d-block">
+                          Sera imprimé et affiché en haut à gauche du document
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Custom Logo Inputs (if custom logo active) -->
+                    <div v-if="quoteForm.use_custom_logo" class="flex-grow-1 min-w-0 d-flex flex-wrap gap-2 align-items-center">
+                      <div class="input-group input-group-sm flex-grow-1" style="min-width: 250px;">
+                        <span class="input-group-text bg-white text-muted"><i class="bi bi-link-45deg"></i> URL</span>
+                        <input 
+                          type="url" 
+                          class="form-control" 
+                          v-model="quoteForm.logo_url" 
+                          placeholder="https://.../mon-logo.png" 
+                        />
+                      </div>
+                      <input 
+                        type="file" 
+                        ref="freelanceLogoInputRef" 
+                        class="d-none" 
+                        accept="image/*" 
+                        @change="handleLogoUpload" 
+                      />
+                      <button 
+                        type="button" 
+                        @click="$refs.freelanceLogoInputRef?.click()" 
+                        :disabled="isUploadingLogo"
+                        class="btn btn-sm btn-outline-danger rounded-pill px-3"
+                      >
+                        <span v-if="isUploadingLogo" class="spinner-border spinner-border-sm me-1"></span>
+                        <i v-else class="bi bi-upload me-1"></i>
+                        <span>Téléverser un logo</span>
+                      </button>
+                      <button 
+                        v-if="quoteForm.logo_url" 
+                        type="button" 
+                        @click="quoteForm.logo_url = ''" 
+                        class="btn btn-sm btn-link text-danger p-0 ms-1"
+                      >
+                        Effacer
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -6538,6 +6706,13 @@ const quotesStats = computed(() => {
   return { totalBilled, acceptedCount, paidCount }
 })
 
+// Pedagogical Guide State
+const showTjmGuide = ref(true)
+
+// Logo State
+const isUploadingLogo = ref(false)
+const freelanceLogoInputRef = ref(null)
+
 // Active Quote Form State
 const quoteForm = ref({
   id: null,
@@ -6550,6 +6725,8 @@ const quoteForm = ref({
   client_email: '',
   client_phone: '',
   client_address: '',
+  logo_url: '',
+  use_custom_logo: false,
   issue_date: new Date().toISOString().substring(0, 10),
   due_date: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
   currency: 'XAF',
@@ -6589,6 +6766,58 @@ const quoteForm = ref({
   terms: 'Validité de l\'offre : 30 jours calendaires. Propriété intellectuelle et code source cédés dès règlement intégral.',
   status: 'draft',
 })
+
+const effectiveQuoteLogo = computed(() => {
+  if (quoteForm.value.use_custom_logo && quoteForm.value.logo_url) {
+    return quoteForm.value.logo_url
+  }
+  return props.user?.avatar ? `/${props.user.avatar}`.replace('//', '/') : '/assets/images/default-avatar.png'
+})
+
+async function handleLogoUpload(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  if (!file.type.startsWith('image/')) {
+    alert('Veuillez sélectionner un fichier image valide (PNG, JPG, SVG, WebP).')
+    return
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    alert('La taille de l\'image ne doit pas dépasser 2 Mo.')
+    return
+  }
+
+  isUploadingLogo.value = true
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const formData = new FormData()
+    formData.append('logo', file)
+
+    const res = await fetch('/espace-utilisateur/freelance/upload-logo', {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': csrfToken,
+        'Accept': 'application/json',
+      },
+      body: formData,
+    })
+
+    const data = await res.json()
+    if (res.ok && data.success) {
+      quoteForm.value.logo_url = data.url
+      quoteForm.value.use_custom_logo = true
+      freelanceToastMsg.value = 'Logo téléversé avec succès !'
+      setTimeout(() => { freelanceToastMsg.value = '' }, 3500)
+    } else {
+      alert(data.message || 'Erreur lors du téléversement du logo.')
+    }
+  } catch (err) {
+    alert('Erreur réseau : ' + err.message)
+  } finally {
+    isUploadingLogo.value = false
+    if (event.target) event.target.value = ''
+  }
+}
 
 function formatFcfa(val) {
   const num = Number(val || 0)
@@ -6679,6 +6908,8 @@ function resetQuoteForm() {
     client_email: '',
     client_phone: '',
     client_address: '',
+    logo_url: '',
+    use_custom_logo: false,
     issue_date: new Date().toISOString().substring(0, 10),
     due_date: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
     currency: 'XAF',
@@ -6729,6 +6960,8 @@ function editQuote(q) {
     client_email: q.client_email || '',
     client_phone: q.client_phone || '',
     client_address: q.client_address || '',
+    logo_url: q.logo_url || '',
+    use_custom_logo: !!q.logo_url,
     issue_date: q.issue_date,
     due_date: q.due_date,
     currency: q.currency || 'XAF',

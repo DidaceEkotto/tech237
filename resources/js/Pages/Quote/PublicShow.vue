@@ -74,6 +74,14 @@
           <div class="col-md-7">
             <div class="d-flex align-items-center gap-3 mb-3">
               <img 
+                v-if="quote.logo_url"
+                :src="quote.logo_url" 
+                alt="Logo Prestataire" 
+                class="rounded-3 border object-fit-contain bg-white shadow-2xs" 
+                style="max-width: 150px; max-height: 65px; height: auto;" 
+              />
+              <img 
+                v-else
                 :src="freelance.avatar" 
                 :alt="freelance.name" 
                 class="rounded-circle border object-fit-cover shadow-2xs" 
@@ -455,53 +463,103 @@ async function acceptQuote() {
 }
 
 /* ==========================================================================
-   PRINT STYLES FOR CRISP VECTOR A4 PDF
+   PRINT STYLES FOR CRISP VECTOR A4 PDF (EXACT MATCH TO PREVIEW)
    ========================================================================== */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 10mm 12mm;
   }
 
-  body {
+  *, *:before, *:after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  html, body {
     background: #ffffff !important;
-    color: #000000 !important;
+    background-color: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 13px !important;
   }
 
   .public-quote-page {
-    background: transparent !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
     padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
   }
 
   .no-print {
     display: none !important;
   }
 
+  .container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
   .quote-document {
     box-shadow: none !important;
     border: none !important;
     padding: 0 !important;
+    margin: 0 !important;
     max-width: 100% !important;
     width: 100% !important;
   }
 
-  .table {
-    border-color: #cbd5e1 !important;
+  .table-light {
+    background-color: #f8fafc !important;
+    color: #475569 !important;
   }
 
-  .table-light {
-    background-color: #f1f5f9 !important;
-    color: #334155 !important;
+  .bg-light {
+    background-color: #f8fafc !important;
+  }
+
+  .border {
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .text-danger {
+    color: #dc2626 !important;
+  }
+
+  .text-success {
+    color: #16a34a !important;
+  }
+
+  .text-primary {
+    color: #2563eb !important;
+  }
+
+  .text-warning {
+    color: #d97706 !important;
   }
 
   .badge {
-    border: 1px solid #000 !important;
-    color: #000 !important;
-    background: transparent !important;
+    display: inline-block !important;
   }
 
   .btn {
     display: none !important;
+  }
+
+  /* Keep table borders, rows, and cards intact */
+  .table {
+    border-color: #cbd5e1 !important;
+  }
+
+  .quote-document .row, 
+  .quote-document table, 
+  .quote-document tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 }
 </style>

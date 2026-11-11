@@ -316,6 +316,7 @@ Route::middleware('auth:web')->group(function () {
     Route::delete('/espace-utilisateur/freelance/quotes/{id}', [App\Http\Controllers\User\FreelanceQuoteController::class, 'deleteQuote'])->name('user.freelance.quotes.delete');
     Route::post('/espace-utilisateur/freelance/quotes/{id}/duplicate', [App\Http\Controllers\User\FreelanceQuoteController::class, 'duplicateQuote'])->name('user.freelance.quotes.duplicate');
     Route::post('/espace-utilisateur/freelance/quotes/{id}/status', [App\Http\Controllers\User\FreelanceQuoteController::class, 'updateQuoteStatus'])->name('user.freelance.quotes.status');
+    Route::post('/espace-utilisateur/freelance/upload-logo', [App\Http\Controllers\User\FreelanceQuoteController::class, 'uploadLogo'])->name('user.freelance.upload-logo');
 });
 
 // Quick alias for freelance calculator & quotes

@@ -15,6 +15,7 @@ class FreelanceQuote extends Model
         'user_id',
         'quote_number',
         'type',
+        'logo_url',
         'status',
         'title',
         'client_name',
