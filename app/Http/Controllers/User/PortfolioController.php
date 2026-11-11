@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -58,5 +59,37 @@ class PortfolioController extends Controller
         }
 
         return back()->with('success', 'Votre portfolio a bien été mis à jour.');
+    }
+
+    public function uploadBg(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif,webp,svg|max:10240',
+        ]);
+
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $filename = 'bg_' . time() . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+            
+            $path = $file->storeAs('portfolio_bgs', $filename, 'public');
+
+            // Mirror to public path for environments without symlink
+            $publicFolder = public_path('storage/portfolio_bgs');
+            if (!is_dir($publicFolder)) {
+                @mkdir($publicFolder, 0777, true);
+            }
+            $storedPath = storage_path('app/public/' . $path);
+            if (is_dir($publicFolder) && file_exists($storedPath)) {
+                @copy($storedPath, $publicFolder . '/' . $filename);
+            }
+
+            return response()->json([
+                'success' => true,
+                'url' => asset('storage/' . $path),
+                'path' => 'storage/' . $path,
+            ]);
+        }
+
+        return response()->json(['error' => 'Échec du téléversement de l\'image de fond.'], 400);
     }
 }

@@ -49,7 +49,7 @@
       <div class="row g-4">
         
         <!-- Left Vertical Sidebar Navigation (Desktop) with fixed z-index underneath header -->
-        <div class="col-lg-3 d-none d-lg-block">
+        <div class="col-lg-3 d-none d-lg-block" v-if="!isSidebarCollapsed">
           <div class="card border-0 shadow-sm rounded-4 overflow-hidden position-sticky" style="top: 85px; z-index: 10;">
             <!-- User Mini Profile Header -->
             <div class="p-4 bg-dark text-white text-center border-bottom">
@@ -237,7 +237,7 @@
         </div>
 
         <!-- Right Main View Section Content -->
-        <div class="col-lg-9">
+        <div :class="isSidebarCollapsed ? 'col-12' : 'col-lg-9'">
           
           <!-- 1. DASHBOARD OVERVIEW -->
           <div v-if="currentSection === 'dashboard'">
@@ -1921,6 +1921,16 @@
                     <i class="bi bi-box-arrow-up-right"></i>
                     <span>Voir en direct</span>
                   </button>
+
+                  <button 
+                    type="button" 
+                    @click="isSidebarCollapsed = !isSidebarCollapsed" 
+                    class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold d-none d-lg-inline-flex align-items-center gap-1 shadow-2xs"
+                    :title="isSidebarCollapsed ? 'Afficher la barre latérale du dashboard' : 'Masquer la barre latérale pour maximiser l\'espace de travail'"
+                  >
+                    <i class="bi" :class="isSidebarCollapsed ? 'bi-layout-sidebar-inset' : 'bi-layout-sidebar-inset-reverse'"></i>
+                    <span>{{ isSidebarCollapsed ? 'Afficher le menu' : 'Plein Écran' }}</span>
+                  </button>
                 </div>
               </div>
 
@@ -1995,56 +2005,20 @@
                   </button>
                 </div>
 
-                <div class="row g-3">
-                  <!-- Structure 1: Single Stream (Classic vertical) -->
-                  <div class="col-6 col-lg-3">
+                <div class="row g-3" style="max-height: 480px; overflow-y: auto;">
+                  <div 
+                    v-for="st in layoutStructuresList" 
+                    :key="st.id" 
+                    class="col-6 col-md-4 col-lg-3"
+                  >
                     <div 
                       class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center"
-                      :class="portfolioForm.portfolio_layout.layout_structure === 'single' ? 'border-success border-2 bg-success-subtle bg-opacity-10' : 'bg-white'"
-                      @click="portfolioForm.portfolio_layout.layout_structure = 'single'"
+                      :class="portfolioForm.portfolio_layout.layout_structure === st.id ? 'border-success border-2 bg-success-subtle bg-opacity-10 shadow-sm' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.layout_structure = st.id"
                     >
-                      <div class="fs-3 mb-1">📜</div>
-                      <strong class="d-block small text-dark mb-1">Flux Vertical</strong>
-                      <small class="text-muted extra-small d-block">Lecture linéaire fluide, idéal pour un storytelling professionnel naturel.</small>
-                    </div>
-                  </div>
-
-                  <!-- Structure 2: Bento Grid Modern -->
-                  <div class="col-6 col-lg-3">
-                    <div 
-                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center"
-                      :class="portfolioForm.portfolio_layout.layout_structure === 'bento' ? 'border-success border-2 bg-success-subtle bg-opacity-10' : 'bg-white'"
-                      @click="portfolioForm.portfolio_layout.layout_structure = 'bento'"
-                    >
-                      <div class="fs-3 mb-1">🍱</div>
-                      <strong class="d-block small text-dark mb-1">Grille Bento (Apple Style)</strong>
-                      <small class="text-muted extra-small d-block">Cartes asymétriques modernes avec blocs mi-largeur et pleine-largeur.</small>
-                    </div>
-                  </div>
-
-                  <!-- Structure 3: CV Split Executive -->
-                  <div class="col-6 col-lg-3">
-                    <div 
-                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center"
-                      :class="portfolioForm.portfolio_layout.layout_structure === 'cv_split' ? 'border-success border-2 bg-success-subtle bg-opacity-10' : 'bg-white'"
-                      @click="portfolioForm.portfolio_layout.layout_structure = 'cv_split'"
-                    >
-                      <div class="fs-3 mb-1">📑</div>
-                      <strong class="d-block small text-dark mb-1">CV Split Suisse</strong>
-                      <small class="text-muted extra-small d-block">Colonne latérale fixe (Profil &amp; Skills) + colonne principale de réalisations.</small>
-                    </div>
-                  </div>
-
-                  <!-- Structure 4: Terminal Developer Console -->
-                  <div class="col-6 col-lg-3">
-                    <div 
-                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center bg-dark text-white"
-                      :class="portfolioForm.portfolio_layout.layout_structure === 'terminal' ? 'border-success border-2' : ''"
-                      @click="portfolioForm.portfolio_layout.layout_structure = 'terminal'; portfolioForm.portfolio_layout.theme = 'dark'; portfolioForm.portfolio_layout.font_family = 'mono'"
-                    >
-                      <div class="fs-3 mb-1 text-success">&gt;_</div>
-                      <strong class="d-block small text-white mb-1">Terminal Dev Console</strong>
-                      <small class="text-white-50 extra-small d-block">Fenêtre Unix geek avec commandes bash et syntaxe monospacée.</small>
+                      <div class="fs-3 mb-1">{{ st.icon }}</div>
+                      <strong class="d-block small text-dark mb-1">{{ st.name }}</strong>
+                      <small class="text-muted extra-small d-block">{{ st.desc }}</small>
                     </div>
                   </div>
                 </div>
@@ -2279,33 +2253,408 @@
                   </div>
                 </div>
 
-                <!-- Block Variants (Hero, Projects, Skills) -->
+                <!-- Block Variants (Hero, Projects, Skills, Columns) -->
                 <div class="row g-4 pt-4 mt-2 border-top">
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <label class="form-label small fw-bold text-dark mb-1">Variante d'En-tête (Hero)</label>
                     <select v-model="portfolioForm.portfolio_layout.hero_style" class="form-select form-select-sm rounded-3">
                       <option value="centered">Centré moderne</option>
                       <option value="split">Asymétrique (2 colonnes)</option>
                       <option value="terminal">Console bash / Geek</option>
                       <option value="minimal">Minimaliste sobre</option>
+                      <option value="cover_banner">Grande bannière couverture</option>
+                      <option value="cyberpunk">Cyberpunk Sci-Fi HUD</option>
                     </select>
                   </div>
 
-                  <div class="col-md-4">
+                  <div class="col-md-3">
                     <label class="form-label small fw-bold text-dark mb-1">Variante d'affichage des Projets</label>
                     <select v-model="portfolioForm.portfolio_layout.projects_style" class="form-select form-select-sm rounded-3">
-                      <option value="cards">Grille de cartes 2x2</option>
+                      <option value="cards">Grille de cartes</option>
+                      <option value="carousel">🎠 Carrousel interactif (Slider)</option>
                       <option value="timeline">Chronologie verticale</option>
                     </select>
                   </div>
 
-                  <div class="col-md-4">
-                    <label class="form-label small fw-bold text-dark mb-1">Variante d'affichage Compétences</label>
-                    <select v-model="portfolioForm.portfolio_layout.skills_style" class="form-select form-select-sm rounded-3">
-                      <option value="chips">Pastilles / Chips colorées</option>
-                      <option value="bars">Barres de progression</option>
-                      <option value="categorized">Grille par domaine</option>
+                  <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1">Colonnes de Projets</label>
+                    <select v-model="portfolioForm.portfolio_layout.projects_columns" class="form-select form-select-sm rounded-3">
+                      <option :value="1">1 colonne (Pleine largeur)</option>
+                      <option :value="2">2 colonnes (Standard)</option>
+                      <option :value="3">3 colonnes (Grille dense)</option>
+                      <option :value="4">4 colonnes (Ultra compact)</option>
                     </select>
+                  </div>
+
+                  <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1">Variante Compétences</label>
+                    <select v-model="portfolioForm.portfolio_layout.skills_style" class="form-select form-select-sm rounded-3">
+                      <option value="chips">Pastilles / Chips avec niveaux</option>
+                      <option value="bars">Barres de progression %</option>
+                      <option value="categorized">Cartes 3D par domaine</option>
+                    </select>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- 1.2 Effet d'Ambiance & Particules Saisonnières (Neige, Confettis, Stars) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-magic text-warning"></i> Effet d'Ambiance &amp; Particules Saisonnières
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Célébrez les fêtes de fin d'année avec de la neige animée ou dynamisez votre portfolio avec des particules interactives.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <div 
+                    v-for="eff in [
+                      { id: 'none', name: 'Aucun effet', icon: '🚫', desc: 'Affichage épuré classique sans particules' },
+                      { id: 'snow', name: 'Chute de Neige (Noël & Fêtes)', icon: '❄️', desc: 'Flocons de neige doux parfaits pour les fêtes de fin d\'année' },
+                      { id: 'confetti', name: 'Pluie de Confettis', icon: '🎉', desc: 'Ambiance festive célébration pour marquer les succès' },
+                      { id: 'stars', name: 'Étoiles d\'or Scintillantes', icon: '✨', desc: 'Poussière d\'étoiles lumineuses chic et prestigieuse' },
+                      { id: 'matrix', name: 'Pluie de Code Matrix', icon: '🟢', desc: 'Flux de caractères binaires hacker et cyberpunk' },
+                      { id: 'bubbles', name: 'Bulles Flottantes Zen', icon: '🫧', desc: 'Bulles délicates montantes pour une ambiance relaxante' }
+                    ]"
+                    :key="eff.id"
+                    class="col-6 col-md-4"
+                  >
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center"
+                      :class="portfolioForm.portfolio_layout.ambient_effect === eff.id ? 'border-success border-2 bg-success-subtle bg-opacity-10 shadow-sm' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.ambient_effect = eff.id"
+                    >
+                      <div class="fs-3 mb-1">{{ eff.icon }}</div>
+                      <strong class="d-block small text-dark mb-1">{{ eff.name }}</strong>
+                      <small class="text-muted extra-small d-block">{{ eff.desc }}</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.3 Image d'arrière-plan personnalisée (Dropzone & Paramètres) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-image text-primary"></i> Image d'Arrière-Plan Personnalisée
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Téléversez une image de fond personnalisée (via la dropzone ou par URL) avec contrôle de transparence et de flou.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Dropzone Area -->
+                <div 
+                  class="dropzone-area p-4 border border-2 border-dashed rounded-4 text-center cursor-pointer transition mb-3"
+                  :class="bgUploadLoading ? 'opacity-50' : 'bg-light hover-bg-white'"
+                  @dragover.prevent
+                  @drop.prevent="handleBgDrop"
+                  @click="$refs.bgFileInput.click()"
+                >
+                  <input 
+                    type="file" 
+                    ref="bgFileInput" 
+                    class="d-none" 
+                    accept="image/*" 
+                    @change="handleBgFileSelect" 
+                  />
+                  <div v-if="bgUploadLoading" class="spinner-border text-success mb-2" role="status"></div>
+                  <div v-else class="fs-2 mb-2 text-primary">
+                    <i class="bi bi-cloud-arrow-up-fill"></i>
+                  </div>
+                  <strong class="d-block text-dark small mb-1">Glissez-déposez une image ici ou cliquez pour choisir</strong>
+                  <span class="text-muted extra-small d-block">PNG, JPG, WEBP ou SVG (Max 10 Mo)</span>
+                </div>
+
+                <div v-if="bgUploadError" class="alert alert-danger py-2 px-3 small rounded-3 mb-3">
+                  {{ bgUploadError }}
+                </div>
+
+                <!-- Background Image Preview & Controls -->
+                <div v-if="portfolioForm.portfolio_layout.bg_image" class="p-3 bg-light rounded-4 mb-3 border">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                      <img 
+                        :src="portfolioForm.portfolio_layout.bg_image" 
+                        alt="Aperçu fond" 
+                        class="rounded-3 border object-fit-cover" 
+                        style="width: 60px; height: 60px;" 
+                      />
+                      <div>
+                        <strong class="d-block small text-dark">Image de fond active</strong>
+                        <span class="text-muted extra-small text-truncate d-inline-block" style="max-width: 250px;">{{ portfolioForm.portfolio_layout.bg_image }}</span>
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      @click="portfolioForm.portfolio_layout.bg_image = ''" 
+                      class="btn btn-sm btn-outline-danger rounded-pill px-3 extra-small"
+                    >
+                      <i class="bi bi-trash3 me-1"></i> Supprimer l'image
+                    </button>
+                  </div>
+
+                  <div class="row g-3">
+                    <!-- Opacity slider -->
+                    <div class="col-md-4">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">
+                        Opacité : {{ portfolioForm.portfolio_layout.bg_image_opacity ?? 30 }}%
+                      </label>
+                      <input 
+                        type="range" 
+                        v-model.number="portfolioForm.portfolio_layout.bg_image_opacity" 
+                        min="5" 
+                        max="100" 
+                        step="5" 
+                        class="form-range" 
+                      />
+                    </div>
+                    <!-- Blur slider -->
+                    <div class="col-md-4">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">
+                        Flou d'arrière-plan : {{ portfolioForm.portfolio_layout.bg_image_blur ?? 0 }}px
+                      </label>
+                      <input 
+                        type="range" 
+                        v-model.number="portfolioForm.portfolio_layout.bg_image_blur" 
+                        min="0" 
+                        max="20" 
+                        step="1" 
+                        class="form-range" 
+                      />
+                    </div>
+                    <!-- Size / Repeat -->
+                    <div class="col-md-4">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Remplissage</label>
+                      <select v-model="portfolioForm.portfolio_layout.bg_image_size" class="form-select form-select-sm rounded-3">
+                        <option value="cover">Plein écran (Cover)</option>
+                        <option value="contain">Ajusté (Contain)</option>
+                        <option value="repeat">Motif répété (Tile)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Direct URL Fallback -->
+                <div class="input-group input-group-sm">
+                  <span class="input-group-text bg-white text-muted">Ou URL directe de l'image</span>
+                  <input 
+                    type="url" 
+                    v-model="portfolioForm.portfolio_layout.bg_image" 
+                    class="form-control" 
+                    placeholder="https://images.unsplash.com/photo-..." 
+                  />
+                  <button 
+                    v-if="portfolioForm.portfolio_layout.bg_image" 
+                    type="button" 
+                    @click="portfolioForm.portfolio_layout.bg_image = ''" 
+                    class="btn btn-outline-secondary"
+                  >
+                    Effacer
+                  </button>
+                </div>
+              </div>
+
+              <!-- 1.4 Écran de chargement (Preloader / Splash Screen) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-hourglass-split text-info"></i> Écran de Chargement (Splash Screen / Preloader)
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Affichez un écran de chargement dynamique avec un temps d'attente artificiel pour admirer l'animation de démarrage.
+                    </p>
+                  </div>
+                  <div class="form-check form-switch fs-5">
+                    <input 
+                      class="form-check-input cursor-pointer" 
+                      type="checkbox" 
+                      v-model="portfolioForm.portfolio_layout.preloader.enabled" 
+                      id="preloaderToggle"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.preloader.enabled" class="row g-3 pt-2">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold text-dark mb-1">Style d'animation</label>
+                    <select v-model="portfolioForm.portfolio_layout.preloader.style" class="form-select form-select-sm rounded-3">
+                      <option value="spinner">Spinner classique épuré</option>
+                      <option value="pulse_logo">Logo pulsant Tech237</option>
+                      <option value="progress_bar">Barre de progression fluide</option>
+                      <option value="terminal">Terminal boot hacker Unix</option>
+                      <option value="dots">Points rebondissants dynamiques</option>
+                    </select>
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label small fw-bold text-dark mb-1">Texte d'attente</label>
+                    <input 
+                      type="text" 
+                      v-model="portfolioForm.portfolio_layout.preloader.text" 
+                      class="form-control form-control-sm rounded-3" 
+                      placeholder="ex: Chargement du portfolio de Didace..." 
+                    />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label small fw-bold text-dark mb-1">
+                      Durée d'affichage : {{ portfolioForm.portfolio_layout.preloader.duration || 1 }}s
+                    </label>
+                    <input 
+                      type="range" 
+                      v-model.number="portfolioForm.portfolio_layout.preloader.duration" 
+                      min="0.5" 
+                      max="3" 
+                      step="0.5" 
+                      class="form-range" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.5 Application Web Multi-Pages & Navigation par Onglets -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-segmented-nav text-success"></i> Menu à Onglets (Site Web Multi-Pages)
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Transformez votre portfolio en authentique application web avec onglets (Présentation, Stack, Projets, Parcours, Contact).
+                    </p>
+                  </div>
+                  <div class="form-check form-switch fs-5">
+                    <input 
+                      class="form-check-input cursor-pointer" 
+                      type="checkbox" 
+                      v-model="portfolioForm.portfolio_layout.tabbed_nav.enabled" 
+                      id="tabbedNavToggle"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.tabbed_nav.enabled || (portfolioForm.portfolio_layout.layout_structure && portfolioForm.portfolio_layout.layout_structure.startsWith('tabbed'))" class="row g-3 pt-2">
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark mb-1">Onglet d'atterrissage par défaut</label>
+                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.default_tab" class="form-select form-select-sm rounded-3">
+                      <option value="all">🌟 Vue Globale (Tout afficher)</option>
+                      <option value="about">👤 À Propos &amp; Bio</option>
+                      <option value="skills">⚡ Compétences &amp; Stack</option>
+                      <option value="projects">🚀 Projets &amp; Réalisations</option>
+                      <option value="experiences">💼 Parcours &amp; Expériences</option>
+                      <option value="contact">📬 Contact &amp; Réseaux</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark mb-1">Style des Onglets</label>
+                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.style" class="form-select form-select-sm rounded-3">
+                      <option value="pills">Pastilles Pilules modernes avec badges</option>
+                      <option value="underline">Ligne soulignée épurée</option>
+                      <option value="bordered">Boutons encadrés 3D</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.6 Animation d'Entrée de Page -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                  <i class="bi bi-play-circle text-primary"></i> Animation d'Entrée du Portfolio
+                </h4>
+                <p class="text-muted small mb-3">
+                  Choisissez la transition visuelle jouée lors de l'ouverture de votre lien public.
+                </p>
+
+                <div class="row g-3">
+                  <div 
+                    v-for="an in [
+                      { id: 'fade', name: 'Fondu Doux (Fade In)', icon: '🌫️' },
+                      { id: 'slide_up', name: 'Montée Fluide (Slide Up)', icon: '⬆️' },
+                      { id: 'zoom', name: 'Zoom Doux (Scale In)', icon: '🔍' },
+                      { id: 'bounce', name: 'Rebond Dynamique (Bounce)', icon: '🏀' },
+                      { id: 'flip', name: 'Flip 3D Élégant', icon: '🔄' },
+                      { id: 'none', name: 'Instantané (Aucune)', icon: '⚡' }
+                    ]"
+                    :key="an.id"
+                    class="col-6 col-md-4 col-lg-2"
+                  >
+                    <div 
+                      class="p-3 rounded-4 border cursor-pointer h-100 transition shadow-2xs text-center"
+                      :class="portfolioForm.portfolio_layout.page_animation === an.id ? 'border-success border-2 bg-success-subtle bg-opacity-10' : 'bg-white'"
+                      @click="portfolioForm.portfolio_layout.page_animation = an.id"
+                    >
+                      <div class="fs-4 mb-1">{{ an.icon }}</div>
+                      <strong class="d-block extra-small text-dark">{{ an.name }}</strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.7 Personnalisation du Pied de Page (Footer) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                  <i class="bi bi-layout-text-window-reverse text-secondary"></i> Personnalisation du Pied de Page (Footer)
+                </h4>
+                <p class="text-muted small mb-3">
+                  Définissez la signature en bas de page de votre portfolio public.
+                </p>
+
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label small fw-bold text-dark mb-1">Texte ou Signature personnalisée</label>
+                    <input 
+                      type="text" 
+                      v-model="portfolioForm.portfolio_layout.footer.custom_text" 
+                      class="form-control form-control-sm rounded-3" 
+                      placeholder="ex: © 2026 Didace Ekotto — Conçu avec passion avec Laravel &amp; Vue.js." 
+                    />
+                    <small class="text-muted extra-small">Supporte le formatage HTML tel que &lt;b&gt;, &lt;i&gt;, &lt;a&gt;...</small>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input 
+                        class="form-check-input cursor-pointer" 
+                        type="checkbox" 
+                        v-model="portfolioForm.portfolio_layout.footer.show_socials" 
+                        id="footerSocialsToggle"
+                      />
+                      <label class="form-check-label small fw-bold cursor-pointer" for="footerSocialsToggle">
+                        Afficher les icônes réseaux sociaux
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input 
+                        class="form-check-input cursor-pointer" 
+                        type="checkbox" 
+                        v-model="portfolioForm.portfolio_layout.footer.show_tech237_badge" 
+                        id="footerBadgeToggle"
+                      />
+                      <label class="form-check-label small fw-bold cursor-pointer" for="footerBadgeToggle">
+                        Afficher le badge certifié Tech237
+                      </label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch pt-2">
+                      <input 
+                        class="form-check-input cursor-pointer" 
+                        type="checkbox" 
+                        v-model="portfolioForm.portfolio_layout.footer.show_back_to_top" 
+                        id="footerTopToggle"
+                      />
+                      <label class="form-check-label small fw-bold cursor-pointer" for="footerTopToggle">
+                        Bouton « Revenir en haut »
+                      </label>
+                    </div>
                   </div>
                 </div>
 
@@ -2505,6 +2854,19 @@
                     </select>
                   </div>
 
+                  <!-- Years of experience -->
+                  <div class="col-md-6">
+                    <label class="form-label small fw-bold text-dark">Nombre d'années d'expérience</label>
+                    <input 
+                      type="text" 
+                      v-model="portfolioForm.portfolio_layout.years_of_experience" 
+                      class="form-control" 
+                      placeholder="ex: 5 ans, +3 ans d'expertise..." 
+                      maxlength="60"
+                    />
+                    <small class="text-muted extra-small">Affiché en badge dans l'en-tête, les stats et le CV.</small>
+                  </div>
+
                   <!-- Bio -->
                   <div class="col-12">
                     <label class="form-label small fw-bold text-dark">Présentation &amp; Biographie (Bio)</label>
@@ -2514,6 +2876,7 @@
                       rows="4" 
                       placeholder="Décrivez votre parcours, vos technologies de prédilection, les défis techniques que vous aimez résoudre..."
                     ></textarea>
+                    <small class="text-muted extra-small">Supporte le formatage HTML (&lt;b&gt;, &lt;i&gt;, retours à la ligne...).</small>
                   </div>
                 </div>
               </div>
@@ -2525,11 +2888,11 @@
                     <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
                       <i class="bi bi-cpu text-success"></i> Compétences &amp; Stack Technique
                     </h4>
-                    <p class="text-muted small mb-0">Ajoutez les technos que vous maîtrisez pour que les recruteurs vous repèrent en un clin d'œil.</p>
+                    <p class="text-muted small mb-0">Ajoutez les technos que vous maîtrisez et spécifiez votre niveau (Débutant, Intermédiaire, Avancé, Expert).</p>
                   </div>
                 </div>
 
-                <!-- Add Skill input -->
+                <!-- Add Skill input with category and level -->
                 <div class="input-group mb-3">
                   <input 
                     type="text" 
@@ -2538,13 +2901,19 @@
                     class="form-control" 
                     placeholder="Ajouter une compétence (ex: Docker, GraphQL, Flutter...)" 
                   />
-                  <select v-model="newSkillCategory" class="form-select" style="max-width: 140px;">
+                  <select v-model="newSkillCategory" class="form-select" style="max-width: 130px;">
                     <option value="Backend">Backend</option>
                     <option value="Frontend">Frontend</option>
                     <option value="Mobile">Mobile</option>
                     <option value="DevOps">DevOps</option>
                     <option value="Database">Database</option>
                     <option value="Outils">Outils</option>
+                  </select>
+                  <select v-model="newSkillLevel" class="form-select" style="max-width: 140px;" title="Niveau de maîtrise">
+                    <option value="Débutant">Débutant</option>
+                    <option value="Intermédiaire">Intermédiaire</option>
+                    <option value="Avancé">Avancé</option>
+                    <option value="Expert">Expert</option>
                   </select>
                   <button type="button" @click="addSkill" class="btn btn-success fw-bold px-4">
                     + Ajouter
@@ -2565,7 +2934,7 @@
                   </button>
                 </div>
 
-                <!-- Live Skills Tags -->
+                <!-- Live Skills Tags with interactive level badge -->
                 <div class="d-flex flex-wrap gap-2 p-3 bg-light rounded-4 min-h-60">
                   <span 
                     v-for="(sk, skIdx) in portfolioForm.skills" 
@@ -2574,6 +2943,22 @@
                   >
                     <span>{{ typeof sk === 'object' ? sk.name : sk }}</span>
                     <small v-if="typeof sk === 'object' && sk.category" class="text-muted extra-small">({{ sk.category }})</small>
+
+                    <!-- Interactive level badge select -->
+                    <select 
+                      v-if="typeof sk === 'object'" 
+                      v-model="sk.level" 
+                      class="form-select form-select-xs border-0 rounded-pill py-0 px-2 extra-small fw-bold"
+                      :class="getSkillLevelBadgeClass(sk.level)"
+                      style="font-size: 11px; width: auto; cursor: pointer;"
+                      title="Changer le niveau (Débutant, Intermédiaire, Avancé, Expert)"
+                    >
+                      <option value="Débutant">Débutant</option>
+                      <option value="Intermédiaire">Intermédiaire</option>
+                      <option value="Avancé">Avancé</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+
                     <i @click="removeSkill(skIdx)" class="bi bi-x-circle text-danger cursor-pointer fs-6"></i>
                   </span>
                   <span v-if="!portfolioForm.skills.length" class="text-muted extra-small my-auto">
@@ -2830,6 +3215,9 @@
                         <span v-if="portfolioForm.location" class="badge bg-light text-dark border extra-small">
                           📍 {{ portfolioForm.location }}
                         </span>
+                        <span v-if="portfolioForm.portfolio_layout.years_of_experience" class="badge bg-primary-subtle text-primary border extra-small fw-bold">
+                          💼 {{ portfolioForm.portfolio_layout.years_of_experience }}
+                        </span>
                         <span class="badge bg-success-subtle text-success border extra-small fw-bold">
                           ⚡ {{ user.xp || 0 }} XP &bull; {{ user.rank_title || 'Novice Tech' }}
                         </span>
@@ -2853,8 +3241,9 @@
                           
                           <!-- Mini previews depending on block type -->
                           <div v-if="b.id === 'skills'" class="d-flex flex-wrap gap-1">
-                            <span v-for="sk in portfolioForm.skills.slice(0, 8)" :key="sk.name || sk" class="badge bg-light text-dark border extra-small">
-                              {{ sk.name || sk }}
+                            <span v-for="sk in portfolioForm.skills.slice(0, 8)" :key="sk.name || sk" class="badge bg-light text-dark border extra-small d-inline-flex align-items-center gap-1">
+                              <span>{{ sk.name || sk }}</span>
+                              <span v-if="sk.level" class="badge bg-secondary extra-small py-0 px-1" style="font-size: 9px;">{{ sk.level }}</span>
                             </span>
                             <span v-if="!portfolioForm.skills.length" class="extra-small text-muted italic">Aucune compétence renseignée</span>
                           </div>
@@ -2874,6 +3263,16 @@
                           </div>
                         </div>
                       </template>
+                    </div>
+
+                    <!-- Preview Footer -->
+                    <div class="text-center py-3 mt-4 border-top">
+                      <p v-if="portfolioForm.portfolio_layout.footer.custom_text" class="small fw-semibold text-dark mb-1">
+                        {{ portfolioForm.portfolio_layout.footer.custom_text }}
+                      </p>
+                      <small class="extra-small text-muted d-block">
+                        © Tech237 &bull; Portfolio certifié hébergé sur Tech237
+                      </small>
                     </div>
 
                   </div>
@@ -4240,8 +4639,88 @@ const portfolioSubTab = ref('layout')
 const isSavingPortfolio = ref(false)
 const portfolioToastMsg = ref('')
 const isPortfolioCopied = ref(false)
+const isSidebarCollapsed = ref(false)
 const newSkillName = ref('')
 const newSkillCategory = ref('Backend')
+const newSkillLevel = ref('Avancé')
+const bgUploadLoading = ref(false)
+const bgUploadError = ref('')
+
+const layoutStructuresList = [
+  { id: 'single', name: 'Flux Vertical Standard', icon: '📜', desc: 'Lecture linéaire fluide, idéal pour un storytelling professionnel naturel.' },
+  { id: 'bento', name: 'Grille Bento 2 Colonnes', icon: '🍱', desc: 'Cartes asymétriques modernes style Apple avec blocs mi-largeur.' },
+  { id: 'bento_3col', name: 'Grille Bento 3 Colonnes', icon: '🧱', desc: 'Densité visuelle élevée pour afficher un maximum de projets et skills.' },
+  { id: 'bento_asym', name: 'Bento Asymétrique Pro', icon: '📐', desc: 'Composition dynamique avec grands blocs vedettes et sous-cartes.' },
+  { id: 'cv_split', name: 'CV Split Suisse (Gauche)', icon: '📑', desc: 'Colonne latérale profil & skills fixe à gauche + réalisations à droite.' },
+  { id: 'cv_split_right', name: 'CV Split Droite', icon: '📋', desc: 'Profil et coordonnées fixés à droite avec grand flux principal à gauche.' },
+  { id: 'tabbed', name: 'Application Web à Onglets', icon: '📑', desc: 'Navigation par onglets (Accueil, Stack, Projets, Parcours, Contact).' },
+  { id: 'tabbed_pills', name: 'Multi-Pages Pilules Flottantes', icon: '💊', desc: 'Onglets arrondis flottants avec compteurs de badges dynamiques.' },
+  { id: 'tabbed_vertical', name: 'Multi-Pages Barre Latérale', icon: '🗂️', desc: 'Menu à onglets vertical sur le côté gauche façon SaaS moderne.' },
+  { id: 'terminal', name: 'Terminal Dev Console', icon: '>_', desc: 'Fenêtre Unix geek avec commandes bash et syntaxe monospacée.' },
+  { id: 'code_editor', name: 'Éditeur de Code IDE', icon: '💻', desc: 'Interface style VS Code avec onglets de fichiers et arborescence.' },
+  { id: 'cyberpunk', name: 'Cyberpunk HUD Sci-Fi', icon: '🤖', desc: 'Lignes néon, grille futuriste et accents haute technologie.' },
+  { id: 'magazine', name: 'Magazine Tech Éditorial', icon: '📰', desc: 'Mise en page éditoriale soignée façon presse tech et grands dossiers.' },
+  { id: 'roadmap', name: 'Roadmap & Chronologie', icon: '🗺️', desc: 'Mise en avant chronologique des jalons, projets et carrières.' },
+  { id: 'zen', name: 'Carte de Visite Zen Minimal', icon: '🧘', desc: 'Design épuré et minimaliste pour aller droit à l’essentiel.' },
+  { id: 'spotlight', name: 'Showcase Projets Spotlight', icon: '🔦', desc: 'Projets vedettes grand format avec logos géants et pitch immersif.' },
+  { id: 'deck', name: 'Deck de Cartes Interactives', icon: '🃏', desc: 'Présentation par cartes élégantes avec ombres portées et hover 3D.' },
+  { id: 'accordion', name: 'Portfolio Accordéon Dépliable', icon: '🪗', desc: 'Sections rétractables pour une exploration compacte et ciblée.' },
+  { id: 'dashboard_saas', name: 'Dashboard SaaS Moderne', icon: '📊', desc: 'Widgets d\'indicateurs clés, métriques XP et blocs d\'activités.' },
+  { id: 'smartphone', name: 'Mobile-First Smartphone Mockup', icon: '📱', desc: 'Affichage dans un mockup de smartphone moderne centré.' },
+  { id: 'retro_90s', name: 'Rétro 90s Geocities Tech', icon: '💾', desc: 'Ambiance nostalgique vintage des débuts du web informatique.' },
+  { id: 'glassmorphism', name: 'Glassmorphism Ultra Frost', icon: '🧊', desc: 'Cartes en verre dépoli avec reflets lumineux et flous d’arrière-plan.' },
+  { id: 'neumorphism', name: 'Neumorphism Soft UI 3D', icon: '☁️', desc: 'Reliefs doux et boutons sculptés tout en ombres portées subtiles.' },
+  { id: 'brutalist', name: 'Brutalisme High-Contrast', icon: '⬛', desc: 'Bordures épaisses noires, typographie audacieuse et style percutant.' },
+  { id: 'compact', name: 'Micro-Site Express One-Screen', icon: '⚡', desc: 'Tout votre profil condensé sur un seul écran sans défilement superflu.' },
+  { id: 'pitch_deck', name: 'Startup Pitch Deck', icon: '🎯', desc: 'Format présentation d’entreprise pour séduire investisseurs et clients.' },
+  { id: 'horizontal', name: 'Galerie Défilement Horizontal', icon: '↔️', desc: 'Glissement panoramique des projets et réalisations de gauche à droite.' },
+  { id: 'executive', name: 'Executive Résumé Recruteur', icon: '👔', desc: 'Format standardisé corporate optimisé pour cabinets de recrutement.' },
+  { id: 'matrix_grid', name: 'Matrix Cyber Grid', icon: '🟩', desc: 'Ambiance matrice verte avec accents numériques haute performance.' },
+  { id: 'creative_hub', name: 'Creative Hub & Studio', icon: '🎨', desc: 'Palette chaleureuse pensée pour designers, créateurs et fondateurs.' }
+]
+
+function getSkillLevelBadgeClass(level) {
+  const l = (level || '').toLowerCase()
+  if (l.includes('expert')) return 'bg-success text-white'
+  if (l.includes('avancé') || l.includes('avance')) return 'bg-primary text-white'
+  if (l.includes('intermédiaire') || l.includes('intermediaire')) return 'bg-warning text-dark'
+  if (l.includes('débutant') || l.includes('debutant')) return 'bg-info text-dark'
+  return 'bg-secondary text-white'
+}
+
+async function uploadBgFile(file) {
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    bgUploadError.value = 'Le fichier doit être une image (PNG, JPG, WEBP, SVG).'
+    return
+  }
+  bgUploadLoading.value = true
+  bgUploadError.value = ''
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+    const res = await axios.post('/espace-utilisateur/portfolio/upload-bg', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (res.data && res.data.url) {
+      portfolioForm.value.portfolio_layout.bg_image = res.data.url
+    }
+  } catch (err) {
+    bgUploadError.value = err.response?.data?.error || 'Erreur lors du téléversement de l\'image.'
+  } finally {
+    bgUploadLoading.value = false
+  }
+}
+
+function handleBgDrop(e) {
+  const file = e.dataTransfer?.files?.[0]
+  if (file) uploadBgFile(file)
+}
+
+function handleBgFileSelect(e) {
+  const file = e.target?.files?.[0]
+  if (file) uploadBgFile(file)
+}
 
 const defaultBlocksList = [
   { id: 'hero', name: 'En-tête & Présentation', enabled: true, width: 'full', icon: 'bi-person-badge', desc: 'Photo, nom, titre pro, localisation et disponibilité' },
@@ -4279,7 +4758,32 @@ const portfolioForm = ref({
     accent_color: initialUserLayout.accent_color || '#00A859',
     hero_style: initialUserLayout.hero_style || 'centered',
     projects_style: initialUserLayout.projects_style || 'cards',
+    projects_columns: initialUserLayout.projects_columns || 2,
     skills_style: initialUserLayout.skills_style || 'chips',
+    ambient_effect: initialUserLayout.ambient_effect || 'none',
+    page_animation: initialUserLayout.page_animation || 'fade',
+    bg_image: initialUserLayout.bg_image || '',
+    bg_image_opacity: initialUserLayout.bg_image_opacity ?? 30,
+    bg_image_blur: initialUserLayout.bg_image_blur ?? 0,
+    bg_image_size: initialUserLayout.bg_image_size || 'cover',
+    years_of_experience: initialUserLayout.years_of_experience || '',
+    tabbed_nav: initialUserLayout.tabbed_nav || {
+      enabled: false,
+      style: 'pills',
+      default_tab: 'all'
+    },
+    preloader: initialUserLayout.preloader || {
+      enabled: false,
+      style: 'spinner',
+      text: 'Chargement du portfolio...',
+      duration: 1.0
+    },
+    footer: initialUserLayout.footer || {
+      custom_text: '',
+      show_socials: true,
+      show_tech237_badge: true,
+      show_back_to_top: true
+    },
     blocks: Array.isArray(initialUserLayout.blocks) && initialUserLayout.blocks.length > 0 
       ? JSON.parse(JSON.stringify(initialUserLayout.blocks)) 
       : JSON.parse(JSON.stringify(defaultBlocksList)),
@@ -4357,7 +4861,7 @@ function addSkill() {
     portfolioForm.value.skills.push({
       name: s,
       category: newSkillCategory.value || 'Général',
-      level: 'Avancé',
+      level: newSkillLevel.value || 'Avancé',
     })
   }
   newSkillName.value = ''
@@ -4369,7 +4873,7 @@ function addQuickSkill(name, cat) {
     portfolioForm.value.skills.push({
       name,
       category: cat || 'Tech',
-      level: 'Avancé',
+      level: newSkillLevel.value || 'Avancé',
     })
   }
 }

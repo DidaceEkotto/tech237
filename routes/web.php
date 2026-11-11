@@ -303,6 +303,7 @@ Route::middleware('auth:web')->group(function () {
 
     // Portfolio Settings & Customization
     Route::post('/espace-utilisateur/portfolio/save', [App\Http\Controllers\User\PortfolioController::class, 'save'])->name('user.portfolio.save');
+    Route::post('/espace-utilisateur/portfolio/upload-bg', [App\Http\Controllers\User\PortfolioController::class, 'uploadBg'])->name('user.portfolio.upload-bg');
 });
 
 // Public Project Roadmap

@@ -99,4 +99,78 @@ class PortfolioTest extends TestCase
         // Assert view counter incremented
         $this->assertGreaterThan(0, $user->fresh()->portfolio_views);
     }
+
+    public function test_user_can_upload_custom_background_image()
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+
+        $user = User::factory()->create([
+            'username' => 'artist237',
+        ]);
+
+        $file = \Illuminate\Http\UploadedFile::fake()->image('custom_bg.png', 1200, 800);
+
+        $response = $this->actingAs($user, 'web')->post('/espace-utilisateur/portfolio/upload-bg', [
+            'image' => $file,
+        ]);
+
+        $response->assertStatus(200);
+        $response->assertJson([
+            'success' => true,
+        ]);
+    }
+
+    public function test_user_can_save_extended_customization_including_snow_tabs_and_preloader()
+    {
+        $user = User::factory()->create([
+            'username' => 'fullcustom',
+        ]);
+
+        $payload = [
+            'username' => 'fullcustom',
+            'headline' => 'Tech Lead & CTO',
+            'portfolio_layout' => [
+                'theme' => 'cyber',
+                'ambient_effect' => 'snow',
+                'years_of_experience' => '+6 ans',
+                'projects_columns' => 3,
+                'projects_style' => 'carousel',
+                'page_animation' => 'slide_up',
+                'tabbed_nav' => [
+                    'enabled' => true,
+                    'style' => 'pills',
+                    'default_tab' => 'skills',
+                ],
+                'preloader' => [
+                    'enabled' => true,
+                    'style' => 'terminal',
+                    'text' => 'Booting workspace...',
+                    'duration' => 1.5,
+                ],
+                'footer' => [
+                    'custom_text' => '<b>© 2026 Dev</b>',
+                    'show_socials' => true,
+                    'show_tech237_badge' => true,
+                    'show_back_to_top' => true,
+                ],
+            ],
+            'skills' => [
+                ['name' => 'Docker', 'category' => 'DevOps', 'level' => 'Expert'],
+                ['name' => 'Go', 'category' => 'Backend', 'level' => 'Avancé'],
+            ],
+            'portfolio_published' => true,
+        ];
+
+        $response = $this->actingAs($user, 'web')->postJson('/espace-utilisateur/portfolio/save', $payload);
+        $response->assertStatus(200);
+        $response->assertJson(['success' => true]);
+
+        $user->refresh();
+        $this->assertEquals('snow', $user->portfolio_layout['ambient_effect']);
+        $this->assertEquals('+6 ans', $user->portfolio_layout['years_of_experience']);
+        $this->assertEquals('carousel', $user->portfolio_layout['projects_style']);
+        $this->assertEquals(3, $user->portfolio_layout['projects_columns']);
+        $this->assertTrue($user->portfolio_layout['tabbed_nav']['enabled']);
+        $this->assertEquals('Expert', $user->skills[0]['level']);
+    }
 }

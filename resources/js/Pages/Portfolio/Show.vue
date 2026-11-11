@@ -25,8 +25,85 @@
       <meta name="twitter:description" :content="seoDescription">
     </Head>
 
+    <!-- CUSTOM BACKGROUND IMAGE LAYER -->
+    <div 
+      v-if="bgImageUrl" 
+      class="portfolio-custom-bg-layer position-fixed top-0 start-0 w-100 h-100 pointer-events-none d-print-none"
+      :style="customBgStyle"
+    ></div>
+
+    <!-- PRELOADER SPLASH SCREEN -->
+    <transition name="preloader-fade">
+      <div 
+        v-if="showPreloader" 
+        class="preloader-overlay position-fixed top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center d-print-none"
+        :class="'theme-' + currentTheme"
+      >
+        <div v-if="preloaderConfig.style === 'pulse_logo'" class="text-center p-4">
+          <img src="/assets/images/logo.png" alt="Tech237" class="preloader-pulse-logo mb-3" style="height: 68px; object-fit: contain;">
+          <h3 class="fw-bold fs-5 text-dark mb-1">{{ portfolioUser.name }}</h3>
+          <p class="text-muted small mb-0">{{ preloaderConfig.text || 'Chargement du portfolio...' }}</p>
+        </div>
+
+        <div v-else-if="preloaderConfig.style === 'terminal'" class="p-4 rounded-4 bg-dark text-success font-monospace shadow-lg" style="max-width: 460px; width: 90%;">
+          <div class="mb-2 text-white-50 extra-small">&gt; boot system --user={{ portfolioUser.username }}</div>
+          <div class="mb-2 text-white-50 extra-small">&gt; initializing stack &amp; projects...</div>
+          <div class="fw-bold text-success">&gt; {{ preloaderConfig.text || 'Portfolio ready.' }} <span class="blink-cursor">_</span></div>
+        </div>
+
+        <div v-else-if="preloaderConfig.style === 'progress_bar'" class="text-center p-4" style="max-width: 340px; width: 85%;">
+          <div class="fw-bold fs-6 text-dark mb-2">{{ preloaderConfig.text || 'Chargement du profil...' }}</div>
+          <div class="progress rounded-pill shadow-xs" style="height: 8px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated rounded-pill w-100" :style="{ backgroundColor: accentColor }"></div>
+          </div>
+        </div>
+
+        <div v-else-if="preloaderConfig.style === 'dots'" class="text-center p-4">
+          <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
+            <span class="bounce-dot dot-1" :style="{ backgroundColor: accentColor }"></span>
+            <span class="bounce-dot dot-2" :style="{ backgroundColor: accentColor }"></span>
+            <span class="bounce-dot dot-3" :style="{ backgroundColor: accentColor }"></span>
+          </div>
+          <div class="fw-bold fs-6 text-dark">{{ preloaderConfig.text || 'Chargement en cours...' }}</div>
+        </div>
+
+        <div v-else class="text-center p-4">
+          <div class="spinner-border text-success mb-3" style="width: 3.2rem; height: 3.2rem;" :style="{ color: accentColor + ' !important' }" role="status"></div>
+          <div class="fw-bold fs-6 text-dark">{{ preloaderConfig.text || 'Chargement du portfolio...' }}</div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- AMBIENT PARTICLES OVERLAY (Snow, Confetti, Stars, Matrix, Bubbles) -->
+    <div v-if="ambientEffect !== 'none'" class="ambient-effects-layer pointer-events-none d-print-none" :class="'ambient-' + ambientEffect">
+      <!-- SNOW EFFECT (Christmas & Holidays) -->
+      <template v-if="ambientEffect === 'snow'">
+        <div v-for="n in 35" :key="'snow-' + n" class="snowflake" :style="getSnowflakeStyle(n)">❄</div>
+      </template>
+
+      <!-- CONFETTI EFFECT -->
+      <template v-if="ambientEffect === 'confetti'">
+        <div v-for="n in 30" :key="'confetti-' + n" class="confetti-piece" :style="getConfettiStyle(n)"></div>
+      </template>
+
+      <!-- STARS EFFECT -->
+      <template v-if="ambientEffect === 'stars'">
+        <div v-for="n in 25" :key="'star-' + n" class="ambient-star" :style="getStarStyle(n)">✦</div>
+      </template>
+
+      <!-- MATRIX EFFECT -->
+      <template v-if="ambientEffect === 'matrix'">
+        <div v-for="n in 18" :key="'matrix-' + n" class="matrix-column" :style="getMatrixStyle(n)">10101100</div>
+      </template>
+
+      <!-- BUBBLES EFFECT -->
+      <template v-if="ambientEffect === 'bubbles'">
+        <div v-for="n in 20" :key="'bubble-' + n" class="ambient-bubble" :style="getBubbleStyle(n)"></div>
+      </template>
+    </div>
+
     <!-- TOP FLOATING BAR (Screen only, hidden on print) -->
-    <header class="portfolio-nav sticky-top py-2 px-3 px-md-4 d-print-none shadow-2xs backdrop-blur">
+    <header class="portfolio-nav sticky-top py-2 px-3 px-md-4 d-print-none shadow-2xs backdrop-blur position-relative z-10">
       <div class="container d-flex align-items-center justify-content-between">
         
         <!-- Brand & Verified Badge -->
@@ -103,749 +180,970 @@
       </div>
     </header>
 
-    <!-- MODE 1 & 2: SINGLE COLUMN & BENTO GRID CONTAINER -->
-    <main v-if="currentStructure !== 'cv_split'" class="container py-4 py-md-5" :style="{ maxWidth: currentStructure === 'bento' ? '1180px' : '980px' }">
-      
-      <!-- Terminal Console Window Wrapper (If Structure === 'terminal') -->
-      <div v-if="currentStructure === 'terminal'" class="terminal-super-window rounded-4 shadow-lg mb-4 overflow-hidden border border-secondary border-opacity-50">
-        <div class="terminal-bar bg-dark px-3 py-2 d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25">
-          <div class="d-flex align-items-center gap-2">
-            <span class="rounded-circle bg-danger d-inline-block" style="width: 12px; height: 12px;"></span>
-            <span class="rounded-circle bg-warning d-inline-block" style="width: 12px; height: 12px;"></span>
-            <span class="rounded-circle bg-success d-inline-block" style="width: 12px; height: 12px;"></span>
-          </div>
-          <span class="font-monospace extra-small text-white-50">bash — {{ portfolioUser.username }}@tech237:~$ portfolio</span>
-          <span class="badge bg-secondary extra-small font-monospace">ONLINE</span>
-        </div>
+    <!-- TABBED MULTI-PAGE NAVIGATION BAR (When structure is tabbed or use_tabs is enabled) -->
+    <div v-if="isTabbedMode" class="portfolio-tabbed-bar sticky-top py-2 px-3 d-print-none backdrop-blur border-bottom shadow-xs position-relative z-10" style="top: 50px;">
+      <div class="container d-flex align-items-center justify-content-center flex-wrap gap-2">
+        <button 
+          v-for="t in availableTabs" 
+          :key="t.id"
+          type="button" 
+          @click="activeTab = t.id" 
+          class="btn btn-sm rounded-pill px-3 py-1 fw-bold transition d-inline-flex align-items-center gap-2"
+          :class="activeTab === t.id ? 'btn-primary shadow-sm text-white' : 'btn-light border text-dark'"
+          :style="activeTab === t.id ? { backgroundColor: accentColor, borderColor: accentColor } : {}"
+        >
+          <span>{{ t.icon }}</span>
+          <span>{{ t.label }}</span>
+          <span v-if="t.count !== undefined" class="badge bg-white text-dark rounded-pill extra-small px-2">{{ t.count }}</span>
+        </button>
       </div>
+    </div>
 
-      <!-- Bento Grid or Single Stream -->
-      <div :class="currentStructure === 'bento' ? 'row g-4' : 'd-flex flex-column gap-4'">
-        
-        <template v-for="block in orderedBlocks" :key="block.id">
+    <!-- MAIN BODY CONTAINER WITH PAGE ENTRY ANIMATION -->
+    <div :class="['position-relative z-1', 'page-anim-' + pageAnimation]">
+
+      <!-- MODE A: CV SPLIT LAYOUT (Left or Right Column) -->
+      <main v-if="currentStructure === 'cv_split' || currentStructure === 'cv_split_right'" class="container py-4 py-md-5">
+        <div class="row g-4" :class="currentStructure === 'cv_split_right' ? 'flex-row-reverse' : ''">
           
-          <div 
-            v-if="block.enabled && shouldRenderBlock(block.id)" 
-            :class="currentStructure === 'bento' ? (block.width === 'half' ? 'col-12 col-lg-6' : 'col-12') : 'w-100'"
-          >
-            <!-- 1. HERO / HEADER BLOCK -->
-            <section v-if="block.id === 'hero'" class="portfolio-block h-100">
+          <!-- Sticky Sidebar Profile Column (~35%) -->
+          <aside class="col-12 col-lg-4">
+            <div class="card p-4 rounded-4 shadow-sm border-0 content-card sticky-lg-top" style="top: 80px;">
               
-              <!-- Variant: Centered (Default) -->
-              <div v-if="heroStyle === 'centered'" class="hero-box hero-centered text-center p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
-                <div class="hero-glow-orb"></div>
-                <div class="position-relative z-1">
-                  <!-- Avatar with Rank Ring -->
-                  <div class="d-inline-block position-relative mb-3">
-                    <img 
-                      v-if="portfolioUser.avatar" 
-                      :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
-                      :alt="portfolioUser.name"
-                      class="rounded-circle border border-4 border-white shadow-md hero-avatar"
-                    />
-                    <div 
-                      v-else 
-                      class="rounded-circle border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar mx-auto"
-                      :style="{ backgroundColor: accentColor }"
-                    >
-                      {{ getInitials(portfolioUser.name) }}
-                    </div>
-
-                    <!-- Verified Check -->
-                    <span class="position-absolute bottom-0 end-0 badge rounded-circle bg-success border border-2 border-white p-1" title="Membre vérifié Tech237">
-                      <i class="bi bi-check-lg text-white" style="font-size: 11px;"></i>
-                    </span>
-                  </div>
-
-                  <!-- Name & Rank -->
-                  <h1 class="display-6 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
-                  
-                  <!-- Headline / Subtitle -->
-                  <p class="fs-5 fw-semibold mb-2 user-headline-text" :style="{ color: accentColor }">
-                    {{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}
-                  </p>
-
-                  <!-- Location & Availability Pills -->
-                  <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-3">
-                    <span v-if="portfolioUser.location" class="badge rounded-pill px-3 py-2 meta-pill">
-                      <i class="bi bi-geo-alt-fill me-1 text-danger"></i> {{ portfolioUser.location }}
-                    </span>
-                    
-                    <span class="badge rounded-pill px-3 py-2 availability-pill" :class="getAvailabilityClass(portfolioUser.availability)">
-                      <span class="status-pulse-dot me-1"></span>
-                      {{ getAvailabilityLabel(portfolioUser.availability) }}
-                    </span>
-
-                    <span class="badge rounded-pill px-3 py-2 meta-pill" :style="{ color: currentTier?.color || '#00A859' }">
-                      <i class="bi" :class="currentTier?.badge_icon || 'bi-trophy-fill'"></i>
-                      {{ portfolioUser.rank_title || currentTier?.name || 'Novice Tech' }} &bull; {{ portfolioUser.xp || 0 }} XP
-                    </span>
-                  </div>
-
-                  <!-- Contact & Social CTA Buttons -->
-                  <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mt-3 d-print-none">
-                    <a 
-                      v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" 
-                      :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
-                      target="_blank"
-                      class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
-                      style="background-color: #25D366;"
-                    >
-                      <i class="bi bi-whatsapp"></i>
-                      <span>Me contacter sur WhatsApp</span>
-                    </a>
-
-                    <Link 
-                      v-if="$page.props.auth?.user && $page.props.auth.user.id !== portfolioUser.id" 
-                      :href="'/espace-utilisateur?section=messages&recipient=' + portfolioUser.id" 
-                      class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
-                      :style="{ backgroundColor: accentColor }"
-                    >
-                      <i class="bi bi-chat-left-dots-fill"></i>
-                      <span>Envoyer un message</span>
-                    </Link>
-
-                    <button 
-                      type="button" 
-                      @click="printCV" 
-                      class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1"
-                    >
-                      <i class="bi bi-download"></i>
-                      <span>Télécharger CV</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Variant: Split (Asymmetrical 2 columns) -->
-              <div v-else-if="heroStyle === 'split'" class="hero-box hero-split p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
-                <div class="row align-items-center g-4">
-                  <div class="col-md-4 text-center text-md-start">
-                    <img 
-                      v-if="portfolioUser.avatar" 
-                      :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
-                      :alt="portfolioUser.name"
-                      class="rounded-4 border border-4 border-white shadow-md hero-avatar-sq"
-                    />
-                    <div 
-                      v-else 
-                      class="rounded-4 border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar-sq mx-auto mx-md-0"
-                      :style="{ backgroundColor: accentColor }"
-                    >
-                      {{ getInitials(portfolioUser.name) }}
-                    </div>
-                  </div>
-                  <div class="col-md-8 text-center text-md-start">
-                    <span class="badge rounded-pill px-3 py-1 availability-pill mb-2" :class="getAvailabilityClass(portfolioUser.availability)">
-                      <span class="status-pulse-dot me-1"></span>
-                      {{ getAvailabilityLabel(portfolioUser.availability) }}
-                    </span>
-                    <h1 class="display-6 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
-                    <p class="fs-5 fw-semibold mb-2 user-headline-text" :style="{ color: accentColor }">
-                      {{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}
-                    </p>
-                    <div class="d-flex align-items-center gap-3 flex-wrap justify-content-center justify-content-md-start mb-3">
-                      <span v-if="portfolioUser.location" class="meta-pill-text small">
-                        <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ portfolioUser.location }}
-                      </span>
-                      <span class="meta-pill-text small">
-                        <i class="bi bi-shield-check text-success me-1"></i>Membre #{{ rankPosition }} Tech237
-                      </span>
-                      <span class="meta-pill-text small fw-bold" :style="{ color: accentColor }">
-                        ⚡ {{ portfolioUser.xp || 0 }} XP
-                      </span>
-                    </div>
-                    <div class="d-flex gap-2 flex-wrap justify-content-center justify-content-md-start d-print-none">
-                      <a 
-                        v-if="portfolioUser.phone" 
-                        :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
-                        target="_blank"
-                        class="btn btn-sm rounded-pill px-3 py-2 fw-bold text-white shadow-2xs"
-                        style="background-color: #25D366;"
-                      >
-                        <i class="bi bi-whatsapp me-1"></i> WhatsApp
-                      </a>
-                      <button type="button" @click="printCV" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-2 fw-semibold">
-                        <i class="bi bi-file-earmark-arrow-down me-1"></i> CV PDF
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Variant: Terminal (Retro Geek Dark Console) -->
-              <div v-else-if="heroStyle === 'terminal'" class="hero-box hero-terminal p-4 rounded-4 shadow-md bg-dark text-light font-monospace h-100">
-                <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom border-secondary border-opacity-25">
-                  <div class="d-flex gap-2">
-                    <span class="rounded-circle bg-danger d-inline-block" style="width: 12px; height: 12px;"></span>
-                    <span class="rounded-circle bg-warning d-inline-block" style="width: 12px; height: 12px;"></span>
-                    <span class="rounded-circle bg-success d-inline-block" style="width: 12px; height: 12px;"></span>
-                  </div>
-                  <span class="extra-small text-secondary">bash - 80x24</span>
-                </div>
-                <div class="terminal-body small">
-                  <p class="mb-1 text-success">&gt; tech237 whoami --verbose</p>
-                  <p class="mb-1"><span class="text-info">NAME:</span> {{ portfolioUser.name }}</p>
-                  <p class="mb-1"><span class="text-info">ROLE:</span> {{ portfolioUser.headline || 'Fullstack Developer' }}</p>
-                  <p class="mb-1"><span class="text-info">LOCATION:</span> {{ portfolioUser.location || 'Douala / Remote' }}</p>
-                  <p class="mb-1"><span class="text-info">STATUS:</span> <span class="text-warning">{{ getAvailabilityLabel(portfolioUser.availability) }}</span></p>
-                  <p class="mb-2"><span class="text-info">TECH237_RANK:</span> Level {{ currentTier?.name }} [{{ portfolioUser.xp || 0 }} XP]</p>
-                  <p class="mb-0 text-success">&gt; ready for hire <span class="terminal-cursor">_</span></p>
-                </div>
-              </div>
-
-              <!-- Variant: Minimal (Clean & Simple) -->
-              <div v-else class="hero-box hero-minimal p-4 border-bottom text-start content-card h-100">
-                <div class="d-flex align-items-center gap-3">
-                  <img 
-                    v-if="portfolioUser.avatar" 
-                    :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
-                    :alt="portfolioUser.name"
-                    class="rounded-circle border"
-                    style="width: 72px; height: 72px; object-fit: cover;"
-                  />
-                  <div>
-                    <h1 class="h3 fw-bold mb-0 text-dark">{{ portfolioUser.name }}</h1>
-                    <p class="text-muted mb-1">{{ portfolioUser.headline }}</p>
-                    <small class="text-muted">{{ portfolioUser.location }} &bull; {{ getAvailabilityLabel(portfolioUser.availability) }}</small>
-                  </div>
-                </div>
-              </div>
-
-            </section>
-
-            <!-- 2. ABOUT / BIO BLOCK -->
-            <section v-else-if="block.id === 'about' && portfolioUser.bio" class="portfolio-block h-100">
-              <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                  <span class="section-icon-badge" :style="{ color: accentColor }">
-                    <i class="bi bi-person-lines-fill fs-5"></i>
-                  </span>
-                  <h2 class="h5 fw-bold mb-0 section-heading">À propos de moi</h2>
-                </div>
-                <p class="text-content leading-relaxed mb-0" style="white-space: pre-line;">
-                  {{ portfolioUser.bio }}
-                </p>
-              </div>
-            </section>
-
-            <!-- 3. SKILLS & STACK BLOCK -->
-            <section v-else-if="block.id === 'skills' && (portfolioUser.skills && portfolioUser.skills.length)" class="portfolio-block h-100">
-              <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="section-icon-badge" :style="{ color: accentColor }">
-                      <i class="bi bi-cpu-fill fs-5"></i>
-                    </span>
-                    <h2 class="h5 fw-bold mb-0 section-heading">Compétences &amp; Stack Technique</h2>
-                  </div>
-                  <span class="badge bg-secondary-subtle text-secondary rounded-pill extra-small">
-                    {{ portfolioUser.skills.length }} compétence(s)
-                  </span>
-                </div>
-
-                <!-- Chips Variant -->
-                <div v-if="skillsStyle === 'chips'" class="d-flex flex-wrap gap-2">
-                  <span 
-                    v-for="(skill, sIdx) in portfolioUser.skills" 
-                    :key="sIdx"
-                    class="skill-chip badge rounded-pill px-3 py-2 fw-semibold fs-6 shadow-2xs"
-                    :style="{ backgroundColor: getSkillBg(sIdx), color: getSkillColor(sIdx) }"
-                  >
-                    {{ typeof skill === 'object' ? skill.name : skill }}
-                    <small v-if="typeof skill === 'object' && skill.level" class="opacity-75 ms-1">&bull; {{ skill.level }}</small>
-                  </span>
-                </div>
-
-                <!-- Bars Variant -->
-                <div v-else-if="skillsStyle === 'bars'" class="row g-3">
-                  <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" class="col-md-6">
-                    <div class="d-flex justify-content-between small fw-bold mb-1">
-                      <span>{{ typeof skill === 'object' ? skill.name : skill }}</span>
-                      <span class="text-muted">{{ typeof skill === 'object' && skill.level ? skill.level : 'Avancé' }}</span>
-                    </div>
-                    <div class="progress rounded-pill" style="height: 8px;">
-                      <div class="progress-bar rounded-pill" :style="{ width: getSkillPercent(skill) + '%', backgroundColor: accentColor }"></div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Categorized Variant -->
-                <div v-else class="row g-3">
-                  <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" class="col-6 col-md-4">
-                    <div class="p-3 rounded-3 text-center border skill-grid-box h-100">
-                      <strong class="d-block text-dark small mb-1">{{ typeof skill === 'object' ? skill.name : skill }}</strong>
-                      <span class="extra-small text-muted">{{ typeof skill === 'object' && skill.category ? skill.category : 'Tech' }}</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </section>
-
-            <!-- 4. PROJECTS BLOCK -->
-            <section v-else-if="block.id === 'projects' && projects.length" class="portfolio-block h-100">
-              <div class="d-flex align-items-center justify-content-between mb-3">
-                <div class="d-flex align-items-center gap-2">
-                  <span class="section-icon-badge" :style="{ color: accentColor }">
-                    <i class="bi bi-rocket-takeoff-fill fs-5"></i>
-                  </span>
-                  <h2 class="h5 fw-bold mb-0 section-heading">Projets &amp; Réalisations</h2>
-                </div>
-                <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 extra-small fw-bold">
-                  {{ projects.length }} projet(s)
-                </span>
-              </div>
-
-              <!-- Cards Grid Variant -->
-              <div v-if="projectsStyle === 'cards'" class="row g-4">
-                <div v-for="proj in projects" :key="proj.id" class="col-md-6">
-                  <div class="card border-0 rounded-4 shadow-sm h-100 content-card p-4 d-flex flex-column justify-content-between transition-hover">
-                    <div>
-                      <div class="d-flex align-items-center gap-3 mb-3">
-                        <img 
-                          v-if="proj.logo" 
-                          :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
-                          class="rounded-3 border" 
-                          style="width: 48px; height: 48px; object-fit: contain;" 
-                          :alt="proj.name"
-                        />
-                        <div v-else class="rounded-3 text-white fw-bold d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;" :style="{ backgroundColor: accentColor }">
-                          <i class="bi bi-rocket-takeoff"></i>
-                        </div>
-                        <div class="min-w-0">
-                          <h3 class="h6 fw-bold mb-0 text-truncate">{{ proj.name }}</h3>
-                          <small class="text-muted extra-small">{{ proj.category || 'Tech & Software' }}</small>
-                        </div>
-                      </div>
-                      <p class="small text-muted mb-3 leading-relaxed">
-                        {{ proj.pitch || proj.description || 'Projet innovant propulsé sur Tech237.' }}
-                      </p>
-                    </div>
-
-                    <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto">
-                      <div class="d-flex align-items-center gap-2 extra-small text-muted">
-                        <span v-if="proj.views_count"><i class="bi bi-eye me-1"></i>{{ proj.views_count }}</span>
-                        <span v-if="proj.upvotes_count"><i class="bi bi-heart-fill text-danger me-1"></i>{{ proj.upvotes_count }}</span>
-                      </div>
-                      <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold extra-small d-print-none">
-                        Voir la fiche &rarr;
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Timeline Variant -->
-              <div v-else class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
-                <div class="timeline-stream d-flex flex-column gap-4">
-                  <div v-for="proj in projects" :key="proj.id" class="d-flex gap-3 position-relative">
-                    <div class="timeline-dot rounded-circle flex-shrink-0 mt-1" :style="{ backgroundColor: accentColor }"></div>
-                    <div class="flex-grow-1">
-                      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <h3 class="h6 fw-bold text-dark mb-0">{{ proj.name }}</h3>
-                        <span class="badge bg-light text-muted border extra-small">{{ proj.category || 'Web / Mobile' }}</span>
-                      </div>
-                      <p class="small text-muted mt-1 mb-2">{{ proj.pitch || proj.description }}</p>
-                      <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-xs btn-link p-0 text-decoration-none fw-bold" :style="{ color: accentColor }">
-                        Découvrir ce projet sur Tech237 &rarr;
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- 5. POCS / MINI-ACTUS BLOCK -->
-            <section v-else-if="block.id === 'pocs' && pocs.length" class="portfolio-block h-100">
-              <div class="d-flex align-items-center justify-content-between mb-3">
-                <div class="d-flex align-items-center gap-2">
-                  <span class="section-icon-badge" :style="{ color: accentColor }">
-                    <i class="bi bi-lightning-charge-fill fs-5 text-warning"></i>
-                  </span>
-                  <h2 class="h5 fw-bold mb-0 section-heading">Mini-Actus &amp; Veille Tech (POCs)</h2>
-                </div>
-                <span class="badge bg-warning-subtle text-dark rounded-pill px-3 py-1 extra-small fw-bold">
-                  {{ pocs.length }} POC(s)
-                </span>
-              </div>
-
-              <div class="row g-3">
-                <div v-for="poc in pocs.slice(0, 4)" :key="poc.id" class="col-md-6">
-                  <div class="card p-3 rounded-4 shadow-sm border-0 content-card h-100 d-flex flex-column justify-content-between">
-                    <div>
-                      <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="badge bg-warning text-dark extra-small rounded-pill px-2 py-0">⚡ POC</span>
-                        <small class="text-muted extra-small">{{ formatDateShort(poc.published_at || poc.created_at) }}</small>
-                      </div>
-                      <h3 class="h6 fw-bold mb-1">
-                        <a :href="'/pocs/' + (poc.slug || poc.id)" target="_blank" class="text-dark text-decoration-none hover-underline">
-                          {{ poc.title }}
-                        </a>
-                      </h3>
-                      <p class="extra-small text-muted mb-2 text-truncate-2">
-                        {{ poc.summary || 'Partage de veille et mini-actualité tech.' }}
-                      </p>
-                    </div>
-                    <div class="d-flex align-items-center justify-content-between pt-2 border-top extra-small text-muted">
-                      <span><i class="bi bi-eye me-1"></i>{{ poc.views_count || 0 }} vues</span>
-                      <a :href="'/pocs/' + (poc.slug || poc.id)" target="_blank" class="text-success fw-bold text-decoration-none d-print-none">
-                        Lire &rarr;
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- 6. EXPERIENCES BLOCK -->
-            <section v-else-if="block.id === 'experiences' && (portfolioUser.experiences && portfolioUser.experiences.length)" class="portfolio-block h-100">
-              <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                <div class="d-flex align-items-center gap-2 mb-4">
-                  <span class="section-icon-badge" :style="{ color: accentColor }">
-                    <i class="bi bi-briefcase-fill fs-5"></i>
-                  </span>
-                  <h2 class="h5 fw-bold mb-0 section-heading">Parcours &amp; Expériences</h2>
-                </div>
-
-                <div class="d-flex flex-column gap-4">
-                  <div v-for="(exp, eIdx) in portfolioUser.experiences" :key="eIdx" class="experience-item d-flex gap-3 position-relative">
-                    <div class="timeline-dot rounded-circle flex-shrink-0 mt-1" :style="{ backgroundColor: accentColor }"></div>
-                    <div class="flex-grow-1">
-                      <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2">
-                        <h3 class="h6 fw-bold mb-0 text-dark">{{ exp.role }}</h3>
-                        <span class="badge bg-light text-muted border extra-small">{{ exp.period }}</span>
-                      </div>
-                      <strong class="d-block small text-muted mb-2" :style="{ color: accentColor }">
-                        {{ exp.company }} <span v-if="exp.location">&bull; {{ exp.location }}</span>
-                      </strong>
-                      <p v-if="exp.description" class="small text-muted mb-0 leading-relaxed" style="white-space: pre-line;">
-                        {{ exp.description }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- 7. EDUCATIONS BLOCK -->
-            <section v-else-if="block.id === 'educations' && (portfolioUser.educations && portfolioUser.educations.length)" class="portfolio-block h-100">
-              <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                <div class="d-flex align-items-center gap-2 mb-4">
-                  <span class="section-icon-badge" :style="{ color: accentColor }">
-                    <i class="bi bi-mortarboard-fill fs-5"></i>
-                  </span>
-                  <h2 class="h5 fw-bold mb-0 section-heading">Formations &amp; Diplômes</h2>
-                </div>
-
-                <div class="row g-3">
-                  <div v-for="(edu, dIdx) in portfolioUser.educations" :key="dIdx" class="col-md-6">
-                    <div class="p-3 rounded-3 bg-light border h-100">
-                      <span class="badge bg-white text-dark border extra-small mb-1">{{ edu.year }}</span>
-                      <strong class="d-block small text-dark fw-bold">{{ edu.degree }}</strong>
-                      <span class="d-block extra-small text-muted mb-1">{{ edu.institution }}</span>
-                      <p v-if="edu.description" class="extra-small text-muted mb-0">{{ edu.description }}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- 8. BADGES & XP BLOCK -->
-            <section v-else-if="block.id === 'badges' && badges.length" class="portfolio-block h-100">
-              <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="section-icon-badge" :style="{ color: accentColor }">
-                      <i class="bi bi-trophy-fill fs-5 text-warning"></i>
-                    </span>
-                    <h2 class="h5 fw-bold mb-0 section-heading">Distinctions &amp; Badges Tech237</h2>
-                  </div>
-                  <span class="badge rounded-pill px-3 py-1 extra-small fw-bold text-white shadow-xs" :style="{ backgroundColor: currentTier?.color || '#00A859' }">
-                    Rang #{{ rankPosition }} national &bull; {{ portfolioUser.xp || 0 }} XP
-                  </span>
-                </div>
-
-                <div class="row g-3">
-                  <div v-for="b in badges" :key="b.id" class="col-6 col-md-4">
-                    <div class="p-3 rounded-4 bg-light border text-center h-100 d-flex flex-column align-items-center justify-content-center">
-                      <div class="rounded-circle text-white shadow-xs d-flex align-items-center justify-content-center p-2 mb-2" :style="{ width: '44px', height: '44px', backgroundColor: b.color || '#00A859' }">
-                        <i class="bi fs-5" :class="b.icon || 'bi-award-fill'"></i>
-                      </div>
-                      <strong class="small text-dark d-block mb-0">{{ b.name }}</strong>
-                      <small class="extra-small text-muted" style="font-size: 10px;">{{ b.description }}</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            <!-- 9. CUSTOM SECTIONS BLOCK -->
-            <section v-else-if="block.id === 'custom' && (portfolioUser.custom_sections && portfolioUser.custom_sections.length)" class="portfolio-block h-100">
-              <div v-for="(sec, cIdx) in portfolioUser.custom_sections" :key="cIdx" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card mb-4 h-100">
-                <div class="d-flex align-items-center gap-2 mb-3">
-                  <span class="section-icon-badge" :style="{ color: accentColor }">
-                    <i class="bi" :class="sec.icon || 'bi-stars'"></i>
-                  </span>
-                  <h2 class="h5 fw-bold mb-0 section-heading">{{ sec.title || 'Section complémentaire' }}</h2>
-                </div>
-                <div class="text-content leading-relaxed" style="white-space: pre-line;">
-                  {{ sec.content }}
-                </div>
-              </div>
-            </section>
-
-            <!-- 10. CONTACT & SOCIALS BLOCK -->
-            <section v-else-if="block.id === 'contact'" class="portfolio-block h-100">
-              <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card text-center h-100">
-                <h2 class="h4 fw-bold mb-2">Restons en contact !</h2>
-                <p class="text-muted small mb-4" style="max-width: 500px; margin: 0 auto 1.5rem auto;">
-                  Vous avez un projet innovant, une opportunité ou souhaitez collaborer ? N'hésitez pas à me contacter directement.
-                </p>
-
-                <div class="d-flex justify-content-center align-items-center gap-3 flex-wrap mb-4">
-                  <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-outline-dark rounded-circle p-2 shadow-2xs" style="width: 44px; height: 44px;" title="GitHub">
-                    <i class="bi bi-github fs-5"></i>
-                  </a>
-                  <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-outline-primary rounded-circle p-2 shadow-2xs" style="width: 44px; height: 44px;" title="LinkedIn">
-                    <i class="bi bi-linkedin fs-5"></i>
-                  </a>
-                  <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-outline-dark rounded-circle p-2 shadow-2xs" style="width: 44px; height: 44px;" title="Twitter / X">
-                    <i class="bi bi-twitter-x fs-5"></i>
-                  </a>
-                  <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-outline-success rounded-circle p-2 shadow-2xs" style="width: 44px; height: 44px;" title="Site Web Personnel">
-                    <i class="bi bi-globe2 fs-5"></i>
-                  </a>
-                  <a v-if="portfolioUser.phone" :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" target="_blank" class="btn btn-success rounded-circle p-2 shadow-2xs" style="width: 44px; height: 44px; background-color: #25D366; border-color: #25D366;" title="WhatsApp">
-                    <i class="bi bi-whatsapp fs-5 text-white"></i>
-                  </a>
-                  <a v-if="portfolioUser.email" :href="'mailto:' + portfolioUser.email" class="btn btn-outline-danger rounded-circle p-2 shadow-2xs" style="width: 44px; height: 44px;" title="Envoyer un email">
-                    <i class="bi bi-envelope-fill fs-5"></i>
-                  </a>
-                </div>
-
-                <div class="d-print-none">
-                  <Link 
-                    v-if="$page.props.auth?.user && $page.props.auth.user.id !== portfolioUser.id" 
-                    :href="'/espace-utilisateur?section=messages&recipient=' + portfolioUser.id" 
-                    class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm"
-                    :style="{ backgroundColor: accentColor }"
-                  >
-                    <i class="bi bi-chat-left-dots-fill me-1"></i> Envoyer un message privé
-                  </Link>
-                </div>
-              </div>
-            </section>
-
-          </div>
-
-        </template>
-
-      </div>
-
-      <!-- Footer Signature -->
-      <footer class="text-center py-4 text-muted small mt-4 border-top">
-        <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
-          <img src="/assets/images/logo.png" alt="Tech237" style="height: 20px; object-fit: contain;">
-          <span class="fw-bold">Tech237 Community</span>
-        </div>
-        <p class="extra-small text-muted mb-0">
-          Portfolio &amp; CV certifié généré sur Tech237 &bull; Là où les idées deviennent des projets au Cameroun.
-        </p>
-      </footer>
-
-    </main>
-
-    <!-- MODE 3: CV SPLIT EXECUTIVE (Sidebar Left + Main Stream Right) -->
-    <main v-else class="container py-4 py-md-5" style="max-width: 1180px;">
-      <div class="row g-4 align-items-start">
-        
-        <!-- Left Sidebar: Profile Identity, Availability, Contact, Skills, Badges -->
-        <aside class="col-12 col-lg-4 position-sticky" style="top: 80px;">
-          <div class="d-flex flex-column gap-4">
-            
-            <!-- Profile Identity Card -->
-            <div class="card p-4 rounded-4 shadow-sm border-0 content-card text-center">
-              <div class="position-relative d-inline-block mx-auto mb-3">
+              <!-- Avatar -->
+              <div class="text-center mb-3">
                 <img 
                   v-if="portfolioUser.avatar" 
                   :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
                   :alt="portfolioUser.name"
-                  class="rounded-circle border border-4 border-white shadow-md"
-                  style="width: 110px; height: 110px; object-fit: cover;"
+                  class="rounded-circle border border-4 border-white shadow-md hero-avatar mx-auto mb-2"
                 />
                 <div 
                   v-else 
-                  class="rounded-circle border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center mx-auto"
-                  style="width: 110px; height: 110px; font-size: 32px;"
+                  class="rounded-circle border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar mx-auto mb-2"
                   :style="{ backgroundColor: accentColor }"
                 >
                   {{ getInitials(portfolioUser.name) }}
                 </div>
-                <span class="position-absolute bottom-0 end-0 badge rounded-circle bg-success border border-2 border-white p-1" title="Vérifié Tech237">
-                  <i class="bi bi-check-lg text-white"></i>
+                
+                <h1 class="h4 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
+                <p class="small fw-semibold mb-2" :style="{ color: accentColor }">{{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}</p>
+                
+                <span class="badge rounded-pill px-3 py-1 availability-pill" :class="getAvailabilityClass(portfolioUser.availability)">
+                  <span class="status-pulse-dot me-1"></span>
+                  {{ getAvailabilityLabel(portfolioUser.availability) }}
                 </span>
               </div>
 
-              <h1 class="h4 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
-              <p class="small fw-semibold mb-2" :style="{ color: accentColor }">
-                {{ portfolioUser.headline || 'Développeur Tech237' }}
-              </p>
-              
-              <div class="d-flex flex-column gap-1 extra-small text-muted mb-3">
-                <span v-if="portfolioUser.location"><i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ portfolioUser.location }}</span>
-                <span><i class="bi bi-trophy-fill text-warning me-1"></i>{{ currentTier?.name || 'Novice Tech' }} ({{ portfolioUser.xp || 0 }} XP)</span>
+              <!-- Quick Meta Details -->
+              <div class="pt-3 border-top mb-3">
+                <div v-if="portfolioUser.location" class="d-flex align-items-center gap-2 small text-muted mb-2">
+                  <i class="bi bi-geo-alt-fill text-danger"></i>
+                  <span>{{ portfolioUser.location }}</span>
+                </div>
+                <div v-if="yearsOfExperience" class="d-flex align-items-center gap-2 small text-muted mb-2">
+                  <i class="bi bi-briefcase-fill text-primary"></i>
+                  <span><strong>Expérience :</strong> {{ yearsOfExperience }}</span>
+                </div>
+                <div class="d-flex align-items-center gap-2 small text-muted mb-2">
+                  <i class="bi bi-trophy-fill text-warning"></i>
+                  <span>{{ portfolioUser.rank_title || currentTier?.name || 'Novice Tech' }} &bull; {{ portfolioUser.xp || 0 }} XP</span>
+                </div>
+                <div v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" class="d-flex align-items-center gap-2 small text-muted mb-2">
+                  <i class="bi bi-whatsapp text-success"></i>
+                  <span>{{ portfolioUser.phone }}</span>
+                </div>
               </div>
 
-              <span class="badge rounded-pill px-3 py-2 availability-pill mb-3" :class="getAvailabilityClass(portfolioUser.availability)">
-                {{ getAvailabilityLabel(portfolioUser.availability) }}
-              </span>
-
-              <!-- WhatsApp CTA -->
-              <a 
-                v-if="portfolioUser.phone" 
-                :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
-                target="_blank"
-                class="btn btn-sm rounded-pill py-2 fw-bold text-white shadow-2xs mb-2"
-                style="background-color: #25D366;"
-              >
-                <i class="bi bi-whatsapp me-1"></i> Me contacter WhatsApp
-              </a>
-
-              <!-- Social Links -->
-              <div class="d-flex justify-content-center gap-2 pt-2 border-top">
-                <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light rounded-circle shadow-2xs"><i class="bi bi-github"></i></a>
-                <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light rounded-circle shadow-2xs"><i class="bi bi-linkedin text-primary"></i></a>
-                <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light rounded-circle shadow-2xs"><i class="bi bi-twitter-x"></i></a>
-                <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light rounded-circle shadow-2xs"><i class="bi bi-globe2 text-success"></i></a>
+              <!-- Skills in Sidebar -->
+              <div v-if="portfolioUser.skills && portfolioUser.skills.length" class="pt-3 border-top mb-3">
+                <h3 class="h6 fw-bold mb-2">Compétences clés</h3>
+                <div class="d-flex flex-wrap gap-1">
+                  <span 
+                    v-for="(sk, skIdx) in portfolioUser.skills" 
+                    :key="skIdx"
+                    class="badge rounded-pill px-2 py-1 extra-small fw-semibold shadow-2xs"
+                    :style="{ backgroundColor: getSkillBg(skIdx), color: getSkillColor(skIdx) }"
+                  >
+                    {{ typeof sk === 'object' ? sk.name : sk }}
+                    <small v-if="typeof sk === 'object' && sk.level" class="opacity-75 ms-1">&bull; {{ sk.level }}</small>
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <!-- Skills Box in Sidebar -->
-            <div v-if="portfolioUser.skills && portfolioUser.skills.length" class="card p-4 rounded-4 shadow-sm border-0 content-card">
-              <h3 class="h6 fw-bold mb-3 d-flex align-items-center gap-2">
-                <i class="bi bi-cpu text-primary"></i> Compétences Clés
-              </h3>
-              <div class="d-flex flex-wrap gap-1">
-                <span 
-                  v-for="(skill, sIdx) in portfolioUser.skills" 
-                  :key="sIdx"
-                  class="badge rounded-pill px-2 py-1 extra-small fw-semibold shadow-2xs"
-                  :style="{ backgroundColor: getSkillBg(sIdx), color: getSkillColor(sIdx) }"
+              <!-- Social links in Sidebar -->
+              <div v-if="hasSocialLinks" class="pt-3 border-top d-flex gap-2 justify-content-center">
+                <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-github"></i>
+                </a>
+                <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-linkedin text-primary"></i>
+                </a>
+                <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-twitter-x"></i>
+                </a>
+                <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                  <i class="bi bi-globe2 text-info"></i>
+                </a>
+              </div>
+
+              <!-- CTA in Sidebar -->
+              <div class="pt-3 border-top mt-3 d-grid gap-2 d-print-none">
+                <a 
+                  v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" 
+                  :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
+                  target="_blank" 
+                  class="btn btn-success rounded-pill fw-bold btn-sm py-2"
                 >
-                  {{ typeof skill === 'object' ? skill.name : skill }}
+                  <i class="bi bi-whatsapp me-1"></i> WhatsApp Direct
+                </a>
+                <button type="button" @click="printCV" class="btn btn-outline-secondary rounded-pill btn-sm py-2">
+                  <i class="bi bi-download me-1"></i> Imprimer CV PDF
+                </button>
+              </div>
+
+            </div>
+          </aside>
+
+          <!-- Main Stream Column (~65%) -->
+          <section class="col-12 col-lg-8 d-flex flex-column gap-4">
+            
+            <!-- Bio / About -->
+            <div v-if="portfolioUser.bio && isBlockActiveInTab('about')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-person-lines-fill" :style="{ color: accentColor }"></i> À propos de moi
+              </h2>
+              <div class="text-content leading-relaxed mb-0" v-html="formatHtml(portfolioUser.bio)"></div>
+            </div>
+
+            <!-- Experiences -->
+            <div v-if="portfolioUser.experiences && portfolioUser.experiences.length && isBlockActiveInTab('experiences')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-4 d-flex align-items-center gap-2">
+                <i class="bi bi-briefcase-fill" :style="{ color: accentColor }"></i> Parcours Professionnel
+              </h2>
+              <div class="timeline-stream d-flex flex-column gap-4">
+                <div v-for="(exp, eIdx) in portfolioUser.experiences" :key="eIdx" class="d-flex gap-3 position-relative">
+                  <div class="timeline-dot rounded-circle flex-shrink-0 mt-1" :style="{ backgroundColor: accentColor }"></div>
+                  <div class="flex-grow-1">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                      <strong class="text-dark">{{ exp.role }} &bull; <span class="fw-semibold text-muted">{{ exp.company }}</span></strong>
+                      <span class="badge bg-light text-muted border extra-small">{{ exp.period }}</span>
+                    </div>
+                    <div v-if="exp.description" class="small text-muted mb-0 leading-relaxed mt-2" v-html="formatHtml(exp.description)"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Projects -->
+            <div v-if="projects && projects.length && isBlockActiveInTab('projects')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-4 d-flex align-items-center justify-content-between">
+                <span class="d-flex align-items-center gap-2">
+                  <i class="bi bi-rocket-takeoff-fill" :style="{ color: accentColor }"></i> Projets &amp; Réalisations
                 </span>
+                <span class="badge bg-primary-subtle text-primary rounded-pill extra-small">{{ projects.length }} projet(s)</span>
+              </h2>
+
+              <!-- Slider or Multi-Column Grid -->
+              <div v-if="projectsStyle === 'carousel'">
+                <!-- Project Carousel Item -->
+                <div v-if="projects[currentProjectSlide]" class="p-3 rounded-4 bg-light border">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center gap-3">
+                      <img 
+                        v-if="projects[currentProjectSlide].logo" 
+                        :src="projects[currentProjectSlide].logo.startsWith('/') ? projects[currentProjectSlide].logo : '/' + projects[currentProjectSlide].logo" 
+                        class="rounded-3 border" 
+                        style="width: 48px; height: 48px; object-fit: contain;" 
+                        :alt="projects[currentProjectSlide].name"
+                      />
+                      <div>
+                        <h3 class="h6 fw-bold mb-0">{{ projects[currentProjectSlide].name }}</h3>
+                        <small class="text-muted extra-small">{{ projects[currentProjectSlide].category }}</small>
+                      </div>
+                    </div>
+                    <span class="badge bg-white text-muted border extra-small">{{ currentProjectSlide + 1 }} / {{ projects.length }}</span>
+                  </div>
+                  <div class="small text-muted mb-3" v-html="formatHtml(projects[currentProjectSlide].pitch || projects[currentProjectSlide].description)"></div>
+                  <div class="d-flex align-items-center justify-content-between pt-2 border-top">
+                    <div class="d-flex gap-1">
+                      <button type="button" @click="prevProject" class="btn btn-xs btn-outline-secondary rounded-circle px-2 py-1"><i class="bi bi-chevron-left"></i></button>
+                      <button type="button" @click="nextProject" class="btn btn-xs btn-outline-secondary rounded-circle px-2 py-1"><i class="bi bi-chevron-right"></i></button>
+                    </div>
+                    <a :href="'/projet/' + (projects[currentProjectSlide].slug || projects[currentProjectSlide].id)" target="_blank" class="btn btn-xs btn-dark rounded-pill px-3 fw-bold">Voir fiche &rarr;</a>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="row g-3">
+                <div v-for="proj in projects" :key="proj.id" :class="projectColsClass">
+                  <div class="p-3 rounded-3 bg-light border h-100 d-flex flex-column justify-content-between">
+                    <div>
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <img 
+                          v-if="proj.logo" 
+                          :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
+                          class="rounded-2 border flex-shrink-0" 
+                          style="width: 36px; height: 36px; object-fit: contain;" 
+                          :alt="proj.name"
+                        />
+                        <div v-else class="rounded-2 text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 36px; height: 36px;" :style="{ backgroundColor: accentColor }">
+                          <i class="bi bi-rocket-takeoff" style="font-size: 14px;"></i>
+                        </div>
+                        <div class="min-w-0">
+                          <strong class="d-block small text-dark text-truncate">{{ proj.name }}</strong>
+                          <span class="extra-small text-muted">{{ proj.category }}</span>
+                        </div>
+                      </div>
+                      <div class="extra-small text-muted mb-2 leading-relaxed" v-html="formatHtml(proj.pitch || proj.description)"></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top mt-2">
+                      <span class="extra-small text-muted"><i class="bi bi-eye me-1"></i>{{ proj.views_count || 0 }}</span>
+                      <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-xs btn-outline-dark rounded-pill px-2 py-0 extra-small">Fiche</a>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-          </div>
-        </aside>
+            <!-- Educations -->
+            <div v-if="portfolioUser.educations && portfolioUser.educations.length && isBlockActiveInTab('educations')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-4 d-flex align-items-center gap-2">
+                <i class="bi bi-mortarboard-fill" :style="{ color: accentColor }"></i> Formations &amp; Certifications
+              </h2>
+              <div class="row g-3">
+                <div v-for="(edu, dIdx) in portfolioUser.educations" :key="dIdx" class="col-md-6">
+                  <div class="p-3 rounded-3 bg-light border h-100">
+                    <span class="badge bg-white text-dark border extra-small mb-1">{{ edu.year }}</span>
+                    <strong class="d-block small text-dark fw-bold">{{ edu.degree }}</strong>
+                    <span class="d-block extra-small text-muted mb-1">{{ edu.institution }}</span>
+                    <div v-if="edu.description" class="extra-small text-muted mb-0" v-html="formatHtml(edu.description)"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        <!-- Right Main Column: Bio, Projects, POCs, Experiences, Educations -->
-        <section class="col-12 col-lg-8 d-flex flex-column gap-4">
+            <!-- Custom sections -->
+            <div v-for="(sec, cIdx) in portfolioUser.custom_sections" :key="cIdx" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi" :class="sec.icon || 'bi-stars'" :style="{ color: accentColor }"></i> {{ sec.title }}
+              </h2>
+              <div class="text-content leading-relaxed" v-html="formatHtml(sec.content)"></div>
+            </div>
+
+          </section>
+
+        </div>
+      </main>
+
+      <!-- MODE B: STANDARD, BENTO, TERMINAL & ALL OTHER 28 STRUCTURES -->
+      <main v-else class="container py-4 py-md-5" :style="{ maxWidth: containerMaxWidth }">
+        
+        <!-- Terminal Console Window Wrapper (If Structure === 'terminal') -->
+        <div v-if="currentStructure === 'terminal'" class="terminal-super-window rounded-4 shadow-lg mb-4 overflow-hidden border border-secondary border-opacity-50">
+          <div class="terminal-bar bg-dark px-3 py-2 d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25">
+            <div class="d-flex align-items-center gap-2">
+              <span class="rounded-circle bg-danger d-inline-block" style="width: 12px; height: 12px;"></span>
+              <span class="rounded-circle bg-warning d-inline-block" style="width: 12px; height: 12px;"></span>
+              <span class="rounded-circle bg-success d-inline-block" style="width: 12px; height: 12px;"></span>
+            </div>
+            <span class="font-monospace extra-small text-white-50">bash — {{ portfolioUser.username }}@tech237:~$ portfolio</span>
+            <span class="badge bg-secondary extra-small font-monospace">ONLINE</span>
+          </div>
+        </div>
+
+        <!-- Bento Grid or Single Stream -->
+        <div :class="isBentoGrid ? 'row g-4' : 'd-flex flex-column gap-4'">
           
-          <!-- About -->
-          <div v-if="portfolioUser.bio" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
-            <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
-              <i class="bi bi-person-lines-fill" :style="{ color: accentColor }"></i> Profil Professionnel
-            </h2>
-            <p class="text-content leading-relaxed mb-0" style="white-space: pre-line;">
-              {{ portfolioUser.bio }}
-            </p>
-          </div>
+          <template v-for="block in orderedBlocks" :key="block.id">
+            
+            <div 
+              v-if="block.enabled && shouldRenderBlock(block.id) && isBlockActiveInTab(block.id)" 
+              :class="getBlockGridClass(block)"
+            >
+              <!-- 1. HERO / HEADER BLOCK -->
+              <section v-if="block.id === 'hero'" class="portfolio-block h-100">
+                
+                <!-- Variant: Centered (Default) -->
+                <div v-if="heroStyle === 'centered'" class="hero-box hero-centered text-center p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
+                  <div class="hero-glow-orb"></div>
+                  <div class="position-relative z-1">
+                    <!-- Avatar with Rank Ring -->
+                    <div class="d-inline-block position-relative mb-3">
+                      <img 
+                        v-if="portfolioUser.avatar" 
+                        :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                        :alt="portfolioUser.name"
+                        class="rounded-circle border border-4 border-white shadow-md hero-avatar"
+                      />
+                      <div 
+                        v-else 
+                        class="rounded-circle border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar mx-auto"
+                        :style="{ backgroundColor: accentColor }"
+                      >
+                        {{ getInitials(portfolioUser.name) }}
+                      </div>
 
-          <!-- Experiences -->
-          <div v-if="portfolioUser.experiences && portfolioUser.experiences.length" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
-            <h2 class="h5 fw-bold mb-4 d-flex align-items-center gap-2">
-              <i class="bi bi-briefcase-fill" :style="{ color: accentColor }"></i> Expériences Professionnelles
-            </h2>
-            <div class="d-flex flex-column gap-4">
-              <div v-for="(exp, eIdx) in portfolioUser.experiences" :key="eIdx" class="experience-item d-flex gap-3 position-relative">
-                <div class="timeline-dot rounded-circle flex-shrink-0 mt-1" :style="{ backgroundColor: accentColor }"></div>
-                <div class="flex-grow-1">
-                  <div class="d-flex align-items-baseline justify-content-between flex-wrap gap-2">
-                    <h3 class="h6 fw-bold mb-0 text-dark">{{ exp.role }}</h3>
-                    <span class="badge bg-light text-muted border extra-small">{{ exp.period }}</span>
+                      <!-- Verified Check -->
+                      <span class="position-absolute bottom-0 end-0 badge rounded-circle bg-success border border-2 border-white p-1" title="Membre vérifié Tech237">
+                        <i class="bi bi-check-lg text-white" style="font-size: 11px;"></i>
+                      </span>
+                    </div>
+
+                    <!-- Name & Rank -->
+                    <h1 class="display-6 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
+                    
+                    <!-- Headline / Subtitle -->
+                    <p class="fs-5 fw-semibold mb-2 user-headline-text" :style="{ color: accentColor }">
+                      {{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}
+                    </p>
+
+                    <!-- Location, Availability & Experience Pills -->
+                    <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-3">
+                      <span v-if="portfolioUser.location" class="badge rounded-pill px-3 py-2 meta-pill">
+                        <i class="bi bi-geo-alt-fill me-1 text-danger"></i> {{ portfolioUser.location }}
+                      </span>
+
+                      <!-- Years of Experience Badge -->
+                      <span v-if="yearsOfExperience" class="badge rounded-pill px-3 py-2 meta-pill">
+                        <i class="bi bi-briefcase-fill me-1 text-primary"></i> {{ yearsOfExperience }}
+                      </span>
+                      
+                      <span class="badge rounded-pill px-3 py-2 availability-pill" :class="getAvailabilityClass(portfolioUser.availability)">
+                        <span class="status-pulse-dot me-1"></span>
+                        {{ getAvailabilityLabel(portfolioUser.availability) }}
+                      </span>
+
+                      <span class="badge rounded-pill px-3 py-2 meta-pill" :style="{ color: currentTier?.color || '#00A859' }">
+                        <i class="bi" :class="currentTier?.badge_icon || 'bi-trophy-fill'"></i>
+                        {{ portfolioUser.rank_title || currentTier?.name || 'Novice Tech' }} &bull; {{ portfolioUser.xp || 0 }} XP
+                      </span>
+                    </div>
+
+                    <!-- Contact & Social CTA Buttons -->
+                    <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mt-3 d-print-none">
+                      <a 
+                        v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" 
+                        :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
+                        target="_blank"
+                        class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
+                        style="background-color: #25D366;"
+                      >
+                        <i class="bi bi-whatsapp"></i>
+                        <span>Me contacter sur WhatsApp</span>
+                      </a>
+
+                      <Link 
+                        v-if="$page.props.auth?.user && $page.props.auth.user.id !== portfolioUser.id" 
+                        :href="'/espace-utilisateur?section=messages&recipient=' + portfolioUser.id" 
+                        class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
+                        :style="{ backgroundColor: accentColor }"
+                      >
+                        <i class="bi bi-chat-left-dots-fill"></i>
+                        <span>Envoyer un message</span>
+                      </Link>
+
+                      <button 
+                        type="button" 
+                        @click="printCV" 
+                        class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1"
+                      >
+                        <i class="bi bi-download"></i>
+                        <span>Télécharger CV</span>
+                      </button>
+                    </div>
                   </div>
-                  <strong class="d-block small text-muted mb-2" :style="{ color: accentColor }">
-                    {{ exp.company }} <span v-if="exp.location">&bull; {{ exp.location }}</span>
-                  </strong>
-                  <p v-if="exp.description" class="small text-muted mb-0 leading-relaxed" style="white-space: pre-line;">
-                    {{ exp.description }}
+                </div>
+
+                <!-- Variant: Split (Asymmetrical 2 columns) -->
+                <div v-else-if="heroStyle === 'split'" class="hero-box hero-split p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
+                  <div class="row align-items-center g-4">
+                    <div class="col-md-4 text-center text-md-start">
+                      <img 
+                        v-if="portfolioUser.avatar" 
+                        :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                        :alt="portfolioUser.name"
+                        class="rounded-4 border border-4 border-white shadow-md hero-avatar-sq"
+                      />
+                      <div 
+                        v-else 
+                        class="rounded-4 border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar-sq mx-auto mx-md-0"
+                        :style="{ backgroundColor: accentColor }"
+                      >
+                        {{ getInitials(portfolioUser.name) }}
+                      </div>
+                    </div>
+                    <div class="col-md-8 text-center text-md-start">
+                      <span class="badge rounded-pill px-3 py-1 availability-pill mb-2" :class="getAvailabilityClass(portfolioUser.availability)">
+                        <span class="status-pulse-dot me-1"></span>
+                        {{ getAvailabilityLabel(portfolioUser.availability) }}
+                      </span>
+                      <h1 class="display-6 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
+                      <p class="fs-5 fw-semibold mb-2 user-headline-text" :style="{ color: accentColor }">
+                        {{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}
+                      </p>
+                      <div class="d-flex align-items-center gap-3 flex-wrap justify-content-center justify-content-md-start mb-3">
+                        <span v-if="portfolioUser.location" class="meta-pill-text small">
+                          <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ portfolioUser.location }}
+                        </span>
+                        <span v-if="yearsOfExperience" class="meta-pill-text small">
+                          <i class="bi bi-briefcase-fill text-primary me-1"></i>{{ yearsOfExperience }}
+                        </span>
+                        <span class="meta-pill-text small">
+                          <i class="bi bi-shield-check text-success me-1"></i>Membre #{{ rankPosition }} Tech237
+                        </span>
+                        <span class="meta-pill-text small fw-bold" :style="{ color: accentColor }">
+                          ⚡ {{ portfolioUser.xp || 0 }} XP
+                        </span>
+                      </div>
+                      <div class="d-flex gap-2 flex-wrap justify-content-center justify-content-md-start d-print-none">
+                        <a 
+                          v-if="portfolioUser.phone" 
+                          :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
+                          target="_blank" 
+                          class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm"
+                        >
+                          <i class="bi bi-whatsapp me-1"></i> WhatsApp
+                        </a>
+                        <button type="button" @click="printCV" class="btn btn-outline-secondary rounded-pill px-3 py-2 fw-semibold">
+                          <i class="bi bi-download me-1"></i> Exporter PDF
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Variant: Terminal Hero -->
+                <div v-else-if="heroStyle === 'terminal'" class="hero-box hero-terminal p-4 p-md-5 rounded-4 shadow-sm bg-dark text-white font-monospace position-relative h-100">
+                  <div class="terminal-dots d-flex gap-2 mb-3">
+                    <span class="rounded-circle bg-danger d-inline-block" style="width: 10px; height: 10px;"></span>
+                    <span class="rounded-circle bg-warning d-inline-block" style="width: 10px; height: 10px;"></span>
+                    <span class="rounded-circle bg-success d-inline-block" style="width: 10px; height: 10px;"></span>
+                  </div>
+                  <div class="terminal-prompt text-success mb-2">&gt; dev.inspect(user="{{ portfolioUser.username }}")</div>
+                  <div class="ps-3 border-start border-success border-2 mb-3">
+                    <div class="fs-4 fw-bold text-white mb-1">{{ portfolioUser.name }}</div>
+                    <div class="text-info mb-1">// {{ portfolioUser.headline || 'Architecte Logiciel' }}</div>
+                    <div class="text-white-50 small" v-if="portfolioUser.location">📍 Location: {{ portfolioUser.location }}</div>
+                    <div class="text-white-50 small" v-if="yearsOfExperience">💼 Expérience: {{ yearsOfExperience }}</div>
+                    <div class="text-warning small">⚡ Rank: {{ portfolioUser.rank_title || 'Novice Tech' }} ({{ portfolioUser.xp || 0 }} XP)</div>
+                  </div>
+                  <div class="terminal-prompt text-success">&gt; dev.status &rarr; <span class="text-warning">{{ getAvailabilityLabel(portfolioUser.availability) }}</span></div>
+                </div>
+
+                <!-- Variant: Cover Banner with Floating Avatar -->
+                <div v-else-if="heroStyle === 'cover_banner'" class="hero-box hero-cover-banner rounded-4 shadow-sm position-relative overflow-hidden h-100">
+                  <div class="hero-cover-bg py-5 px-4 text-center text-white" :style="{ backgroundColor: accentColor }">
+                    <span class="badge bg-white text-dark rounded-pill px-3 py-1 fw-bold extra-small mb-2">Portfolio Officiel Tech237</span>
+                    <h1 class="display-6 fw-bold mb-1 text-white">{{ portfolioUser.name }}</h1>
+                    <p class="fs-6 opacity-90 mb-0">{{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}</p>
+                  </div>
+                  <div class="p-4 text-center position-relative content-card">
+                    <img 
+                      v-if="portfolioUser.avatar" 
+                      :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                      :alt="portfolioUser.name"
+                      class="rounded-circle border border-4 border-white shadow-md hero-avatar mx-auto mb-2"
+                      style="margin-top: -65px;"
+                    />
+                    <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-2">
+                      <span v-if="portfolioUser.location" class="badge rounded-pill px-3 py-1 meta-pill"><i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ portfolioUser.location }}</span>
+                      <span v-if="yearsOfExperience" class="badge rounded-pill px-3 py-1 meta-pill"><i class="bi bi-briefcase-fill text-primary me-1"></i>{{ yearsOfExperience }}</span>
+                      <span class="badge rounded-pill px-3 py-1 availability-pill" :class="getAvailabilityClass(portfolioUser.availability)">{{ getAvailabilityLabel(portfolioUser.availability) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Variant: Cyberpunk Sci-Fi HUD -->
+                <div v-else-if="heroStyle === 'cyberpunk'" class="hero-box hero-cyberpunk p-4 p-md-5 rounded-4 shadow-sm bg-dark text-white position-relative overflow-hidden border border-emerald-500 h-100">
+                  <div class="cyberpunk-scanline"></div>
+                  <div class="position-relative z-1 d-flex flex-column align-items-center text-center">
+                    <div class="extra-small text-emerald-400 font-monospace mb-2">[ IDENT_SYS_V2.37 // OPERATOR_PROFILE ]</div>
+                    <img 
+                      v-if="portfolioUser.avatar" 
+                      :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                      :alt="portfolioUser.name"
+                      class="rounded-circle border border-2 border-emerald-400 shadow hero-avatar mb-3"
+                    />
+                    <h1 class="display-6 fw-black text-white text-uppercase tracking-wider mb-1">{{ portfolioUser.name }}</h1>
+                    <p class="text-emerald-400 font-monospace mb-2">{{ portfolioUser.headline }}</p>
+                    <div class="d-flex gap-2 flex-wrap justify-content-center">
+                      <span class="badge bg-emerald-950 text-emerald-300 border border-emerald-600 extra-small font-monospace">XP: {{ portfolioUser.xp || 0 }}</span>
+                      <span v-if="yearsOfExperience" class="badge bg-emerald-950 text-emerald-300 border border-emerald-600 extra-small font-monospace">EXP: {{ yearsOfExperience }}</span>
+                      <span class="badge bg-emerald-950 text-emerald-300 border border-emerald-600 extra-small font-monospace">STATUS: {{ getAvailabilityLabel(portfolioUser.availability) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Variant: Minimal (Default Fallback) -->
+                <div v-else class="hero-box hero-minimal p-4 p-md-5 rounded-4 shadow-sm border content-card h-100">
+                  <div class="d-flex align-items-center gap-4 flex-wrap">
+                    <img 
+                      v-if="portfolioUser.avatar" 
+                      :src="portfolioUser.avatar.startsWith('/') ? portfolioUser.avatar : '/' + portfolioUser.avatar" 
+                      :alt="portfolioUser.name"
+                      class="rounded-circle border hero-avatar"
+                    />
+                    <div>
+                      <h1 class="h3 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
+                      <p class="text-muted fw-semibold mb-2">{{ portfolioUser.headline }}</p>
+                      <div class="d-flex gap-2 flex-wrap">
+                        <span v-if="yearsOfExperience" class="badge bg-light text-dark border extra-small">{{ yearsOfExperience }}</span>
+                        <span class="badge bg-light text-dark border extra-small">{{ getAvailabilityLabel(portfolioUser.availability) }}</span>
+                        <span v-if="portfolioUser.location" class="badge bg-light text-muted border extra-small">{{ portfolioUser.location }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </section>
+
+              <!-- 2. ABOUT / BIO BLOCK -->
+              <section v-else-if="block.id === 'about' && portfolioUser.bio" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center gap-2 mb-3">
+                    <span class="section-icon-badge" :style="{ color: accentColor }">
+                      <i class="bi bi-person-lines-fill fs-5"></i>
+                    </span>
+                    <h2 class="h5 fw-bold mb-0 section-heading">À propos de moi</h2>
+                  </div>
+                  <div class="text-content leading-relaxed mb-0" v-html="formatHtml(portfolioUser.bio)"></div>
+                </div>
+              </section>
+
+              <!-- 3. SKILLS & STACK BLOCK -->
+              <section v-else-if="block.id === 'skills' && (portfolioUser.skills && portfolioUser.skills.length)" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="section-icon-badge" :style="{ color: accentColor }">
+                        <i class="bi bi-cpu-fill fs-5"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">Compétences &amp; Stack Technique</h2>
+                    </div>
+                    <span class="badge bg-secondary-subtle text-secondary rounded-pill extra-small">
+                      {{ portfolioUser.skills.length }} compétence(s)
+                    </span>
+                  </div>
+
+                  <!-- Chips Variant with Levels -->
+                  <div v-if="skillsStyle === 'chips' || !skillsStyle" class="d-flex flex-wrap gap-2">
+                    <span 
+                      v-for="(skill, sIdx) in portfolioUser.skills" 
+                      :key="sIdx"
+                      class="skill-chip badge rounded-pill px-3 py-2 fw-semibold fs-6 shadow-2xs d-inline-flex align-items-center gap-1"
+                      :style="{ backgroundColor: getSkillBg(sIdx), color: getSkillColor(sIdx) }"
+                    >
+                      <span>{{ typeof skill === 'object' ? skill.name : skill }}</span>
+                      <span 
+                        v-if="typeof skill === 'object' && skill.level" 
+                        class="badge rounded-pill px-2 py-0 extra-small fw-bold ms-1"
+                        :class="getSkillLevelBadgeClass(skill.level)"
+                      >
+                        {{ skill.level }}
+                      </span>
+                    </span>
+                  </div>
+
+                  <!-- Bars Variant with Levels -->
+                  <div v-else-if="skillsStyle === 'bars'" class="row g-3">
+                    <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" class="col-md-6">
+                      <div class="d-flex justify-content-between small fw-bold mb-1">
+                        <span>{{ typeof skill === 'object' ? skill.name : skill }}</span>
+                        <span 
+                          class="badge rounded-pill px-2 py-0 extra-small fw-bold"
+                          :class="getSkillLevelBadgeClass(typeof skill === 'object' ? skill.level : 'Avancé')"
+                        >
+                          {{ typeof skill === 'object' && skill.level ? skill.level : 'Avancé' }}
+                        </span>
+                      </div>
+                      <div class="progress rounded-pill" style="height: 8px;">
+                        <div class="progress-bar rounded-pill" :style="{ width: getSkillPercent(skill) + '%', backgroundColor: accentColor }"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Categorized / 3D Cards Variant with Levels -->
+                  <div v-else class="row g-3">
+                    <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" class="col-6 col-md-4">
+                      <div class="p-3 rounded-4 text-center border skill-grid-box h-100 d-flex flex-column justify-content-between">
+                        <div>
+                          <strong class="d-block text-dark small mb-1">{{ typeof skill === 'object' ? skill.name : skill }}</strong>
+                          <span class="extra-small text-muted d-block mb-2">{{ typeof skill === 'object' && skill.category ? skill.category : 'Tech' }}</span>
+                        </div>
+                        <div>
+                          <span 
+                            class="badge rounded-pill px-2 py-1 extra-small fw-bold"
+                            :class="getSkillLevelBadgeClass(typeof skill === 'object' ? skill.level : 'Avancé')"
+                          >
+                            {{ typeof skill === 'object' && skill.level ? skill.level : 'Avancé' }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </section>
+
+              <!-- 4. PROJECTS BLOCK (Direct logo, multi-columns or interactive carousel) -->
+              <section v-else-if="block.id === 'projects' && projects.length" class="portfolio-block h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="section-icon-badge" :style="{ color: accentColor }">
+                      <i class="bi bi-rocket-takeoff-fill fs-5"></i>
+                    </span>
+                    <h2 class="h5 fw-bold mb-0 section-heading">Projets &amp; Réalisations</h2>
+                  </div>
+                  <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 extra-small fw-bold">
+                    {{ projects.length }} projet(s)
+                  </span>
+                </div>
+
+                <!-- CAROUSEL / SLIDER VARIANT -->
+                <div v-if="projectsStyle === 'carousel'" class="carousel-project-container card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+                  <div v-if="projects[currentProjectSlide]" class="d-flex flex-column gap-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                      <div class="d-flex align-items-center gap-3">
+                        <img 
+                          v-if="projects[currentProjectSlide].logo" 
+                          :src="projects[currentProjectSlide].logo.startsWith('/') ? projects[currentProjectSlide].logo : '/' + projects[currentProjectSlide].logo" 
+                          class="rounded-3 border flex-shrink-0" 
+                          style="width: 56px; height: 56px; object-fit: contain;" 
+                          :alt="projects[currentProjectSlide].name"
+                        />
+                        <div v-else class="rounded-3 text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px;" :style="{ backgroundColor: accentColor }">
+                          <i class="bi bi-rocket-takeoff fs-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                          <h3 class="h5 fw-bold mb-0 text-dark">{{ projects[currentProjectSlide].name }}</h3>
+                          <span class="badge bg-secondary-subtle text-secondary rounded-pill extra-small">{{ projects[currentProjectSlide].category || 'Tech & Web' }}</span>
+                        </div>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-muted border extra-small">{{ currentProjectSlide + 1 }} / {{ projects.length }}</span>
+                      </div>
+                    </div>
+                    
+                    <div class="text-content leading-relaxed my-2" v-html="formatHtml(projects[currentProjectSlide].pitch || projects[currentProjectSlide].description || 'Projet innovant propulsé sur Tech237.')"></div>
+                    
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
+                      <div class="d-flex align-items-center gap-3 extra-small text-muted">
+                        <span v-if="projects[currentProjectSlide].views_count"><i class="bi bi-eye me-1"></i>{{ projects[currentProjectSlide].views_count }} vues</span>
+                        <span v-if="projects[currentProjectSlide].upvotes_count"><i class="bi bi-heart-fill text-danger me-1"></i>{{ projects[currentProjectSlide].upvotes_count }} upvotes</span>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <button type="button" @click="prevProject" class="btn btn-sm btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                          <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button type="button" @click="nextProject" class="btn btn-sm btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+                          <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <a :href="'/projet/' + (projects[currentProjectSlide].slug || projects[currentProjectSlide].id)" target="_blank" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold extra-small">
+                          Consulter la fiche &rarr;
+                        </a>
+                      </div>
+                    </div>
+
+                    <!-- Slide Indicator Dots -->
+                    <div class="d-flex justify-content-center gap-1 mt-2">
+                      <span 
+                        v-for="(_, pIdx) in projects" 
+                        :key="pIdx"
+                        @click="currentProjectSlide = pIdx"
+                        class="cursor-pointer rounded-pill transition"
+                        :style="{
+                          width: currentProjectSlide === pIdx ? '24px' : '8px',
+                          height: '8px',
+                          backgroundColor: currentProjectSlide === pIdx ? accentColor : '#CBD5E1'
+                        }"
+                      ></span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TIMELINE VARIANT -->
+                <div v-else-if="projectsStyle === 'timeline'" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+                  <div class="timeline-stream d-flex flex-column gap-4">
+                    <div v-for="proj in projects" :key="proj.id" class="d-flex gap-3 position-relative">
+                      <div class="timeline-dot rounded-circle flex-shrink-0 mt-1" :style="{ backgroundColor: accentColor }"></div>
+                      <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                          <h3 class="h6 fw-bold text-dark mb-0">{{ proj.name }}</h3>
+                          <span class="badge bg-light text-muted border extra-small">{{ proj.category || 'Web / Mobile' }}</span>
+                        </div>
+                        <div class="small text-muted mt-1 mb-2 leading-relaxed" v-html="formatHtml(proj.pitch || proj.description)"></div>
+                        <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-xs btn-link p-0 text-decoration-none fw-bold" :style="{ color: accentColor }">
+                          Découvrir ce projet sur Tech237 &rarr;
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- MULTI-COLUMN CARDS GRID (1, 2, 3 or 4 columns) -->
+                <div v-else class="row g-4">
+                  <div v-for="proj in projects" :key="proj.id" :class="projectColsClass">
+                    <div class="card border-0 rounded-4 shadow-sm h-100 content-card p-4 d-flex flex-column justify-content-between transition-hover">
+                      <div>
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                          <img 
+                            v-if="proj.logo" 
+                            :src="proj.logo.startsWith('/') ? proj.logo : '/' + proj.logo" 
+                            class="rounded-3 border flex-shrink-0" 
+                            style="width: 48px; height: 48px; object-fit: contain;" 
+                            :alt="proj.name"
+                          />
+                          <div v-else class="rounded-3 text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;" :style="{ backgroundColor: accentColor }">
+                            <i class="bi bi-rocket-takeoff"></i>
+                          </div>
+                          <div class="min-w-0">
+                            <h3 class="h6 fw-bold mb-0 text-truncate">{{ proj.name }}</h3>
+                            <small class="text-muted extra-small">{{ proj.category || 'Tech & Software' }}</small>
+                          </div>
+                        </div>
+                        <div class="small text-muted mb-3 leading-relaxed" v-html="formatHtml(proj.pitch || proj.description || 'Projet innovant propulsé sur Tech237.')"></div>
+                      </div>
+
+                      <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto">
+                        <div class="d-flex align-items-center gap-2 extra-small text-muted">
+                          <span v-if="proj.views_count"><i class="bi bi-eye me-1"></i>{{ proj.views_count }}</span>
+                          <span v-if="proj.upvotes_count"><i class="bi bi-heart-fill text-danger me-1"></i>{{ proj.upvotes_count }}</span>
+                        </div>
+                        <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold extra-small d-print-none">
+                          Voir la fiche &rarr;
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </section>
+
+              <!-- 5. POCS / MINI-ACTUS BLOCK -->
+              <section v-else-if="block.id === 'pocs' && pocs.length" class="portfolio-block h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="section-icon-badge" :style="{ color: accentColor }">
+                      <i class="bi bi-lightning-charge-fill fs-5 text-warning"></i>
+                    </span>
+                    <h2 class="h5 fw-bold mb-0 section-heading">Mini-Actus &amp; POCs</h2>
+                  </div>
+                  <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill px-3 py-1 extra-small fw-bold">
+                    {{ pocs.length }} POC(s)
+                  </span>
+                </div>
+
+                <div class="row g-3">
+                  <div v-for="poc in pocs" :key="poc.id" class="col-md-6">
+                    <div class="card p-3 rounded-4 shadow-sm border-0 content-card h-100 d-flex flex-column justify-content-between">
+                      <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                          <span class="badge bg-warning text-dark extra-small rounded-pill">POC</span>
+                          <strong class="small text-dark text-truncate">{{ poc.title }}</strong>
+                        </div>
+                        <div class="extra-small text-muted mb-2 leading-relaxed" v-html="formatHtml(poc.content || poc.summary)"></div>
+                      </div>
+                      <div class="d-flex align-items-center justify-content-between pt-2 border-top extra-small text-muted mt-auto">
+                        <span>{{ formatDateShort(poc.created_at) }}</span>
+                        <a :href="'/communaute/pocs/' + (poc.slug || poc.id)" target="_blank" class="text-decoration-none fw-bold" :style="{ color: accentColor }">
+                          Lire la suite &rarr;
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 6. EXPERIENCES BLOCK -->
+              <section v-else-if="block.id === 'experiences' && (portfolioUser.experiences && portfolioUser.experiences.length)" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center gap-2 mb-4">
+                    <span class="section-icon-badge" :style="{ color: accentColor }">
+                      <i class="bi bi-briefcase-fill fs-5"></i>
+                    </span>
+                    <h2 class="h5 fw-bold mb-0 section-heading">Parcours &amp; Expériences</h2>
+                  </div>
+
+                  <div class="timeline-stream d-flex flex-column gap-4">
+                    <div v-for="(exp, eIdx) in portfolioUser.experiences" :key="eIdx" class="d-flex gap-3 position-relative">
+                      <div class="timeline-dot rounded-circle flex-shrink-0 mt-1" :style="{ backgroundColor: accentColor }"></div>
+                      <div class="flex-grow-1">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                          <strong class="text-dark">{{ exp.role }} &bull; <span class="fw-semibold text-muted">{{ exp.company }}</span></strong>
+                          <span class="badge bg-light text-muted border extra-small">{{ exp.period }}</span>
+                        </div>
+                        <div v-if="exp.description" class="small text-muted mb-0 leading-relaxed mt-2" v-html="formatHtml(exp.description)"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 7. EDUCATIONS BLOCK -->
+              <section v-else-if="block.id === 'educations' && (portfolioUser.educations && portfolioUser.educations.length)" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center gap-2 mb-4">
+                    <span class="section-icon-badge" :style="{ color: accentColor }">
+                      <i class="bi bi-mortarboard-fill fs-5"></i>
+                    </span>
+                    <h2 class="h5 fw-bold mb-0 section-heading">Formations &amp; Certifications</h2>
+                  </div>
+
+                  <div class="row g-3">
+                    <div v-for="(edu, dIdx) in portfolioUser.educations" :key="dIdx" class="col-md-6">
+                      <div class="p-3 rounded-3 bg-light border h-100">
+                        <span class="badge bg-white text-dark border extra-small mb-1">{{ edu.year }}</span>
+                        <strong class="d-block small text-dark fw-bold">{{ edu.degree }}</strong>
+                        <span class="d-block extra-small text-muted mb-1">{{ edu.institution }}</span>
+                        <div v-if="edu.description" class="extra-small text-muted mb-0" v-html="formatHtml(edu.description)"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 8. BADGES BLOCK -->
+              <section v-else-if="block.id === 'badges' && badges.length" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="section-icon-badge" :style="{ color: accentColor }">
+                        <i class="bi bi-award-fill fs-5 text-warning"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">Trophées &amp; Badges Tech237</h2>
+                    </div>
+                    <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill extra-small">
+                      {{ badges.length }} badge(s)
+                    </span>
+                  </div>
+
+                  <div class="row g-3">
+                    <div v-for="b in badges" :key="b.id" class="col-6 col-md-4 col-lg-3">
+                      <div class="p-3 rounded-4 text-center border h-100 bg-light">
+                        <div class="fs-2 mb-1">{{ b.icon || '🏆' }}</div>
+                        <strong class="d-block text-dark extra-small fw-bold">{{ b.name }}</strong>
+                        <small class="extra-small text-muted" style="font-size: 10px;">{{ b.description }}</small>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9. CUSTOM SECTIONS -->
+              <section v-else-if="block.id === 'custom' && (portfolioUser.custom_sections && portfolioUser.custom_sections.length)" class="portfolio-block h-100">
+                <div v-for="(sec, cIdx) in portfolioUser.custom_sections" :key="cIdx" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card mb-4">
+                  <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="bi" :class="sec.icon || 'bi-stars'" :style="{ color: accentColor }"></i> {{ sec.title }}
+                  </h2>
+                  <div class="text-content leading-relaxed" v-html="formatHtml(sec.content)"></div>
+                </div>
+              </section>
+
+              <!-- 10. CONTACT BLOCK -->
+              <section v-else-if="block.id === 'contact'" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card text-center h-100">
+                  <div class="mx-auto mb-2 section-icon-badge" :style="{ color: accentColor }">
+                    <i class="bi bi-send-check-fill fs-2"></i>
+                  </div>
+                  <h2 class="h4 fw-bold mb-2">Entrons en contact</h2>
+                  <p class="text-muted small max-w-md mx-auto mb-4">
+                    Un projet innovant, une opportunité ou envie d'échanger sur la tech au Cameroun ? Je suis toujours à l'écoute des nouvelles idées.
                   </p>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Projects -->
-          <div v-if="projects && projects.length" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
-            <h2 class="h5 fw-bold mb-4 d-flex align-items-center gap-2">
-              <i class="bi bi-rocket-takeoff-fill" :style="{ color: accentColor }"></i> Projets &amp; Réalisations
-            </h2>
-            <div class="row g-3">
-              <div v-for="proj in projects" :key="proj.id" class="col-md-6">
-                <div class="p-3 rounded-3 border bg-light h-100 d-flex flex-column justify-content-between">
-                  <div>
-                    <h3 class="h6 fw-bold text-dark mb-1">{{ proj.name }}</h3>
-                    <p class="extra-small text-muted mb-2">{{ proj.pitch || proj.description }}</p>
+                  <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-3">
+                    <a 
+                      v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" 
+                      :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
+                      target="_blank"
+                      class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
+                    >
+                      <i class="bi bi-whatsapp"></i>
+                      <span>WhatsApp Direct</span>
+                    </a>
+
+                    <a 
+                      v-if="portfolioUser.email" 
+                      :href="'mailto:' + portfolioUser.email" 
+                      class="btn btn-outline-dark rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2"
+                    >
+                      <i class="bi bi-envelope-fill"></i>
+                      <span>Email direct</span>
+                    </a>
                   </div>
-                  <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="extra-small fw-bold text-decoration-none" :style="{ color: accentColor }">
-                    Voir sur Tech237 &rarr;
-                  </a>
+
+                  <!-- Social Links in Contact Block -->
+                  <div v-if="hasSocialLinks" class="d-flex align-items-center justify-content-center gap-2 pt-3 border-top mt-2">
+                    <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                      <i class="bi bi-github"></i>
+                    </a>
+                    <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                      <i class="bi bi-linkedin text-primary"></i>
+                    </a>
+                    <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                      <i class="bi bi-twitter-x"></i>
+                    </a>
+                    <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                      <i class="bi bi-globe2 text-info"></i>
+                    </a>
+                  </div>
                 </div>
-              </div>
+              </section>
+
             </div>
+
+          </template>
+
+        </div>
+
+      </main>
+
+      <!-- CUSTOMIZABLE GLOBAL FOOTER -->
+      <footer class="portfolio-global-footer py-5 mt-5 border-top d-print-none text-center position-relative z-10">
+        <div class="container">
+          <!-- Custom Footer Text -->
+          <p v-if="footerConfig.custom_text" class="fw-semibold text-dark mb-2" v-html="formatHtml(footerConfig.custom_text)"></p>
+          
+          <!-- Social Icons if enabled -->
+          <div v-if="footerConfig.show_socials !== false && hasSocialLinks" class="d-flex align-items-center justify-content-center gap-2 mb-3">
+            <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+              <i class="bi bi-github"></i>
+            </a>
+            <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+              <i class="bi bi-linkedin text-primary"></i>
+            </a>
+            <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+              <i class="bi bi-twitter-x"></i>
+            </a>
+            <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+              <i class="bi bi-globe2 text-info"></i>
+            </a>
           </div>
 
-          <!-- Educations -->
-          <div v-if="portfolioUser.educations && portfolioUser.educations.length" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
-            <h2 class="h5 fw-bold mb-4 d-flex align-items-center gap-2">
-              <i class="bi bi-mortarboard-fill" :style="{ color: accentColor }"></i> Formations &amp; Certifications
-            </h2>
-            <div class="row g-3">
-              <div v-for="(edu, dIdx) in portfolioUser.educations" :key="dIdx" class="col-md-6">
-                <div class="p-3 rounded-3 bg-light border h-100">
-                  <span class="badge bg-white text-dark border extra-small mb-1">{{ edu.year }}</span>
-                  <strong class="d-block small text-dark fw-bold">{{ edu.degree }}</strong>
-                  <span class="d-block extra-small text-muted mb-1">{{ edu.institution }}</span>
-                  <p v-if="edu.description" class="extra-small text-muted mb-0">{{ edu.description }}</p>
-                </div>
-              </div>
-            </div>
+          <!-- Tech237 Signature Badge if enabled -->
+          <div v-if="footerConfig.show_tech237_badge !== false" class="d-flex align-items-center justify-content-center gap-2 mb-1">
+            <img src="/assets/images/logo.png" alt="Tech237" style="height: 20px; object-fit: contain;">
+            <span class="fw-bold small text-muted">Tech237 Community</span>
           </div>
+          <p v-if="footerConfig.show_tech237_badge !== false" class="extra-small text-muted mb-0">
+            Portfolio vérifié hébergé sur Tech237 &bull; Le média et réseau d'innovation tech au Cameroun.
+          </p>
 
-          <!-- Custom sections -->
-          <div v-for="(sec, cIdx) in portfolioUser.custom_sections" :key="cIdx" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
-            <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
-              <i class="bi" :class="sec.icon || 'bi-stars'" :style="{ color: accentColor }"></i> {{ sec.title }}
-            </h2>
-            <div class="text-content leading-relaxed" style="white-space: pre-line;">
-              {{ sec.content }}
-            </div>
+          <!-- Back to top button if enabled -->
+          <div v-if="footerConfig.show_back_to_top !== false" class="mt-3">
+            <button type="button" @click="scrollToTop" class="btn btn-xs btn-outline-secondary rounded-pill px-3 py-1 extra-small">
+              <i class="bi bi-arrow-up me-1"></i> Haut de page
+            </button>
           </div>
+        </div>
+      </footer>
 
-          <!-- Footer Signature -->
-          <footer class="text-center py-4 text-muted small mt-2 border-top">
-            <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
-              <img src="/assets/images/logo.png" alt="Tech237" style="height: 20px; object-fit: contain;">
-              <span class="fw-bold">Tech237 Community</span>
-            </div>
-            <p class="extra-small text-muted mb-0">
-              Portfolio &amp; CV certifié généré sur Tech237 &bull; Là où les idées deviennent des projets au Cameroun.
-            </p>
-          </footer>
-
-        </section>
-
-      </div>
-    </main>
+    </div>
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -860,6 +1158,8 @@ const props = defineProps({
 })
 
 const isCopied = ref(false)
+const currentProjectSlide = ref(0)
+const showPreloader = ref(false)
 
 const layout = computed(() => {
   return props.portfolioUser.portfolio_layout || {}
@@ -875,6 +1175,127 @@ const accentColor = computed(() => layout.value.accent_color || '#00A859')
 const heroStyle = computed(() => layout.value.hero_style || 'centered')
 const projectsStyle = computed(() => layout.value.projects_style || 'cards')
 const skillsStyle = computed(() => layout.value.skills_style || 'chips')
+const ambientEffect = computed(() => layout.value.ambient_effect || 'none')
+const pageAnimation = computed(() => layout.value.page_animation || 'fade')
+const yearsOfExperience = computed(() => layout.value.years_of_experience || '')
+
+// Preloader & Footer
+const preloaderConfig = computed(() => layout.value.preloader || {
+  enabled: false,
+  style: 'spinner',
+  text: 'Chargement du portfolio...',
+  duration: 1.0
+})
+
+const footerConfig = computed(() => layout.value.footer || {
+  custom_text: '',
+  show_socials: true,
+  show_tech237_badge: true,
+  show_back_to_top: true
+})
+
+// Custom Background
+const bgImageUrl = computed(() => layout.value.bg_image || '')
+const bgImageOpacity = computed(() => (layout.value.bg_image_opacity ?? 30) / 100)
+const bgImageBlur = computed(() => layout.value.bg_image_blur ?? 0)
+const bgImageSize = computed(() => layout.value.bg_image_size || 'cover')
+
+const customBgStyle = computed(() => ({
+  backgroundImage: `url(${bgImageUrl.value})`,
+  backgroundSize: bgImageSize.value,
+  backgroundPosition: 'center',
+  backgroundRepeat: bgImageSize.value === 'repeat' ? 'repeat' : 'no-repeat',
+  opacity: bgImageOpacity.value,
+  filter: `blur(${bgImageBlur.value}px)`,
+  zIndex: 0
+}))
+
+// Tabbed multi-page website mode
+const isTabbedMode = computed(() => {
+  return currentStructure.value.startsWith('tabbed') || Boolean(layout.value.tabbed_nav?.enabled)
+})
+
+const activeTab = ref(layout.value.tabbed_nav?.default_tab || 'all')
+
+const availableTabs = computed(() => {
+  const tabs = [
+    { id: 'all', label: 'Vue Globale', icon: '🌟' }
+  ]
+  if (props.portfolioUser.bio) {
+    tabs.push({ id: 'about', label: 'À Propos', icon: '👤' })
+  }
+  if (props.portfolioUser.skills && props.portfolioUser.skills.length) {
+    tabs.push({ id: 'skills', label: 'Stack & Compétences', icon: '⚡', count: props.portfolioUser.skills.length })
+  }
+  if (props.projects && props.projects.length) {
+    tabs.push({ id: 'projects', label: 'Projets', icon: '🚀', count: props.projects.length })
+  }
+  if (props.portfolioUser.experiences && props.portfolioUser.experiences.length) {
+    tabs.push({ id: 'experiences', label: 'Parcours', icon: '💼' })
+  }
+  if (props.portfolioUser.educations && props.portfolioUser.educations.length) {
+    tabs.push({ id: 'educations', label: 'Formations', icon: '🎓' })
+  }
+  if (props.pocs && props.pocs.length) {
+    tabs.push({ id: 'pocs', label: 'POCs', icon: '⚡', count: props.pocs.length })
+  }
+  tabs.push({ id: 'contact', label: 'Contact', icon: '📬' })
+  return tabs
+})
+
+function isBlockActiveInTab(blockId) {
+  if (!isTabbedMode.value) return true
+  if (activeTab.value === 'all') return true
+  if (activeTab.value === blockId) return true
+  if (activeTab.value === 'about' && blockId === 'hero') return true
+  return false
+}
+
+// Project multi-columns class
+const projectColsClass = computed(() => {
+  const cols = Number(layout.value.projects_columns) || 2
+  if (cols === 1) return 'col-12'
+  if (cols === 2) return 'col-md-6'
+  if (cols === 3) return 'col-md-6 col-lg-4'
+  if (cols === 4) return 'col-md-6 col-lg-3'
+  return 'col-md-6'
+})
+
+// Carousel navigation
+function nextProject() {
+  if (props.projects && props.projects.length) {
+    currentProjectSlide.value = (currentProjectSlide.value + 1) % props.projects.length
+  }
+}
+
+function prevProject() {
+  if (props.projects && props.projects.length) {
+    currentProjectSlide.value = (currentProjectSlide.value - 1 + props.projects.length) % props.projects.length
+  }
+}
+
+// Bento mode check
+const isBentoGrid = computed(() => {
+  return currentStructure.value.startsWith('bento')
+})
+
+const containerMaxWidth = computed(() => {
+  if (currentStructure.value === 'bento_3col') return '1340px'
+  if (isBentoGrid.value) return '1180px'
+  if (currentStructure.value === 'compact') return '760px'
+  if (currentStructure.value === 'zen') return '840px'
+  return '980px'
+})
+
+function getBlockGridClass(block) {
+  if (!isBentoGrid.value) return 'w-100'
+  if (currentStructure.value === 'bento_3col') {
+    if (block.width === 'third') return 'col-12 col-md-4'
+    if (block.width === 'half') return 'col-12 col-md-6'
+    return 'col-12'
+  }
+  return block.width === 'half' ? 'col-12 col-lg-6' : 'col-12'
+}
 
 const cssVars = computed(() => {
   return {
@@ -919,6 +1340,11 @@ const socialLinks = computed(() => {
   return props.portfolioUser.social_links || {}
 })
 
+const hasSocialLinks = computed(() => {
+  const s = socialLinks.value
+  return Boolean(s.github || s.linkedin || s.twitter || s.website || s.whatsapp)
+})
+
 const shareUrl = computed(() => {
   if (typeof window !== 'undefined') {
     return window.location.origin + '/@' + props.portfolioUser.username
@@ -958,6 +1384,10 @@ function printCV() {
   window.print()
 }
 
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
 function getInitials(name) {
   if (!name) return 'U'
   const p = name.trim().split(' ')
@@ -991,6 +1421,34 @@ function getAvailabilityClass(val) {
   return 'availability-busy'
 }
 
+// Format and safe HTML tag interpreter
+function formatHtml(text) {
+  if (!text) return ''
+  const hasHtml = /<[a-z][\s\S]*>/i.test(text)
+  if (hasHtml) {
+    return text
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/javascript:/gi, '')
+  }
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+  return escaped.replace(/\n/g, '<br>')
+}
+
+// Skill levels styling
+function getSkillLevelBadgeClass(level) {
+  const l = (level || '').toLowerCase()
+  if (l.includes('expert')) return 'bg-success text-white'
+  if (l.includes('avancé') || l.includes('avance')) return 'bg-primary text-white'
+  if (l.includes('intermédiaire') || l.includes('intermediaire')) return 'bg-warning text-dark'
+  if (l.includes('débutant') || l.includes('debutant')) return 'bg-info text-dark'
+  return 'bg-secondary text-white'
+}
+
 const skillBgPalette = [
   '#DCFCE7', '#DBEAFE', '#FEF3C7', '#F3E8FF', '#FCE7F3', '#E0F2FE', '#FFEDD5'
 ]
@@ -1009,13 +1467,90 @@ function getSkillColor(idx) {
 function getSkillPercent(skill) {
   if (typeof skill === 'object' && skill.level) {
     const l = skill.level.toLowerCase()
-    if (l === 'expert') return 95
-    if (l === 'avancé') return 80
-    if (l === 'intermédiaire') return 60
+    if (l.includes('expert')) return 95
+    if (l.includes('avancé') || l.includes('avance')) return 80
+    if (l.includes('intermédiaire') || l.includes('intermediaire')) return 60
     return 40
   }
   return 85
 }
+
+// Ambient particle positioning
+function getSnowflakeStyle(n) {
+  const left = (n * 2.85) % 100
+  const duration = 4 + (n % 6) * 1.5
+  const delay = (n % 10) * 0.4
+  const size = 12 + (n % 14)
+  const opacity = 0.4 + (n % 5) * 0.12
+  return {
+    left: `${left}%`,
+    animationDuration: `${duration}s`,
+    animationDelay: `${delay}s`,
+    fontSize: `${size}px`,
+    opacity: opacity
+  }
+}
+
+function getConfettiStyle(n) {
+  const left = (n * 3.3) % 100
+  const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899']
+  const duration = 3 + (n % 5) * 1.2
+  const delay = (n % 8) * 0.3
+  return {
+    left: `${left}%`,
+    backgroundColor: colors[n % colors.length],
+    animationDuration: `${duration}s`,
+    animationDelay: `${delay}s`
+  }
+}
+
+function getStarStyle(n) {
+  const left = (n * 4.1) % 96 + 2
+  const top = (n * 7.3) % 90 + 5
+  const duration = 1.5 + (n % 4) * 0.8
+  const delay = (n % 6) * 0.3
+  return {
+    left: `${left}%`,
+    top: `${top}%`,
+    animationDuration: `${duration}s`,
+    animationDelay: `${delay}s`
+  }
+}
+
+function getMatrixStyle(n) {
+  const left = (n * 5.5) % 98 + 1
+  const duration = 2.5 + (n % 4) * 1.2
+  const delay = (n % 5) * 0.5
+  return {
+    left: `${left}%`,
+    animationDuration: `${duration}s`,
+    animationDelay: `${delay}s`
+  }
+}
+
+function getBubbleStyle(n) {
+  const left = (n * 4.9) % 96 + 2
+  const size = 14 + (n % 24)
+  const duration = 5 + (n % 6) * 1.5
+  const delay = (n % 7) * 0.6
+  return {
+    left: `${left}%`,
+    width: `${size}px`,
+    height: `${size}px`,
+    animationDuration: `${duration}s`,
+    animationDelay: `${delay}s`
+  }
+}
+
+onMounted(() => {
+  if (preloaderConfig.value?.enabled) {
+    showPreloader.value = true
+    const duration = Math.max(0.5, Math.min(5, Number(preloaderConfig.value?.duration || 1.2))) * 1000
+    setTimeout(() => {
+      showPreloader.value = false
+    }, duration)
+  }
+})
 </script>
 
 <style scoped>
@@ -1034,280 +1569,406 @@ function getSkillPercent(skill) {
 }
 .theme-dark {
   background: #0B0F19;
-  color: #F8FAFC;
+  color: #E2E8F0;
 }
+.theme-dark .portfolio-nav {
+  background: rgba(11, 15, 25, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.theme-dark .nav-brand-text { color: #FFFFFF; }
 .theme-dark .content-card,
 .theme-dark .hero-box {
-  background: #111827 !important;
-  color: #F9FAFB !important;
-  border: 1px solid #1F2937 !important;
+  background-color: #111827;
+  color: #E2E8F0;
+  border-color: rgba(255, 255, 255, 0.08) !important;
 }
-.theme-dark .text-dark,
-.theme-dark .section-heading,
-.theme-dark .user-name-heading {
-  color: #F9FAFB !important;
-}
-.theme-dark .text-muted {
-  color: #9CA3AF !important;
-}
+.theme-dark .user-name-heading { color: #FFFFFF; }
+.theme-dark .text-muted { color: #94A3B8 !important; }
 
 .theme-navy {
-  background: #0A1128;
-  color: #F8FAFC;
+  background: linear-gradient(180deg, #0A192F 0%, #020C1B 100%);
+  color: #CCD6F6;
 }
 .theme-navy .content-card,
 .theme-navy .hero-box {
-  background: #1E293B !important;
-  color: #F8FAFC !important;
-  border: 1px solid #334155 !important;
+  background-color: #112240;
+  color: #CCD6F6;
+  border-color: rgba(255, 255, 255, 0.05) !important;
 }
-.theme-navy .text-dark,
-.theme-navy .section-heading,
-.theme-navy .user-name-heading {
-  color: #F8FAFC !important;
-}
-.theme-navy .text-muted {
-  color: #94A3B8 !important;
-}
+.theme-navy .user-name-heading { color: #E6F1FF; }
 
 .theme-sunset {
-  background: linear-gradient(180deg, #FFFBEB 0%, #FEF3C7 35%, #FFFFFF 100%);
+  background: linear-gradient(180deg, #FFF7ED 0%, #FFF1F2 100%);
   color: #1C1917;
 }
-
-.theme-purple {
-  background: linear-gradient(180deg, #FAF5FF 0%, #F3E8FF 40%, #FFFFFF 100%);
-  color: #0F172A;
+.theme-lavender {
+  background: linear-gradient(180deg, #FAF5FF 0%, #FFFFFF 100%);
+  color: #1E1B4B;
 }
-
-.theme-rose {
-  background: linear-gradient(180deg, #FFF1F2 0%, #FFE4E6 40%, #FFFFFF 100%);
-  color: #0F172A;
+.theme-cyber {
+  background: #050505;
+  color: #00FF66;
 }
-
-.theme-matcha {
-  background: linear-gradient(180deg, #F4F6F0 0%, #E8EFE5 40%, #FFFFFF 100%);
-  color: #1C1917;
+.theme-minimal {
+  background: #FFFFFF;
+  color: #171717;
 }
-
+.theme-retro {
+  background: #FEF3C7;
+  color: #78350F;
+}
 .theme-synthwave {
-  background: #070714;
-  color: #FDF4FF;
+  background: linear-gradient(180deg, #2D1B69 0%, #110B29 100%);
+  color: #F8FAFC;
 }
 .theme-synthwave .content-card,
 .theme-synthwave .hero-box {
-  background: #120E29 !important;
-  color: #FDF4FF !important;
-  border: 1px solid #3B0764 !important;
-}
-.theme-synthwave .text-dark,
-.theme-synthwave .section-heading,
-.theme-synthwave .user-name-heading {
-  color: #FDF4FF !important;
-}
-.theme-synthwave .text-muted {
-  color: #D8B4FE !important;
+  background-color: rgba(30, 20, 60, 0.75);
+  border-color: rgba(236, 72, 153, 0.3) !important;
 }
 
-.theme-minimal {
-  background: #FAFAFA;
-  color: #18181B;
-}
-
-/* ==========================================================================
-   BACKGROUND TEXTURES & PATTERNS
-   ========================================================================== */
+/* BACKGROUND PATTERNS */
 .bg-pattern-grid {
-  background-image: 
-    linear-gradient(to right, rgba(120, 120, 120, 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(120, 120, 120, 0.08) 1px, transparent 1px) !important;
-  background-size: 32px 32px !important;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 .bg-pattern-dots {
-  background-image: radial-gradient(circle, rgba(120, 120, 120, 0.15) 1.5px, transparent 1.5px) !important;
-  background-size: 24px 24px !important;
+  background-image: radial-gradient(rgba(0, 0, 0, 0.12) 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
 }
-.bg-pattern-mesh {
-  background-image: 
-    radial-gradient(at 0% 0%, var(--accent-color, #00A859) 0px, transparent 40%),
-    radial-gradient(at 100% 100%, #2563EB 0px, transparent 40%) !important;
+.bg-pattern-diagonal {
+  background-image: repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 0, transparent 20px);
 }
 .bg-pattern-circuit {
-  background-image: radial-gradient(rgba(100, 116, 139, 0.15) 1px, transparent 1px), linear-gradient(to right, rgba(100, 116, 139, 0.05) 1px, transparent 1px) !important;
-  background-size: 20px 20px, 40px 40px !important;
+  background-image: linear-gradient(rgba(0, 168, 89, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 168, 89, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-/* ==========================================================================
-   TYPOGRAPHICAL CHOICES
-   ========================================================================== */
-.font-poppins { font-family: 'Poppins', system-ui, sans-serif !important; }
-.font-mono { font-family: 'Fira Code', 'Courier New', monospace !important; }
-.font-serif { font-family: 'Merriweather', Georgia, serif !important; }
-.font-inter { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important; }
+/* FONT FAMILIES */
+.font-poppins { font-family: 'Poppins', sans-serif; }
+.font-inter { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+.font-mono { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
+.font-playfair { font-family: 'Playfair Display', Georgia, serif; }
+.font-space { font-family: 'Space Grotesk', sans-serif; }
 
-/* ==========================================================================
-   CARD AESTHETICS & BORDERS
-   ========================================================================== */
+/* CARD STYLES */
 .content-card, .hero-box {
-  background: #FFFFFF;
-  border: 1px solid rgba(0,0,0,0.06);
-  transition: all 0.25s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-
 .card-style-rounded .content-card,
 .card-style-rounded .hero-box {
-  border-radius: 24px !important;
+  border-radius: 1.5rem !important;
 }
-
 .card-style-sharp .content-card,
 .card-style-sharp .hero-box {
-  border-radius: 6px !important;
+  border-radius: 4px !important;
 }
-
 .card-style-bordered .content-card,
 .card-style-bordered .hero-box {
-  border: 2px solid #0F172A !important;
-  box-shadow: 4px 4px 0px #0F172A !important;
+  border: 2px solid var(--accent-color) !important;
 }
-
 .card-style-glass .content-card,
 .card-style-glass .hero-box {
-  background: rgba(255, 255, 255, 0.72) !important;
-  backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  background: rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
 }
-
+.theme-dark .card-style-glass .content-card,
+.theme-dark .card-style-glass .hero-box {
+  background: rgba(17, 24, 39, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
 .card-style-terminal .content-card,
 .card-style-terminal .hero-box {
-  background: #0D1117 !important;
-  color: #E6EDF3 !important;
-  border: 1px solid #30363D !important;
+  border-radius: 8px !important;
+  border: 1px solid #10B981 !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
 }
 
-/* Navigation bar */
-.portfolio-nav {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  z-index: 1040;
-}
-.theme-dark .portfolio-nav,
-.theme-navy .portfolio-nav,
-.theme-synthwave .portfolio-nav {
-  background: rgba(15, 23, 42, 0.9);
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-
-.btn-nav-action {
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
-  color: #0F172A;
-  transition: all 0.2s ease;
-}
-.btn-nav-action:hover {
-  background: #F8FAFC;
-  transform: translateY(-1px);
-}
-
-/* Hero Elements */
+/* HERO AVATARS */
 .hero-avatar {
   width: 120px;
   height: 120px;
   object-fit: cover;
-  font-size: 36px;
+  font-size: 40px;
 }
 .hero-avatar-sq {
   width: 140px;
   height: 140px;
   object-fit: cover;
-  font-size: 40px;
+  font-size: 44px;
 }
+
+/* HERO GLOW ORB */
 .hero-glow-orb {
   position: absolute;
-  top: -40px;
+  top: -50px;
   left: 50%;
   transform: translateX(-50%);
-  width: 280px;
-  height: 280px;
-  background: radial-gradient(circle, var(--accent-color, #00A859) 0%, transparent 70%);
-  opacity: 0.12;
+  width: 300px;
+  height: 200px;
+  background: radial-gradient(circle, var(--accent-color) 0%, transparent 70%);
+  opacity: 0.18;
   filter: blur(40px);
   pointer-events: none;
 }
 
+/* AVAILABILITY PILLS */
 .availability-pill {
-  font-weight: 700;
-  font-size: 11px;
+  font-size: 12px;
+  font-weight: 600;
 }
 .availability-open {
-  background: #DCFCE7;
+  background-color: #DCFCE7;
   color: #166534;
+  border: 1px solid #BBF7D0;
 }
 .availability-busy {
-  background: #F1F5F9;
+  background-color: #F1F5F9;
   color: #475569;
+  border: 1px solid #E2E8F0;
 }
 .status-pulse-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background-color: #10B981;
   display: inline-block;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #22C55E;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
+  animation: pulseDot 2s infinite;
+}
+@keyframes pulseDot {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
 }
 
 .meta-pill {
-  background: #F8FAFC;
+  background-color: rgba(0, 0, 0, 0.04);
   color: #475569;
-  font-weight: 600;
-  border: 1px solid #E2E8F0;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 12px;
+  font-weight: 500;
+}
+.theme-dark .meta-pill {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #94A3B8;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
+/* TIMELINE */
 .timeline-dot {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
 }
 
+/* TRANSITIONS */
 .transition-hover {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .transition-hover:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* ==========================================================================
-   PRINT / PDF EXPORT STYLESHEET (A4 Ready)
+   AMBIENT PARTICLE EFFECTS (Snow, Confetti, Stars, Matrix, Bubbles)
+   ========================================================================== */
+.ambient-effects-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 99;
+  overflow: hidden;
+}
+
+/* SNOW */
+.snowflake {
+  position: fixed;
+  top: -20px;
+  color: #FFFFFF;
+  text-shadow: 0 0 8px rgba(14, 165, 233, 0.8), 0 0 2px rgba(0, 0, 0, 0.2);
+  user-select: none;
+  animation: snowFall linear infinite;
+}
+@keyframes snowFall {
+  0% { transform: translateY(-20px) rotate(0deg); }
+  50% { transform: translateY(50vh) translateX(25px) rotate(180deg); }
+  100% { transform: translateY(105vh) translateX(-20px) rotate(360deg); }
+}
+
+/* CONFETTI */
+.confetti-piece {
+  position: fixed;
+  top: -15px;
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0.85;
+  animation: confettiFall linear infinite;
+}
+@keyframes confettiFall {
+  0% { transform: translateY(-15px) rotate(0deg); }
+  100% { transform: translateY(105vh) rotate(720deg); }
+}
+
+/* STARS */
+.ambient-star {
+  position: fixed;
+  color: #F59E0B;
+  font-size: 16px;
+  animation: starTwinkle ease-in-out infinite alternate;
+}
+@keyframes starTwinkle {
+  0% { transform: scale(0.5); opacity: 0.2; }
+  100% { transform: scale(1.3); opacity: 0.9; text-shadow: 0 0 10px #F59E0B; }
+}
+
+/* MATRIX RAIN */
+.matrix-column {
+  position: fixed;
+  top: -50px;
+  color: #10B981;
+  font-family: monospace;
+  font-size: 14px;
+  writing-mode: vertical-rl;
+  text-shadow: 0 0 8px #10B981;
+  animation: matrixDrop linear infinite;
+}
+@keyframes matrixDrop {
+  0% { transform: translateY(-50px); opacity: 0; }
+  20% { opacity: 0.9; }
+  80% { opacity: 0.9; }
+  100% { transform: translateY(105vh); opacity: 0; }
+}
+
+/* BUBBLES */
+.ambient-bubble {
+  position: fixed;
+  bottom: -40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(56, 189, 248, 0.2));
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+  animation: bubbleRise linear infinite;
+}
+@keyframes bubbleRise {
+  0% { transform: translateY(0) scale(0.8); opacity: 0; }
+  10% { opacity: 0.7; }
+  90% { opacity: 0.7; }
+  100% { transform: translateY(-105vh) scale(1.2); opacity: 0; }
+}
+
+/* ==========================================================================
+   PRELOADER SPLASH SCREEN
+   ========================================================================== */
+.preloader-overlay {
+  z-index: 99999;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+}
+.theme-dark .preloader-overlay {
+  background: rgba(11, 15, 25, 0.96);
+}
+.preloader-fade-leave-active {
+  transition: opacity 0.4s ease;
+}
+.preloader-fade-leave-to {
+  opacity: 0;
+}
+.preloader-pulse-logo {
+  animation: pulseLogo 1.6s infinite ease-in-out;
+}
+@keyframes pulseLogo {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(0, 168, 89, 0)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 12px rgba(0, 168, 89, 0.4)); }
+}
+.bounce-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  animation: bounceDot 1.4s infinite ease-in-out both;
+}
+.dot-1 { animation-delay: -0.32s; }
+.dot-2 { animation-delay: -0.16s; }
+@keyframes bounceDot {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1.0); }
+}
+.blink-cursor {
+  animation: blinkCursor 0.8s infinite;
+}
+@keyframes blinkCursor {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ==========================================================================
+   PAGE ENTRY ANIMATIONS
+   ========================================================================== */
+.page-anim-fade {
+  animation: pageFade 0.6s ease-out;
+}
+@keyframes pageFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-anim-slide_up {
+  animation: pageSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pageSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-anim-zoom {
+  animation: pageZoom 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes pageZoom {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.page-anim-bounce {
+  animation: pageBounce 0.7s cubic-bezier(0.28, 0.84, 0.42, 1);
+}
+@keyframes pageBounce {
+  0% { opacity: 0; transform: translateY(-20px); }
+  60% { opacity: 1; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.page-anim-flip {
+  animation: pageFlip 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  perspective: 1000px;
+}
+@keyframes pageFlip {
+  from { opacity: 0; transform: rotateX(10deg); }
+  to { opacity: 1; transform: rotateX(0deg); }
+}
+
+/* ==========================================================================
+   PRINT / PDF EXPORT OPTIMIZATIONS
    ========================================================================== */
 @media print {
-  body {
-    background: #FFFFFF !important;
-    color: #000000 !important;
-    font-size: 11pt !important;
+  .portfolio-nav, .btn, .d-print-none, .ambient-effects-layer, .preloader-overlay, .portfolio-tabbed-bar {
+    display: none !important;
   }
   .portfolio-root {
     background: #FFFFFF !important;
     color: #000000 !important;
   }
-  .d-print-none {
-    display: none !important;
-  }
   .content-card, .hero-box {
     box-shadow: none !important;
-    border: 1px solid #E5E7EB !important;
-    page-break-inside: avoid;
+    border: 1px solid #E2E8F0 !important;
     break-inside: avoid;
-    margin-bottom: 12pt !important;
-  }
-  .container {
-    max-width: 100% !important;
-    padding: 0 !important;
-  }
-  a {
-    text-decoration: none !important;
-    color: #000000 !important;
+    page-break-inside: avoid;
   }
 }
 </style>
