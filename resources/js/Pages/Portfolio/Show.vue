@@ -6,10 +6,25 @@
       'card-style-' + currentCardStyle,
       'font-' + currentFont,
       'bg-pattern-' + currentPattern,
-      'structure-' + currentStructure
+      'structure-' + currentStructure,
+      customCursorEnabled ? 'custom-cursor-active' : ''
     ]" 
     :style="cssVars"
+    @mousemove="handleMouseMove"
   >
+    <!-- MOUSE SPOTLIGHT HALO -->
+    <div 
+      v-if="spotlightEnabled" 
+      class="portfolio-spotlight-layer position-fixed top-0 start-0 w-100 h-100 pointer-events-none d-print-none"
+      :style="spotlightStyle"
+    ></div>
+
+    <!-- CUSTOM TECH CURSOR RING (Desktop) -->
+    <div 
+      v-if="customCursorEnabled" 
+      class="portfolio-custom-cursor pointer-events-none d-none d-lg-block d-print-none"
+      :style="customCursorStyle"
+    ></div>
     <Head>
       <title>{{ seoTitle }}</title>
       <meta name="description" :content="seoDescription">
@@ -166,6 +181,18 @@
             <i class="bi bi-linkedin text-white" style="font-size: 13px;"></i>
           </a>
 
+          <!-- Digital Business Card (vCard + QR Code) Button -->
+          <button 
+            v-if="vcardEnabled" 
+            type="button" 
+            @click="openVcardModal" 
+            class="btn btn-sm btn-nav-action rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1"
+            title="Carte de Visite Digitale (.vcf & QR Code)"
+          >
+            <i class="bi bi-qr-code-scan text-primary"></i>
+            <span class="d-none d-md-inline">Carte de visite</span>
+          </button>
+
           <!-- Download CV Button (Custom File or PDF Print) -->
           <a 
             v-if="cvFileUrl" 
@@ -317,27 +344,48 @@
               
               <!-- Avatar -->
               <div class="text-center mb-3">
-                <img 
-                  v-if="portfolioUser.avatar" 
-                  :src="formatImageUrl(portfolioUser.avatar)" 
-                  :alt="portfolioUser.name"
-                  class="rounded-circle border border-4 border-white shadow-md hero-avatar mx-auto mb-2"
-                />
-                <div 
-                  v-else 
-                  class="rounded-circle border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar mx-auto mb-2"
-                  :style="{ backgroundColor: accentColor }"
-                >
-                  {{ getInitials(portfolioUser.name) }}
+                <div class="d-inline-block position-relative mb-2">
+                  <img 
+                    v-if="portfolioUser.avatar" 
+                    :src="formatImageUrl(portfolioUser.avatar)" 
+                    :alt="portfolioUser.name"
+                    class="border border-4 border-white shadow-md hero-avatar mx-auto"
+                    :class="[avatarShapeClass, avatarBorderClass]"
+                  />
+                  <div 
+                    v-else 
+                    class="border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar mx-auto"
+                    :class="[avatarShapeClass, avatarBorderClass]"
+                    :style="{ backgroundColor: accentColor }"
+                  >
+                    {{ getInitials(portfolioUser.name) }}
+                  </div>
+                  <span v-if="showOnlinePulse" class="avatar-online-pulse-badge" title="En ligne & Actif"></span>
                 </div>
                 
                 <h1 class="h4 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
-                <p class="small fw-semibold mb-2" :style="{ color: accentColor }">{{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}</p>
+                <p class="small fw-semibold mb-2" :style="{ color: accentColor }">
+                  <span>{{ displayedHeadline }}</span>
+                  <span v-if="typewriterEnabled" class="typewriter-cursor">|</span>
+                </p>
                 
                 <span class="badge rounded-pill px-3 py-1 availability-pill" :class="getAvailabilityClass(portfolioUser.availability)">
                   <span class="status-pulse-dot me-1"></span>
                   {{ getAvailabilityLabel(portfolioUser.availability) }}
                 </span>
+
+                <!-- Audio Pitch Button in Sidebar -->
+                <div v-if="audioPitchEnabled && effectiveAudioPitchText" class="mt-2">
+                  <button 
+                    type="button" 
+                    @click="handleAudioPitchClick" 
+                    class="btn btn-xs rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center gap-1 shadow-2xs"
+                    :style="{ backgroundColor: accentColor, color: '#FFFFFF' }"
+                  >
+                    <i class="bi" :class="isPlaying && !isPaused ? 'bi-pause-circle-fill' : 'bi-mic-fill'"></i>
+                    <span>{{ isPlaying && !isPaused ? 'Pause Pitch Vocal' : (isPaused ? 'Reprendre Pitch' : 'Écouter mon Pitch') }}</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Quick Meta Details -->
@@ -562,8 +610,170 @@
               <div class="text-content leading-relaxed" v-html="formatHtml(sec.content)"></div>
             </div>
 
+            <!-- Now Section in CV Split -->
+            <div v-if="hasNowSection && isBlockActiveInTab('now')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-compass-fill" :style="{ color: accentColor }"></i> En ce moment (Now)
+              </h2>
+              <div class="row g-3">
+                <div v-if="nowSection.project" class="col-md-4">
+                  <div class="p-3 rounded-4 bg-light border h-100">
+                    <span class="badge bg-primary-subtle text-primary extra-small mb-1">🔨 Projet actuel</span>
+                    <p class="small fw-semibold text-dark mb-0">{{ nowSection.project }}</p>
+                  </div>
+                </div>
+                <div v-if="nowSection.learning" class="col-md-4">
+                  <div class="p-3 rounded-4 bg-light border h-100">
+                    <span class="badge bg-success-subtle text-success extra-small mb-1">📚 En apprentissage</span>
+                    <p class="small fw-semibold text-dark mb-0">{{ nowSection.learning }}</p>
+                  </div>
+                </div>
+                <div v-if="nowSection.goal" class="col-md-4">
+                  <div class="p-3 rounded-4 bg-light border h-100">
+                    <span class="badge bg-warning-subtle text-warning-emphasis extra-small mb-1">🎯 Objectif</span>
+                    <p class="small fw-semibold text-dark mb-0">{{ nowSection.goal }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- GitHub Live Stats in CV Split -->
+            <div v-if="hasGithubStats && isBlockActiveInTab('github')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                <h2 class="h5 fw-bold mb-0 d-flex align-items-center gap-2">
+                  <i class="bi bi-github"></i> Activité Open-Source &amp; GitHub
+                </h2>
+                <a :href="'https://github.com/' + githubUsername" target="_blank" class="btn btn-xs btn-dark rounded-pill px-3 extra-small fw-bold">
+                  @{{ githubUsername }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+                </a>
+              </div>
+              <div v-if="githubProfile" class="row g-3 mb-3">
+                <div class="col-4">
+                  <div class="p-3 rounded-4 bg-light border text-center">
+                    <strong class="fs-5 fw-black d-block" :style="{ color: accentColor }">{{ githubProfile.public_repos || 0 }}</strong>
+                    <span class="extra-small text-muted">Dépôts Publics</span>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-3 rounded-4 bg-light border text-center">
+                    <strong class="fs-5 fw-black d-block" :style="{ color: accentColor }">{{ githubTotalStars }}</strong>
+                    <span class="extra-small text-muted">Stars cumulées</span>
+                  </div>
+                </div>
+                <div class="col-4">
+                  <div class="p-3 rounded-4 bg-light border text-center">
+                    <strong class="fs-5 fw-black d-block" :style="{ color: accentColor }">{{ githubProfile.followers || 0 }}</strong>
+                    <span class="extra-small text-muted">Followers</span>
+                  </div>
+                </div>
+              </div>
+              <div v-if="githubTopLanguages.length" class="mb-3">
+                <span class="extra-small fw-bold text-muted d-block mb-2">Langages dominants :</span>
+                <div class="d-flex flex-wrap gap-2">
+                  <span v-for="lang in githubTopLanguages" :key="lang.name" class="badge bg-light text-dark border rounded-pill px-3 py-1 extra-small fw-semibold">
+                    <i class="bi bi-code-slash me-1" :style="{ color: accentColor }"></i>{{ lang.name }} ({{ lang.percent }}%)
+                  </span>
+                </div>
+              </div>
+              <div v-if="githubRepos.length" class="row g-2">
+                <div v-for="repo in githubRepos.slice(0, 4)" :key="repo.id" class="col-md-6">
+                  <a :href="repo.html_url" target="_blank" class="p-3 rounded-3 bg-light border d-block text-decoration-none h-100 transition-hover">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                      <strong class="small text-dark text-truncate"><i class="bi bi-journal-code me-1"></i>{{ repo.name }}</strong>
+                      <span class="badge bg-white text-dark border extra-small">⭐ {{ repo.stargazers_count || 0 }}</span>
+                    </div>
+                    <p class="extra-small text-muted mb-1 text-truncate">{{ repo.description || 'Dépôt open-source sur GitHub' }}</p>
+                    <span v-if="repo.language" class="badge bg-secondary-subtle text-secondary extra-small">{{ repo.language }}</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Certifications in CV Split -->
+            <div v-if="certificationsList.length && isBlockActiveInTab('certifications')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-patch-check-fill" :style="{ color: accentColor }"></i> Certifications Vérifiées &amp; Prix
+              </h2>
+              <div class="row g-3">
+                <div v-for="(cert, cIdx) in certificationsList" :key="cIdx" class="col-md-6">
+                  <div class="p-3 rounded-4 bg-light border h-100 d-flex flex-column justify-content-between">
+                    <div>
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="badge bg-info-subtle text-info-emphasis extra-small"><i class="bi bi-award me-1"></i>{{ cert.issuer || 'Certificat Officiel' }}</span>
+                        <span v-if="cert.year" class="extra-small text-muted fw-bold">{{ cert.year }}</span>
+                      </div>
+                      <strong class="d-block small text-dark fw-bold mt-1">{{ cert.title }}</strong>
+                    </div>
+                    <div v-if="cert.credential_url" class="mt-2 pt-2 border-top">
+                      <a :href="cert.credential_url" target="_blank" class="extra-small fw-bold text-decoration-none" :style="{ color: accentColor }">
+                        Vérifier l'authenticité <i class="bi bi-box-arrow-up-right ms-1"></i>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pricing Packages in CV Split -->
+            <div v-if="pricingPackagesList.length && isBlockActiveInTab('pricing')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-tags-fill" :style="{ color: accentColor }"></i> Mes Offres &amp; Grille Tarifaire
+              </h2>
+              <div class="row g-3">
+                <div v-for="(pkg, pIdx) in pricingPackagesList" :key="pIdx" class="col-md-6">
+                  <div class="p-4 rounded-4 border h-100 d-flex flex-column justify-content-between position-relative" :class="pkg.is_popular ? 'bg-white shadow-sm border-2' : 'bg-light'" :style="pkg.is_popular ? { borderColor: accentColor } : {}">
+                    <div>
+                      <span v-if="pkg.is_popular" class="badge rounded-pill text-white extra-small position-absolute top-0 end-0 m-3" :style="{ backgroundColor: accentColor }">⭐ Populaire</span>
+                      <h3 class="h6 fw-bold text-dark mb-1">{{ pkg.title }}</h3>
+                      <div class="my-2">
+                        <span class="fs-4 fw-black" :style="{ color: accentColor }">{{ pkg.price }}</span>
+                        <span v-if="pkg.unit" class="extra-small text-muted ms-1">{{ pkg.unit }}</span>
+                      </div>
+                      <ul class="list-unstyled extra-small text-muted d-flex flex-column gap-1 mb-3">
+                        <li v-for="(feat, fIdx) in parsePackageFeatures(pkg.features)" :key="fIdx" class="d-flex align-items-start gap-2">
+                          <i class="bi bi-check-circle-fill text-success mt-1"></i>
+                          <span>{{ feat }}</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <button type="button" @click="selectPackageForContact(pkg)" class="btn btn-sm rounded-pill w-100 fw-bold text-white" :style="{ backgroundColor: accentColor }">
+                      Commander ce pack &rarr;
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Testimonials in CV Split -->
+            <div v-if="testimonialsList.length && isBlockActiveInTab('testimonials')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+              <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
+                <i class="bi bi-chat-quote-fill" :style="{ color: accentColor }"></i> Témoignages &amp; Recommandations
+              </h2>
+              <div class="row g-3">
+                <div v-for="(testi, tIdx) in testimonialsList" :key="tIdx" class="col-md-6">
+                  <div class="p-3 rounded-4 bg-light border h-100 d-flex flex-column justify-content-between">
+                    <div>
+                      <div class="text-warning extra-small mb-2">
+                        <i v-for="star in (Number(testi.rating) || 5)" :key="star" class="bi bi-star-fill me-1"></i>
+                      </div>
+                      <p class="small text-dark fst-italic mb-3">« {{ testi.comment }} »</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 pt-2 border-top">
+                      <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center extra-small flex-shrink-0" style="width: 32px; height: 32px;" :style="{ backgroundColor: accentColor }">
+                        {{ getInitials(testi.author_name) }}
+                      </div>
+                      <div class="min-w-0">
+                        <strong class="d-block extra-small text-dark text-truncate">{{ testi.author_name }}</strong>
+                        <span class="extra-small text-muted d-block text-truncate">{{ testi.author_role }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Contact Block in CV Split -->
-            <div v-if="isBlockActiveInTab('contact')" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+            <div v-if="isBlockActiveInTab('contact')" id="portfolioContactSection" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
               <h2 class="h5 fw-bold mb-3 d-flex align-items-center gap-2">
                 <i class="bi bi-envelope-fill" :style="{ color: accentColor }"></i> Me Contacter Directement
               </h2>
@@ -622,24 +832,27 @@
                 <div v-if="heroStyle === 'centered'" class="hero-box hero-centered text-center p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
                   <div class="hero-glow-orb"></div>
                   <div class="position-relative z-1">
-                    <!-- Avatar with Rank Ring -->
+                    <!-- Avatar with Shape, Border & Online Pulse -->
                     <div class="d-inline-block position-relative mb-3">
                       <img 
                         v-if="portfolioUser.avatar" 
                         :src="formatImageUrl(portfolioUser.avatar)" 
                         :alt="portfolioUser.name"
-                        class="rounded-circle border border-4 border-white shadow-md hero-avatar"
+                        class="border border-4 border-white shadow-md hero-avatar"
+                        :class="[avatarShapeClass, avatarBorderClass]"
                       />
                       <div 
                         v-else 
-                        class="rounded-circle border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar mx-auto"
+                        class="border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar mx-auto"
+                        :class="[avatarShapeClass, avatarBorderClass]"
                         :style="{ backgroundColor: accentColor }"
                       >
                         {{ getInitials(portfolioUser.name) }}
                       </div>
 
-                      <!-- Verified Check -->
-                      <span class="position-absolute bottom-0 end-0 badge rounded-circle bg-success border border-2 border-white p-1" title="Membre vérifié Tech237">
+                      <!-- Online Pulse or Verified Check -->
+                      <span v-if="showOnlinePulse" class="avatar-online-pulse-badge" title="En ligne & Actif"></span>
+                      <span v-else class="position-absolute bottom-0 end-0 badge rounded-circle bg-success border border-2 border-white p-1" title="Membre vérifié Tech237">
                         <i class="bi bi-check-lg text-white" style="font-size: 11px;"></i>
                       </span>
                     </div>
@@ -647,9 +860,10 @@
                     <!-- Name & Rank -->
                     <h1 class="display-6 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
                     
-                    <!-- Headline / Subtitle -->
+                    <!-- Headline / Subtitle (with Typewriter if enabled) -->
                     <p class="fs-5 fw-semibold mb-2 user-headline-text" :style="{ color: accentColor }">
-                      {{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}
+                      <span>{{ displayedHeadline }}</span>
+                      <span v-if="typewriterEnabled" class="typewriter-cursor">|</span>
                     </p>
 
                     <!-- Location, Availability & Experience Pills -->
@@ -680,6 +894,18 @@
 
                     <!-- Contact & Social CTA Buttons -->
                     <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mt-3 d-print-none">
+                      <!-- Audio Pitch Vocal Button -->
+                      <button 
+                        v-if="audioPitchEnabled && effectiveAudioPitchText" 
+                        type="button" 
+                        @click="handleAudioPitchClick" 
+                        class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
+                        :style="{ backgroundColor: accentColor }"
+                      >
+                        <i class="bi" :class="isPlaying && !isPaused ? 'bi-pause-circle-fill' : 'bi-mic-fill'"></i>
+                        <span>{{ isPlaying && !isPaused ? 'Pause Pitch Vocal' : (isPaused ? 'Reprendre Pitch' : 'Écouter mon Pitch') }}</span>
+                      </button>
+
                       <a 
                         v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" 
                         :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
@@ -700,6 +926,17 @@
                         <i class="bi bi-chat-left-dots-fill"></i>
                         <span>Envoyer un message</span>
                       </Link>
+
+                      <!-- Digital Business Card (.vcf) -->
+                      <button 
+                        v-if="vcardEnabled" 
+                        type="button" 
+                        @click="openVcardModal" 
+                        class="btn btn-outline-primary rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2"
+                      >
+                        <i class="bi bi-person-vcard-fill"></i>
+                        <span>Fiche Contact (.vcf)</span>
+                      </button>
 
                       <!-- Download CV Button -->
                       <a 
@@ -729,18 +966,23 @@
                 <div v-else-if="heroStyle === 'split'" class="hero-box hero-split p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
                   <div class="row align-items-center g-4">
                     <div class="col-md-4 text-center text-md-start">
-                      <img 
-                        v-if="portfolioUser.avatar" 
-                        :src="formatImageUrl(portfolioUser.avatar)" 
-                        :alt="portfolioUser.name"
-                        class="rounded-4 border border-4 border-white shadow-md hero-avatar-sq"
-                      />
-                      <div 
-                        v-else 
-                        class="rounded-4 border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar-sq mx-auto mx-md-0"
-                        :style="{ backgroundColor: accentColor }"
-                      >
-                        {{ getInitials(portfolioUser.name) }}
+                      <div class="d-inline-block position-relative">
+                        <img 
+                          v-if="portfolioUser.avatar" 
+                          :src="formatImageUrl(portfolioUser.avatar)" 
+                          :alt="portfolioUser.name"
+                          class="border border-4 border-white shadow-md hero-avatar-sq"
+                          :class="[avatarShapeClass, avatarBorderClass]"
+                        />
+                        <div 
+                          v-else 
+                          class="border border-4 border-white shadow-md text-white fw-bold d-flex align-items-center justify-content-center hero-avatar-sq mx-auto mx-md-0"
+                          :class="[avatarShapeClass, avatarBorderClass]"
+                          :style="{ backgroundColor: accentColor }"
+                        >
+                          {{ getInitials(portfolioUser.name) }}
+                        </div>
+                        <span v-if="showOnlinePulse" class="avatar-online-pulse-badge" title="En ligne & Actif"></span>
                       </div>
                     </div>
                     <div class="col-md-8 text-center text-md-start">
@@ -750,7 +992,8 @@
                       </span>
                       <h1 class="display-6 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
                       <p class="fs-5 fw-semibold mb-2 user-headline-text" :style="{ color: accentColor }">
-                        {{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}
+                        <span>{{ displayedHeadline }}</span>
+                        <span v-if="typewriterEnabled" class="typewriter-cursor">|</span>
                       </p>
                       <div class="d-flex align-items-center gap-3 flex-wrap justify-content-center justify-content-md-start mb-3">
                         <span v-if="portfolioUser.location" class="meta-pill-text small">
@@ -771,6 +1014,16 @@
                         </span>
                       </div>
                       <div class="d-flex gap-2 flex-wrap justify-content-center justify-content-md-start d-print-none">
+                        <button 
+                          v-if="audioPitchEnabled && effectiveAudioPitchText" 
+                          type="button" 
+                          @click="handleAudioPitchClick" 
+                          class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
+                          :style="{ backgroundColor: accentColor }"
+                        >
+                          <i class="bi" :class="isPlaying && !isPaused ? 'bi-pause-circle-fill' : 'bi-mic-fill'"></i>
+                          <span>{{ isPlaying && !isPaused ? 'Pause Pitch' : (isPaused ? 'Reprendre' : 'Écouter Pitch') }}</span>
+                        </button>
                         <a 
                           v-if="portfolioUser.phone" 
                           :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
@@ -779,6 +1032,14 @@
                         >
                           <i class="bi bi-whatsapp me-1"></i> WhatsApp
                         </a>
+                        <button 
+                          v-if="vcardEnabled" 
+                          type="button" 
+                          @click="openVcardModal" 
+                          class="btn btn-outline-primary rounded-pill px-3 py-2 fw-semibold"
+                        >
+                          <i class="bi bi-person-vcard-fill me-1"></i> Fiche .vcf
+                        </button>
                         <a 
                           v-if="cvFileUrl" 
                           :href="cvFileUrl" 
@@ -806,7 +1067,7 @@
                   <div class="terminal-prompt text-success mb-2">&gt; dev.inspect(user="{{ portfolioUser.username }}")</div>
                   <div class="ps-3 border-start border-success border-2 mb-3">
                     <div class="fs-4 fw-bold text-white mb-1">{{ portfolioUser.name }}</div>
-                    <div class="text-info mb-1">// {{ portfolioUser.headline || 'Architecte Logiciel' }}</div>
+                    <div class="text-info mb-1">// {{ displayedHeadline }}<span v-if="typewriterEnabled" class="typewriter-cursor">|</span></div>
                     <div class="text-white-50 small" v-if="portfolioUser.location">📍 Location: {{ portfolioUser.location }}</div>
                     <div class="text-white-50 small" v-if="yearsOfExperience">💼 Expérience: {{ yearsOfExperience }}</div>
                     <div class="text-warning small">⚡ Rank: {{ portfolioUser.rank_title || 'Novice Tech' }} ({{ portfolioUser.xp || 0 }} XP)</div>
@@ -819,14 +1080,18 @@
                   <div class="hero-cover-bg py-5 px-4 text-center text-white" :style="{ backgroundColor: accentColor }">
                     <span class="badge bg-white text-dark rounded-pill px-3 py-1 fw-bold extra-small mb-2">Portfolio Officiel Tech237</span>
                     <h1 class="display-6 fw-bold mb-1 text-white">{{ portfolioUser.name }}</h1>
-                    <p class="fs-6 opacity-90 mb-0">{{ portfolioUser.headline || 'Bâtisseur & Développeur Tech' }}</p>
+                    <p class="fs-6 opacity-90 mb-0">
+                      <span>{{ displayedHeadline }}</span>
+                      <span v-if="typewriterEnabled" class="typewriter-cursor">|</span>
+                    </p>
                   </div>
                   <div class="p-4 text-center position-relative content-card">
                     <img 
                       v-if="portfolioUser.avatar" 
                       :src="formatImageUrl(portfolioUser.avatar)" 
                       :alt="portfolioUser.name"
-                      class="rounded-circle border border-4 border-white shadow-md hero-avatar mx-auto mb-2"
+                      class="border border-4 border-white shadow-md hero-avatar mx-auto mb-2"
+                      :class="[avatarShapeClass, avatarBorderClass]"
                       style="margin-top: -65px;"
                     />
                     <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-2">
@@ -846,10 +1111,11 @@
                       v-if="portfolioUser.avatar" 
                       :src="formatImageUrl(portfolioUser.avatar)" 
                       :alt="portfolioUser.name"
-                      class="rounded-circle border border-2 border-emerald-400 shadow hero-avatar mb-3"
+                      class="border border-2 border-emerald-400 shadow hero-avatar mb-3"
+                      :class="[avatarShapeClass, avatarBorderClass]"
                     />
                     <h1 class="display-6 fw-black text-white text-uppercase tracking-wider mb-1">{{ portfolioUser.name }}</h1>
-                    <p class="text-emerald-400 font-monospace mb-2">{{ portfolioUser.headline }}</p>
+                    <p class="text-emerald-400 font-monospace mb-2">{{ displayedHeadline }}<span v-if="typewriterEnabled" class="typewriter-cursor">|</span></p>
                     <div class="d-flex gap-2 flex-wrap justify-content-center">
                       <span class="badge bg-emerald-950 text-emerald-300 border border-emerald-600 extra-small font-monospace">XP: {{ portfolioUser.xp || 0 }}</span>
                       <span v-if="yearsOfExperience" class="badge bg-emerald-950 text-emerald-300 border border-emerald-600 extra-small font-monospace">EXP: {{ yearsOfExperience }}</span>
@@ -866,12 +1132,13 @@
                         v-if="portfolioUser.avatar" 
                         :src="formatImageUrl(portfolioUser.avatar)" 
                         :alt="portfolioUser.name"
-                        class="rounded-circle border hero-avatar"
+                        class="border hero-avatar"
+                        :class="[avatarShapeClass, avatarBorderClass]"
                         style="width: 72px; height: 72px;"
                       />
                       <div>
                         <h1 class="h3 fw-bold mb-0 text-dark">{{ portfolioUser.name }}</h1>
-                        <p class="small text-muted mb-0 fw-bold">{{ portfolioUser.headline }}</p>
+                        <p class="small text-muted mb-0 fw-bold">{{ displayedHeadline }}<span v-if="typewriterEnabled" class="typewriter-cursor">|</span></p>
                       </div>
                     </div>
                     <span class="badge rounded-pill px-3 py-2 availability-pill" :class="getAvailabilityClass(portfolioUser.availability)">
@@ -892,11 +1159,12 @@
                       v-if="portfolioUser.avatar" 
                       :src="formatImageUrl(portfolioUser.avatar)" 
                       :alt="portfolioUser.name"
-                      class="rounded-circle border hero-avatar"
+                      class="border hero-avatar"
+                      :class="[avatarShapeClass, avatarBorderClass]"
                     />
                     <div>
                       <h1 class="h3 fw-bold mb-1 user-name-heading">{{ portfolioUser.name }}</h1>
-                      <p class="text-muted fw-semibold mb-2">{{ portfolioUser.headline }}</p>
+                      <p class="text-muted fw-semibold mb-2">{{ displayedHeadline }}<span v-if="typewriterEnabled" class="typewriter-cursor">|</span></p>
                       <div class="d-flex gap-2 flex-wrap">
                         <span v-if="yearsOfExperience" class="badge bg-light text-dark border extra-small">{{ yearsOfExperience }}</span>
                         <span class="badge bg-light text-dark border extra-small">{{ getAvailabilityLabel(portfolioUser.availability) }}</span>
@@ -1265,8 +1533,225 @@
                 </div>
               </section>
 
+              <!-- 9.B NOW SECTION (« EN CE MOMENT ») -->
+              <section v-else-if="block.id === 'now' && hasNowSection" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center gap-2 mb-4">
+                    <span class="section-icon-badge" :style="{ color: accentColor }">
+                      <i class="bi bi-compass-fill fs-5"></i>
+                    </span>
+                    <h2 class="h5 fw-bold mb-0 section-heading">En ce moment (Now)</h2>
+                  </div>
+
+                  <div class="row g-3">
+                    <div v-if="nowSection.project" class="col-md-4">
+                      <div class="p-3 rounded-4 bg-light border h-100">
+                        <span class="badge bg-primary-subtle text-primary extra-small mb-2">🔨 Sur quoi je travaille</span>
+                        <p class="small fw-semibold text-dark mb-0">{{ nowSection.project }}</p>
+                      </div>
+                    </div>
+                    <div v-if="nowSection.learning" class="col-md-4">
+                      <div class="p-3 rounded-4 bg-light border h-100">
+                        <span class="badge bg-success-subtle text-success extra-small mb-2">📚 En apprentissage</span>
+                        <p class="small fw-semibold text-dark mb-0">{{ nowSection.learning }}</p>
+                      </div>
+                    </div>
+                    <div v-if="nowSection.goal" class="col-md-4">
+                      <div class="p-3 rounded-4 bg-light border h-100">
+                        <span class="badge bg-warning-subtle text-warning-emphasis extra-small mb-2">🎯 Prochain objectif</span>
+                        <p class="small fw-semibold text-dark mb-0">{{ nowSection.goal }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9.C GITHUB LIVE STATS BLOCK -->
+              <section v-else-if="block.id === 'github' && hasGithubStats" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="section-icon-badge" :style="{ color: accentColor }">
+                        <i class="bi bi-github fs-5"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">Statistiques GitHub &amp; Open-Source</h2>
+                    </div>
+                    <a :href="'https://github.com/' + githubUsername" target="_blank" class="btn btn-sm btn-dark rounded-pill px-3 extra-small fw-bold">
+                      <i class="bi bi-github me-1"></i> @{{ githubUsername }}
+                    </a>
+                  </div>
+
+                  <div v-if="githubProfile" class="row g-3 mb-4">
+                    <div class="col-4">
+                      <div class="p-3 rounded-4 bg-light border text-center">
+                        <strong class="fs-4 fw-black d-block" :style="{ color: accentColor }">{{ githubProfile.public_repos || 0 }}</strong>
+                        <span class="extra-small text-muted">Dépôts Publics</span>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="p-3 rounded-4 bg-light border text-center">
+                        <strong class="fs-4 fw-black d-block" :style="{ color: accentColor }">{{ githubTotalStars }}</strong>
+                        <span class="extra-small text-muted">Stars cumulées</span>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="p-3 rounded-4 bg-light border text-center">
+                        <strong class="fs-4 fw-black d-block" :style="{ color: accentColor }">{{ githubProfile.followers || 0 }}</strong>
+                        <span class="extra-small text-muted">Followers</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="githubTopLanguages.length" class="mb-4">
+                    <span class="extra-small fw-bold text-muted d-block mb-2">Langages les plus utilisés :</span>
+                    <div class="d-flex flex-wrap gap-2">
+                      <span v-for="lang in githubTopLanguages" :key="lang.name" class="badge bg-light text-dark border rounded-pill px-3 py-2 extra-small fw-semibold">
+                        <i class="bi bi-code-slash me-1" :style="{ color: accentColor }"></i>{{ lang.name }} ({{ lang.percent }}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-if="githubRepos.length" class="row g-3">
+                    <div v-for="repo in githubRepos.slice(0, 4)" :key="repo.id" class="col-md-6">
+                      <a :href="repo.html_url" target="_blank" class="p-3 rounded-4 bg-light border d-block text-decoration-none h-100 transition-hover">
+                        <div class="d-flex align-items-center justify-content-between mb-1">
+                          <strong class="small text-dark text-truncate"><i class="bi bi-journal-code me-1"></i>{{ repo.name }}</strong>
+                          <span class="badge bg-white text-dark border extra-small">⭐ {{ repo.stargazers_count || 0 }}</span>
+                        </div>
+                        <p class="extra-small text-muted mb-2 text-truncate">{{ repo.description || 'Projet open-source hébergé sur GitHub' }}</p>
+                        <div class="d-flex align-items-center justify-content-between extra-small text-muted">
+                          <span v-if="repo.language" class="badge bg-secondary-subtle text-secondary extra-small">{{ repo.language }}</span>
+                          <span><i class="bi bi-diagram-2 me-1"></i>{{ repo.forks_count || 0 }} forks</span>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9.D CERTIFICATIONS & AWARDS BLOCK -->
+              <section v-else-if="block.id === 'certifications' && certificationsList.length" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="section-icon-badge" :style="{ color: accentColor }">
+                        <i class="bi bi-patch-check-fill fs-5"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">Certifications Vérifiées &amp; Distinctions</h2>
+                    </div>
+                    <span class="badge bg-info-subtle text-info-emphasis rounded-pill extra-small">
+                      {{ certificationsList.length }} certificat(s)
+                    </span>
+                  </div>
+
+                  <div class="row g-3">
+                    <div v-for="(cert, cIdx) in certificationsList" :key="cIdx" class="col-md-6">
+                      <div class="p-3 rounded-4 bg-light border h-100 d-flex flex-column justify-content-between">
+                        <div>
+                          <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="badge bg-white text-dark border extra-small"><i class="bi bi-award-fill text-warning me-1"></i>{{ cert.issuer || 'Certification' }}</span>
+                            <span v-if="cert.year" class="extra-small text-muted fw-bold">{{ cert.year }}</span>
+                          </div>
+                          <strong class="d-block small text-dark fw-bold">{{ cert.title }}</strong>
+                        </div>
+                        <div v-if="cert.credential_url" class="mt-3 pt-2 border-top">
+                          <a :href="cert.credential_url" target="_blank" class="extra-small fw-bold text-decoration-none d-inline-flex align-items-center gap-1" :style="{ color: accentColor }">
+                            <i class="bi bi-shield-check"></i> Vérifier le certificat officiel <i class="bi bi-box-arrow-up-right"></i>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9.E PRICING PACKAGES & SERVICES BLOCK -->
+              <section v-else-if="block.id === 'pricing' && pricingPackagesList.length" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="section-icon-badge" :style="{ color: accentColor }">
+                        <i class="bi bi-tags-fill fs-5"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">Mes Offres &amp; Grille Tarifaire</h2>
+                    </div>
+                  </div>
+
+                  <div class="row g-4">
+                    <div v-for="(pkg, pIdx) in pricingPackagesList" :key="pIdx" :class="pricingPackagesList.length === 1 ? 'col-12' : (pricingPackagesList.length === 2 ? 'col-md-6' : 'col-md-6 col-lg-4')">
+                      <div 
+                        class="p-4 rounded-4 border h-100 d-flex flex-column justify-content-between position-relative transition-hover"
+                        :class="pkg.is_popular ? 'bg-white shadow-sm border-2' : 'bg-light'"
+                        :style="pkg.is_popular ? { borderColor: accentColor } : {}"
+                      >
+                        <div>
+                          <span v-if="pkg.is_popular" class="badge rounded-pill text-white extra-small position-absolute top-0 end-0 m-3" :style="{ backgroundColor: accentColor }">
+                            ⭐ Recommandé
+                          </span>
+                          <h3 class="h6 fw-bold text-dark mb-2">{{ pkg.title }}</h3>
+                          <div class="mb-3">
+                            <span class="fs-3 fw-black" :style="{ color: accentColor }">{{ pkg.price }}</span>
+                            <span v-if="pkg.unit" class="extra-small text-muted ms-1">{{ pkg.unit }}</span>
+                          </div>
+                          <ul class="list-unstyled small text-muted d-flex flex-column gap-2 mb-4">
+                            <li v-for="(feat, fIdx) in parsePackageFeatures(pkg.features)" :key="fIdx" class="d-flex align-items-start gap-2">
+                              <i class="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i>
+                              <span>{{ feat }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <button 
+                          type="button" 
+                          @click="selectPackageForContact(pkg)" 
+                          class="btn rounded-pill w-100 py-2 fw-bold text-white shadow-2xs"
+                          :style="{ backgroundColor: accentColor }"
+                        >
+                          Commander ce pack &rarr;
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9.F TESTIMONIALS & SOCIAL PROOF BLOCK -->
+              <section v-else-if="block.id === 'testimonials' && testimonialsList.length" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="section-icon-badge" :style="{ color: accentColor }">
+                        <i class="bi bi-chat-quote-fill fs-5"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">Témoignages &amp; Recommandations</h2>
+                    </div>
+                  </div>
+
+                  <div class="row g-3">
+                    <div v-for="(testi, tIdx) in testimonialsList" :key="tIdx" class="col-md-6">
+                      <div class="p-4 rounded-4 bg-light border h-100 d-flex flex-column justify-content-between">
+                        <div>
+                          <div class="text-warning small mb-2">
+                            <i v-for="star in (Number(testi.rating) || 5)" :key="star" class="bi bi-star-fill me-1"></i>
+                          </div>
+                          <p class="small text-dark fst-italic leading-relaxed mb-3">« {{ testi.comment }} »</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
+                          <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center small flex-shrink-0" style="width: 38px; height: 38px;" :style="{ backgroundColor: accentColor }">
+                            {{ getInitials(testi.author_name) }}
+                          </div>
+                          <div class="min-w-0">
+                            <strong class="d-block small text-dark text-truncate">{{ testi.author_name }}</strong>
+                            <span class="extra-small text-muted d-block text-truncate">{{ testi.author_role }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               <!-- 10. CONTACT BLOCK WITH INTERACTIVE EMAIL FORM -->
-              <section v-else-if="block.id === 'contact'" class="portfolio-block h-100">
+              <section v-else-if="block.id === 'contact'" id="portfolioContactSection" class="portfolio-block h-100">
                 <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card text-center h-100">
                   <div class="mx-auto mb-2 section-icon-badge" :style="{ color: accentColor }">
                     <i class="bi bi-send-check-fill fs-2"></i>
@@ -1412,6 +1897,70 @@
         </div>
       </footer>
 
+      <!-- FLOATING WHATSAPP DIRECT BUBBLE -->
+      <a 
+        v-if="whatsappFloatingUrl" 
+        :href="whatsappFloatingUrl" 
+        target="_blank" 
+        class="btn-floating-whatsapp rounded-pill shadow-lg d-inline-flex align-items-center gap-2 text-white text-decoration-none fw-bold px-3 py-2 d-print-none"
+        :class="whatsappFloating.position === 'right' ? 'pos-right' : 'pos-left'"
+        title="Discuter directement sur WhatsApp"
+      >
+        <i class="bi bi-whatsapp fs-5"></i>
+        <span class="small">WhatsApp Direct</span>
+      </a>
+
+      <!-- MODAL: DIGITAL BUSINESS CARD (vCard .vcf + QR Code) -->
+      <div v-if="showVcardModal" class="modal fade show d-block d-print-none" tabindex="-1" style="background-color: rgba(0,0,0,0.65); z-index: 1080;" @click.self="showVcardModal = false">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+          <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header text-white p-4 border-0" :style="{ backgroundColor: accentColor }">
+              <div class="d-flex align-items-center gap-3">
+                <img 
+                  v-if="portfolioUser.avatar" 
+                  :src="formatImageUrl(portfolioUser.avatar)" 
+                  class="rounded-circle border border-2 border-white object-fit-cover" 
+                  style="width: 48px; height: 48px;" 
+                  :alt="portfolioUser.name"
+                />
+                <div>
+                  <h5 class="modal-title fw-bold mb-0 fs-6">{{ portfolioUser.name }}</h5>
+                  <small class="opacity-90 extra-small d-block">{{ portfolioUser.headline || 'Expert Tech237' }}</small>
+                </div>
+              </div>
+              <button type="button" @click="showVcardModal = false" class="btn-close btn-close-white"></button>
+            </div>
+            <div class="modal-body p-4 text-center bg-white text-dark">
+              <p class="extra-small text-muted mb-3">
+                Scannez ce QR Code avec l'appareil photo de votre téléphone ou téléchargez la fiche contact <code>.vcf</code> pour m'ajouter à votre répertoire.
+              </p>
+              <div class="p-3 rounded-4 border bg-light d-inline-block mb-3 shadow-2xs">
+                <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" alt="QR Code Portfolio" class="img-fluid rounded-3" style="width: 190px; height: 190px;" />
+              </div>
+              <div class="d-grid gap-2">
+                <button 
+                  type="button" 
+                  @click="downloadVcardFile" 
+                  class="btn rounded-pill py-2 fw-bold text-white shadow-sm d-flex align-items-center justify-content-center gap-2"
+                  :style="{ backgroundColor: accentColor }"
+                >
+                  <i class="bi bi-person-vcard-fill"></i>
+                  <span>Ajouter aux contacts (.vcf)</span>
+                </button>
+                <a 
+                  v-if="qrCodeDataUrl" 
+                  :href="qrCodeDataUrl" 
+                  :download="`qrcode-${portfolioUser.username}.png`" 
+                  class="btn btn-sm btn-outline-secondary rounded-pill py-2 fw-semibold"
+                >
+                  <i class="bi bi-download me-1"></i> Télécharger l'image QR Code
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- FLOATING ROUND BACK TO TOP BUTTON (Bottom-Right, Appears on scroll) -->
       <transition name="fade">
         <button 
@@ -1434,6 +1983,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
+import QRCode from 'qrcode'
+import { useAudioNarrator } from '@/Composables/useAudioNarrator'
 
 const props = defineProps({
   portfolioUser: { type: Object, required: true },
@@ -1512,9 +2063,242 @@ const pageAnimation = computed(() => layout.value.page_animation || 'fade')
 const yearsOfExperience = computed(() => layout.value.years_of_experience || '')
 const googleMapsUrl = computed(() => layout.value.google_maps_url || '')
 const cvFileUrl = computed(() => {
-  const file = layout.value.cv_file
+  const file = layout.value.cv_file || layout.value.cv_url
   return file ? formatImageUrl(file) : null
 })
+
+// 1. Avatar Shape, Border & Online Pulse
+const avatarShapeClass = computed(() => 'avatar-shape-' + (layout.value.avatar_shape || 'circle'))
+const avatarBorderClass = computed(() => 'avatar-border-' + (layout.value.avatar_border || 'standard'))
+const showOnlinePulse = computed(() => layout.value.show_online_pulse !== false)
+
+// 2. Typewriter Headline Effect
+const typewriterEnabled = computed(() => Boolean(layout.value.typewriter_enabled && layout.value.typewriter_roles))
+const typewriterRolesList = computed(() => {
+  const raw = layout.value.typewriter_roles || ''
+  const arr = raw.split(',').map(s => s.trim()).filter(Boolean)
+  if (arr.length) return arr
+  return [props.portfolioUser.headline || 'Bâtisseur & Développeur Tech']
+})
+const typedText = ref('')
+let typewriterTimer = null
+let currentRoleIdx = 0
+let currentCharIdx = 0
+let isDeletingRole = false
+
+function runTypewriterStep() {
+  if (!typewriterEnabled.value) return
+  const roles = typewriterRolesList.value
+  const fullRole = roles[currentRoleIdx % roles.length] || ''
+
+  if (!isDeletingRole) {
+    typedText.value = fullRole.substring(0, currentCharIdx + 1)
+    currentCharIdx++
+    if (currentCharIdx >= fullRole.length) {
+      isDeletingRole = true
+      typewriterTimer = setTimeout(runTypewriterStep, 1800)
+      return
+    }
+    typewriterTimer = setTimeout(runTypewriterStep, 75)
+  } else {
+    typedText.value = fullRole.substring(0, currentCharIdx - 1)
+    currentCharIdx--
+    if (currentCharIdx <= 0) {
+      isDeletingRole = false
+      currentRoleIdx = (currentRoleIdx + 1) % roles.length
+      typewriterTimer = setTimeout(runTypewriterStep, 350)
+      return
+    }
+    typewriterTimer = setTimeout(runTypewriterStep, 40)
+  }
+}
+
+const displayedHeadline = computed(() => {
+  if (typewriterEnabled.value) {
+    return typedText.value || typewriterRolesList.value[0]
+  }
+  return props.portfolioUser.headline || 'Bâtisseur & Développeur Tech'
+})
+
+// 3. Mouse Spotlight & Custom Cursor
+const spotlightEnabled = computed(() => Boolean(layout.value.spotlight_enabled))
+const customCursorEnabled = computed(() => Boolean(layout.value.custom_cursor_enabled))
+const mouseX = ref(-500)
+const mouseY = ref(-500)
+
+function handleMouseMove(e) {
+  if (!spotlightEnabled.value && !customCursorEnabled.value) return
+  mouseX.value = e.clientX
+  mouseY.value = e.clientY
+}
+
+const spotlightStyle = computed(() => ({
+  background: `radial-gradient(500px circle at ${mouseX.value}px ${mouseY.value}px, ${accentColor.value}22, transparent 70%)`,
+  zIndex: 1
+}))
+
+const customCursorStyle = computed(() => ({
+  transform: `translate3d(${mouseX.value - 16}px, ${mouseY.value - 16}px, 0)`,
+  borderColor: accentColor.value
+}))
+
+// 4. Audio Pitch Vocal (using useAudioNarrator)
+const { isPlaying, isPaused, toggleAudio } = useAudioNarrator()
+const audioPitchEnabled = computed(() => Boolean(layout.value.audio_pitch_enabled))
+const effectiveAudioPitchText = computed(() => {
+  return (layout.value.audio_pitch_text || props.portfolioUser.bio || '').replace(/<[^>]+>/g, ' ').trim()
+})
+
+function handleAudioPitchClick() {
+  if (!effectiveAudioPitchText.value) return
+  toggleAudio(`${props.portfolioUser.name}. ${props.portfolioUser.headline || ''}`, effectiveAudioPitchText.value)
+}
+
+// 5. Digital Business Card (.vcf + QR Code)
+const vcardEnabled = computed(() => layout.value.vcard_enabled !== false)
+const showVcardModal = ref(false)
+const qrCodeDataUrl = ref('')
+
+async function openVcardModal() {
+  showVcardModal.value = true
+  if (!qrCodeDataUrl.value) {
+    try {
+      qrCodeDataUrl.value = await QRCode.toDataURL(shareUrl.value, {
+        width: 240,
+        margin: 2,
+        color: {
+          dark: accentColor.value || '#00A859',
+          light: '#FFFFFF',
+        },
+      })
+    } catch (e) {}
+  }
+}
+
+function downloadVcardFile() {
+  const name = props.portfolioUser.name || 'Membre Tech237'
+  const title = props.portfolioUser.headline || 'Expert Tech'
+  const phone = layout.value.whatsapp_floating?.number || props.portfolioUser.social_links?.whatsapp || props.portfolioUser.phone || ''
+  const email = props.portfolioUser.email || ''
+  const loc = props.portfolioUser.location || 'Cameroun'
+  const url = shareUrl.value
+
+  const vcardLines = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${name}`,
+    `TITLE:${title}`,
+    phone ? `TEL;TYPE=CELL:${phone}` : '',
+    email ? `EMAIL;TYPE=INTERNET:${email}` : '',
+    `ADR;TYPE=WORK:;;${loc};;;;`,
+    `URL:${url}`,
+    `NOTE:Portfolio officiel Tech237 - ${url}`,
+    'END:VCARD'
+  ].filter(Boolean).join('\r\n')
+
+  const blob = new Blob([vcardLines], { type: 'text/vcard;charset=utf-8' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `${props.portfolioUser.username || 'contact'}-tech237.vcf`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+// 6. Floating WhatsApp Direct Bubble
+const whatsappFloating = computed(() => layout.value.whatsapp_floating || { enabled: false, position: 'left' })
+const whatsappFloatingUrl = computed(() => {
+  if (!whatsappFloating.value?.enabled) return ''
+  const num = cleanPhone(whatsappFloating.value.number || props.portfolioUser.social_links?.whatsapp || props.portfolioUser.phone || '')
+  if (!num) return ''
+  const msg = encodeURIComponent(whatsappFloating.value.message || `Bonjour ${props.portfolioUser.name}, j'ai découvert votre portfolio sur Tech237.`)
+  return `https://wa.me/${num}?text=${msg}`
+})
+
+// 7. Now Section (« En ce moment »)
+const nowSection = computed(() => layout.value.now_section || { enabled: false })
+const hasNowSection = computed(() => Boolean(nowSection.value?.enabled && (nowSection.value.project || nowSection.value.learning || nowSection.value.goal)))
+
+// 8. GitHub Live Stats
+const githubStatsConfig = computed(() => layout.value.github_stats || { enabled: false, username: '' })
+const githubUsername = computed(() => {
+  const raw = (githubStatsConfig.value?.username || '').trim()
+  if (raw) return raw.replace(/^@/, '').replace(/^https?:\/\/(www\.)?github\.com\//i, '').split('/')[0]
+  const socialGh = (props.portfolioUser.social_links?.github || '').trim()
+  if (socialGh) return socialGh.replace(/^https?:\/\/(www\.)?github\.com\//i, '').split('/')[0]
+  return ''
+})
+const hasGithubStats = computed(() => Boolean(githubStatsConfig.value?.enabled && githubUsername.value))
+const githubProfile = ref(null)
+const githubRepos = ref([])
+
+const githubTotalStars = computed(() => {
+  return githubRepos.value.reduce((acc, r) => acc + (Number(r.stargazers_count) || 0), 0)
+})
+
+const githubTopLanguages = computed(() => {
+  const counts = {}
+  let total = 0
+  githubRepos.value.forEach(r => {
+    if (r.language) {
+      counts[r.language] = (counts[r.language] || 0) + 1
+      total++
+    }
+  })
+  if (!total) return []
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, percent: Math.round((count / total) * 100) }))
+})
+
+async function fetchGithubLiveStats() {
+  if (!hasGithubStats.value) return
+  try {
+    const [pRes, rRes] = await Promise.all([
+      fetch(`https://api.github.com/users/${encodeURIComponent(githubUsername.value)}`),
+      fetch(`https://api.github.com/users/${encodeURIComponent(githubUsername.value)}/repos?sort=updated&per_page=12`)
+    ])
+    if (pRes.ok) githubProfile.value = await pRes.json()
+    if (rRes.ok) {
+      const repos = await rRes.json()
+      if (Array.isArray(repos)) githubRepos.value = repos
+    }
+  } catch (e) {}
+}
+
+// 9. Certifications, Pricing Packages & Testimonials
+const certificationsList = computed(() => {
+  return (Array.isArray(layout.value.certifications) ? layout.value.certifications : []).filter(c => c && c.title)
+})
+
+const pricingPackagesList = computed(() => {
+  return (Array.isArray(layout.value.pricing_packages) ? layout.value.pricing_packages : []).filter(p => p && p.title)
+})
+
+const testimonialsList = computed(() => {
+  return (Array.isArray(layout.value.testimonials) ? layout.value.testimonials : []).filter(t => t && t.comment)
+})
+
+function parsePackageFeatures(featuresStr) {
+  if (!featuresStr) return []
+  if (Array.isArray(featuresStr)) return featuresStr
+  return String(featuresStr).split(/\r?\n|,/).map(s => s.trim()).filter(Boolean)
+}
+
+function selectPackageForContact(pkg) {
+  contactForm.value.subject = `Commande / Devis : ${pkg.title} (${pkg.price})`
+  if (!contactForm.value.message) {
+    contactForm.value.message = `Bonjour ${props.portfolioUser.name},\nJe suis intéressé(e) par votre offre « ${pkg.title} » (${pkg.price}). Pouvons-nous en discuter ?`
+  }
+  if (isTabbedMode.value && activeTab.value !== 'all' && activeTab.value !== 'contact') {
+    activeTab.value = 'contact'
+  }
+  setTimeout(() => {
+    const el = document.getElementById('portfolioContactSection')
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  }, 100)
+}
 
 function extractYouTubeEmbedUrl(url) {
   if (!url || typeof url !== 'string') return null
@@ -1669,6 +2453,15 @@ const availableTabs = computed(() => {
   if (props.pocs && props.pocs.length) {
     tabs.push({ id: 'pocs', label: 'POCs', iconClass: 'bi-lightning-charge-fill', count: props.pocs.length })
   }
+  if (pricingPackagesList.value.length) {
+    tabs.push({ id: 'pricing', label: 'Offres & Tarifs', iconClass: 'bi-tags-fill', count: pricingPackagesList.value.length })
+  }
+  if (certificationsList.value.length) {
+    tabs.push({ id: 'certifications', label: 'Certifications', iconClass: 'bi-patch-check-fill', count: certificationsList.value.length })
+  }
+  if (testimonialsList.value.length) {
+    tabs.push({ id: 'testimonials', label: 'Témoignages', iconClass: 'bi-chat-quote-fill', count: testimonialsList.value.length })
+  }
   tabs.push({ id: 'contact', label: 'Contact', iconClass: 'bi-envelope-fill' })
   return tabs
 })
@@ -1738,11 +2531,16 @@ const defaultBlocks = [
   { id: 'hero', name: 'En-tête & Présentation', enabled: true, width: 'full' },
   { id: 'about', name: 'À propos & Parcours', enabled: true, width: 'full' },
   { id: 'video', name: 'Vidéo de Présentation', enabled: true, width: 'full' },
+  { id: 'now', name: 'En ce moment (Now)', enabled: true, width: 'half' },
+  { id: 'github', name: 'Statistiques GitHub Live', enabled: true, width: 'half' },
   { id: 'skills', name: 'Compétences & Stack technique', enabled: true, width: 'half' },
   { id: 'projects', name: 'Projets Tech en vedette', enabled: true, width: 'full' },
   { id: 'pocs', name: 'Mini-Actus & POCs Tech237', enabled: true, width: 'half' },
   { id: 'experiences', name: 'Expériences professionnelles', enabled: true, width: 'full' },
   { id: 'educations', name: 'Formations & Diplômes', enabled: true, width: 'half' },
+  { id: 'certifications', name: 'Certifications & Distinctions', enabled: true, width: 'half' },
+  { id: 'pricing', name: 'Grille Tarifaire & Packs Services', enabled: true, width: 'full' },
+  { id: 'testimonials', name: 'Témoignages & Recommandations', enabled: true, width: 'full' },
   { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, width: 'half' },
   { id: 'custom', name: 'Sections personnalisées libres', enabled: true, width: 'full' },
   { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, width: 'full' },
@@ -1759,17 +2557,34 @@ const orderedBlocks = computed(() => {
     list.splice(insertIdx, 0, { id: 'video', name: 'Vidéo de Présentation', enabled: true, width: 'full' })
   }
 
+  const extraBlocks = defaultBlocks.filter(db => ['now', 'github', 'certifications', 'pricing', 'testimonials'].includes(db.id))
+  extraBlocks.forEach(eb => {
+    if (!list.some(b => b.id === eb.id)) {
+      const contactIdx = list.findIndex(b => b.id === 'contact')
+      if (contactIdx !== -1) {
+        list.splice(contactIdx, 0, { ...eb })
+      } else {
+        list.push({ ...eb })
+      }
+    }
+  })
+
   return list
 })
 
 function shouldRenderBlock(id) {
   if (id === 'about') return Boolean(props.portfolioUser.bio)
   if (id === 'video') return Boolean(youtubeEmbedUrl.value)
+  if (id === 'now') return Boolean(hasNowSection.value)
+  if (id === 'github') return Boolean(hasGithubStats.value)
   if (id === 'skills') return Boolean(props.portfolioUser.skills && props.portfolioUser.skills.length)
   if (id === 'projects') return Boolean(props.projects && props.projects.length)
   if (id === 'pocs') return Boolean(props.pocs && props.pocs.length)
   if (id === 'experiences') return Boolean(props.portfolioUser.experiences && props.portfolioUser.experiences.length)
   if (id === 'educations') return Boolean(props.portfolioUser.educations && props.portfolioUser.educations.length)
+  if (id === 'certifications') return Boolean(certificationsList.value.length)
+  if (id === 'pricing') return Boolean(pricingPackagesList.value.length)
+  if (id === 'testimonials') return Boolean(testimonialsList.value.length)
   if (id === 'badges') return Boolean(props.badges && props.badges.length)
   if (id === 'custom') return Boolean(props.portfolioUser.custom_sections && props.portfolioUser.custom_sections.length)
   return true
@@ -2014,12 +2829,23 @@ onMounted(() => {
       nextSlide()
     }, speed)
   }
+
+  if (typewriterEnabled.value) {
+    runTypewriterStep()
+  }
+
+  if (hasGithubStats.value) {
+    fetchGithubLiveStats()
+  }
 })
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
   if (slideshowInterval) {
     clearInterval(slideshowInterval)
+  }
+  if (typewriterTimer) {
+    clearTimeout(typewriterTimer)
   }
 })
 </script>
@@ -2238,7 +3064,7 @@ onUnmounted(() => {
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
 }
 
-/* HERO AVATARS */
+/* HERO AVATARS & SHAPES */
 .hero-avatar {
   width: 120px;
   height: 120px;
@@ -2250,6 +3076,84 @@ onUnmounted(() => {
   height: 140px;
   object-fit: cover;
   font-size: 44px;
+}
+.avatar-shape-circle {
+  border-radius: 50% !important;
+}
+.avatar-shape-squircle {
+  border-radius: 28% !important;
+}
+.avatar-shape-hexagon {
+  clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%);
+  border-radius: 0 !important;
+}
+.avatar-shape-diamond {
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  border-radius: 0 !important;
+}
+.avatar-border-glow {
+  box-shadow: 0 0 0 4px #ffffff, 0 0 22px var(--accent-color) !important;
+}
+.avatar-border-gradient {
+  border: 4px solid var(--accent-color) !important;
+  box-shadow: 0 0 18px rgba(0, 168, 89, 0.35) !important;
+}
+.avatar-border-double {
+  outline: 3px solid var(--accent-color);
+  outline-offset: 3px;
+}
+.avatar-online-pulse-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #22C55E;
+  border: 3px solid #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+  animation: pulseDot 2s infinite;
+}
+
+/* TYPEWRITER CURSOR */
+.typewriter-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  font-weight: 700;
+  animation: blinkCursor 0.8s infinite;
+}
+
+/* CUSTOM CURSOR & SPOTLIGHT */
+.portfolio-custom-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--accent-color);
+  border-radius: 50%;
+  z-index: 9999;
+  transition: transform 0.06s linear;
+  box-shadow: 0 0 12px rgba(0, 168, 89, 0.25);
+}
+
+/* FLOATING WHATSAPP DIRECT BUBBLE */
+.btn-floating-whatsapp {
+  position: fixed;
+  bottom: 25px;
+  z-index: 1045;
+  background-color: #25D366;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-floating-whatsapp.pos-left {
+  left: 25px;
+}
+.btn-floating-whatsapp.pos-right {
+  right: 85px;
+}
+.btn-floating-whatsapp:hover {
+  transform: translateY(-4px) scale(1.03);
+  color: #FFFFFF;
 }
 
 /* HERO GLOW ORB */

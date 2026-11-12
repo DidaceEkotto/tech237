@@ -2315,6 +2315,106 @@
                   </div>
                 </div>
 
+                <!-- 1.1.B Forme & Cadre de l'Avatar + Effet Machine à Écrire (Typewriter) + Spotlight / Curseur -->
+                <div class="row g-4 pt-4 mt-2 border-top">
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold text-dark mb-1">
+                      <i class="bi bi-person-bounding-box text-success me-1"></i> Forme de la Photo de Profil (Avatar)
+                    </label>
+                    <select v-model="portfolioForm.portfolio_layout.avatar_shape" class="form-select form-select-sm rounded-3">
+                      <option value="circle">🟢 Cercle classique</option>
+                      <option value="squircle">▢ Squircle arrondi (Style iOS)</option>
+                      <option value="hexagon">⬢ Hexagone Tech / Gaming</option>
+                      <option value="diamond">◆ Losange / Octogone</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4">
+                    <label class="form-label small fw-bold text-dark mb-1">
+                      <i class="bi bi-brightness-high text-warning me-1"></i> Cadre &amp; Bordure de l'Avatar
+                    </label>
+                    <select v-model="portfolioForm.portfolio_layout.avatar_border" class="form-select form-select-sm rounded-3">
+                      <option value="standard">Bordure nette classique</option>
+                      <option value="glow">✨ Anneau lumineux animé (Glow)</option>
+                      <option value="gradient">🌈 Dégradé dynamique néon</option>
+                      <option value="double">◎ Double anneau d'accentuation</option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 d-flex align-items-center pt-md-3">
+                    <div class="form-check form-switch">
+                      <input 
+                        class="form-check-input cursor-pointer" 
+                        type="checkbox" 
+                        v-model="portfolioForm.portfolio_layout.show_online_pulse" 
+                        id="avatarOnlinePulse"
+                      />
+                      <label class="form-check-label small fw-bold text-dark cursor-pointer" for="avatarOnlinePulse">
+                        Point vert « En ligne » pulsant sur l'avatar
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Typewriter Headline -->
+                  <div class="col-md-6">
+                    <div class="p-3 rounded-4 border bg-light h-100">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label small fw-bold text-dark mb-0 cursor-pointer" for="typewriterToggle">
+                          <i class="bi bi-keyboard text-primary me-1"></i> Effet Machine à Écrire (Typewriter) sur le Titre
+                        </label>
+                        <div class="form-check form-switch mb-0">
+                          <input 
+                            class="form-check-input cursor-pointer" 
+                            type="checkbox" 
+                            v-model="portfolioForm.portfolio_layout.typewriter_enabled" 
+                            id="typewriterToggle"
+                          />
+                        </div>
+                      </div>
+                      <p class="extra-small text-muted mb-2">
+                        Faites défiler dynamiquement plusieurs rôles ou casquettes sous votre nom (séparés par une virgule).
+                      </p>
+                      <input 
+                        v-if="portfolioForm.portfolio_layout.typewriter_enabled"
+                        type="text" 
+                        v-model="portfolioForm.portfolio_layout.typewriter_roles" 
+                        class="form-control form-control-sm rounded-3" 
+                        placeholder="ex: Développeur Full-Stack, Architecte Cloud, Créateur SaaS"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Spotlight & Custom Cursor -->
+                  <div class="col-md-6">
+                    <div class="p-3 rounded-4 border bg-light h-100 d-flex flex-column justify-content-center gap-2">
+                      <div class="form-check form-switch">
+                        <input 
+                          class="form-check-input cursor-pointer" 
+                          type="checkbox" 
+                          v-model="portfolioForm.portfolio_layout.spotlight_enabled" 
+                          id="spotlightToggle"
+                        />
+                        <label class="form-check-label small fw-bold text-dark cursor-pointer" for="spotlightToggle">
+                          <i class="bi bi-lightbulb-fill text-warning me-1"></i> Effet Spotlight lumineux suivant la souris
+                        </label>
+                        <small class="d-block extra-small text-muted">Halo lumineux interactif aux couleurs de votre thème au survol.</small>
+                      </div>
+
+                      <div class="form-check form-switch">
+                        <input 
+                          class="form-check-input cursor-pointer" 
+                          type="checkbox" 
+                          v-model="portfolioForm.portfolio_layout.custom_cursor_enabled" 
+                          id="customCursorToggle"
+                        />
+                        <label class="form-check-label small fw-bold text-dark cursor-pointer" for="customCursorToggle">
+                          <i class="bi bi-cursor-fill text-info me-1"></i> Curseur personnalisé anneau Tech (Desktop)
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               <!-- 1.2 Effet d'Ambiance & Particules Saisonnières (Neige, Confettis, Stars) -->
@@ -2869,6 +2969,98 @@
 
               </div>
 
+              <!-- 1.8 Bouton Flottant WhatsApp Direct & Carte de Visite Digitale (vCard + QR Code) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-whatsapp text-success"></i> Bouton Flottant WhatsApp Direct &amp; Carte de Visite (vCard + QR)
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Affichez une bulle flottante « Discuter sur WhatsApp » en bas de l'écran et activez le téléchargement de votre fiche contact <code>.vcf</code> avec QR Code.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="p-3 rounded-4 border bg-light h-100">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <strong class="small text-dark"><i class="bi bi-whatsapp text-success me-1"></i> Bulle Flottante WhatsApp Direct</strong>
+                        <div class="form-check form-switch mb-0">
+                          <input 
+                            class="form-check-input cursor-pointer" 
+                            type="checkbox" 
+                            v-model="portfolioForm.portfolio_layout.whatsapp_floating.enabled" 
+                            id="whatsappFloatToggle"
+                          />
+                        </div>
+                      </div>
+
+                      <div v-if="portfolioForm.portfolio_layout.whatsapp_floating.enabled" class="row g-2 mt-1">
+                        <div class="col-md-7">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Numéro WhatsApp (avec indicatif)</label>
+                          <input 
+                            type="text" 
+                            v-model="portfolioForm.portfolio_layout.whatsapp_floating.number" 
+                            class="form-control form-control-sm rounded-3" 
+                            placeholder="ex: 237699000000" 
+                          />
+                        </div>
+                        <div class="col-md-5">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Position à l'écran</label>
+                          <select v-model="portfolioForm.portfolio_layout.whatsapp_floating.position" class="form-select form-select-sm rounded-3">
+                            <option value="left">En bas à gauche</option>
+                            <option value="right">En bas à droite</option>
+                          </select>
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Message d'accroche pré-rempli</label>
+                          <input 
+                            type="text" 
+                            v-model="portfolioForm.portfolio_layout.whatsapp_floating.message" 
+                            class="form-control form-control-sm rounded-3" 
+                            placeholder="Bonjour, j'ai découvert votre portfolio sur Tech237..." 
+                          />
+                        </div>
+                      </div>
+                      <p v-else class="extra-small text-muted mb-0">
+                        Activez cette option pour permettre aux clients de lancer une discussion WhatsApp en 1 clic.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="p-3 rounded-4 border bg-light h-100 d-flex flex-column justify-content-between">
+                      <div>
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                          <strong class="small text-dark"><i class="bi bi-person-vcard-fill text-primary me-1"></i> Carte de Visite Digitale (.vcf) &amp; QR Code</strong>
+                          <div class="form-check form-switch mb-0">
+                            <input 
+                              class="form-check-input cursor-pointer" 
+                              type="checkbox" 
+                              v-model="portfolioForm.portfolio_layout.vcard_enabled" 
+                              id="vcardToggle"
+                            />
+                          </div>
+                        </div>
+                        <p class="extra-small text-muted mb-2">
+                          Ajoute sur votre portfolio public un bouton <strong>« Enregistrer le contact (.vcf) »</strong> et un <strong>QR Code Carte de Visite</strong> scannable en conférence ou rendez-vous.
+                        </p>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <button type="button" @click="downloadPortfolioVcard" class="btn btn-xs btn-outline-primary rounded-pill px-3 extra-small fw-bold">
+                          <i class="bi bi-download me-1"></i> Tester ma fiche .vcf
+                        </button>
+                        <button type="button" @click="portfolioSubTab = 'share'" class="btn btn-xs btn-outline-dark rounded-pill px-3 extra-small fw-bold">
+                          <i class="bi bi-qr-code me-1"></i> Voir mon QR Code
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- 1.2 Organisateur & Ordonnancement des Blocs (Le cœur de la personnalisation) -->
               <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
@@ -3142,6 +3334,35 @@
                       placeholder="Décrivez votre parcours, vos technologies de prédilection, les défis techniques que vous aimez résoudre..."
                     ></textarea>
                     <small class="text-muted extra-small">Supporte le formatage HTML (&lt;b&gt;, &lt;i&gt;, retours à la ligne...).</small>
+                  </div>
+
+                  <!-- Audio Pitch Vocal (30s) -->
+                  <div class="col-12">
+                    <div class="p-3 rounded-4 border bg-light">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <label class="form-label small fw-bold text-dark mb-0 cursor-pointer" for="audioPitchToggle">
+                          <i class="bi bi-mic-fill text-success me-1"></i> Présentation Audio Vocale (Bouton « Écouter mon Pitch » dans l'en-tête)
+                        </label>
+                        <div class="form-check form-switch mb-0">
+                          <input 
+                            class="form-check-input cursor-pointer" 
+                            type="checkbox" 
+                            v-model="portfolioForm.portfolio_layout.audio_pitch_enabled" 
+                            id="audioPitchToggle"
+                          />
+                        </div>
+                      </div>
+                      <p class="extra-small text-muted mb-2">
+                        Permet aux visiteurs et recruteurs d'écouter votre présentation vocale avec contrôle Pause/Reprise (lit votre texte personnalisé ci-dessous ou votre Bio par défaut).
+                      </p>
+                      <textarea 
+                        v-if="portfolioForm.portfolio_layout.audio_pitch_enabled"
+                        v-model="portfolioForm.portfolio_layout.audio_pitch_text" 
+                        class="form-control form-control-sm rounded-3" 
+                        rows="2"
+                        placeholder="Optionnel : Texte spécifique à lire à voix haute (ex: Bonjour, je suis développeur Full-Stack basé à Douala... Laissez vide pour lire automatiquement votre biographie)."
+                      ></textarea>
+                    </div>
                   </div>
                 </div>
 
@@ -3479,6 +3700,237 @@
                 </div>
                 <div v-else class="text-center py-3 text-muted extra-small">
                   Aucune formation enregistrée. Cliquez sur "+ Ajouter une formation".
+                </div>
+              </div>
+
+              <!-- 2.5.B Encart « En ce moment (Now) » & Statistiques GitHub en Direct -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="row g-4">
+                  <!-- En ce moment / Now -->
+                  <div class="col-md-6">
+                    <div class="p-3 rounded-4 border bg-light h-100">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                          <i class="bi bi-compass text-primary"></i> Encart « En ce moment (Now) »
+                        </h4>
+                        <div class="form-check form-switch mb-0">
+                          <input 
+                            class="form-check-input cursor-pointer" 
+                            type="checkbox" 
+                            v-model="portfolioForm.portfolio_layout.now_section.enabled" 
+                            id="nowSectionToggle"
+                          />
+                        </div>
+                      </div>
+                      <p class="extra-small text-muted mb-3">
+                        Montrez aux recruteurs et clients votre dynamique actuelle : projet en cours, technologie en apprentissage et objectif du moment.
+                      </p>
+
+                      <div v-if="portfolioForm.portfolio_layout.now_section.enabled" class="d-flex flex-column gap-2">
+                        <div>
+                          <label class="form-label extra-small fw-bold text-dark mb-1">🔨 Sur quoi je travaille actuellement</label>
+                          <input type="text" v-model="portfolioForm.portfolio_layout.now_section.project" class="form-control form-control-sm" placeholder="ex: Développement d'une fintech Mobile Money..." />
+                        </div>
+                        <div>
+                          <label class="form-label extra-small fw-bold text-dark mb-1">📚 Ce que j'apprends / approfondis</label>
+                          <input type="text" v-model="portfolioForm.portfolio_layout.now_section.learning" class="form-control form-control-sm" placeholder="ex: Architecture Microservices Go & Kubernetes" />
+                        </div>
+                        <div>
+                          <label class="form-label extra-small fw-bold text-dark mb-1">🎯 Mon prochain défi / objectif</label>
+                          <input type="text" v-model="portfolioForm.portfolio_layout.now_section.goal" class="form-control form-control-sm" placeholder="ex: Accompagner 5 startups camerounaises cette année" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Statistiques GitHub Live -->
+                  <div class="col-md-6">
+                    <div class="p-3 rounded-4 border bg-light h-100">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                          <i class="bi bi-github text-dark"></i> Statistiques GitHub en Direct
+                        </h4>
+                        <div class="form-check form-switch mb-0">
+                          <input 
+                            class="form-check-input cursor-pointer" 
+                            type="checkbox" 
+                            v-model="portfolioForm.portfolio_layout.github_stats.enabled" 
+                            id="githubStatsToggle"
+                          />
+                        </div>
+                      </div>
+                      <p class="extra-small text-muted mb-3">
+                        Affiche automatiquement vos dépôts publics, étoiles, langages dominants et derniers repos open-source depuis votre compte GitHub.
+                      </p>
+
+                      <div v-if="portfolioForm.portfolio_layout.github_stats.enabled">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Nom d'utilisateur GitHub (sans @ ni URL)</label>
+                        <div class="input-group input-group-sm">
+                          <span class="input-group-text bg-white"><i class="bi bi-github"></i></span>
+                          <input 
+                            type="text" 
+                            v-model="portfolioForm.portfolio_layout.github_stats.username" 
+                            class="form-control font-monospace" 
+                            placeholder="ex: torvalds ou votre-pseudo-github" 
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2.5.C Certifications Vérifiées & Distinctions -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-patch-check-fill text-info"></i> Certifications Vérifiées, Hackathons &amp; Prix
+                    </h4>
+                    <small class="text-muted extra-small">Mettez en avant vos certifications (AWS, Google, Cisco, Meta, Hackathon...) avec lien de vérification.</small>
+                  </div>
+                  <button type="button" @click="addCertification" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold">
+                    + Ajouter une certification
+                  </button>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.certifications.length" class="d-flex flex-column gap-3">
+                  <div 
+                    v-for="(cert, cIdx) in portfolioForm.portfolio_layout.certifications" 
+                    :key="cIdx"
+                    class="p-3 rounded-4 border bg-light position-relative"
+                  >
+                    <button type="button" @click="removeCertification(cIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="row g-2">
+                      <div class="col-md-5">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Nom de la Certification / Prix</label>
+                        <input type="text" v-model="cert.title" class="form-control form-control-sm" placeholder="ex: AWS Certified Solutions Architect / 1er Prix Hackathon" />
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Organisme émetteur</label>
+                        <input type="text" v-model="cert.issuer" class="form-control form-control-sm" placeholder="ex: Amazon Web Services, Coursera, Google..." />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Année d'obtention</label>
+                        <input type="text" v-model="cert.year" class="form-control form-control-sm" placeholder="ex: 2025" />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Lien de vérification du certificat (Credly, PDF, URL officielle - Optionnel)</label>
+                        <input type="url" v-model="cert.credential_url" class="form-control form-control-sm" placeholder="https://www.credly.com/badges/..." />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-3 text-muted extra-small">
+                  Aucune certification ou distinction ajoutée. Cliquez sur « + Ajouter une certification ».
+                </div>
+              </div>
+
+              <!-- 2.5.D Grille Tarifaire & Packs de Services (Packages / TJM) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-tags-fill text-success"></i> Grille Tarifaire &amp; Packs de Services (Freelance / Consulting)
+                    </h4>
+                    <small class="text-muted extra-small">Présentez vos offres clé-en-main ou votre TJM avec un bouton « Commander ce pack » qui pré-remplit votre formulaire de contact.</small>
+                  </div>
+                  <button type="button" @click="addPricingPackage" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold">
+                    + Ajouter un pack tarifaire
+                  </button>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.pricing_packages.length" class="d-flex flex-column gap-3">
+                  <div 
+                    v-for="(pkg, pIdx) in portfolioForm.portfolio_layout.pricing_packages" 
+                    :key="pIdx"
+                    class="p-3 rounded-4 border bg-light position-relative"
+                  >
+                    <button type="button" @click="removePricingPackage(pIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="row g-2 align-items-center">
+                      <div class="col-md-4">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Nom de l'offre / Pack</label>
+                        <input type="text" v-model="pkg.title" class="form-control form-control-sm" placeholder="ex: Pack MVP Startup / Audit Sécurité" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Prix / Tarif</label>
+                        <input type="text" v-model="pkg.price" class="form-control form-control-sm" placeholder="ex: 250 000 FCFA ou Sur devis" />
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Unité / Facturation</label>
+                        <input type="text" v-model="pkg.unit" class="form-control form-control-sm" placeholder="ex: / projet, / jour, / mois" />
+                      </div>
+                      <div class="col-md-2 pt-3">
+                        <div class="form-check form-switch">
+                          <input class="form-check-input cursor-pointer" type="checkbox" v-model="pkg.is_popular" :id="'pkgPop_' + pIdx" />
+                          <label class="form-check-label extra-small fw-bold text-success cursor-pointer" :for="'pkgPop_' + pIdx">Populaire ⭐</label>
+                        </div>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Prestations incluses (une par ligne ou séparées par des virgules)</label>
+                        <textarea v-model="pkg.features" class="form-control form-control-sm" rows="2" placeholder="Design UI/UX responsive&#10;API Backend Laravel sécurisée&#10;Déploiement serveur & nom de domaine"></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-3 text-muted extra-small">
+                  Aucun pack tarifaire configuré. Cliquez sur « + Ajouter un pack tarifaire » pour afficher vos tarifs.
+                </div>
+              </div>
+
+              <!-- 2.5.E Témoignages & Recommandations Clients (Social Proof) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-chat-quote-fill text-warning"></i> Témoignages &amp; Recommandations Clients
+                    </h4>
+                    <small class="text-muted extra-small">Ajoutez les avis de vos anciens clients, managers ou partenaires pour rassurer vos futurs recruteurs.</small>
+                  </div>
+                  <button type="button" @click="addTestimonial" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 fw-bold">
+                    + Ajouter un témoignage
+                  </button>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.testimonials.length" class="d-flex flex-column gap-3">
+                  <div 
+                    v-for="(testi, tIdx) in portfolioForm.portfolio_layout.testimonials" 
+                    :key="tIdx"
+                    class="p-3 rounded-4 border bg-light position-relative"
+                  >
+                    <button type="button" @click="removeTestimonial(tIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="row g-2">
+                      <div class="col-md-5">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Nom du client / responsable</label>
+                        <input type="text" v-model="testi.author_name" class="form-control form-control-sm" placeholder="ex: Jean-Marc N., CEO @ FinTech237" />
+                      </div>
+                      <div class="col-md-5">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Poste &amp; Entreprise</label>
+                        <input type="text" v-model="testi.author_role" class="form-control form-control-sm" placeholder="ex: Directeur Technique chez KmerPay" />
+                      </div>
+                      <div class="col-md-2">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Note (/5)</label>
+                        <select v-model.number="testi.rating" class="form-select form-select-sm">
+                          <option :value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                          <option :value="4">⭐⭐⭐⭐ (4/5)</option>
+                          <option :value="3">⭐⭐⭐ (3/5)</option>
+                        </select>
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Citation / Recommandation</label>
+                        <textarea v-model="testi.comment" class="form-control form-control-sm" rows="2" placeholder="« Un développeur rigoureux et force de proposition qui a livré notre plateforme avant la date prévue... »"></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-3 text-muted extra-small">
+                  Aucun témoignage enregistré. Cliquez sur « + Ajouter un témoignage ».
                 </div>
               </div>
 
@@ -3821,6 +4273,46 @@
                   <a :href="portfolioShareUrl" target="_blank" class="btn btn-outline-danger rounded-pill px-4 py-2 fw-bold shadow-2xs">
                     <i class="bi bi-download me-1"></i> Ouvrir &amp; Exporter PDF
                   </a>
+                </div>
+              </div>
+
+              <!-- Carte de Visite Digitale (vCard .vcf + QR Code Personnalisé) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="row g-4 align-items-center">
+                  <div class="col-md-8">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                      <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                        <i class="bi bi-qr-code-scan fs-4"></i>
+                      </div>
+                      <div>
+                        <h4 class="h6 fw-bold text-dark mb-1">Carte de Visite Digitale (QR Code &amp; Fiche Contact .vcf)</h4>
+                        <p class="text-muted small mb-0">
+                          Lors d'une conférence, d'un meetup ou d'un entretien, faites scanner ce QR Code ou téléchargez votre fichier <code>.vcf</code> pour ajouter instantanément vos coordonnées au répertoire téléphonique de votre interlocuteur.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                      <button type="button" @click="downloadPortfolioVcard" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-2xs d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-person-vcard-fill"></i>
+                        <span>Télécharger ma Fiche Contact (.vcf)</span>
+                      </button>
+                      <a v-if="portfolioQrDataUrl" :href="portfolioQrDataUrl" :download="`qrcode-${portfolioForm.username || 'portfolio'}.png`" class="btn btn-outline-dark rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2">
+                        <i class="bi bi-download"></i>
+                        <span>Télécharger le QR Code (PNG)</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <div class="col-md-4 text-center">
+                    <div class="p-3 rounded-4 border bg-light d-inline-block shadow-2xs">
+                      <img v-if="portfolioQrDataUrl" :src="portfolioQrDataUrl" alt="QR Code Portfolio" class="img-fluid rounded-3" style="width: 160px; height: 160px;" />
+                      <div v-else class="d-flex align-items-center justify-content-center text-muted extra-small" style="width: 160px; height: 160px;">
+                        Génération du QR Code...
+                      </div>
+                      <span class="d-block extra-small fw-bold text-dark mt-2">@{{ portfolioForm.username || 'profil' }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -6086,6 +6578,7 @@ import FrontLayout from '@/Layouts/FrontLayout.vue'
 import CitySelect2 from '@/Components/CitySelect2.vue'
 import { fireConfetti } from '@/Utils/confetti'
 import { copyTextWithToast } from '@/Utils/clipboard'
+import QRCode from 'qrcode'
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -7248,8 +7741,13 @@ const defaultBlocksList = [
   { id: 'skills', name: 'Compétences & Stack technique', enabled: true, width: 'half', icon: 'bi-cpu', desc: 'Technologies, langages et outils maîtrisés' },
   { id: 'projects', name: 'Projets Tech en vedette', enabled: true, width: 'full', icon: 'bi-rocket-takeoff', desc: 'Projets livrés et publiés sur Tech237' },
   { id: 'pocs', name: 'Mini-Actus & POCs Tech237', enabled: true, width: 'half', icon: 'bi-lightning-charge', desc: 'Veille technologique et articles courts partagés' },
+  { id: 'now', name: 'En ce moment (Now)', enabled: true, width: 'half', icon: 'bi-compass text-primary', desc: 'Ce sur quoi vous travaillez, apprenez et visez actuellement' },
+  { id: 'github', name: 'Statistiques GitHub Live', enabled: true, width: 'half', icon: 'bi-github text-dark', desc: 'Dépôts publics, langages dominants et activité GitHub en direct' },
   { id: 'experiences', name: 'Expériences professionnelles', enabled: true, width: 'full', icon: 'bi-briefcase', desc: 'Postes occupés, missions et réalisations en entreprise' },
   { id: 'educations', name: 'Formations & Diplômes', enabled: true, width: 'half', icon: 'bi-mortarboard', desc: 'Études supérieures, certifications et diplômes' },
+  { id: 'certifications', name: 'Certifications & Distinctions', enabled: true, width: 'half', icon: 'bi-patch-check text-info', desc: 'Certifications officielles vérifiables, hackathons et prix' },
+  { id: 'pricing', name: 'Grille Tarifaire & Packs Services', enabled: true, width: 'full', icon: 'bi-tags text-success', desc: 'Forfaits freelance, TJM et offres de services prêts à commander' },
+  { id: 'testimonials', name: 'Témoignages & Recommandations', enabled: true, width: 'full', icon: 'bi-chat-quote text-warning', desc: 'Avis clients, recommandations de collègues et notes 5 étoiles' },
   { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, width: 'half', icon: 'bi-trophy', desc: 'Niveau XP et distinctions officielles gagnées sur Tech237' },
   { id: 'custom', name: 'Sections personnalisées libres', enabled: true, width: 'full', icon: 'bi-stars', desc: 'Blocs libres : services, tarifs, recommandations, etc.' },
   { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, width: 'full', icon: 'bi-envelope', desc: 'Liens vers GitHub, LinkedIn, WhatsApp et email' },
@@ -7342,6 +7840,35 @@ const portfolioForm = ref({
       show_tech237_badge: true,
       show_back_to_top: true
     },
+    avatar_shape: initialUserLayout.avatar_shape || 'circle',
+    avatar_border: initialUserLayout.avatar_border || 'standard',
+    show_online_pulse: initialUserLayout.show_online_pulse !== false,
+    typewriter_enabled: Boolean(initialUserLayout.typewriter_enabled),
+    typewriter_roles: initialUserLayout.typewriter_roles || '',
+    spotlight_enabled: Boolean(initialUserLayout.spotlight_enabled),
+    custom_cursor_enabled: Boolean(initialUserLayout.custom_cursor_enabled),
+    audio_pitch_enabled: Boolean(initialUserLayout.audio_pitch_enabled),
+    audio_pitch_text: initialUserLayout.audio_pitch_text || '',
+    vcard_enabled: initialUserLayout.vcard_enabled !== false,
+    whatsapp_floating: initialUserLayout.whatsapp_floating || {
+      enabled: false,
+      number: props.user.social_links?.whatsapp || props.user.phone || '',
+      message: 'Bonjour, j\'ai découvert votre portfolio sur Tech237 et j\'aimerais échanger avec vous.',
+      position: 'left'
+    },
+    now_section: initialUserLayout.now_section || {
+      enabled: false,
+      project: '',
+      learning: '',
+      goal: ''
+    },
+    github_stats: initialUserLayout.github_stats || {
+      enabled: false,
+      username: ''
+    },
+    pricing_packages: Array.isArray(initialUserLayout.pricing_packages) ? JSON.parse(JSON.stringify(initialUserLayout.pricing_packages)) : [],
+    testimonials: Array.isArray(initialUserLayout.testimonials) ? JSON.parse(JSON.stringify(initialUserLayout.testimonials)) : [],
+    certifications: Array.isArray(initialUserLayout.certifications) ? JSON.parse(JSON.stringify(initialUserLayout.certifications)) : [],
     blocks: (() => {
       let list = Array.isArray(initialUserLayout.blocks) && initialUserLayout.blocks.length > 0 
         ? JSON.parse(JSON.stringify(initialUserLayout.blocks)) 
@@ -7351,6 +7878,17 @@ const portfolioForm = ref({
         const insertIdx = aboutIdx !== -1 ? aboutIdx + 1 : 1
         list.splice(insertIdx, 0, { id: 'video', name: 'Vidéo de Présentation (YouTube)', enabled: true, width: 'full', icon: 'bi-youtube text-danger', desc: 'Lecteur vidéo immersif 16:9 de pitch ou démo' })
       }
+      const extraDefaultBlocks = defaultBlocksList.filter(db => ['now', 'github', 'certifications', 'pricing', 'testimonials'].includes(db.id))
+      extraDefaultBlocks.forEach(eb => {
+        if (!list.some(b => b.id === eb.id)) {
+          const contactIdx = list.findIndex(b => b.id === 'contact')
+          if (contactIdx !== -1) {
+            list.splice(contactIdx, 0, JSON.parse(JSON.stringify(eb)))
+          } else {
+            list.push(JSON.parse(JSON.stringify(eb)))
+          }
+        }
+      })
       return list
     })(),
   }
@@ -7494,6 +8032,107 @@ function addCustomSection() {
 
 function removeCustomSection(idx) {
   portfolioForm.value.custom_sections.splice(idx, 1)
+}
+
+// Pricing Packages handling
+function addPricingPackage() {
+  portfolioForm.value.portfolio_layout.pricing_packages.push({
+    title: '',
+    price: '',
+    unit: 'FCFA / mission',
+    features: '',
+    is_popular: false,
+  })
+}
+
+function removePricingPackage(idx) {
+  portfolioForm.value.portfolio_layout.pricing_packages.splice(idx, 1)
+}
+
+// Testimonials handling
+function addTestimonial() {
+  portfolioForm.value.portfolio_layout.testimonials.push({
+    author_name: '',
+    author_role: '',
+    rating: 5,
+    comment: '',
+  })
+}
+
+function removeTestimonial(idx) {
+  portfolioForm.value.portfolio_layout.testimonials.splice(idx, 1)
+}
+
+// Certifications handling
+function addCertification() {
+  portfolioForm.value.portfolio_layout.certifications.push({
+    title: '',
+    issuer: '',
+    year: '',
+    credential_url: '',
+  })
+}
+
+function removeCertification(idx) {
+  portfolioForm.value.portfolio_layout.certifications.splice(idx, 1)
+}
+
+// Portfolio Digital vCard & QR Code
+const portfolioQrDataUrl = ref('')
+
+async function updatePortfolioQrCode() {
+  try {
+    portfolioQrDataUrl.value = await QRCode.toDataURL(portfolioShareUrl.value, {
+      width: 220,
+      margin: 2,
+      color: {
+        dark: portfolioForm.value.portfolio_layout?.accent_color || '#00A859',
+        light: '#FFFFFF',
+      },
+    })
+  } catch (e) {
+    portfolioQrDataUrl.value = ''
+  }
+}
+
+watch(
+  () => [portfolioForm.value.username, portfolioForm.value.portfolio_layout?.accent_color, portfolioSubTab.value],
+  () => {
+    if (portfolioSubTab.value === 'share') {
+      updatePortfolioQrCode()
+    }
+  },
+  { immediate: true }
+)
+
+function downloadPortfolioVcard() {
+  const name = props.user.name || 'Membre Tech237'
+  const title = portfolioForm.value.headline || 'Expert Tech'
+  const phone = portfolioForm.value.portfolio_layout?.whatsapp_floating?.number || portfolioForm.value.social_links?.whatsapp || props.user.phone || ''
+  const email = props.user.email || ''
+  const url = portfolioShareUrl.value
+  const loc = portfolioForm.value.location || 'Cameroun'
+
+  const vcardLines = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${name}`,
+    `TITLE:${title}`,
+    phone ? `TEL;TYPE=CELL:${phone}` : '',
+    email ? `EMAIL;TYPE=INTERNET:${email}` : '',
+    `ADR;TYPE=WORK:;;${loc};;;;`,
+    `URL:${url}`,
+    `NOTE:Portfolio officiel Tech237 - ${url}`,
+    'END:VCARD'
+  ].filter(Boolean).join('\r\n')
+
+  const blob = new Blob([vcardLines], { type: 'text/vcard;charset=utf-8' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `${portfolioForm.value.username || 'contact'}-tech237.vcf`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 // URLs and Sharing
