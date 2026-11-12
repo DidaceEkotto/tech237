@@ -46,6 +46,7 @@ class UserAuthController extends Controller
             ],
             'birth_date' => 'nullable|date',
             'marital_status' => 'nullable|string|max:50',
+            'city' => 'nullable|string|max:100',
         ], [
             'password.regex' => "Le mot de passe doit contenir au moins une majuscule, un chiffre, un caractère spécial autorisé (_ - @ # { }) et aucun espace.",
         ]);
@@ -60,6 +61,8 @@ class UserAuthController extends Controller
             'password' => Hash::make($request->password),
             'birth_date' => $request->birth_date ?: null,
             'marital_status' => $request->marital_status ?: 'Célibataire',
+            'city' => $request->city ?: 'Douala',
+            'location' => $request->city ?: 'Douala',
             'status' => 'active',
             'registered_at' => now(),
         ]);

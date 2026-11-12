@@ -196,7 +196,12 @@
                 </div>
                 <div class="col-md-6">
                   <label class="form-label small fw-bold">Ville de résidence <span class="text-danger">*</span></label>
-                  <input type="text" v-model="regForm.city" class="form-control form-control-sm" required>
+                  <CitySelect2 
+                    v-model="regForm.city" 
+                    placeholder="Sélectionnez votre ville..."
+                    size="sm"
+                    :required="true"
+                  />
                 </div>
               </div>
 
@@ -229,6 +234,7 @@ import { ref, computed } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import DailyTechPoll from '@/Components/DailyTechPoll.vue'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const props = defineProps({
   conference: Object,

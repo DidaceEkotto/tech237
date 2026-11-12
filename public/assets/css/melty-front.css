@@ -530,3 +530,114 @@ body.melty-body, body.tech237-body {
 .card .position-relative.overflow-hidden {
   overflow: hidden;
 }
+
+/* --------------------------------------------------------------------------
+   SELECT2 BOOTSTRAP 5 HARMONIZATION & STYLING
+   -------------------------------------------------------------------------- */
+.select2-container {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+.select2-container--default .select2-selection--single {
+  height: 42px;
+  padding: 6px 12px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  padding-left: 0;
+  padding-right: 24px;
+  color: #212529;
+  line-height: normal;
+  display: flex;
+  align-items: center;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+  color: #6c757d;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  height: 100%;
+  right: 10px;
+  top: 0;
+  display: flex;
+  align-items: center;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default .select2-selection--single:focus {
+  border-color: #00A859;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(0, 168, 89, 0.2);
+}
+
+/* Sm Size */
+.select2-sm + .select2-container .select2-selection--single,
+.select2-container--sm .select2-selection--single {
+  height: 34px !important;
+  padding: 4px 10px !important;
+  font-size: 0.85rem !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Pill style for filters */
+.select2-pill + .select2-container .select2-selection--single,
+.select2-container--pill .select2-selection--single {
+  border-radius: 50rem !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+  background-color: #f8fafc;
+}
+
+/* Dropdown */
+.select2-dropdown {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1065 !important;
+  overflow: hidden;
+}
+
+.select2-search--dropdown {
+  padding: 8px;
+  background-color: #f8fafc;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.select2-search--dropdown .select2-search__field {
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.select2-search--dropdown .select2-search__field:focus {
+  border-color: #00A859;
+  box-shadow: 0 0 0 0.2rem rgba(0, 168, 89, 0.2);
+}
+
+.select2-results__option {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+}
+
+.select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
+  background-color: #00A859;
+  color: #ffffff;
+}
+
+.select2-container--default .select2-results__option--selected {
+  background-color: #e8f5e9;
+  color: #008746;
+  font-weight: 600;
+}

@@ -1622,6 +1622,14 @@
                 </div>
 
                 <div class="mb-3">
+                  <label class="form-label small fw-bold">Ville de résidence (Cameroun)</label>
+                  <CitySelect2 
+                    v-model="profileForm.city" 
+                    placeholder="Sélectionnez votre ville de résidence..."
+                  />
+                </div>
+
+                <div class="mb-3">
                   <label class="form-label small fw-bold">Biographie / Présentation</label>
                   <textarea class="form-control" rows="3" v-model="profileForm.bio" placeholder="Présentez-vous à la communauté..."></textarea>
                 </div>
@@ -3025,13 +3033,10 @@
 
                   <!-- Location -->
                   <div class="col-md-6">
-                    <label class="form-label small fw-bold text-dark">Ville &amp; Pays</label>
-                    <input 
-                      type="text" 
+                    <label class="form-label small fw-bold text-dark">Ville de résidence</label>
+                    <CitySelect2 
                       v-model="portfolioForm.location" 
-                      class="form-control" 
-                      placeholder="ex: Douala, Cameroun / Remote" 
-                      maxlength="100"
+                      placeholder="Sélectionnez une ville..."
                     />
                   </div>
 
@@ -3404,8 +3409,12 @@
                         <input type="text" v-model="exp.period" class="form-control form-control-sm" placeholder="ex: Jan 2024 - Présent (1 an)" />
                       </div>
                       <div class="col-md-6">
-                        <label class="form-label extra-small fw-bold text-dark mb-1">Localisation</label>
-                        <input type="text" v-model="exp.location" class="form-control form-control-sm" placeholder="ex: Douala / Remote" />
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Localisation (Ville)</label>
+                        <CitySelect2 
+                          v-model="exp.location" 
+                          placeholder="Sélectionnez une ville..." 
+                          size="sm"
+                        />
                       </div>
                       <div class="col-12">
                         <label class="form-label extra-small fw-bold text-dark mb-1">Réalisations &amp; Technologies clés</label>
@@ -5910,6 +5919,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Head, Link, useForm, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -6257,6 +6267,7 @@ const profileForm = useForm({
   phone: props.user.phone || '',
   birth_date: props.user.birth_date ? props.user.birth_date.substring(0, 10) : '',
   marital_status: props.user.marital_status || 'Célibataire',
+  city: props.user.city || props.user.location || 'Douala',
   bio: props.user.bio || '',
   avatar: null,
 })

@@ -49,7 +49,11 @@
               <div class="row g-3 mb-3">
                 <div class="col-md-4">
                   <label class="form-label small fw-bold">Ville du Siège <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" v-model="form.city" placeholder="Douala, Yaoundé..." required>
+                  <CitySelect2 
+                    v-model="form.city" 
+                    placeholder="Sélectionnez une ville..."
+                    :required="true"
+                  />
                 </div>
                 <div class="col-md-4">
                   <label class="form-label small fw-bold">Quartier / Adresse précise</label>
@@ -179,6 +183,7 @@ import { ref } from 'vue'
 import { useForm, Head, Link } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import WysiwygEditor from '@/Components/WysiwygEditor.vue'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const logoPreview = ref(null)
 const bannerPreview = ref(null)

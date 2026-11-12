@@ -79,15 +79,13 @@
 
             <!-- City Filter -->
             <div class="col-md-5">
-              <select class="form-select bg-light border-0 py-2" v-model="selectedCity" @change="applyFilters">
-                <option value="">Toutes les villes du Cameroun</option>
-                <option value="Douala">Douala (Littoral)</option>
-                <option value="Yaoundé">Yaoundé (Centre)</option>
-                <option value="Bafoussam">Bafoussam (Ouest)</option>
-                <option value="Buea">Buea (Silicon Mountain)</option>
-                <option value="Garoua">Garoua (Nord)</option>
-                <option value="Kribi">Kribi (Sud)</option>
-              </select>
+              <CitySelect2 
+                v-model="selectedCity" 
+                placeholder="Toutes les villes du Cameroun"
+                :include-all-option="true"
+                all-option-label="Toutes les villes du Cameroun"
+                @change="applyFilters"
+              />
             </div>
           </div>
         </div>
@@ -286,6 +284,7 @@
 import { ref, computed } from 'vue'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const props = defineProps({
   startups: Object,

@@ -85,8 +85,15 @@
 
                                 <div class="row g-2">
                                     <div class="col-6">
-                                        <label class="form-label fw-bold">Ville <span class="text-danger">*</span></label>
-                                        <input type="text" class="form-control" wire:model="city" required>
+                                        <label class="form-label fw-bold">Ville du Siège <span class="text-danger">*</span></label>
+                                        <div wire:ignore>
+                                            <select class="form-select select2-city" wire:model="city" required>
+                                                <option value="">Sélectionnez une ville...</option>
+                                                @foreach(\App\Models\City::active()->get() as $c)
+                                                    <option value="{{ $c->name }}">{{ $c->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label fw-bold">Localisation / Adresse <span class="text-danger">*</span></label>

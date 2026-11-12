@@ -78,9 +78,11 @@
                 <!-- Ville -->
                 <div class="col-md-6">
                   <label class="form-label small fw-bold">Ville / Localisation <span class="text-danger">*</span></label>
-                  <select class="form-select" v-model="form.city" required>
-                    <option v-for="c in cities" :key="c" :value="c">{{ c }}</option>
-                  </select>
+                  <CitySelect2 
+                    v-model="form.city" 
+                    placeholder="Sélectionnez une ville..."
+                    :required="true"
+                  />
                 </div>
               </div>
 
@@ -267,6 +269,7 @@
 import { ref } from 'vue'
 import { useForm, Head, Link } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const props = defineProps({
   domains: { type: Array, default: () => [] },

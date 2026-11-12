@@ -89,7 +89,13 @@
                   </div>
                   <div class="col-6">
                     <label class="form-label extra-small fw-bold text-muted mb-1 text-uppercase">Ville</label>
-                    <input type="text" v-model="filterCity" class="form-control form-control-sm" placeholder="ex: Douala, Yaoundé...">
+                    <CitySelect2 
+                      v-model="filterCity" 
+                      placeholder="Toutes les villes" 
+                      size="sm"
+                      :include-all-option="true"
+                      all-option-label="Toutes les villes"
+                    />
                   </div>
                 </div>
 
@@ -236,6 +242,7 @@
 import { ref, computed } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const page = usePage()
 const heroAd = computed(() => page.props.adBanners?.hero_jobs?.[0] || null)

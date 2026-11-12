@@ -808,6 +808,7 @@ class DashboardController extends Controller
             'phone' => 'nullable|string|max:30',
             'birth_date' => 'nullable|date',
             'marital_status' => 'nullable|string|in:Célibataire,Marié(e),Divorcé(e),Autre',
+            'city' => 'nullable|string|max:100',
             'bio' => 'nullable|string|max:1000',
             'avatar' => 'nullable|image|max:5120',
         ]);
@@ -820,6 +821,8 @@ class DashboardController extends Controller
             'phone' => $request->phone,
             'birth_date' => $request->birth_date,
             'marital_status' => $request->marital_status,
+            'city' => $request->city,
+            'location' => $request->city ?: $user->location,
             'bio' => $request->bio,
         ];
 

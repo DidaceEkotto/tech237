@@ -94,11 +94,13 @@
             <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <label class="form-label small fw-bold text-dark">
-                  Ville / Format <span class="text-danger">*</span>
+                  Ville / Localisation <span class="text-danger">*</span>
                 </label>
-                <select class="form-select" v-model="form.city" required>
-                  <option v-for="c in cities" :key="c" :value="c">{{ c }}</option>
-                </select>
+                <CitySelect2 
+                  v-model="form.city" 
+                  placeholder="Sélectionnez une ville..."
+                  :required="true"
+                />
               </div>
 
               <div class="col-md-6">
@@ -289,6 +291,7 @@
 <script setup>
 import { ref } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const props = defineProps({
   conference: {

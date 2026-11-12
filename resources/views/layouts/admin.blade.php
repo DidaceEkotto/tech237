@@ -446,6 +446,45 @@
                     yearRange: '-100:+0'
                 });
             }
+
+            initAdminCitySelect2();
+        });
+
+        function initAdminCitySelect2() {
+            if ($.fn.select2) {
+                $('.select2-city').each(function() {
+                    const $select = $(this);
+                    if (!$select.hasClass('select2-hidden-accessible')) {
+                        $select.select2({
+                            placeholder: $select.attr('placeholder') || 'Sélectionnez une ville...',
+                            width: '100%',
+                            allowClear: true,
+                            dropdownParent: $select.closest('.modal').length ? $select.closest('.modal') : $(document.body)
+                        }).on('change', function() {
+                            const val = $(this).val();
+                            const wireModel = $(this).attr('wire:model');
+                            if (wireModel && window.Livewire) {
+                                const componentId = $(this).closest('[wire\\:id]').attr('wire:id');
+                                if (componentId) {
+                                    const component = window.Livewire.find(componentId);
+                                    if (component) {
+                                        component.set(wireModel, val);
+                                    }
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        document.addEventListener('livewire:initialized', () => {
+            initAdminCitySelect2();
+            if (window.Livewire) {
+                Livewire.hook('morph.updated', () => {
+                    initAdminCitySelect2();
+                });
+            }
         });
 
         function toggleSidebar() {

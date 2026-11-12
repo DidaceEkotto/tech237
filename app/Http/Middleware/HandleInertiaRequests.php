@@ -73,6 +73,9 @@ class HandleInertiaRequests extends Middleware
             'partners' => fn () => \Illuminate\Support\Facades\Schema::hasTable('partners') 
                 ? \App\Models\Partner::active()->get() 
                 : collect(),
+            'cameroonCities' => fn () => \Illuminate\Support\Facades\Schema::hasTable('cities')
+                ? \App\Models\City::active()->pluck('name')->toArray()
+                : [],
             'currentLocale' => fn () => session('locale', 'fr'),
             'seo' => [
                 'site_name' => $settings->site_name ?? 'Tech237',

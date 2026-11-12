@@ -114,13 +114,24 @@
               </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label small fw-bold text-dark">Statut Matrimonial</label>
-              <select class="form-select" v-model="form.marital_status">
-                <option value="Célibataire">Célibataire</option>
-                <option value="Marié(e)">Marié(e)</option>
-                <option value="Autre">Autre</option>
-              </select>
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-dark">Statut Matrimonial</label>
+                <select class="form-select" v-model="form.marital_status">
+                  <option value="Célibataire">Célibataire</option>
+                  <option value="Marié(e)">Marié(e)</option>
+                  <option value="Autre">Autre</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-bold text-dark">Ville de résidence <span class="text-danger">*</span></label>
+                <CitySelect2 
+                  v-model="form.city" 
+                  placeholder="Sélectionnez votre ville..."
+                  :required="true"
+                />
+                <div v-if="form.errors.city" class="text-danger small mt-1">{{ form.errors.city }}</div>
+              </div>
             </div>
 
             <!-- Password with Show/Hide Toggle & Strict Validation Meter -->
@@ -230,6 +241,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useForm, Head, Link, usePage } from '@inertiajs/vue3'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const page = usePage()
 const siteSettings = computed(() => page.props.siteSettings || {})
@@ -245,6 +257,7 @@ const form = useForm({
   email: '',
   birth_date: '',
   marital_status: 'Célibataire',
+  city: 'Douala',
   password: '',
   password_confirmation: '',
 })

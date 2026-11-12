@@ -55,7 +55,14 @@
                             </div>
                             <div class="col-6">
                                 <label class="form-label small fw-bold">Ville <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" placeholder="Douala, Yaoundé..." wire:model="city" required>
+                                <div wire:ignore>
+                                    <select class="form-select form-select-sm select2-city" wire:model="city" required>
+                                        <option value="">Sélectionnez une ville...</option>
+                                        @foreach(\App\Models\City::active()->get() as $c)
+                                            <option value="{{ $c->name }}">{{ $c->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
 

@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap-icons.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/melty-front.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/select2.min.css') }}">
 
     <!-- Google Fonts for Portfolio Typography Customization (Montserrat, Roboto, Jakarta, etc.) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -238,6 +239,10 @@
     <meta name="twitter:title" head-key="twitter:title" content="{{ $seoTitle }}">
     <meta name="twitter:description" head-key="twitter:description" content="{{ $seoDesc }}">
     <meta name="twitter:image" head-key="twitter:image" content="{{ $seoImg }}">
+
+    <!-- 100% Offline jQuery & Select2 -->
+    <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
+    <script src="{{ asset('assets/js/select2.min.js') }}"></script>
 
     @inertiaHead
     @vite(['resources/js/app.js'])

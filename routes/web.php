@@ -169,6 +169,7 @@ Route::get('/politique-de-confidentialite', [StaticPageController::class, 'priva
 // Utilities (Locale switch, Live Autocompletion, Newsletter Subscription, WYSIWYG Upload)
 Route::post('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 Route::get('/api/search-autocomplete', [SearchController::class, 'autocomplete'])->name('api.search');
+Route::get('/api/cities', fn () => \App\Models\City::active()->pluck('name'))->name('api.cities');
 Route::post('/api/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('api.newsletter');
 Route::post('/api/wysiwyg-upload', [ImageUploadController::class, 'upload'])->name('wysiwyg.upload');
 

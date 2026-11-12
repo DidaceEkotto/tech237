@@ -42,8 +42,15 @@
                                 <input type="text" class="form-control form-control-sm jquery-datepicker" id="admin_birth_date" placeholder="AAAA-MM-JJ" wire:model="birth_date">
                             </div>
                             <div class="col-6">
-                                <label class="form-label small fw-bold">Ville</label>
-                                <input type="text" class="form-control form-control-sm" placeholder="Paris, Yaoundé..." wire:model="city">
+                                <label class="form-label small fw-bold">Ville de résidence</label>
+                                <div wire:ignore>
+                                    <select class="form-select form-select-sm select2-city" wire:model="city">
+                                        <option value="">Sélectionnez une ville...</option>
+                                        @foreach(\App\Models\City::active()->get() as $c)
+                                            <option value="{{ $c->name }}">{{ $c->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
 

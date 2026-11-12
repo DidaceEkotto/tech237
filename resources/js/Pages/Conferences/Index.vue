@@ -77,10 +77,13 @@
 
                 <div class="mb-2">
                   <label class="form-label extra-small fw-bold text-muted mb-1">Ville</label>
-                  <select v-model="filterCity" class="form-select form-select-sm">
-                    <option value="">Toutes les villes</option>
-                    <option v-for="c in cities" :key="c" :value="c">{{ c }}</option>
-                  </select>
+                  <CitySelect2 
+                    v-model="filterCity"
+                    placeholder="Toutes les villes"
+                    size="sm"
+                    :include-all-option="true"
+                    all-option-label="Toutes les villes"
+                  />
                 </div>
 
                 <div class="mb-3">
@@ -203,7 +206,12 @@
                 </div>
                 <div class="col-4">
                   <label class="form-label small fw-bold">Ville <span class="text-danger">*</span></label>
-                  <input type="text" v-model="eventForm.city" class="form-control form-control-sm" placeholder="Douala" required>
+                  <CitySelect2 
+                    v-model="eventForm.city" 
+                    placeholder="Ville..."
+                    size="sm"
+                    :required="true"
+                  />
                 </div>
                 <div class="col-4">
                   <label class="form-label small fw-bold">Places Max</label>
@@ -242,6 +250,7 @@
 import { ref, computed } from 'vue'
 import { Head, Link, usePage, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import CitySelect2 from '@/Components/CitySelect2.vue'
 
 const props = defineProps({
   conferences: Object,
