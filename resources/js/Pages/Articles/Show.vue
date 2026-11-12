@@ -1,5 +1,12 @@
 <template>
   <FrontLayout>
+    <!-- Sticky Reading Progress Bar -->
+    <div 
+      class="reading-progress-indicator" 
+      :style="{ width: readingProgress + '%' }"
+      aria-hidden="true"
+    ></div>
+
     <Head>
       <title>{{ currentTitle }} - Tech237</title>
       <meta name="description" head-key="description" :content="currentSummary || currentTitle" />
@@ -147,15 +154,35 @@
             <!-- WYSIWYG Content Body with In-Article Ad Integration -->
             <div class="article-body-content py-2" v-html="contentWithInArticleAd"></div>
 
-            <!-- VOUS AVEZ AIMÉ ? PARTAGEZ ! (Black CTA Box matching screenshot) -->
-            <div class="bg-dark text-white p-4 rounded-3 text-center my-4">
+            <!-- VOUS AVEZ AIMÉ ? PARTAGEZ ! (Black CTA Box with WhatsApp 1-Click & Copy Link) -->
+            <div class="bg-dark text-white p-4 rounded-3 text-center my-4 shadow-sm">
               <h5 class="fw-bold text-uppercase mb-3" style="letter-spacing: 1px;">VOUS AVEZ AIMÉ ? PARTAGEZ !</h5>
-              <div class="d-flex justify-content-center gap-3 fs-5">
-                <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(currentUrl)" target="_blank" class="text-white social-share-btn"><i class="bi bi-facebook"></i></a>
-                <a :href="'https://twitter.com/intent/tweet?text=' + encodeURIComponent(currentTitle) + '&url=' + encodeURIComponent(currentUrl)" target="_blank" class="text-white social-share-btn"><i class="bi bi-twitter-x"></i></a>
-                <a :href="'https://api.whatsapp.com/send?text=' + encodeURIComponent(currentTitle + ' ' + currentUrl)" target="_blank" class="text-white social-share-btn"><i class="bi bi-whatsapp"></i></a>
-                <a href="#" class="text-white social-share-btn"><i class="bi bi-pinterest"></i></a>
-                <a :href="'mailto:?subject=' + encodeURIComponent(currentTitle) + '&body=' + encodeURIComponent(currentUrl)" class="text-white social-share-btn"><i class="bi bi-envelope-fill"></i></a>
+              <div class="d-flex justify-content-center align-items-center gap-3 fs-5 flex-wrap">
+                <!-- WhatsApp 1-Click Share Button -->
+                <a 
+                  :href="whatsappShareUrl" 
+                  target="_blank" 
+                  class="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm"
+                  title="Partager sur WhatsApp"
+                >
+                  <i class="bi bi-whatsapp fs-6"></i>
+                  <span>WhatsApp</span>
+                </a>
+
+                <!-- Copy Link Button with Toast -->
+                <button 
+                  type="button" 
+                  @click="handleCopyLink" 
+                  class="btn btn-sm btn-light text-dark rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm"
+                  title="Copier le lien direct de l'article"
+                >
+                  <i class="bi bi-link-45deg fs-6"></i>
+                  <span>Copier le lien</span>
+                </button>
+
+                <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(currentUrl)" target="_blank" class="text-white social-share-btn ms-1" title="Partager sur Facebook"><i class="bi bi-facebook"></i></a>
+                <a :href="'https://twitter.com/intent/tweet?text=' + encodeURIComponent(currentTitle) + '&url=' + encodeURIComponent(currentUrl)" target="_blank" class="text-white social-share-btn" title="Partager sur X (Twitter)"><i class="bi bi-twitter-x"></i></a>
+                <a :href="'mailto:?subject=' + encodeURIComponent(currentTitle) + '&body=' + encodeURIComponent(currentUrl)" class="text-white social-share-btn" title="Envoyer par email"><i class="bi bi-envelope-fill"></i></a>
               </div>
             </div>
 
@@ -476,11 +503,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Link, Head, usePage, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import { useAudioNarrator } from '@/Composables/useAudioNarrator'
 import DailyTechPoll from '@/Components/DailyTechPoll.vue'
+import { copyTextWithToast } from '@/Utils/clipboard'
 
 const props = defineProps({
   article: { type: Object, required: true },
@@ -588,6 +616,34 @@ const articleImage = computed(() => {
 
 const currentUrl = computed(() => {
   return typeof window !== 'undefined' ? window.location.href : ''
+})
+
+// Reading Progress Bar
+const readingProgress = ref(0)
+function updateReadingProgress() {
+  const scrollTop = window.scrollY || document.documentElement.scrollTop
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight
+  if (docHeight > 0) {
+    readingProgress.value = Math.min(100, Math.max(0, Math.round((scrollTop / docHeight) * 100)))
+  }
+}
+
+// WhatsApp 1-Click Share & Copy Link
+const whatsappShareUrl = computed(() => {
+  const text = `🔥 À lire sur Tech237 : *${currentTitle.value}*\n\n${currentUrl.value}`
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`
+})
+
+function handleCopyLink() {
+  copyTextWithToast(currentUrl.value, 'Lien de l\'article copié !')
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', updateReadingProgress, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', updateReadingProgress)
 })
 
 // Audio Narrator using robust Composable (Cross-browser, Mobile & Chunked)
@@ -715,6 +771,16 @@ async function submitSidebarNewsletter() {
 </script>
 
 <style>
+.reading-progress-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #FF004B, #FF7A00, #00A859);
+  z-index: 1060;
+  transition: width 0.08s ease-out;
+  box-shadow: 0 1px 4px rgba(255, 0, 75, 0.4);
+}
 .en-bref-box {
   background-color: #f7faeb;
   border-left: 4px solid #9be106;

@@ -3937,6 +3937,16 @@
                     {{ (freelanceQuotesList || []).length }}
                   </span>
                 </button>
+
+                <button 
+                  type="button" 
+                  class="btn btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-2"
+                  :class="freelanceSubTab === 'converter' ? 'btn-success shadow-sm' : 'btn-light text-muted'"
+                  @click="freelanceSubTab = 'converter'"
+                >
+                  <i class="bi bi-currency-exchange"></i>
+                  <span>4. Convertisseur Devises FCFA</span>
+                </button>
               </div>
             </div>
 
@@ -4876,6 +4886,26 @@
                               <i class="bi bi-eye"></i>
                             </a>
 
+                            <!-- Copy Public Link -->
+                            <button 
+                              type="button" 
+                              @click="copyQuoteLinkAction(q)" 
+                              class="btn btn-outline-secondary" 
+                              title="Copier le lien public"
+                            >
+                              <i class="bi bi-link-45deg"></i>
+                            </button>
+
+                            <!-- Print / PDF -->
+                            <a 
+                              :href="'/devis/' + q.uuid + '?print=1'" 
+                              target="_blank" 
+                              class="btn btn-outline-dark" 
+                              title="Imprimer / Exporter en PDF"
+                            >
+                              <i class="bi bi-printer"></i>
+                            </a>
+
                             <!-- WhatsApp -->
                             <button 
                               v-if="q.client_phone" 
@@ -4921,6 +4951,131 @@
                       </tr>
                     </tbody>
                   </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- SUB-TAB 4: CONVERTISSEUR DEVISES & ESTIMATION DE RETRAIT          -->
+            <!-- ================================================================= -->
+            <div v-else-if="freelanceSubTab === 'converter'">
+              <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                  <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                      <div class="rounded-circle bg-success-subtle text-success p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-calculator-fill fs-5"></i>
+                      </div>
+                      <div>
+                        <h5 class="fw-bold text-dark mb-0">Convertisseur Express CEMAC</h5>
+                        <small class="text-muted">Parité officielle BEAC &amp; Taux de change international</small>
+                      </div>
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label extra-small fw-bold text-muted text-uppercase">Montant à convertir</label>
+                      <div class="input-group">
+                        <input 
+                          type="number" 
+                          v-model.number="convAmount" 
+                          class="form-control form-control-lg fw-bold" 
+                          min="0"
+                          step="1000"
+                        />
+                        <select v-model="convCurrency" class="form-select fw-bold bg-light" style="max-width: 140px;">
+                          <option value="XAF">FCFA (XAF)</option>
+                          <option value="EUR">Euros (€)</option>
+                          <option value="USD">Dollars ($)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="mb-4">
+                      <label class="form-label extra-small fw-bold text-muted text-uppercase d-flex justify-content-between">
+                        <span>Frais de retrait / virement estimés</span>
+                        <span class="text-success fw-bold">{{ convFeePercent }}%</span>
+                      </label>
+                      <input 
+                        type="range" 
+                        class="form-range" 
+                        v-model.number="convFeePercent" 
+                        min="0" 
+                        max="5" 
+                        step="0.5"
+                      />
+                      <div class="d-flex justify-content-between extra-small text-muted">
+                        <span>0% (Virement direct)</span>
+                        <span>1.5% (Orange / MTN MoMo)</span>
+                        <span>3-5% (Stripe / PayPal)</span>
+                      </div>
+                    </div>
+
+                    <div class="p-3 bg-light rounded-4 border">
+                      <div class="extra-small text-muted mb-2 fw-bold text-uppercase">Taux de référence appliqués :</div>
+                      <div class="d-flex justify-content-between small text-dark mb-1">
+                        <span>1 EUR (€) fixe BEAC :</span>
+                        <strong class="font-monospace">655.957 FCFA</strong>
+                      </div>
+                      <div class="d-flex justify-content-between small text-dark">
+                        <span>1 USD ($) indicatif :</span>
+                        <strong class="font-monospace">~610.00 FCFA</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-lg-6">
+                  <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                    <h6 class="fw-bold text-dark mb-3 text-uppercase extra-small text-muted">Résultats de la conversion</h6>
+
+                    <div class="d-flex flex-column gap-3 mb-4">
+                      <!-- FCFA Card -->
+                      <div class="p-3 rounded-4 border d-flex justify-content-between align-items-center" :class="convCurrency === 'XAF' ? 'bg-success-subtle border-success' : 'bg-light'">
+                        <div>
+                          <small class="text-muted d-block extra-small text-uppercase fw-bold">Franc CFA (CEMAC)</small>
+                          <h4 class="fw-black mb-0 text-dark font-monospace">{{ convConverted.xaf.toLocaleString() }} FCFA</h4>
+                        </div>
+                        <button type="button" @click="copyConvertedAmount(convConverted.xaf, 'FCFA')" class="btn btn-sm btn-outline-secondary rounded-pill" title="Copier">
+                          <i class="bi bi-clipboard"></i>
+                        </button>
+                      </div>
+
+                      <!-- EUR Card -->
+                      <div class="p-3 rounded-4 border d-flex justify-content-between align-items-center" :class="convCurrency === 'EUR' ? 'bg-primary-subtle border-primary' : 'bg-light'">
+                        <div>
+                          <small class="text-muted d-block extra-small text-uppercase fw-bold">Euros (€ Zone SEPA)</small>
+                          <h4 class="fw-black mb-0 text-dark font-monospace">{{ convConverted.eur.toLocaleString() }} €</h4>
+                        </div>
+                        <button type="button" @click="copyConvertedAmount(convConverted.eur, '€')" class="btn btn-sm btn-outline-secondary rounded-pill" title="Copier">
+                          <i class="bi bi-clipboard"></i>
+                        </button>
+                      </div>
+
+                      <!-- USD Card -->
+                      <div class="p-3 rounded-4 border d-flex justify-content-between align-items-center" :class="convCurrency === 'USD' ? 'bg-warning-subtle border-warning' : 'bg-light'">
+                        <div>
+                          <small class="text-muted d-block extra-small text-uppercase fw-bold">Dollars US ($ International)</small>
+                          <h4 class="fw-black mb-0 text-dark font-monospace">${{ convConverted.usd.toLocaleString() }}</h4>
+                        </div>
+                        <button type="button" @click="copyConvertedAmount(convConverted.usd, '$')" class="btn btn-sm btn-outline-secondary rounded-pill" title="Copier">
+                          <i class="bi bi-clipboard"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Net after fee -->
+                    <div class="p-3 bg-success text-white rounded-4 mt-auto">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                          <div class="extra-small opacity-90 text-uppercase fw-bold">Net estimé après frais ({{ convFeePercent }}%) :</div>
+                          <h5 class="fw-black mb-0 font-monospace">{{ convConverted.netXaf.toLocaleString() }} FCFA</h5>
+                        </div>
+                        <div class="text-end extra-small opacity-75">
+                          Frais : {{ convConverted.fee.toLocaleString() }} FCFA
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -5929,6 +6084,8 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { Head, Link, useForm, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import CitySelect2 from '@/Components/CitySelect2.vue'
+import { fireConfetti } from '@/Utils/confetti'
+import { copyTextWithToast } from '@/Utils/clipboard'
 
 const props = defineProps({
   user: { type: Object, required: true },
@@ -7894,6 +8051,7 @@ async function saveQuoteSubmit() {
       }
 
       freelanceToastMsg.value = data.message || 'Devis enregistré avec succès !'
+      fireConfetti({ particleCount: 75, spread: 80 })
       setTimeout(() => { freelanceToastMsg.value = '' }, 4000)
     } else {
       alert(data.message || 'Erreur lors de l\'enregistrement du devis.')
@@ -7903,6 +8061,49 @@ async function saveQuoteSubmit() {
   } finally {
     isSavingQuote.value = false
   }
+}
+
+// Currency Converter State
+const convAmount = ref(100000)
+const convCurrency = ref('XAF') // XAF, EUR, USD
+const convFeePercent = ref(1.5)
+
+const convConverted = computed(() => {
+  const amount = Number(convAmount.value) || 0
+  const EUR_RATE = 655.957 // Parité fixe BEAC
+  const USD_RATE = 610.0 // Indicatif marché
+
+  let inXaf = 0
+  if (convCurrency.value === 'XAF') {
+    inXaf = amount
+  } else if (convCurrency.value === 'EUR') {
+    inXaf = amount * EUR_RATE
+  } else if (convCurrency.value === 'USD') {
+    inXaf = amount * USD_RATE
+  }
+
+  const inEur = inXaf / EUR_RATE
+  const inUsd = inXaf / USD_RATE
+
+  const feeAmount = inXaf * (convFeePercent.value / 100)
+  const netXaf = inXaf - feeAmount
+
+  return {
+    xaf: Math.round(inXaf),
+    eur: Number(inEur.toFixed(2)),
+    usd: Number(inUsd.toFixed(2)),
+    fee: Math.round(feeAmount),
+    netXaf: Math.round(netXaf),
+  }
+})
+
+function copyConvertedAmount(val, label) {
+  copyTextWithToast(`${val.toLocaleString()} ${label}`, `${label} copié !`)
+}
+
+function copyQuoteLinkAction(q) {
+  const url = `${window.location.origin}/devis/${q.uuid}`
+  copyTextWithToast(url, 'Lien public du devis copié !')
 }
 
 async function deleteQuoteAction(id) {

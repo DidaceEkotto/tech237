@@ -239,7 +239,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import CitySelect2 from '@/Components/CitySelect2.vue'
@@ -267,6 +267,12 @@ const filterCity = ref(props.filters?.city || '')
 const filterSearch = ref(props.filters?.search || '')
 
 function applyFilters() {
+  if (filterCity.value) {
+    try { localStorage.setItem('tech237_pref_city', filterCity.value) } catch (e) {}
+  } else {
+    try { localStorage.removeItem('tech237_pref_city') } catch (e) {}
+  }
+
   router.get('/emplois', {
     domain: filterDomain.value || undefined,
     contract: filterContract.value || undefined,
@@ -282,8 +288,22 @@ function resetFilters() {
   filterContract.value = ''
   filterCity.value = ''
   filterSearch.value = ''
+  try { localStorage.removeItem('tech237_pref_city') } catch (e) {}
   applyFilters()
 }
+
+onMounted(() => {
+  // If no city filter is present in URL, restore preferred city from localStorage
+  if (!props.filters?.city && typeof window !== 'undefined') {
+    try {
+      const savedCity = localStorage.getItem('tech237_pref_city')
+      if (savedCity) {
+        filterCity.value = savedCity
+        applyFilters()
+      }
+    } catch (e) {}
+  }
+})
 
 function formatDate(dateStr) {
   if (!dateStr) return ''

@@ -12,6 +12,17 @@
         </div>
 
         <div class="d-flex align-items-center gap-2 flex-wrap">
+          <!-- Copy Link Button -->
+          <button 
+            type="button" 
+            @click="copyQuotePublicLink" 
+            class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold d-flex align-items-center gap-1 shadow-2xs"
+            title="Copier le lien direct du devis"
+          >
+            <i class="bi bi-link-45deg"></i>
+            <span>Copier le lien</span>
+          </button>
+
           <!-- WhatsApp Contact Button -->
           <a 
             v-if="freelance.phone" 
@@ -333,8 +344,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Link } from '@inertiajs/vue3'
+import { fireConfetti } from '@/Utils/confetti'
+import { copyTextWithToast } from '@/Utils/clipboard'
 
 const props = defineProps({
   quote: { type: Object, required: true },
@@ -394,9 +407,21 @@ function copyText(str) {
   }).catch(() => {})
 }
 
+function copyQuotePublicLink() {
+  copyTextWithToast(window.location.href, 'Lien du devis copié !')
+}
+
 function printQuote() {
   window.print()
 }
+
+onMounted(() => {
+  if (typeof window !== 'undefined' && window.location.search.includes('print=1')) {
+    setTimeout(() => {
+      printQuote()
+    }, 450)
+  }
+})
 
 async function acceptQuote() {
   if (accepting.value) return
@@ -420,6 +445,7 @@ async function acceptQuote() {
       props.quote.status = 'accepted'
       props.quote.accepted_at = data.quote.accepted_at
       successMsg.value = data.message || 'Le devis a bien été marqué comme accepté.'
+      fireConfetti({ particleCount: 85, spread: 80 })
     } else {
       alert(data.error || 'Erreur lors de l\'acceptation.')
     }

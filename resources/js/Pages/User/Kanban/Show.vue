@@ -200,6 +200,16 @@
                 <i class="bi bi-box-arrow-up-right me-1"></i>Vue Publique
               </a>
 
+              <button 
+                v-if="board.is_public && board.project" 
+                type="button" 
+                @click="copyRoadmapLink" 
+                class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold"
+                title="Copier le lien public de la Roadmap"
+              >
+                <i class="bi bi-link-45deg me-1"></i>Partager
+              </button>
+
             </div>
 
           </div>
@@ -694,6 +704,7 @@
                           type="checkbox" 
                           :id="'chk_' + cIdx"
                           v-model="item.done"
+                          @change="onChecklistChange"
                           :disabled="!canEdit || isCardLocked"
                         />
                         <label 
@@ -1495,6 +1506,8 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+import { fireConfetti } from '@/Utils/confetti'
+import { copyTextWithToast } from '@/Utils/clipboard'
 
 const page = usePage()
 
@@ -1572,6 +1585,7 @@ function onDropOnColumn(event, targetColumn) {
       // If moving to done column, automatically complete
       if (targetColumn.is_done_column) {
         card.is_completed = true
+        fireConfetti({ particleCount: 75, spread: 80 })
       }
       targetColumn.cards.push(card)
     }
@@ -1830,6 +1844,21 @@ function getModalChecklistPercentage() {
   if (items.length === 0) return 0
   const done = items.filter(i => i.done).length
   return Math.round((done / items.length) * 100)
+}
+
+function onChecklistChange() {
+  const items = editCardForm.value.checklist || []
+  if (items.length > 0 && items.every(i => i.done)) {
+    fireConfetti({ particleCount: 60, spread: 70 })
+  }
+}
+
+function copyRoadmapLink() {
+  if (props.board?.project) {
+    const slug = props.board.project.slug || props.board.project.id
+    const url = `${window.location.origin}/projet/${slug}/roadmap`
+    copyTextWithToast(url, 'Lien public de la Roadmap copié !')
+  }
 }
 
 function addLabel() {

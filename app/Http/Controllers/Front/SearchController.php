@@ -8,6 +8,8 @@ use App\Models\Article;
 use App\Models\GameReview;
 use App\Models\AppReview;
 use App\Models\Dossier;
+use App\Models\JobOffer;
+use App\Models\Startup;
 
 class SearchController extends Controller
 {
@@ -20,6 +22,8 @@ class SearchController extends Controller
                 'games' => [],
                 'apps' => [],
                 'dossiers' => [],
+                'jobs' => [],
+                'startups' => [],
             ]);
         }
 
@@ -57,11 +61,33 @@ class SearchController extends Controller
             ->take(3)
             ->get();
 
+        $jobs = JobOffer::where('status', 'published')
+            ->where(function ($query) use ($q) {
+                $query->where('title', 'like', "%{$q}%")
+                      ->orWhere('city', 'like', "%{$q}%")
+                      ->orWhere('domain', 'like', "%{$q}%");
+            })
+            ->latest()
+            ->take(4)
+            ->get();
+
+        $startups = Startup::where('status', 'approved')
+            ->where(function ($query) use ($q) {
+                $query->where('name', 'like', "%{$q}%")
+                      ->orWhere('city', 'like', "%{$q}%")
+                      ->orWhere('description', 'like', "%{$q}%");
+            })
+            ->latest()
+            ->take(3)
+            ->get();
+
         return response()->json([
             'articles' => $articles,
             'games' => $games,
             'apps' => $apps,
             'dossiers' => $dossiers,
+            'jobs' => $jobs,
+            'startups' => $startups,
         ]);
     }
 }

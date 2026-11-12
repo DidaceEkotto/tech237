@@ -49,10 +49,11 @@
             <i class="bi bi-send text-success"></i> Newsletter
           </a>
 
-          <!-- Search Bar Trigger -->
-          <button @click="openSearchModal" class="btn btn-sm btn-light border rounded-pill px-3 py-1 d-flex align-items-center gap-2 text-muted">
+          <!-- Search Bar Trigger with Command Palette Indicator -->
+          <button @click="openSearchModal" class="btn btn-sm btn-light border rounded-pill px-3 py-1 d-flex align-items-center gap-2 text-muted" title="Rechercher (Ctrl + K)">
             <i class="bi bi-search"></i>
             <span class="small d-none d-md-inline">{{ locale === 'en' ? 'Search...' : 'Rechercher...' }}</span>
+            <kbd class="d-none d-lg-inline-block bg-white text-muted border px-1 rounded extra-small font-monospace shadow-2xs">Ctrl K</kbd>
           </button>
 
           <!-- Language Switcher (FR / EN) -->
@@ -786,6 +787,50 @@
                 </Link>
               </div>
             </div>
+
+            <!-- Jobs & IT Offers -->
+            <div v-if="searchResults.jobs && searchResults.jobs.length" class="col-md-6 col-lg-4">
+              <h6 class="text-success fw-bold text-uppercase border-bottom border-secondary pb-2 d-flex align-items-center gap-1">
+                <i class="bi bi-briefcase"></i> Offres d'Emploi
+              </h6>
+              <div class="list-group list-group-flush">
+                <Link 
+                  v-for="jb in searchResults.jobs" 
+                  :key="jb.id" 
+                  :href="'/emploi/' + (jb.slug || jb.id)" 
+                  @click="closeSearchModal"
+                  class="list-group-item list-group-item-action bg-transparent text-white border-secondary px-0 py-2 d-flex justify-content-between align-items-center"
+                >
+                  <div>
+                    <div class="fw-semibold small">{{ jb.title }}</div>
+                    <div class="extra-small text-white-50">{{ jb.city }} &bull; {{ jb.contract_type }}</div>
+                  </div>
+                  <span class="badge bg-success-subtle text-success extra-small">Postuler</span>
+                </Link>
+              </div>
+            </div>
+
+            <!-- Startups & Projects -->
+            <div v-if="searchResults.startups && searchResults.startups.length" class="col-md-6 col-lg-4">
+              <h6 class="text-warning fw-bold text-uppercase border-bottom border-secondary pb-2 d-flex align-items-center gap-1">
+                <i class="bi bi-rocket-takeoff"></i> Startups
+              </h6>
+              <div class="list-group list-group-flush">
+                <Link 
+                  v-for="st in searchResults.startups" 
+                  :key="st.id" 
+                  :href="'/startups/' + (st.slug || st.id)" 
+                  @click="closeSearchModal"
+                  class="list-group-item list-group-item-action bg-transparent text-white border-secondary px-0 py-2 d-flex justify-content-between align-items-center"
+                >
+                  <div>
+                    <div class="fw-semibold small">{{ st.name }}</div>
+                    <div class="extra-small text-white-50">{{ st.city }}</div>
+                  </div>
+                  <span class="badge bg-warning-subtle text-warning extra-small">Découvrir</span>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1003,7 +1048,31 @@ const hasSearchResults = computed(() => {
   return (searchResults.value.articles && searchResults.value.articles.length > 0) ||
          (searchResults.value.games && searchResults.value.games.length > 0) ||
          (searchResults.value.apps && searchResults.value.apps.length > 0) ||
-         (searchResults.value.dossiers && searchResults.value.dossiers.length > 0)
+         (searchResults.value.dossiers && searchResults.value.dossiers.length > 0) ||
+         (searchResults.value.jobs && searchResults.value.jobs.length > 0) ||
+         (searchResults.value.startups && searchResults.value.startups.length > 0)
+})
+
+function handleGlobalKeydown(e) {
+  // Command Palette: Ctrl+K or Cmd+K
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault()
+    if (isSearchOpen.value) {
+      closeSearchModal()
+    } else {
+      openSearchModal()
+    }
+  } else if (e.key === 'Escape' && isSearchOpen.value) {
+    closeSearchModal()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
 })
 
 const trendingSearches = [

@@ -147,6 +147,31 @@
                 </Link>
               </div>
 
+              <!-- Share Offer Section (WhatsApp & Copy Link) -->
+              <div class="mt-4 pt-3 border-top">
+                <span class="extra-small text-uppercase fw-bold text-muted d-block mb-2">Partager cette offre</span>
+                <div class="d-flex gap-2">
+                  <a 
+                    :href="whatsappJobShareUrl" 
+                    target="_blank" 
+                    class="btn btn-sm btn-outline-success rounded-pill flex-grow-1 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-2xs"
+                    title="Partager directement sur WhatsApp"
+                  >
+                    <i class="bi bi-whatsapp"></i>
+                    <span>WhatsApp</span>
+                  </a>
+                  <button 
+                    type="button" 
+                    @click="copyJobLink" 
+                    class="btn btn-sm btn-outline-secondary rounded-pill flex-grow-1 fw-bold d-flex align-items-center justify-content-center gap-1 shadow-2xs"
+                    title="Copier le lien direct de l'offre"
+                  >
+                    <i class="bi bi-link-45deg"></i>
+                    <span>Copier lien</span>
+                  </button>
+                </div>
+              </div>
+
               <!-- Similar Jobs -->
               <div v-if="similarJobs && similarJobs.length > 0" class="pt-4 border-top mt-4">
                 <h6 class="fw-bold text-dark mb-3">Autres opportunités IT</h6>
@@ -176,6 +201,7 @@ import { ref, computed } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import DailyTechPoll from '@/Components/DailyTechPoll.vue'
+import { copyTextWithToast } from '@/Utils/clipboard'
 
 const props = defineProps({
   job: Object,
@@ -183,6 +209,17 @@ const props = defineProps({
   similarJobs: Array,
   isBookmarked: Boolean,
 })
+
+const currentUrl = computed(() => typeof window !== 'undefined' ? window.location.href : '')
+
+const whatsappJobShareUrl = computed(() => {
+  const text = `💼 Opportunité IT sur Tech237 : *${props.job?.title || 'Offre d\'emploi'}* (${props.job?.city || 'Cameroun'} - ${props.job?.contract_type || 'CDI'})\n\nPostuler ici : ${currentUrl.value}`
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`
+})
+
+function copyJobLink() {
+  copyTextWithToast(currentUrl.value, 'Lien de l\'offre copié !')
+}
 
 const isBookmarkedState = ref(props.isBookmarked || false)
 const isBookmarking = ref(false)

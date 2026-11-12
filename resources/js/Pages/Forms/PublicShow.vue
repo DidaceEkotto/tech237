@@ -178,6 +178,28 @@
               </button>
               <span class="extra-small text-muted mt-1">Appuyez sur <kbd>Entrée ↵</kbd></span>
             </div>
+
+            <!-- Social Share Bar for Form -->
+            <div class="d-flex justify-content-center gap-2 mt-4 pt-3 border-top flex-wrap">
+              <a 
+                :href="whatsappFormShareUrl" 
+                target="_blank" 
+                class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-2xs"
+                title="Partager sur WhatsApp"
+              >
+                <i class="bi bi-whatsapp"></i>
+                <span>Partager sur WhatsApp</span>
+              </a>
+              <button 
+                type="button" 
+                @click="copyFormLink" 
+                class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-2xs"
+                title="Copier le lien direct du formulaire"
+              >
+                <i class="bi bi-link-45deg"></i>
+                <span>Copier le lien</span>
+              </button>
+            </div>
           </div>
 
           <!-- Step 1..N: Individual Question Slide -->
@@ -608,11 +630,23 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import CitySelect2 from '@/Components/CitySelect2.vue'
+import { copyTextWithToast } from '@/Utils/clipboard'
 
 const props = defineProps({
   form: { type: Object, required: true },
   gate: { type: Object, required: true }
 })
+
+const currentUrl = computed(() => typeof window !== 'undefined' ? window.location.href : '')
+
+const whatsappFormShareUrl = computed(() => {
+  const text = `📋 Participez à ce formulaire sur Tech237 : *${props.form?.title || 'Formulaire'}*\n\nRépondre ici : ${currentUrl.value}`
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`
+})
+
+function copyFormLink() {
+  copyTextWithToast(currentUrl.value, 'Lien du formulaire copié !')
+}
 
 const currentStep = ref(0)
 const currentStepError = ref('')
