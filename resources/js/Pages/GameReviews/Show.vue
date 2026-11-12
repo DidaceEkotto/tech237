@@ -1,13 +1,22 @@
 <template>
   <FrontLayout>
+    <!-- Sticky Reading Progress Bar -->
+    <div 
+      class="reading-progress-indicator" 
+      :style="{ width: readingProgress + '%' }"
+      aria-hidden="true"
+    ></div>
+
     <Head>
       <title>Test : {{ review.game_name }} - Note {{ review.final_score }}/20 Tech237 Gaming</title>
-      <meta name="description" :content="review.summary_fr || 'Découvrez le test complet de ' + review.game_name" />
-      <meta property="og:type" content="article" />
-      <meta property="og:title" :content="'Test : ' + review.game_name + ' (' + review.final_score + '/20)'" />
-      <meta property="og:description" :content="review.summary_fr || ('Test complet de ' + review.game_name)" />
-      <meta property="og:image" :content="review.cover_image ? '/' + review.cover_image : '/assets/images/og-default.jpg'" />
-      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="description" head-key="description" :content="review.summary_fr || 'Découvrez le test complet de ' + review.game_name" />
+      <meta property="og:type" head-key="og:type" content="article" />
+      <meta property="og:title" head-key="og:title" :content="'Test : ' + review.game_name + ' (' + review.final_score + '/20)'" />
+      <meta property="og:description" head-key="og:description" :content="review.summary_fr || ('Test complet de ' + review.game_name)" />
+      <meta property="og:url" head-key="og:url" :content="currentUrl" />
+      <meta property="og:image" head-key="og:image" :content="reviewImage" />
+      <meta name="twitter:card" head-key="twitter:card" content="summary_large_image" />
+      <meta name="twitter:image" head-key="twitter:image" :content="reviewImage" />
     </Head>
 
     <div class="container my-4">
@@ -27,12 +36,17 @@
           
           <div class="bg-white rounded-4 p-4 p-md-5 shadow-sm border mb-4">
             
-            <!-- Multi-platform badges -->
-            <div class="d-flex align-items-center gap-2 mb-3 flex-wrap">
-              <span v-for="plat in (review.platforms || [review.platform_category])" :key="plat" class="badge bg-dark px-3 py-2">
-                <i class="bi bi-controller me-1 text-danger"></i> {{ plat }}
+            <!-- Multi-platform badges & Estimated Reading Time -->
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-3 flex-wrap">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span v-for="plat in (review.platforms || [review.platform_category])" :key="plat" class="badge bg-dark px-3 py-2">
+                  <i class="bi bi-controller me-1 text-danger"></i> {{ plat }}
+                </span>
+                <span class="badge bg-danger-subtle text-danger px-3 py-2 fw-bold">Test Exclusif Tech237</span>
+              </div>
+              <span class="badge bg-light text-dark border px-3 py-2 fw-semibold">
+                <i class="bi bi-clock me-1 text-danger"></i>~{{ estimatedReadingTime }} min de lecture
               </span>
-              <span class="badge bg-danger-subtle text-danger px-3 py-2 fw-bold">Test Exclusif Tech237</span>
             </div>
 
             <h1 class="display-6 fw-bold text-dark mb-3">
@@ -68,6 +82,10 @@
                 </div>
 
                 <div v-if="isSpeaking" class="d-flex align-items-center gap-2">
+                  <button @click="toggleAudioSpeech" class="btn btn-sm rounded-pill px-3 fw-bold" :class="isPaused ? 'btn-success' : 'btn-warning text-dark'">
+                    <i class="bi me-1" :class="isPaused ? 'bi-play-fill' : 'bi-pause-fill'"></i>
+                    {{ isPaused ? 'Reprendre' : 'Pause' }}
+                  </button>
                   <button @click="stopAudioSpeech" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                     <i class="bi bi-stop-fill me-1"></i> Arrêter
                   </button>
@@ -144,6 +162,33 @@
                     {{ locale === 'en' ? (review.cons_en || review.cons_fr) : review.cons_fr }}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <!-- VOUS AVEZ AIMÉ CE TEST ? PARTAGEZ ! -->
+            <div class="bg-dark text-white p-4 rounded-3 text-center my-4 shadow-sm">
+              <h5 class="fw-bold text-uppercase mb-3" style="letter-spacing: 1px;">VOUS AVEZ AIMÉ CE TEST ? PARTAGEZ !</h5>
+              <div class="d-flex justify-content-center align-items-center gap-3 fs-5 flex-wrap">
+                <a 
+                  :href="whatsappShareUrl" 
+                  target="_blank" 
+                  class="btn btn-sm btn-success rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm"
+                  title="Partager sur WhatsApp"
+                >
+                  <i class="bi bi-whatsapp fs-6"></i>
+                  <span>WhatsApp</span>
+                </a>
+                <button 
+                  type="button" 
+                  @click="handleCopyLink" 
+                  class="btn btn-sm btn-light text-dark rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-2 shadow-sm"
+                  title="Copier le lien direct du test"
+                >
+                  <i class="bi bi-link-45deg fs-6"></i>
+                  <span>Copier le lien</span>
+                </button>
+                <a :href="'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(currentUrl)" target="_blank" class="text-white social-share-btn ms-1" title="Partager sur Facebook"><i class="bi bi-facebook"></i></a>
+                <a :href="'https://twitter.com/intent/tweet?text=' + encodeURIComponent('Test : ' + review.game_name) + '&url=' + encodeURIComponent(currentUrl)" target="_blank" class="text-white social-share-btn" title="Partager sur X"><i class="bi bi-twitter-x"></i></a>
               </div>
             </div>
 
@@ -405,11 +450,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Link, Head, usePage, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import { useAudioNarrator } from '@/Composables/useAudioNarrator'
 import DailyTechPoll from '@/Components/DailyTechPoll.vue'
+import { copyLinkWithToast, buildWhatsAppShareUrl } from '@/Utils/clipboard'
 
 const props = defineProps({
   review: { type: Object, required: true },
@@ -423,9 +469,54 @@ const page = usePage()
 const locale = computed(() => page.props.currentLocale || 'fr')
 const authUser = computed(() => page.props.auth?.user || null)
 
-const currentUrl = computed(() => {
-  return typeof window !== 'undefined' ? window.location.href : ''
+// Reading progress bar (0 to 100%)
+const readingProgress = ref(0)
+function updateReadingProgress() {
+  if (typeof window === 'undefined') return
+  const docEl = document.documentElement
+  const scrollTop = window.scrollY || docEl.scrollTop || 0
+  const scrollHeight = (docEl.scrollHeight || 0) - window.innerHeight
+  if (scrollHeight <= 0) {
+    readingProgress.value = 0
+    return
+  }
+  readingProgress.value = Math.min(100, Math.max(0, Math.round((scrollTop / scrollHeight) * 100)))
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('scroll', updateReadingProgress, { passive: true })
+    updateReadingProgress()
+  }
 })
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('scroll', updateReadingProgress)
+  }
+})
+
+const currentUrl = computed(() => {
+  return typeof window !== 'undefined' ? window.location.href : (page.props.seo?.url || '')
+})
+
+const reviewImage = computed(() => {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  if (props.review.cover_image) {
+    const img = props.review.cover_image
+    if (img.startsWith('http://') || img.startsWith('https://')) return img
+    return origin + '/' + img.replace(/^\/+/, '')
+  }
+  return origin + '/assets/images/logo.png'
+})
+
+const whatsappShareUrl = computed(() => {
+  return buildWhatsAppShareUrl(`Test : ${props.review.game_name} (${props.review.final_score}/20) - Tech237`, currentUrl.value)
+})
+
+function handleCopyLink() {
+  copyLinkWithToast(currentUrl.value, 'Lien du test copié !')
+}
 
 const currentContent = computed(() => {
   return locale.value === 'en' ? (props.review.content_en || props.review.content_fr) : props.review.content_fr
@@ -574,6 +665,16 @@ async function submitReply(parentId) {
 </script>
 
 <style scoped>
+.reading-progress-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #FF004B 0%, #9be106 100%);
+  z-index: 1060;
+  transition: width 0.08s ease-out;
+  box-shadow: 0 1px 4px rgba(255, 0, 75, 0.4);
+}
 .hover-danger:hover {
   color: #FF004B !important;
 }

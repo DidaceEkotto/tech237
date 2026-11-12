@@ -2,19 +2,52 @@
   <FrontLayout>
     <div class="container my-4">
       
-      <!-- Header -->
-      <div class="p-4 p-md-5 rounded-4 mb-4 text-white shadow-sm" style="background: linear-gradient(135deg, #1f0b20 0%, #4a0e4e 100%);">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+      <!-- Header with Background Ad Image & Gradient Overlay -->
+      <div class="p-4 p-md-5 rounded-4 mb-4 text-white shadow-sm position-relative overflow-hidden">
+        <!-- Background ad image layer -->
+        <div
+          v-if="heroBgImage"
+          class="position-absolute top-0 start-0 w-100 h-100"
+          :style="{
+            backgroundImage: `url('${heroBgImage}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }"
+        ></div>
+
+        <!-- Semi-transparent gradient overlay for readability & ad visibility -->
+        <div
+          class="position-absolute top-0 start-0 w-100 h-100"
+          :style="{
+            background: heroBgImage
+              ? 'linear-gradient(135deg, rgba(31, 11, 32, 0.82) 0%, rgba(74, 14, 78, 0.86) 100%)'
+              : 'linear-gradient(135deg, rgb(31, 11, 32) 0%, rgb(74, 14, 78) 100%)',
+            pointerEvents: 'none',
+          }"
+        ></div>
+
+        <!-- Sponsor link badge if ad has link_url -->
+        <a
+          v-if="heroAd?.link_url"
+          :href="heroAd.link_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="badge bg-dark bg-opacity-75 text-white-50 border border-white border-opacity-25 position-absolute top-0 end-0 m-3 extra-small text-decoration-none z-2"
+        >
+          <i class="bi bi-badge-ad text-warning me-1"></i>Sponsorisé &bull; {{ heroAd.title }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+        </a>
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 position-relative z-1">
           <div>
             <span class="badge bg-danger mb-2 text-uppercase px-3 py-1 fw-bold">Gaming Labs</span>
-            <h1 class="display-5 fw-bold mb-2">
+            <h1 class="display-5 fw-bold mb-2 text-white">
               <i class="bi bi-controller me-2"></i>{{ locale === 'en' ? 'Video Game Reviews & Verdicts' : 'Tests Jeux Vidéo & Verdicts (/20)' }}
             </h1>
             <p class="lead text-white-50 mb-0">
               {{ locale === 'en' ? 'In-depth analysis of gameplay, graphics, accessibility and soundtrack across all major gaming platforms.' : 'Analyses complètes du gameplay, des graphismes, de l\'accessibilité et de la bande son sur toutes les plateformes.' }}
             </p>
           </div>
-          <div>
+          <div :class="heroAd?.link_url ? 'mt-md-4' : ''">
             <button 
               @click="toggleBookmark"
               :disabled="isBookmarking"
@@ -129,6 +162,15 @@ function toggleBookmark() {
 
 const page = usePage();
 const locale = computed(() => page.props.currentLocale || 'fr');
+
+const heroAd = computed(() => page.props.adBanners?.hero_games?.[0] || null);
+const heroBgImage = computed(() => {
+  if (heroAd.value?.image) {
+    const img = heroAd.value.image;
+    return img.startsWith('http') ? img : (img.startsWith('/') ? img : '/' + img);
+  }
+  return null;
+});
 
 const selectedPlatform = ref('Toutes');
 const platforms = [

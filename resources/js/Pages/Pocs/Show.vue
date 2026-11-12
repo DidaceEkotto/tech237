@@ -1,11 +1,22 @@
 <template>
   <FrontLayout>
+    <!-- Sticky Reading Progress Bar -->
+    <div 
+      class="reading-progress-indicator" 
+      :style="{ width: readingProgress + '%' }"
+      aria-hidden="true"
+    ></div>
+
     <Head>
       <title>{{ poc.title }} | Mini-Actualité POC Tech237</title>
-      <meta name="description" :content="poc.summary || poc.title">
-      <meta property="og:title" :content="poc.title + ' | POC Tech237'">
-      <meta property="og:description" :content="poc.summary || poc.title">
-      <meta v-if="poc.cover_image" property="og:image" :content="'/' + poc.cover_image">
+      <meta name="description" head-key="description" :content="poc.summary || poc.title">
+      <meta property="og:type" head-key="og:type" content="article">
+      <meta property="og:title" head-key="og:title" :content="poc.title + ' | POC Tech237'">
+      <meta property="og:description" head-key="og:description" :content="poc.summary || poc.title">
+      <meta property="og:url" head-key="og:url" :content="shareUrl">
+      <meta property="og:image" head-key="og:image" :content="pocImage">
+      <meta name="twitter:card" head-key="twitter:card" content="summary_large_image">
+      <meta name="twitter:image" head-key="twitter:image" :content="pocImage">
     </Head>
 
     <div class="poc-show-page py-5 bg-light min-vh-100">
@@ -34,6 +45,7 @@
                 </span>
                 <span class="text-muted extra-small">
                   <i class="bi bi-clock me-1"></i> Publié {{ formatFullDate(poc.published_at || poc.created_at) }} &bull;
+                  <i class="bi bi-book ms-2 me-1 text-danger"></i> ~{{ estimatedReadingTime }} min de lecture &bull;
                   <i class="bi bi-eye ms-2 me-1"></i> {{ poc.views_count }} lecture(s)
                 </span>
               </div>
@@ -92,6 +104,51 @@
                     <span>{{ hasUpvotedState ? 'Vous aimez' : 'Booster ce POC' }}</span>
                     <span class="badge bg-white text-danger rounded-pill ms-1">{{ upvotesCount }}</span>
                   </button>
+                </div>
+              </div>
+
+              <!-- Audio Narrator (TTS Player) -->
+              <div class="audio-narrator-card p-3 rounded-4 mb-4 border shadow-sm bg-light">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-3">
+                    <button 
+                      @click="toggleAudioSpeech" 
+                      class="btn rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm"
+                      :class="isSpeaking ? 'btn-danger' : 'btn-dark'"
+                      style="width: 48px; height: 48px;"
+                      title="Écouter ce POC en audio"
+                    >
+                      <i class="bi fs-4" :class="isSpeaking && !isPaused ? 'bi-pause-fill' : 'bi-play-fill'"></i>
+                    </button>
+                    <div>
+                      <div class="fw-bold small text-dark d-flex align-items-center gap-2">
+                        <span>Écouter ce POC en audio</span>
+                        <span class="badge bg-success-subtle text-success small">Voix IA FR</span>
+                      </div>
+                      <div class="small text-muted" style="font-size: 11px;">
+                        Durée estimée : ~{{ estimatedReadingTime }} min &bull; {{ speechStatusText }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="isSpeaking" class="d-flex align-items-center gap-2">
+                    <button @click="toggleAudioSpeech" class="btn btn-sm rounded-pill px-3 fw-bold" :class="isPaused ? 'btn-success' : 'btn-warning text-dark'">
+                      <i class="bi me-1" :class="isPaused ? 'bi-play-fill' : 'bi-pause-fill'"></i>
+                      {{ isPaused ? 'Reprendre' : 'Pause' }}
+                    </button>
+                    <button @click="stopAudioSpeech" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                      <i class="bi bi-stop-fill me-1"></i> Arrêter
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Animated Progress Bar during playback -->
+                <div v-if="isSpeaking" class="progress mt-3" style="height: 4px;">
+                  <div 
+                    class="progress-bar bg-danger progress-bar-striped progress-bar-animated" 
+                    role="progressbar" 
+                    :style="{ width: speechProgress + '%' }"
+                  ></div>
                 </div>
               </div>
 
@@ -294,10 +351,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import DailyTechPoll from '@/Components/DailyTechPoll.vue'
+import { useAudioNarrator } from '@/Composables/useAudioNarrator'
+import { copyLinkWithToast } from '@/Utils/clipboard'
 
 const props = defineProps({
   poc: Object,
@@ -309,8 +368,64 @@ const upvotesCount = ref(props.poc?.upvotes_count || 0)
 const isUpvoting = ref(false)
 const copySuccess = ref(false)
 
+// Reading progress bar (0 to 100%)
+const readingProgress = ref(0)
+function updateReadingProgress() {
+  if (typeof window === 'undefined') return
+  const docEl = document.documentElement
+  const scrollTop = window.scrollY || docEl.scrollTop || 0
+  const scrollHeight = (docEl.scrollHeight || 0) - window.innerHeight
+  if (scrollHeight <= 0) {
+    readingProgress.value = 0
+    return
+  }
+  readingProgress.value = Math.min(100, Math.max(0, Math.round((scrollTop / scrollHeight) * 100)))
+}
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('scroll', updateReadingProgress, { passive: true })
+    updateReadingProgress()
+  }
+})
+
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('scroll', updateReadingProgress)
+  }
+})
+
+const {
+  isSpeaking,
+  isPaused,
+  speechProgress,
+  statusText: speechStatusText,
+  toggle: toggleNarrator,
+  stop: stopAudioSpeech,
+  calculateEstimatedMinutes,
+} = useAudioNarrator()
+
+const estimatedReadingTime = computed(() => {
+  return calculateEstimatedMinutes((props.poc?.summary || '') + ' ' + (props.poc?.content || ''))
+})
+
+function toggleAudioSpeech() {
+  const fullText = `${props.poc?.title || ''}. ${props.poc?.summary || ''}. ${props.poc?.content || ''}`
+  toggleNarrator(fullText, 'fr-FR')
+}
+
 const shareUrl = computed(() => {
   return typeof window !== 'undefined' ? window.location.href : ''
+})
+
+const pocImage = computed(() => {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  if (props.poc?.cover_image) {
+    const img = props.poc.cover_image
+    if (img.startsWith('http://') || img.startsWith('https://')) return img
+    return origin + '/' + img.replace(/^\/+/, '')
+  }
+  return origin + '/assets/images/logo.png'
 })
 
 const commentForm = useForm({
@@ -348,13 +463,11 @@ function formatTimeAgo(val) {
 }
 
 function copyShareLink() {
-  if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    navigator.clipboard.writeText(shareUrl.value)
-    copySuccess.value = true
-    setTimeout(() => {
-      copySuccess.value = false
-    }, 3000)
-  }
+  copyLinkWithToast(shareUrl.value, 'Lien du POC copié !')
+  copySuccess.value = true
+  setTimeout(() => {
+    copySuccess.value = false
+  }, 3000)
 }
 
 function toggleUpvote() {
@@ -397,3 +510,16 @@ function submitComment() {
   })
 }
 </script>
+
+<style scoped>
+.reading-progress-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #00A859 0%, #9be106 100%);
+  z-index: 1060;
+  transition: width 0.08s ease-out;
+  box-shadow: 0 1px 4px rgba(0, 168, 89, 0.4);
+}
+</style>

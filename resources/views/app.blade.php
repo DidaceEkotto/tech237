@@ -22,16 +22,39 @@
     <!-- Search Engine & Social Media OpenGraph / Twitter Meta Tags (Exclusively for Front-End) -->
     @php
         $settings = \App\Models\SiteSetting::current();
-        $defaultImg = $settings->seo_image ? asset($settings->seo_image) : asset('assets/images/logo.png');
-        $siteName = $settings->site_name ?? 'Tech237';
-        $defaultDesc = $settings->meta_description ?? 'Tech237 - Là où les idées deviennent des projets. Le média tech, innovation et startups de référence au Cameroun.';
+        $baseUrl = rtrim(request()->getSchemeAndHttpHost() ?: config('app.url', url('/')), '/');
 
-        $formatImage = function (?string $path) use ($defaultImg): string {
-            if (empty($path)) return $defaultImg;
+        $buildAbsoluteImageUrl = function (?string $path) use ($baseUrl): ?string {
+            if (empty($path)) return null;
+            $path = trim($path);
             if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
                 return $path;
             }
-            return asset(ltrim($path, '/'));
+            $cleanPath = ltrim($path, '/');
+            $encodedSegments = array_map('rawurlencode', explode('/', $cleanPath));
+            return $baseUrl . '/' . implode('/', $encodedSegments);
+        };
+
+        $defaultImg = $buildAbsoluteImageUrl($settings->seo_image ?: 'assets/images/logo.png') ?: asset('assets/images/logo.png');
+        $siteName = $settings->site_name ?? 'Tech237';
+        $defaultDesc = $settings->meta_description ?? 'Tech237 - Là où les idées deviennent des projets. Le média tech, innovation et startups de référence au Cameroun.';
+
+        $extractFirstHtmlImage = function (?string $html): ?string {
+            if (empty($html)) return null;
+            if (preg_match('/<img[^>]+src=["\']([^"\']+)["\']/i', $html, $matches)) {
+                return $matches[1] ?? null;
+            }
+            return null;
+        };
+
+        $formatImage = function (?string $path, ?string $fallbackHtml = null) use ($buildAbsoluteImageUrl, $extractFirstHtmlImage, $defaultImg): string {
+            $resolved = $buildAbsoluteImageUrl($path);
+            if ($resolved) return $resolved;
+            if ($fallbackHtml) {
+                $htmlImg = $buildAbsoluteImageUrl($extractFirstHtmlImage($fallbackHtml));
+                if ($htmlImg) return $htmlImg;
+            }
+            return $defaultImg;
         };
 
         $formatText = function (?string $text, int $limit = 160) use ($defaultDesc): string {
@@ -51,7 +74,7 @@
                 if ($article) {
                     $seoTitle = ($article->title_fr ?: $article->title_en) . ' | ' . $siteName;
                     $seoDesc = $formatText($article->summary_fr ?: $article->content_fr);
-                    $seoImg = $formatImage($article->featured_image);
+                    $seoImg = $formatImage($article->featured_image, $article->content_fr);
                     $ogType = 'article';
                 }
             }
@@ -103,9 +126,10 @@
                 $slug = request()->route('slug');
                 $game = \App\Models\GameReview::where('slug', $slug)->first();
                 if ($game) {
-                    $seoTitle = "Test " . $game->game_name . " : Verdict & Note | " . $siteName;
-                    $seoDesc = $formatText($game->summary_fr ?: $game->verdict_fr);
-                    $seoImg = $formatImage($game->cover_image);
+                    $seoTitle = "Test : " . $game->game_name . " (" . $game->final_score . "/20) | " . $siteName;
+                    $seoDesc = $formatText($game->summary_fr ?: $game->content_fr);
+                    $seoImg = $formatImage($game->cover_image, $game->content_fr);
+                    $ogType = 'article';
                 }
             }
             elseif (Request::routeIs('apps.index')) {
@@ -117,9 +141,10 @@
                 $slug = request()->route('slug');
                 $app = \App\Models\AppReview::where('slug', $slug)->first();
                 if ($app) {
-                    $seoTitle = "Test " . $app->app_name . " : Fonctionnalités & Avis | " . $siteName;
-                    $seoDesc = $formatText($app->summary_fr ?: $app->verdict_fr);
-                    $seoImg = $formatImage($app->cover_image ?: $app->logo);
+                    $seoTitle = "Test : " . $app->app_name . " (" . $app->final_score . "/20) | " . $siteName;
+                    $seoDesc = $formatText($app->summary_fr ?: $app->content_fr);
+                    $seoImg = $formatImage($app->cover_image, $app->content_fr);
+                    $ogType = 'article';
                 }
             }
             elseif (Request::routeIs('interviews.index')) {
@@ -202,6 +227,16 @@
                 $seoDesc = "Partagez de courtes actualités dans le domaine de la tech avec les autres membres de la communauté. ";
                 $seoImg = $defaultImg;
             }
+            elseif (Request::routeIs('pocs.show')) {
+                $slug = request()->route('slug');
+                $poc = \App\Models\Poc::where('slug', $slug)->orWhere('id', $slug)->first();
+                if ($poc) {
+                    $seoTitle = $poc->title . " | POC " . $siteName;
+                    $seoDesc = $formatText($poc->summary ?: $poc->content);
+                    $seoImg = $formatImage($poc->cover_image, $poc->content);
+                    $ogType = 'article';
+                }
+            }
             elseif (Request::routeIs('user.portfolio') || Request::routeIs('user.portfolio.short') || Request::routeIs('user.cv')) {
                 $username = request()->route('username');
                 $portfolioUser = \App\Models\User::where('username', $username)->first();
@@ -230,6 +265,13 @@
             $seoDesc = $defaultDesc;
             $seoImg = $defaultImg;
         }
+        $seoImgExt = strtolower(pathinfo(parse_url($seoImg, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION));
+        $seoImgMime = match ($seoImgExt) {
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            default => 'image/jpeg',
+        };
     @endphp
 
     <meta name="description" head-key="description" content="{{ $seoDesc }}">
@@ -241,8 +283,13 @@
     <meta property="og:url" head-key="og:url" content="{{ url()->current() }}">
     <meta property="og:image" head-key="og:image" content="{{ $seoImg }}">
     <meta property="og:image:secure_url" head-key="og:image:secure_url" content="{{ $seoImg }}">
+    <meta property="og:image:type" content="{{ $seoImgMime }}">
     <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="627">
+    <meta property="og:image:height" content="630">
+    <meta itemprop="name" content="{{ $seoTitle }}">
+    <meta itemprop="description" content="{{ $seoDesc }}">
+    <meta itemprop="image" content="{{ $seoImg }}">
+    <link rel="image_src" href="{{ $seoImg }}">
     @if(isset($portfolioUser) && $portfolioUser)
     <meta property="profile:username" content="{{ $portfolioUser->username }}">
     @endif
@@ -254,6 +301,18 @@
     <!-- 100% Offline jQuery & Select2 -->
     <script src="{{ asset('assets/js/jquery.min.js') }}"></script>
     <script src="{{ asset('assets/js/select2.min.js') }}"></script>
+
+    <!-- Instant Dark Mode initialization before paint -->
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('tech237_dark_mode') === 'true') {
+                    document.documentElement.classList.add('dark-mode');
+                    document.documentElement.setAttribute('data-bs-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
 
     @inertiaHead
     @vite(['resources/js/app.js'])

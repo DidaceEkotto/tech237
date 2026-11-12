@@ -108,6 +108,10 @@
                 </div>
 
                 <div v-if="isSpeaking" class="d-flex align-items-center gap-2">
+                  <button @click="toggleAudioSpeech" class="btn btn-sm rounded-pill px-3 fw-bold" :class="isPaused ? 'btn-success' : 'btn-warning text-dark'">
+                    <i class="bi me-1" :class="isPaused ? 'bi-play-fill' : 'bi-pause-fill'"></i>
+                    {{ isPaused ? 'Reprendre' : 'Pause' }}
+                  </button>
                   <button @click="stopAudioSpeech" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
                     <i class="bi bi-stop-fill me-1"></i> Arrêter
                   </button>

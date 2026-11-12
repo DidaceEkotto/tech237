@@ -74,6 +74,19 @@
             </button>
           </div>
 
+          <!-- Dark Mode / Light Mode Toggle Button -->
+          <button
+            type="button"
+            @click="toggleDarkMode"
+            class="btn btn-sm rounded-circle d-flex align-items-center justify-content-center border shadow-2xs transition"
+            :class="isDarkMode ? 'btn-dark text-warning border-secondary' : 'btn-light text-dark'"
+            style="width: 34px; height: 34px;"
+            :title="isDarkMode ? 'Passer en Mode Clair' : 'Passer en Mode Sombre'"
+            :aria-label="isDarkMode ? 'Passer en Mode Clair' : 'Passer en Mode Sombre'"
+          >
+            <i class="bi" :class="isDarkMode ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+          </button>
+
           <!-- Single User Auth Button / Profile Dropdown -->
           <div v-if="authUser" class="dropdown position-relative" style="z-index: 1050;">
             <button class="btn btn-sm btn-dark rounded-pill dropdown-toggle d-flex align-items-center gap-2 px-3 py-1" type="button" data-bs-toggle="dropdown">
@@ -304,17 +317,29 @@
     <transition name="drawer-fade">
       <div v-if="isMobileMenuOpen" class="mobile-drawer-overlay" @click.self="isMobileMenuOpen = false">
         <div class="mobile-drawer-panel shadow-lg">
-          <!-- Drawer Header with Logo and prominent X close button -->
+          <!-- Drawer Header with Logo, Dark Mode toggle and prominent X close button -->
           <div class="d-flex align-items-center justify-content-between p-3 border-bottom bg-white">
             <img :src="'/' + (siteSettings.logo || 'assets/images/logo.png')" alt="Tech237" height="38" style="max-width: 180px; object-fit: contain;">
-            <button 
-              @click="isMobileMenuOpen = false" 
-              class="btn btn-sm btn-light rounded-circle p-2 d-flex align-items-center justify-content-center border"
-              aria-label="Fermer le menu"
-              style="width: 36px; height: 36px;"
-            >
-              <i class="bi bi-x-lg fs-5 text-danger fw-bold"></i>
-            </button>
+            <div class="d-flex align-items-center gap-2">
+              <button
+                type="button"
+                @click="toggleDarkMode"
+                class="btn btn-sm rounded-circle p-2 d-flex align-items-center justify-content-center border"
+                :class="isDarkMode ? 'btn-dark text-warning border-secondary' : 'btn-light text-dark'"
+                style="width: 36px; height: 36px;"
+                :title="isDarkMode ? 'Mode Clair' : 'Mode Sombre'"
+              >
+                <i class="bi" :class="isDarkMode ? 'bi-sun-fill' : 'bi-moon-stars-fill'"></i>
+              </button>
+              <button 
+                @click="isMobileMenuOpen = false" 
+                class="btn btn-sm btn-light rounded-circle p-2 d-flex align-items-center justify-content-center border"
+                aria-label="Fermer le menu"
+                style="width: 36px; height: 36px;"
+              >
+                <i class="bi bi-x-lg fs-5 text-danger fw-bold"></i>
+              </button>
+            </div>
           </div>
 
           <!-- Drawer Body Nav Links -->
@@ -964,6 +989,40 @@ function isExternalUrl(url) {
   }
 }
 
+// Dark Mode / Light Mode state (persisted in localStorage)
+const isDarkMode = ref(false)
+
+function applyDarkModeDOM(enabled) {
+  if (typeof document === 'undefined') return
+  const htmlEl = document.documentElement
+  const bodyEl = document.body
+  if (enabled) {
+    htmlEl.classList.add('dark-mode')
+    htmlEl.setAttribute('data-bs-theme', 'dark')
+    if (bodyEl) bodyEl.classList.add('dark-mode')
+  } else {
+    htmlEl.classList.remove('dark-mode')
+    htmlEl.removeAttribute('data-bs-theme')
+    if (bodyEl) bodyEl.classList.remove('dark-mode')
+  }
+}
+
+function toggleDarkMode() {
+  isDarkMode.value = !isDarkMode.value
+  try {
+    localStorage.setItem('tech237_dark_mode', isDarkMode.value ? 'true' : 'false')
+  } catch (e) {}
+  applyDarkModeDOM(isDarkMode.value)
+}
+
+onMounted(() => {
+  try {
+    const saved = localStorage.getItem('tech237_dark_mode')
+    isDarkMode.value = saved === 'true'
+    applyDarkModeDOM(isDarkMode.value)
+  } catch (e) {}
+})
+
 const backgroundAdStyle = computed(() => {
   if (backgroundAd.value && backgroundAd.value.image) {
     return {
@@ -976,7 +1035,7 @@ const backgroundAdStyle = computed(() => {
     }
   }
   return {
-    backgroundColor: '#ffffff'
+    backgroundColor: isDarkMode.value ? '#0b1120' : '#ffffff'
   }
 })
 

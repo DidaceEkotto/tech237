@@ -2,19 +2,52 @@
   <FrontLayout>
     <div class="container my-4">
       
-      <!-- Header -->
-      <div class="p-4 p-md-5 rounded-4 mb-4 text-white shadow-sm" style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%);">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3">
+      <!-- Header with Background Ad Image & Gradient Overlay -->
+      <div class="p-4 p-md-5 rounded-4 mb-4 text-white shadow-sm position-relative overflow-hidden">
+        <!-- Background ad image layer -->
+        <div
+          v-if="heroBgImage"
+          class="position-absolute top-0 start-0 w-100 h-100"
+          :style="{
+            backgroundImage: `url('${heroBgImage}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }"
+        ></div>
+
+        <!-- Semi-transparent gradient overlay for readability & ad visibility -->
+        <div
+          class="position-absolute top-0 start-0 w-100 h-100"
+          :style="{
+            background: heroBgImage
+              ? 'linear-gradient(135deg, rgba(6, 78, 59, 0.82) 0%, rgba(6, 95, 70, 0.86) 100%)'
+              : 'linear-gradient(135deg, #064e3b 0%, #065f46 100%)',
+            pointerEvents: 'none',
+          }"
+        ></div>
+
+        <!-- Sponsor link badge if ad has link_url -->
+        <a
+          v-if="heroAd?.link_url"
+          :href="heroAd.link_url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="badge bg-dark bg-opacity-75 text-white-50 border border-white border-opacity-25 position-absolute top-0 end-0 m-3 extra-small text-decoration-none z-2"
+        >
+          <i class="bi bi-badge-ad text-warning me-1"></i>Sponsorisé &bull; {{ heroAd.title }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+        </a>
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-3 position-relative z-1">
           <div>
             <span class="badge bg-success mb-2 text-uppercase px-3 py-1 fw-bold">App Labs</span>
-            <h1 class="display-5 fw-bold mb-2">
+            <h1 class="display-5 fw-bold mb-2 text-white">
               <i class="bi bi-phone me-2"></i>{{ locale === 'en' ? 'Mobile & Desktop App Reviews' : 'Tests d\'Applications (Mobiles, Web & Desktop)' }}
             </h1>
             <p class="lead text-white-50 mb-0">
               {{ locale === 'en' ? 'Testing UI, UX, and handling of the hottest applications with final scores out of 20.' : 'Bancs d\'essai détaillés sur l\'UI, l\'UX et la prise en main avec notes finales sur 20.' }}
             </p>
           </div>
-          <div>
+          <div :class="heroAd?.link_url ? 'mt-md-4' : ''">
             <button 
               @click="toggleBookmark"
               :disabled="isBookmarking"
@@ -93,6 +126,15 @@ const props = defineProps({
 
 const page = usePage();
 const locale = computed(() => page.props.currentLocale || 'fr');
+
+const heroAd = computed(() => page.props.adBanners?.hero_apps?.[0] || null);
+const heroBgImage = computed(() => {
+  if (heroAd.value?.image) {
+    const img = heroAd.value.image;
+    return img.startsWith('http') ? img : (img.startsWith('/') ? img : '/' + img);
+  }
+  return null;
+});
 
 const isBookmarkedState = ref(props.isBookmarked || false);
 const isBookmarking = ref(false);

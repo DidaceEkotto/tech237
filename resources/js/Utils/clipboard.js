@@ -80,3 +80,12 @@ function showToast(message, type = 'success') {
     }, 300);
   }, 2600);
 }
+
+export const copyLinkWithToast = copyTextWithToast;
+
+export function buildWhatsAppShareUrl(title, url) {
+  const cleanTitle = (title || '').trim();
+  const cleanUrl = (url || (typeof window !== 'undefined' ? window.location.href : '')).trim();
+  const text = cleanTitle ? `${cleanTitle}\n${cleanUrl}` : cleanUrl;
+  return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+}

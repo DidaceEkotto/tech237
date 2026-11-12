@@ -180,6 +180,29 @@ Route::get('/politique-de-confidentialite', [StaticPageController::class, 'priva
 Route::post('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 Route::get('/api/search-autocomplete', [SearchController::class, 'autocomplete'])->name('api.search');
 Route::get('/api/cities', fn () => \App\Models\City::active()->pluck('name'))->name('api.cities');
+Route::get('/api/tts', function (\Illuminate\Http\Request $request) {
+    $text = mb_substr(trim((string) $request->query('text', '')), 0, 200);
+    $lang = preg_replace('/[^a-zA-Z\-]/', '', (string) $request->query('lang', 'fr')) ?: 'fr';
+    $shortLang = strtolower(substr($lang, 0, 2));
+    if ($text === '') {
+        abort(400);
+    }
+    $url = 'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=' . urlencode($shortLang) . '&q=' . rawurlencode($text);
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(8)
+            ->withHeaders(['User-Agent' => 'Mozilla/5.0'])
+            ->get($url);
+        if ($response->successful() && strlen($response->body()) > 100) {
+            return response($response->body(), 200, [
+                'Content-Type' => 'audio/mpeg',
+                'Cache-Control' => 'public, max-age=86400',
+            ]);
+        }
+    } catch (\Throwable $e) {
+        // Fallback below
+    }
+    abort(503);
+})->name('api.tts');
 Route::post('/api/newsletter/subscribe', [NewsletterController::class, 'subscribe'])->name('api.newsletter');
 Route::post('/api/wysiwyg-upload', [ImageUploadController::class, 'upload'])->name('wysiwyg.upload');
 

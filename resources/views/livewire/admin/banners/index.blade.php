@@ -33,6 +33,8 @@
                                     <option value="modal_popup">Modal Popup de Bienvenue (1ère visite du jour)</option>
                                 </optgroup>
                                 <optgroup label="Fonds Publicitaires Hero / En-tête (Superposition dégradée)">
+                                    <option value="hero_games">Hero - Page Tests Jeux Vidéo (/tests-jeux-video)</option>
+                                    <option value="hero_apps">Hero - Page Tests Applications (/tests-applications)</option>
                                     <option value="hero_pocs">Hero - Page POCs (Micro-actus &amp; Découvertes)</option>
                                     <option value="hero_forum">Hero - Page Forum (Discussions &amp; Communauté)</option>
                                     <option value="hero_conferences">Hero - Page Conférences (Agenda &amp; Événements)</option>
