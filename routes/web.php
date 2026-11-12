@@ -150,6 +150,7 @@ Route::get('/auteur/{id}', [AuthorController::class, 'show'])->name('authors.sho
 Route::get('/carte-des-champions', [App\Http\Controllers\Front\CommunityController::class, 'map'])->name('community.map');
 Route::get('/map-des-gagnants', [App\Http\Controllers\Front\CommunityController::class, 'map']);
 Route::get('/communaute/profil/{id}', [App\Http\Controllers\Front\CommunityController::class, 'profile'])->name('community.profile');
+Route::post('/communaute/profil/{id}/contact', [App\Http\Controllers\Front\CommunityController::class, 'sendContactEmail'])->name('community.profile.contact');
 
 // Public Developer Portfolio & CV (@username and /portfolio/{username})
 Route::get('/@{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->where('username', '[a-zA-Z0-9_\-\.]+')->name('user.portfolio.short');

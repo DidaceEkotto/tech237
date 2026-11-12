@@ -11,8 +11,35 @@
     <div class="startups-index-page py-5 bg-light min-vh-100">
       <div class="container">
 
-        <!-- Top Header Hero -->
-        <div class="rounded-4 p-4 p-md-5 text-white mb-5 shadow-sm position-relative overflow-hidden" style="background: linear-gradient(135deg, #0B2559 0%, #00A859 100%);">
+        <!-- Top Header Hero with Background Ad Image & Gradient Overlay -->
+        <div class="rounded-4 p-4 p-md-5 text-white mb-5 shadow-sm position-relative overflow-hidden">
+          <!-- Background ad image layer -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100" 
+            :style="{
+              backgroundImage: `url('${heroBgImage}')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }"
+          ></div>
+
+          <!-- Semi-transparent gradient overlay for readability & ad visibility -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none" 
+            style="background: linear-gradient(135deg, rgba(11, 37, 89, 0.82) 0%, rgba(0, 168, 89, 0.76) 100%); pointer-events: none;"
+          ></div>
+
+          <!-- Sponsor link badge if ad has link_url -->
+          <a 
+            v-if="heroAd?.link_url" 
+            :href="heroAd.link_url" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="badge bg-dark bg-opacity-75 text-white-50 border border-white border-opacity-25 position-absolute top-0 end-0 m-3 extra-small text-decoration-none z-2"
+          >
+            <i class="bi bi-badge-ad text-warning me-1"></i>Sponsorisé &bull; {{ heroAd.title }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+          </a>
+
           <div class="position-relative z-1 max-w-750">
             <span class="badge px-3 py-2 rounded-pill fw-bold text-uppercase mb-3 bg-white text-dark shadow-sm">
               <i class="bi bi-rocket-takeoff-fill text-success me-1"></i> Écosystème Startup 237
@@ -256,7 +283,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 
@@ -267,6 +294,14 @@ const props = defineProps({
 
 const page = usePage()
 const authUser = page.props.auth?.user
+const heroAd = computed(() => page.props.adBanners?.hero_startups?.[0] || null)
+const heroBgImage = computed(() => {
+  if (heroAd.value?.image) {
+    const img = heroAd.value.image
+    return img.startsWith('http') ? img : (img.startsWith('/') ? img : '/' + img)
+  }
+  return 'https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1600&q=80'
+})
 
 const searchQuery = ref(props.filters?.search || '')
 const selectedCity = ref(props.filters?.city || '')

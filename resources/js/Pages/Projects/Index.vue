@@ -6,19 +6,52 @@
     </Head>
 
     <div class="container py-4">
-      <div class="p-4 p-md-5 text-white rounded-4 mb-4 shadow" style="background: linear-gradient(135deg, #0B2559 0%, #06152D 100%);">
-        <span class="badge mb-2 px-3 py-1 fw-bold text-uppercase text-white" style="background-color: var(--tech-green, #00A859);">
-          <i class="bi bi-rocket-takeoff me-1"></i> Showcase Investisseurs & Développeurs
-        </span>
-        <h1 class="fw-bold display-6 mb-2">Projets Tech & Innovations Startups</h1>
-        <p class="text-white-50 lead mb-3"><em>"Là où les idées deviennent des projets"</em>. Explorez les applications, jeux vidéo et solutions logicielles créées par nos talents et startups certifiées au Cameroun.</p>
-        
-        <div class="d-flex flex-wrap gap-2">
-          <Link href="/projets" class="btn btn-sm rounded-pill px-3" :class="!selectedType ? 'btn-danger' : 'btn-outline-light'">Tous</Link>
-          <Link href="/projets?type=web" class="btn btn-sm rounded-pill px-3" :class="selectedType === 'web' ? 'btn-danger' : 'btn-outline-light'">Web & SaaS</Link>
-          <Link href="/projets?type=mobile" class="btn btn-sm rounded-pill px-3" :class="selectedType === 'mobile' ? 'btn-danger' : 'btn-outline-light'">Applications Mobiles</Link>
-          <Link href="/projets?type=game" class="btn btn-sm rounded-pill px-3" :class="selectedType === 'game' ? 'btn-danger' : 'btn-outline-light'">Jeux Vidéo</Link>
-          <Link href="/projets?type=desktop" class="btn btn-sm rounded-pill px-3" :class="selectedType === 'desktop' ? 'btn-danger' : 'btn-outline-light'">Desktop</Link>
+      <div class="position-relative overflow-hidden rounded-4 mb-4 shadow p-4 p-md-5 text-white" style="background-color: #06152D;">
+        <!-- Image d'arrière-plan publicitaire -->
+        <div 
+          class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none"
+          :style="{
+            backgroundImage: `url('${heroBgImage}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            opacity: 0.38,
+            filter: 'saturate(1.2)'
+          }"
+        ></div>
+        <!-- Dégradé semi-transparent superposé pour lisibilité du texte -->
+        <div 
+          class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none"
+          style="background: linear-gradient(135deg, rgba(11, 37, 89, 0.92) 0%, rgba(6, 21, 45, 0.88) 55%, rgba(0, 168, 89, 0.45) 100%);"
+        ></div>
+
+        <!-- Contenu Hero -->
+        <div class="position-relative" style="z-index: 2;">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+            <span class="badge px-3 py-1 fw-bold text-uppercase text-white" style="background-color: var(--tech-green, #00A859);">
+              <i class="bi bi-rocket-takeoff me-1"></i> Showcase Investisseurs & Développeurs
+            </span>
+            <a 
+              v-if="heroAd?.target_url" 
+              :href="heroAd.target_url" 
+              target="_blank" 
+              rel="noopener" 
+              class="badge bg-white bg-opacity-25 text-white text-decoration-none px-3 py-1 rounded-pill extra-small border border-white border-opacity-25 hover-bg-opacity-50"
+            >
+              <i class="bi bi-megaphone-fill me-1 text-warning"></i> {{ heroAd.title || 'Sponsorisé' }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+            </a>
+          </div>
+          <h1 class="fw-bold display-6 mb-2">Projets Tech & Innovations Startups</h1>
+          <p class="text-white lead mb-3" style="max-width: 800px; text-shadow: 0 1px 2px rgba(0,0,0,0.4);">
+            <em>"Là où les idées deviennent des projets"</em>. Explorez les applications, jeux vidéo et solutions logicielles créées par nos talents et startups certifiées au Cameroun.
+          </p>
+          
+          <div class="d-flex flex-wrap gap-2">
+            <Link href="/projets" class="btn btn-sm rounded-pill px-3" :class="!selectedType ? 'btn-danger' : 'btn-outline-light'">Tous</Link>
+            <Link href="/projets?type=web" class="btn btn-sm rounded-pill px-3" :class="selectedType === 'web' ? 'btn-danger' : 'btn-outline-light'">Web & SaaS</Link>
+            <Link href="/projets?type=mobile" class="btn btn-sm rounded-pill px-3" :class="selectedType === 'mobile' ? 'btn-danger' : 'btn-outline-light'">Applications Mobiles</Link>
+            <Link href="/projets?type=game" class="btn btn-sm rounded-pill px-3" :class="selectedType === 'game' ? 'btn-danger' : 'btn-outline-light'">Jeux Vidéo</Link>
+            <Link href="/projets?type=desktop" class="btn btn-sm rounded-pill px-3" :class="selectedType === 'desktop' ? 'btn-danger' : 'btn-outline-light'">Desktop</Link>
+          </div>
         </div>
       </div>
 
@@ -100,9 +133,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Head, Link } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { Head, Link, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+
+const page = usePage()
+const heroAd = computed(() => page.props.adBanners?.hero_projects?.[0] || null)
+const heroBgImage = computed(() => {
+  if (heroAd.value?.image_url) return heroAd.value.image_url
+  return 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=1600&q=80'
+})
 
 const props = defineProps({
   projects: Object,

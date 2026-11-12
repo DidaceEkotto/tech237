@@ -23,13 +23,24 @@
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Emplacement / Position d'affichage <span class="text-danger">*</span></label>
                             <select class="form-select form-select-sm" wire:model="position" required>
-                                <option value="header_top">Header Top (Haut de page - Leaderboard)</option>
-                                <option value="sidebar">Sidebar (Colonne latérale - Pavé 300x250)</option>
-                                <option value="home_middle">Home Middle (Milieu de la page d'accueil)</option>
-                                <option value="in_article">In-Article (Intégré dans le corps de l'article)</option>
-                                <option value="footer_banner">Footer Banner (Bas de page)</option>
-                                <option value="background">Habillage de fond (Wallpaper Background Skinning)</option>
-                                <option value="modal_popup">Modal Popup de Bienvenue (1ère visite du jour)</option>
+                                <optgroup label="Bannières Standard">
+                                    <option value="header_top">Header Top (Haut de page - Leaderboard)</option>
+                                    <option value="sidebar">Sidebar (Colonne latérale - Pavé 300x250)</option>
+                                    <option value="home_middle">Home Middle (Milieu de la page d'accueil)</option>
+                                    <option value="in_article">In-Article (Intégré dans le corps de l'article)</option>
+                                    <option value="footer_banner">Footer Banner (Bas de page)</option>
+                                    <option value="background">Habillage de fond (Wallpaper Background Skinning)</option>
+                                    <option value="modal_popup">Modal Popup de Bienvenue (1ère visite du jour)</option>
+                                </optgroup>
+                                <optgroup label="Fonds Publicitaires Hero / En-tête (Superposition dégradée)">
+                                    <option value="hero_pocs">Hero - Page POCs (Micro-actus &amp; Découvertes)</option>
+                                    <option value="hero_forum">Hero - Page Forum (Discussions &amp; Communauté)</option>
+                                    <option value="hero_conferences">Hero - Page Conférences (Agenda &amp; Événements)</option>
+                                    <option value="hero_jobs">Hero - Page Emplois (Carrières &amp; Recrutement IT)</option>
+                                    <option value="hero_startups">Hero - Page Startups (Écosystème 237)</option>
+                                    <option value="hero_projects">Hero - Page Projets (Showcase Développeurs)</option>
+                                    <option value="hero_entrepreneur">Hero - Page Entrepreneur du Mois</option>
+                                </optgroup>
                             </select>
                         </div>
 

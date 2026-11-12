@@ -10,9 +10,36 @@
     <div class="jobs-index-page py-5 bg-light min-vh-100">
       <div class="container">
         
-        <!-- Header Hero -->
-        <div class="card border-0 rounded-4 shadow-sm p-4 p-md-5 mb-5 text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #0B2559 0%, #06152D 100%);">
-          <div class="position-absolute end-0 top-0 translate-middle-y me-5 opacity-10 d-none d-lg-block pointer-events-none">
+        <!-- Header Hero with Background Ad Image & Gradient Overlay -->
+        <div class="card border-0 rounded-4 shadow-sm p-4 p-md-5 mb-5 text-white position-relative overflow-hidden">
+          <!-- Background ad image layer -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100" 
+            :style="{
+              backgroundImage: `url('${heroBgImage}')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }"
+          ></div>
+
+          <!-- Semi-transparent gradient overlay for readability & ad visibility -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none" 
+            style="background: linear-gradient(135deg, rgba(11, 37, 89, 0.82) 0%, rgba(6, 21, 45, 0.86) 100%); pointer-events: none;"
+          ></div>
+
+          <!-- Sponsor link badge if ad has link_url -->
+          <a 
+            v-if="heroAd?.link_url" 
+            :href="heroAd.link_url" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="badge bg-dark bg-opacity-75 text-white-50 border border-white border-opacity-25 position-absolute top-0 end-0 m-3 extra-small text-decoration-none z-2"
+          >
+            <i class="bi bi-badge-ad text-warning me-1"></i>Sponsorisé &bull; {{ heroAd.title }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+          </a>
+
+          <div class="position-absolute end-0 top-0 translate-middle-y me-5 opacity-10 d-none d-lg-block pointer-events-none" style="z-index: 1;">
             <i class="bi bi-briefcase-fill" style="font-size: 260px;"></i>
           </div>
 
@@ -206,9 +233,19 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { Head, Link, router } from '@inertiajs/vue3'
+import { ref, computed } from 'vue'
+import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+
+const page = usePage()
+const heroAd = computed(() => page.props.adBanners?.hero_jobs?.[0] || null)
+const heroBgImage = computed(() => {
+  if (heroAd.value?.image) {
+    const img = heroAd.value.image
+    return img.startsWith('http') ? img : (img.startsWith('/') ? img : '/' + img)
+  }
+  return 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1600&q=80'
+})
 
 const props = defineProps({
   jobs: Object,

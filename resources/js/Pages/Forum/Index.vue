@@ -10,8 +10,35 @@
     <div class="forum-index-page py-5">
       <div class="container">
         
-        <!-- Header Banner -->
-        <div class="card border-0 rounded-4 shadow-sm p-4 p-md-5 mb-5 text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #0B2559 0%, #06152D 100%);">
+        <!-- Header Banner with Background Ad Image & Gradient Overlay -->
+        <div class="card border-0 rounded-4 shadow-sm p-4 p-md-5 mb-5 text-white position-relative overflow-hidden">
+          <!-- Background ad image layer -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100" 
+            :style="{
+              backgroundImage: `url('${heroBgImage}')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }"
+          ></div>
+
+          <!-- Semi-transparent gradient overlay for readability & ad visibility -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none" 
+            style="background: linear-gradient(135deg, rgba(11, 37, 89, 0.82) 0%, rgba(6, 21, 45, 0.86) 100%); pointer-events: none;"
+          ></div>
+
+          <!-- Sponsor link badge if ad has link_url -->
+          <a 
+            v-if="heroAd?.link_url" 
+            :href="heroAd.link_url" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="badge bg-dark bg-opacity-75 text-white-50 border border-white border-opacity-25 position-absolute top-0 end-0 m-3 extra-small text-decoration-none z-2"
+          >
+            <i class="bi bi-badge-ad text-warning me-1"></i>Sponsorisé &bull; {{ heroAd.title }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+          </a>
+
           <div class="row align-items-center g-4 position-relative z-1">
             <div class="col-lg-8">
               <span class="badge px-3 py-2 rounded-pill fw-bold text-uppercase mb-2 text-white" style="background-color: var(--tech-green);">
@@ -265,6 +292,14 @@ const props = defineProps({
 
 const page = usePage()
 const authUser = computed(() => page.props.auth?.user || null)
+const heroAd = computed(() => page.props.adBanners?.hero_forum?.[0] || null)
+const heroBgImage = computed(() => {
+  if (heroAd.value?.image) {
+    const img = heroAd.value.image
+    return img.startsWith('http') ? img : (img.startsWith('/') ? img : '/' + img)
+  }
+  return 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1600&q=80'
+})
 
 const searchQuery = ref(props.filters?.search || '')
 const selectedCatId = ref(props.filters?.category_id || null)

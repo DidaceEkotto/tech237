@@ -6,6 +6,11 @@
     <title>Nouveau Devlog sur {{ $project->name }}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333333;">
+@php
+    $siteSetting = \App\Models\SiteSetting::current();
+    $logoUrl = $siteSetting->logo ? (str_starts_with($siteSetting->logo, 'http') ? $siteSetting->logo : asset($siteSetting->logo)) : asset('assets/images/logo.png');
+    $siteName = $siteSetting->site_name ?? 'Tech237';
+@endphp
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f6f8; padding: 40px 0;">
         <tr>
             <td align="center">
@@ -13,9 +18,11 @@
                     
                     <!-- Header -->
                     <tr>
-                        <td align="center" style="background-color: #0B2559; padding: 30px 20px; border-bottom: 4px solid #00A859;">
-                            <h1 style="color: #ffffff; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -1px;">Tech237<span style="color: #00A859;">.</span></h1>
-                            <p style="color: #ffffff; opacity: 0.8; margin: 5px 0 0 0; font-size: 13px;">Plateforme de l'écosystème Tech au Cameroun</p>
+                        <td align="center" style="background-color: #0B2559; padding: 26px 20px; border-bottom: 4px solid #00A859;">
+                            <a href="{{ url('/') }}" target="_blank" style="text-decoration: none; display: inline-block;">
+                                <img src="{{ $logoUrl }}" alt="{{ $siteName }}" style="max-height: 48px; max-width: 190px; margin-bottom: 8px; display: block; border: 0;">
+                            </a>
+                            <p style="color: #ffffff; opacity: 0.85; margin: 0; font-size: 13px;">{{ $siteName }} &bull; Plateforme de l'écosystème Tech au Cameroun</p>
                         </td>
                     </tr>
 

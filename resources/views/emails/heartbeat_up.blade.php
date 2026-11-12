@@ -6,14 +6,22 @@
     <title>Incident Résolu - Tech237 Heartbeat</title>
 </head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 24px; color: #1e293b;">
+@php
+    $siteSetting = \App\Models\SiteSetting::current();
+    $logoUrl = $siteSetting->logo ? (str_starts_with($siteSetting->logo, 'http') ? $siteSetting->logo : asset($siteSetting->logo)) : asset('assets/images/logo.png');
+    $siteName = $siteSetting->site_name ?? 'Tech237';
+@endphp
     <table cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
         <!-- Header -->
         <tr>
-            <td style="background: linear-gradient(135deg, #0B2559 0%, #1e3a8a 100%); padding: 28px 32px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">
-                    Tech<span style="color: #00A859;">237</span> <span style="font-size: 16px; font-weight: 500; opacity: 0.9;">Heartbeat</span>
+            <td style="background: linear-gradient(135deg, #0B2559 0%, #1e3a8a 100%); padding: 26px 32px; text-align: center; border-bottom: 4px solid #10b981;">
+                <a href="{{ url('/') }}" target="_blank" style="text-decoration: none; display: inline-block;">
+                    <img src="{{ $logoUrl }}" alt="{{ $siteName }}" style="max-height: 46px; max-width: 180px; margin-bottom: 8px; display: block; margin-left: auto; margin-right: auto; border: 0;">
+                </a>
+                <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.5px;">
+                    Tech<span style="color: #00A859;">237</span> <span style="font-size: 15px; font-weight: 500; opacity: 0.9;">Heartbeat</span>
                 </h1>
-                <p style="color: #cbd5e1; margin: 6px 0 0 0; font-size: 13px;">
+                <p style="color: #cbd5e1; margin: 4px 0 0 0; font-size: 13px;">
                     Surveillance Uptime &amp; Santé de vos Projets et POCs
                 </p>
             </td>

@@ -10,9 +10,36 @@
     <div class="conferences-index-page py-5">
       <div class="container">
         
-        <!-- Hero Header -->
-        <div class="card border-0 rounded-4 shadow-sm p-4 p-md-5 mb-5 text-white" style="background: linear-gradient(135deg, #090d16 0%, #1e293b 100%);">
-          <div class="row align-items-center g-4">
+        <!-- Hero Header with Background Ad Image & Gradient Overlay -->
+        <div class="card border-0 rounded-4 shadow-sm p-4 p-md-5 mb-5 text-white position-relative overflow-hidden">
+          <!-- Background ad image layer -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100" 
+            :style="{
+              backgroundImage: `url('${heroBgImage}')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }"
+          ></div>
+
+          <!-- Semi-transparent gradient overlay for readability & ad visibility -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none" 
+            style="background: linear-gradient(135deg, rgba(9, 13, 22, 0.82) 0%, rgba(30, 41, 59, 0.78) 100%); pointer-events: none;"
+          ></div>
+
+          <!-- Sponsor link badge if ad has link_url -->
+          <a 
+            v-if="heroAd?.link_url" 
+            :href="heroAd.link_url" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="badge bg-dark bg-opacity-75 text-white-50 border border-white border-opacity-25 position-absolute top-0 end-0 m-3 extra-small text-decoration-none z-2"
+          >
+            <i class="bi bi-badge-ad text-warning me-1"></i>Sponsorisé &bull; {{ heroAd.title }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+          </a>
+
+          <div class="row align-items-center g-4 position-relative z-1">
             <div class="col-lg-8">
               <span class="badge bg-danger px-3 py-2 rounded-pill fw-bold text-uppercase mb-2">
                 <i class="bi bi-calendar-check-fill me-1"></i> Agenda Tech & Innovation
@@ -224,6 +251,14 @@ const props = defineProps({
 
 const page = usePage()
 const authUser = computed(() => page.props.auth?.user || null)
+const heroAd = computed(() => page.props.adBanners?.hero_conferences?.[0] || null)
+const heroBgImage = computed(() => {
+  if (heroAd.value?.image) {
+    const img = heroAd.value.image
+    return img.startsWith('http') ? img : (img.startsWith('/') ? img : '/' + img)
+  }
+  return 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1600&q=80'
+})
 
 const filterCity = ref(props.filters?.city || '')
 const filterDate = ref(props.filters?.date || '')

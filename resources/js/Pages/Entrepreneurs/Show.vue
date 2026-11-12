@@ -26,7 +26,24 @@
         </nav>
 
         <!-- Article Top Hero Banner -->
-        <div class="card border-0 rounded-4 shadow-sm overflow-hidden mb-5 text-white position-relative" style="background: linear-gradient(135deg, #0B2559 0%, #061533 100%);">
+        <div class="card border-0 rounded-4 shadow-sm overflow-hidden mb-5 text-white position-relative" style="background-color: #061533;">
+          <!-- Image d'arrière-plan publicitaire -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none"
+            :style="{
+              backgroundImage: `url('${heroBgImage}')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: 0.38,
+              filter: 'saturate(1.2)'
+            }"
+          ></div>
+          <!-- Dégradé semi-transparent superposé pour lisibilité du texte -->
+          <div 
+            class="position-absolute top-0 start-0 w-100 h-100 pointer-events-none"
+            style="background: linear-gradient(135deg, rgba(11, 37, 89, 0.92) 0%, rgba(6, 21, 51, 0.88) 55%, rgba(0, 168, 89, 0.45) 100%);"
+          ></div>
+
           <div class="p-4 p-md-5 position-relative z-1">
             <div class="row align-items-center g-4">
               <div class="col-md-auto text-center">
@@ -46,13 +63,24 @@
                 </div>
               </div>
               <div class="col">
-                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-                  <span class="badge px-3 py-2 rounded-pill fw-bold text-uppercase text-white shadow-sm" style="background-color: var(--tech-green);">
-                    <i class="bi bi-award-fill me-1 text-warning"></i> Entrepreneur du mois &bull; {{ entrepreneur.month_year }}
-                  </span>
-                  <span v-if="entrepreneur.startup" class="badge bg-white text-dark px-3 py-2 rounded-pill fw-bold shadow-sm">
-                    <i class="bi bi-rocket-takeoff-fill text-success me-1"></i> {{ entrepreneur.startup.name }}
-                  </span>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge px-3 py-2 rounded-pill fw-bold text-uppercase text-white shadow-sm" style="background-color: var(--tech-green);">
+                      <i class="bi bi-award-fill me-1 text-warning"></i> Entrepreneur du mois &bull; {{ entrepreneur.month_year }}
+                    </span>
+                    <span v-if="entrepreneur.startup" class="badge bg-white text-dark px-3 py-2 rounded-pill fw-bold shadow-sm">
+                      <i class="bi bi-rocket-takeoff-fill text-success me-1"></i> {{ entrepreneur.startup.name }}
+                    </span>
+                  </div>
+                  <a 
+                    v-if="heroAd?.target_url" 
+                    :href="heroAd.target_url" 
+                    target="_blank" 
+                    rel="noopener" 
+                    class="badge bg-white bg-opacity-25 text-white text-decoration-none px-3 py-1 rounded-pill extra-small border border-white border-opacity-25 hover-bg-opacity-50"
+                  >
+                    <i class="bi bi-megaphone-fill me-1 text-warning"></i> {{ heroAd.title || 'Sponsorisé' }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+                  </a>
                 </div>
                 <h1 class="display-5 fw-bold text-white mb-2">{{ entrepreneur.name }}</h1>
                 <p class="lead fw-semibold mb-2" style="color: var(--tech-green-light);">{{ entrepreneur.role_title || entrepreneur.role_or_title || 'Fondateur & Visionnaire Tech' }}</p>
@@ -415,6 +443,11 @@ const props = defineProps({
 })
 
 const page = usePage()
+const heroAd = computed(() => page.props.adBanners?.hero_entrepreneur?.[0] || null)
+const heroBgImage = computed(() => {
+  if (heroAd.value?.image_url) return heroAd.value.image_url
+  return 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1600&q=80'
+})
 const locale = computed(() => page.props.currentLocale || 'fr')
 const currentUrl = computed(() => typeof window !== 'undefined' ? window.location.href : '')
 

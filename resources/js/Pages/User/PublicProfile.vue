@@ -74,23 +74,16 @@
               </div>
 
               <!-- Action: Contact / Send Message -->
-              <div class="d-flex gap-2 align-items-center mb-1">
-                <Link 
-                  v-if="$page.props.auth?.user && $page.props.auth.user.id !== profileUser.id" 
-                  :href="'/espace-utilisateur?section=messages&recipient=' + profileUser.id"
+              <div v-if="!$page.props.auth?.user || $page.props.auth.user.id !== profileUser.id" class="d-flex gap-2 align-items-center mb-1">
+                <button 
+                  type="button"
+                  @click="openContactModal"
                   class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
                   style="background-color: var(--tech-green, #00A859);"
                 >
                   <i class="bi bi-chat-left-text-fill"></i>
                   <span>Lui envoyer un message</span>
-                </Link>
-                <Link 
-                  v-else-if="!$page.props.auth?.user" 
-                  href="/login" 
-                  class="btn btn-outline-success rounded-pill px-4 py-2 fw-bold"
-                >
-                  <i class="bi bi-chat-left-text-fill me-1"></i> Contacter
-                </Link>
+                </button>
               </div>
 
             </div>
@@ -321,13 +314,151 @@
 
       </div>
     </div>
+
+    <!-- Modal Static : Envoyer un message direct / Email -->
+    <div 
+      v-if="showContactModal" 
+      class="modal fade show d-block" 
+      tabindex="-1" 
+      role="dialog"
+      style="background-color: rgba(11, 37, 89, 0.65); backdrop-filter: blur(4px); z-index: 1055;"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+          <!-- Modal Header -->
+          <div class="modal-header text-white p-4" style="background: linear-gradient(135deg, #0B2559 0%, #06152D 100%); border-bottom: 3px solid var(--tech-green, #00A859);">
+            <div class="d-flex align-items-center gap-3">
+              <div class="rounded-circle bg-white bg-opacity-10 p-2 text-success fs-4 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                <i class="bi bi-envelope-at-fill" style="color: var(--tech-green, #00A859);"></i>
+              </div>
+              <div>
+                <h5 class="modal-title fw-bold mb-0">Contacter {{ profileUser.name }}</h5>
+                <p class="mb-0 extra-small text-white-50">Un email direct sera transmis sur sa boîte de messagerie personnelle</p>
+              </div>
+            </div>
+            <button 
+              type="button" 
+              class="btn-close btn-close-white" 
+              @click="closeContactModal" 
+              aria-label="Fermer"
+              :disabled="sendingEmail"
+            ></button>
+          </div>
+
+          <!-- Modal Body -->
+          <div class="modal-body p-4 bg-light">
+            <!-- Success Alert -->
+            <div v-if="contactSuccess" class="alert alert-success border-0 rounded-3 shadow-xs d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+              <div>
+                <strong>Message transmis avec succès !</strong>
+                <p class="mb-0 extra-small">{{ contactSuccess }}</p>
+              </div>
+            </div>
+
+            <!-- Error Alert -->
+            <div v-if="contactError" class="alert alert-danger border-0 rounded-3 shadow-xs d-flex align-items-center gap-2 mb-3">
+              <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+              <div>
+                <strong>Erreur</strong>
+                <p class="mb-0 extra-small">{{ contactError }}</p>
+              </div>
+            </div>
+
+            <form v-if="!contactSuccess" @submit.prevent="submitContactForm">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold text-dark">Votre Nom &amp; Prénom <span class="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    v-model="contactForm.sender_name" 
+                    required 
+                    class="form-control rounded-3" 
+                    placeholder="ex: Jean Dupont" 
+                    :disabled="sendingEmail"
+                  />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label small fw-bold text-dark">Votre adresse Email <span class="text-danger">*</span></label>
+                  <input 
+                    type="email" 
+                    v-model="contactForm.sender_email" 
+                    required 
+                    class="form-control rounded-3" 
+                    placeholder="nom@exemple.cm" 
+                    :disabled="sendingEmail"
+                  />
+                  <div class="form-text extra-small">Le destinataire pourra vous répondre directement à cette adresse.</div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-bold text-dark">Sujet de votre message <span class="text-danger">*</span></label>
+                  <input 
+                    type="text" 
+                    v-model="contactForm.subject" 
+                    required 
+                    class="form-control rounded-3" 
+                    placeholder="ex: Opportunité de collaboration sur un projet Web" 
+                    :disabled="sendingEmail"
+                  />
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-bold text-dark">Votre Message <span class="text-danger">*</span></label>
+                  <textarea 
+                    v-model="contactForm.message" 
+                    required 
+                    rows="5" 
+                    class="form-control rounded-3" 
+                    placeholder="Présentez-vous brièvement et décrivez l'objet de votre prise de contact..." 
+                    :disabled="sendingEmail"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-end align-items-center gap-2 mt-4 pt-3 border-top">
+                <button 
+                  type="button" 
+                  class="btn btn-outline-secondary rounded-pill px-4 fw-semibold" 
+                  @click="closeContactModal"
+                  :disabled="sendingEmail"
+                >
+                  Annuler
+                </button>
+                <button 
+                  type="submit" 
+                  class="btn btn-success rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                  style="background-color: var(--tech-green, #00A859);"
+                  :disabled="sendingEmail"
+                >
+                  <span v-if="sendingEmail" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <i v-else class="bi bi-send-fill"></i>
+                  <span>{{ sendingEmail ? 'Envoi en cours...' : 'Envoyer le message' }}</span>
+                </button>
+              </div>
+            </form>
+
+            <div v-else class="text-center py-4">
+              <button 
+                type="button" 
+                class="btn btn-success rounded-pill px-4 fw-bold shadow-sm"
+                style="background-color: var(--tech-green, #00A859);"
+                @click="closeContactModal"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </FrontLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, Link, usePage } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
+
+const page = usePage()
 
 const props = defineProps({
   profileUser: { type: Object, required: true },
@@ -341,6 +472,65 @@ const props = defineProps({
 })
 
 const activeTab = ref('projects')
+const showContactModal = ref(false)
+const sendingEmail = ref(false)
+const contactSuccess = ref('')
+const contactError = ref('')
+
+const contactForm = ref({
+  sender_name: page.props.auth?.user?.name || '',
+  sender_email: page.props.auth?.user?.email || '',
+  subject: '',
+  message: '',
+})
+
+function openContactModal() {
+  contactForm.value = {
+    sender_name: page.props.auth?.user?.name || '',
+    sender_email: page.props.auth?.user?.email || '',
+    subject: '',
+    message: '',
+  }
+  contactSuccess.value = ''
+  contactError.value = ''
+  showContactModal.value = true
+}
+
+function closeContactModal() {
+  if (sendingEmail.value) return
+  showContactModal.value = false
+}
+
+async function submitContactForm() {
+  sendingEmail.value = true
+  contactError.value = ''
+  contactSuccess.value = ''
+
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const response = await fetch(`/communaute/profil/${props.profileUser.id}/contact`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken,
+      },
+      body: JSON.stringify(contactForm.value),
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (response.ok && data.success) {
+      contactSuccess.value = data.message || 'Votre message a bien été envoyé !'
+    } else {
+      contactError.value = data.error || data.message || 'Une erreur est survenue lors de l\'envoi du message.'
+    }
+  } catch (err) {
+    contactError.value = err.message || 'Erreur réseau lors de l\'envoi du message.'
+  } finally {
+    sendingEmail.value = false
+  }
+}
 
 function getInitials(name) {
   if (!name) return 'U'
