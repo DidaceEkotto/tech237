@@ -38,6 +38,7 @@ use App\Livewire\Admin\Dossiers\Index as AdminDossiersIndex;
 use App\Livewire\Admin\Rubriques\Index as AdminRubriquesIndex;
 use App\Livewire\Admin\Categories\Index as AdminCategoriesIndex;
 use App\Livewire\Admin\Tags\Index as AdminTagsIndex;
+use App\Livewire\Admin\Cities\Index as AdminCitiesIndex;
 use App\Livewire\Admin\Entrepreneurs\Index as AdminEntrepreneursIndex;
 use App\Livewire\Admin\Entrepreneurs\Form as AdminEntrepreneursForm;
 use App\Livewire\Admin\Forum\Index as AdminForumIndex;
@@ -410,6 +411,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/rubriques', AdminRubriquesIndex::class)->name('rubriques.index');
         Route::get('/categories', AdminCategoriesIndex::class)->name('categories.index');
         Route::get('/tags', AdminTagsIndex::class)->name('tags.index');
+        Route::get('/villes', AdminCitiesIndex::class)->name('cities.index');
 
         // Entrepreneur du mois
         Route::get('/entrepreneurs', AdminEntrepreneursIndex::class)->name('entrepreneurs.index');

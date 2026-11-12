@@ -76,6 +76,9 @@
             <a href="{{ route('admin.tags.index') }}" class="nav-link {{ request()->routeIs('admin.tags.*') ? 'active' : '' }}">
                 <i class="bi bi-hash"></i> Tags
             </a>
+            <a href="{{ route('admin.cities.index') }}" class="nav-link {{ request()->routeIs('admin.cities.*') ? 'active' : '' }}">
+                <i class="bi bi-geo-alt-fill text-success"></i> Villes (Cameroun)
+            </a>
             <a href="{{ route('admin.articles.index') }}" class="nav-link {{ request()->routeIs('admin.articles.*') ? 'active' : '' }}">
                 <i class="bi bi-newspaper"></i> Articles
                 @if($pendingArticlesCount > 0)
