@@ -98,6 +98,11 @@
                 </Link>
               </li>
               <li>
+                <Link href="/espace-utilisateur/formulaires" class="dropdown-item py-2">
+                  <i class="bi bi-ui-checks-grid me-2 text-success"></i> Formulaires &amp; Sondages
+                </Link>
+              </li>
+              <li>
                 <Link href="/espace-utilisateur?section=heartbeat" class="dropdown-item py-2">
                   <i class="bi bi-heart-pulse me-2 text-danger"></i> Tech237 Heartbeat (Uptime)
                 </Link>

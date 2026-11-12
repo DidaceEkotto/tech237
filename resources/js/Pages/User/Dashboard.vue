@@ -140,6 +140,15 @@
                 <span class="badge bg-primary-subtle text-primary rounded-pill ms-auto extra-small">Trello</span>
               </Link>
 
+              <Link 
+                href="/espace-utilisateur/formulaires" 
+                class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1 text-dark text-decoration-none"
+              >
+                <i class="bi bi-ui-checks-grid me-2 fs-5 text-success"></i>
+                <span>Formulaires &amp; Sondages</span>
+                <span class="badge bg-success-subtle text-success rounded-pill ms-auto extra-small">Nouveau</span>
+              </Link>
+
               <!-- JOBS MENU (USER REQUEST) -->
               <button 
                 @click="setSection('jobs')" 

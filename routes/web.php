@@ -328,7 +328,23 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/heartbeat/monitors/{id}/ping', [App\Http\Controllers\User\HeartbeatController::class, 'pingNow'])->name('user.heartbeat.ping');
     Route::post('/espace-utilisateur/heartbeat/monitors/{id}/toggle', [App\Http\Controllers\User\HeartbeatController::class, 'toggleActive'])->name('user.heartbeat.toggle');
     Route::post('/espace-utilisateur/heartbeat/monitors/{id}/test-alert', [App\Http\Controllers\User\HeartbeatController::class, 'sendTestAlert'])->name('user.heartbeat.test-alert');
+
+    // Tech237 Forms (Créateur de Formulaires & Questionnaires)
+    Route::get('/espace-utilisateur/formulaires', [App\Http\Controllers\User\FormBuilderController::class, 'index'])->name('user.forms.index');
+    Route::get('/espace-utilisateur/formulaires/guide', [App\Http\Controllers\User\FormBuilderController::class, 'guide'])->name('user.forms.guide');
+    Route::get('/espace-utilisateur/formulaires/creer', [App\Http\Controllers\User\FormBuilderController::class, 'create'])->name('user.forms.create');
+    Route::post('/espace-utilisateur/formulaires', [App\Http\Controllers\User\FormBuilderController::class, 'store'])->name('user.forms.store');
+    Route::get('/espace-utilisateur/formulaires/{id}/editer', [App\Http\Controllers\User\FormBuilderController::class, 'edit'])->name('user.forms.edit');
+    Route::put('/espace-utilisateur/formulaires/{id}', [App\Http\Controllers\User\FormBuilderController::class, 'update'])->name('user.forms.update');
+    Route::delete('/espace-utilisateur/formulaires/{id}', [App\Http\Controllers\User\FormBuilderController::class, 'destroy'])->name('user.forms.destroy');
+    Route::post('/espace-utilisateur/formulaires/{id}/dupliquer', [App\Http\Controllers\User\FormBuilderController::class, 'duplicate'])->name('user.forms.duplicate');
+    Route::get('/espace-utilisateur/formulaires/{id}/reponses', [App\Http\Controllers\User\FormBuilderController::class, 'responses'])->name('user.forms.responses');
+    Route::get('/espace-utilisateur/formulaires/{id}/export-csv', [App\Http\Controllers\User\FormBuilderController::class, 'exportCsv'])->name('user.forms.export_csv');
 });
+
+// Public Forms
+Route::get('/f/{slug}', [App\Http\Controllers\Front\PublicFormController::class, 'show'])->name('forms.public.show');
+Route::post('/f/{slug}/repondre', [App\Http\Controllers\Front\PublicFormController::class, 'submit'])->name('forms.public.submit');
 
 // Quick alias for Tech237 Heartbeat
 Route::get('/espace-utilisateur/heartbeat', function () {
