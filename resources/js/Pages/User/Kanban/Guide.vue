@@ -184,9 +184,87 @@
               <div class="rounded-circle text-warning bg-warning-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
                 <i class="bi bi-archive-fill"></i>
               </div>
-              <h4 class="h6 fw-bold text-dark mb-2">11. Archivage &amp; Désarchivage</h4>
+              <h4 class="h6 fw-bold text-dark mb-2">11. Archivage &amp; Historique</h4>
               <p class="small text-muted mb-0">
-                Quand votre tableau compte de nombreuses tâches closes, archivez-les pour conserver une vue claire. Le bouton <em>« Archives »</em> vous permet d'inspecter leur contenu et de les restaurer sur le tableau.
+                Quand votre tableau compte de nombreuses tâches closes, archivez-les pour conserver une vue claire. Le bouton <em>« Archives »</em> vous permet d'inspecter leur contenu et de les restaurer à tout moment.
+              </p>
+            </div>
+          </div>
+
+          <!-- 12. Modèles Préréglés (Templates) -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-primary">
+              <div class="rounded-circle text-primary bg-primary-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-grid-1x2-fill"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">12. Modèles de Tableaux (Templates)</h4>
+              <p class="small text-muted mb-0">
+                Démarrez avec des colonnes adaptées à votre méthode : <strong>Standard Trello</strong>, <strong>Scrum / Agile Sprint</strong>, <strong>Bug Tracker</strong>, <strong>Lancement MVP</strong> ou <strong>Mission Freelance</strong>.
+              </p>
+            </div>
+          </div>
+
+          <!-- 13. Limites de Travail (WIP Limits) -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-danger">
+              <div class="rounded-circle text-danger bg-danger-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-speedometer2"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">13. Limites WIP (Work-In-Progress)</h4>
+              <p class="small text-muted mb-0">
+                Configurez une limite maximale de tâches par colonne. Un badge d'alerte rouge <em>« WIP Dépassé »</em> vous avertit instantanément dès qu'une étape est surchargée.
+              </p>
+            </div>
+          </div>
+
+          <!-- 14. Estimation & Suivi du Temps -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-info">
+              <div class="rounded-circle text-info bg-info-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-stopwatch-fill"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">14. Suivi du Temps &amp; Estimation</h4>
+              <p class="small text-muted mb-0">
+                Renseignez le temps estimé et le temps réellement passé (ex: <code>⏱️ 4h / 6h</code>). Un indicateur visuel apparaît directement sur la carte pour maîtriser vos budgets horaires.
+              </p>
+            </div>
+          </div>
+
+          <!-- 15. Sélecteur de Vue Tableau ⇄ Liste -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-dark">
+              <div class="rounded-circle text-dark bg-dark-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-list-task"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">15. Vue Tableau ⇄ Vue Liste</h4>
+              <p class="small text-muted mb-0">
+                Basculez à tout moment entre les colonnes Trello classiques et un <strong>tableau ordonné</strong> compact avec cases à cocher directes et ajout rapide de tâches en 1 clic.
+              </p>
+            </div>
+          </div>
+
+          <!-- 16. Export CSV & Markdown -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-success">
+              <div class="rounded-circle text-success bg-success-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-download"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">16. Exportation CSV &amp; Markdown</h4>
+              <p class="small text-muted mb-0">
+                Téléchargez votre tableau au format <strong>CSV (Excel)</strong> ou copiez le compte-rendu complet du sprint en <strong>Markdown</strong> pour alimenter vos README GitHub ou rapports d'avancement.
+              </p>
+            </div>
+          </div>
+
+          <!-- 17. Raccourcis Clavier -->
+          <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 rounded-4 shadow-sm p-4 bg-white border-start border-4 border-secondary">
+              <div class="rounded-circle text-secondary bg-secondary-subtle d-inline-flex align-items-center justify-content-center p-3 fs-3 mb-3" style="width: 56px; height: 56px;">
+                <i class="bi bi-keyboard-fill"></i>
+              </div>
+              <h4 class="h6 fw-bold text-dark mb-2">17. Raccourcis Clavier Rapides</h4>
+              <p class="small text-muted mb-0">
+                Gagnez du temps avec les touches pro : <kbd>N</kbd> (Nouvelle tâche), <kbd>/</kbd> ou <kbd>F</kbd> (Recherche), <kbd>M</kbd> (Mes tâches uniquement) et <kbd>Échap</kbd> (Fermer les modaux).
               </p>
             </div>
           </div>

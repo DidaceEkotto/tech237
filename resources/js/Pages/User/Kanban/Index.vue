@@ -59,15 +59,22 @@
             <div class="card border-0 rounded-4 shadow-sm h-100 bg-white hover-shadow transition overflow-hidden" style="border: 1px solid #e2e8f0 !important;">
               <div class="card-body p-4 d-flex flex-column">
                 
-                <!-- Project badge if linked -->
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                  <span v-if="board.project" class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 small fw-bold d-inline-flex align-items-center gap-1">
-                    <i class="bi bi-folder-fill"></i>
-                    <span class="text-truncate" style="max-width: 160px;">{{ board.project.name }}</span>
-                  </span>
-                  <span v-else class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-1 small fw-bold">
-                    <i class="bi bi-person me-1"></i>Personnel
-                  </span>
+                <!-- Project & Template badges -->
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                  <div class="d-flex align-items-center gap-1 flex-wrap">
+                    <span v-if="board.project" class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 small fw-bold d-inline-flex align-items-center gap-1">
+                      <i class="bi bi-folder-fill"></i>
+                      <span class="text-truncate" style="max-width: 140px;">{{ board.project.name }}</span>
+                    </span>
+                    <span v-else class="badge bg-secondary-subtle text-secondary rounded-pill px-3 py-1 small fw-bold">
+                      <i class="bi bi-person me-1"></i>Personnel
+                    </span>
+
+                    <!-- Preset Template Badge -->
+                    <span class="badge rounded-pill px-2 py-1 extra-small fw-bold border" :class="getTemplateBadgeClass(board.template)">
+                      <i :class="['bi', getTemplateIcon(board.template), 'me-1']"></i>{{ getTemplateTitle(board.template) }}
+                    </span>
+                  </div>
 
                   <span v-if="board.is_public" class="badge bg-success-subtle text-success rounded-pill px-2 py-1 extra-small fw-bold">
                     <i class="bi bi-globe me-1"></i>Roadmap Publique
@@ -384,6 +391,39 @@ function submitCreateBoard() {
       isSubmitting.value = false
     }
   })
+}
+
+function getTemplateTitle(template) {
+  const map = {
+    standard: 'Standard (Trello)',
+    scrum: 'Scrum / Agile Sprint',
+    bug_tracker: 'Bug & Issue Tracker',
+    startup_launch: 'Lancement Produit / MVP',
+    freelance: 'Mission Freelance & Client',
+  }
+  return map[template] || 'Standard (Trello)'
+}
+
+function getTemplateIcon(template) {
+  const map = {
+    standard: 'bi-kanban',
+    scrum: 'bi-arrow-repeat',
+    bug_tracker: 'bi-bug',
+    startup_launch: 'bi-rocket-takeoff',
+    freelance: 'bi-briefcase',
+  }
+  return map[template] || 'bi-kanban'
+}
+
+function getTemplateBadgeClass(template) {
+  const map = {
+    standard: 'bg-primary-subtle text-primary border-primary-subtle',
+    scrum: 'bg-info-subtle text-primary border-info-subtle',
+    bug_tracker: 'bg-danger-subtle text-danger border-danger-subtle',
+    startup_launch: 'bg-warning-subtle text-dark border-warning-subtle',
+    freelance: 'bg-success-subtle text-success border-success-subtle',
+  }
+  return map[template] || 'bg-light text-dark border-secondary-subtle'
 }
 </script>
 

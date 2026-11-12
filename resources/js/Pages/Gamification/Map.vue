@@ -24,7 +24,7 @@
           class="btn-candy-orange d-inline-flex align-items-center gap-2 text-decoration-none shadow-sm"
           title="Quitter la Map et revenir à l'accueil du site"
         >
-          <span class="btn-game-icon">🏠</span>
+          <i class="bi bi-box-arrow-left fs-5"></i>
           <span class="d-none d-sm-inline fw-black">Retour à l'accueil</span>
         </Link>
       </div>
@@ -401,8 +401,8 @@
         <!-- ==============================================================
              PART 2: THE CHAMPIONS CADRE (THE RIGHT ROSTER PANEL FOR SELECTED XP TIER)
              ============================================================== -->
-        <aside class="col-12 col-lg-5 col-xl-4 d-flex flex-column">
-          <div class="champions-cadre-board rounded-5 shadow-lg p-3 p-md-4 d-flex flex-column h-100 position-sticky" style="top: 80px;">
+        <aside class="col-12 col-lg-5 col-xl-4 align-self-start position-sticky" style="top: 85px; z-index: 10;">
+          <div class="champions-cadre-board rounded-5 shadow-lg p-3 p-md-4 d-flex flex-column">
             
             <!-- Cadre Header: Selected Tier Banner with Trophy Graphic matching Screenshot 3 -->
             <transition name="tier-header-slide" mode="out-in">

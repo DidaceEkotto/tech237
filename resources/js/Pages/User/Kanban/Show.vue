@@ -28,6 +28,11 @@
                 <span v-if="board.is_public" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill py-1 px-2 extra-small fw-bold">
                   <i class="bi bi-globe me-1"></i>Roadmap Publique Active
                 </span>
+
+                <!-- Board Preset Template Badge -->
+                <span class="badge rounded-pill py-1 px-2 extra-small fw-bold border" :class="getTemplateBadgeClass(board.template)">
+                  <i :class="['bi', getTemplateIcon(board.template), 'me-1']"></i>{{ getTemplateTitle(board.template) }}
+                </span>
               </div>
 
               <div class="d-flex align-items-center gap-2">
@@ -440,6 +445,45 @@
                       <button v-if="canEdit" class="btn btn-xs btn-outline-dark rounded-pill px-2" @click="openQuickAdd(column)">
                         + Ajouter une carte
                       </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Quick Add Form Row in Table View -->
+                <tr v-if="activeAddCardColumnId === column.id" class="bg-light border-bottom">
+                  <td colspan="8" class="p-3 bg-light">
+                    <div class="card border rounded-3 p-3 bg-white shadow-xs" style="max-width: 650px;">
+                      <div class="d-flex align-items-center justify-content-between mb-2">
+                        <strong class="extra-small text-dark fw-bold d-flex align-items-center gap-1">
+                          <i class="bi bi-plus-circle-fill text-success"></i>
+                          <span>Nouvelle tâche dans « {{ column.title }} »</span>
+                        </strong>
+                        <button type="button" @click="activeAddCardColumnId = null" class="btn btn-xs btn-link text-muted p-0 text-decoration-none">
+                          Fermer ✕
+                        </button>
+                      </div>
+                      <div class="input-group input-group-sm mb-2">
+                        <input 
+                          type="text" 
+                          v-model="quickCardTitle" 
+                          @keyup.enter="submitQuickCard(column)" 
+                          @keyup.esc="activeAddCardColumnId = null"
+                          class="form-control rounded-start-3 py-2 ps-3" 
+                          placeholder="Saisissez le titre de la tâche puis appuyez sur Entrée..." 
+                          autofocus
+                        />
+                        <button 
+                          @click="submitQuickCard(column)" 
+                          class="btn btn-success px-3 fw-bold text-white rounded-end-3" 
+                          :disabled="!quickCardTitle.trim()"
+                        >
+                          Ajouter la carte
+                        </button>
+                      </div>
+                      <div class="extra-small text-muted d-flex align-items-center justify-content-between">
+                        <span>Appuyez sur <kbd class="px-1 py-0 bg-light border text-dark">Entrée</kbd> pour valider ou <kbd class="px-1 py-0 bg-light border text-dark">Échap</kbd> pour annuler</span>
+                        <span class="text-secondary">{{ column.title }}</span>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -2525,6 +2569,39 @@ function formatDateShort(dateStr) {
 function getAvatarColor(idx) {
   const colors = ['#00A859', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4']
   return colors[idx % colors.length]
+}
+
+function getTemplateTitle(template) {
+  const map = {
+    standard: 'Standard (Trello)',
+    scrum: 'Scrum / Agile Sprint',
+    bug_tracker: 'Bug & Issue Tracker',
+    startup_launch: 'Lancement Produit / MVP',
+    freelance: 'Mission Freelance & Client',
+  }
+  return map[template] || 'Standard (Trello)'
+}
+
+function getTemplateIcon(template) {
+  const map = {
+    standard: 'bi-kanban',
+    scrum: 'bi-arrow-repeat',
+    bug_tracker: 'bi-bug',
+    startup_launch: 'bi-rocket-takeoff',
+    freelance: 'bi-briefcase',
+  }
+  return map[template] || 'bi-kanban'
+}
+
+function getTemplateBadgeClass(template) {
+  const map = {
+    standard: 'bg-primary-subtle text-primary border-primary-subtle',
+    scrum: 'bg-info-subtle text-primary border-info-subtle',
+    bug_tracker: 'bg-danger-subtle text-danger border-danger-subtle',
+    startup_launch: 'bg-warning-subtle text-dark border-warning-subtle',
+    freelance: 'bg-success-subtle text-success border-success-subtle',
+  }
+  return map[template] || 'bg-light text-dark border-secondary-subtle'
 }
 </script>
 
