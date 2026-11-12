@@ -336,6 +336,7 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/formulaires', [App\Http\Controllers\User\FormBuilderController::class, 'store'])->name('user.forms.store');
     Route::get('/espace-utilisateur/formulaires/{id}/editer', [App\Http\Controllers\User\FormBuilderController::class, 'edit'])->name('user.forms.edit');
     Route::put('/espace-utilisateur/formulaires/{id}', [App\Http\Controllers\User\FormBuilderController::class, 'update'])->name('user.forms.update');
+    Route::post('/espace-utilisateur/formulaires/{id}/statut', [App\Http\Controllers\User\FormBuilderController::class, 'toggleStatus'])->name('user.forms.status');
     Route::delete('/espace-utilisateur/formulaires/{id}', [App\Http\Controllers\User\FormBuilderController::class, 'destroy'])->name('user.forms.destroy');
     Route::post('/espace-utilisateur/formulaires/{id}/dupliquer', [App\Http\Controllers\User\FormBuilderController::class, 'duplicate'])->name('user.forms.duplicate');
     Route::get('/espace-utilisateur/formulaires/{id}/reponses', [App\Http\Controllers\User\FormBuilderController::class, 'responses'])->name('user.forms.responses');

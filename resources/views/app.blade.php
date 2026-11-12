@@ -213,6 +213,17 @@
                     $ogType = 'profile';
                 }
             }
+            elseif (Request::routeIs('forms.public.show')) {
+                $slug = request()->route('slug');
+                $form = \App\Models\Form::with('user')->where('slug', $slug)->orWhere('uuid', $slug)->first();
+                if ($form) {
+                    $creatorName = $form->user->name ?? $siteName;
+                    $seoTitle = "Formulaire : " . $form->title . " | " . $siteName;
+                    $seoDesc = $formatText($form->description ?: ("Participez au formulaire « " . $form->title . " » créé par " . $creatorName . " sur " . $siteName . "."));
+                    $seoImg = $formatImage($form->cover_image ?: ($form->user->avatar ?? $defaultImg));
+                    $ogType = 'website';
+                }
+            }
         } catch (\Throwable $e) {
             // Safe fallback to site defaults
             $seoTitle = $siteName . ' - Là où les idées deviennent des projets';

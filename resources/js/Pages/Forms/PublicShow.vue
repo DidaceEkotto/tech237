@@ -1,6 +1,9 @@
 <template>
-  <div class="public-form-wrapper min-vh-100 d-flex flex-column" :style="{ backgroundColor: '#f8fafc', '--theme-color': form.theme_color || '#00A859' }">
+  <div class="public-form-wrapper min-vh-100 d-flex flex-column position-relative" :style="{ backgroundColor: '#f8fafc', '--theme-color': form.theme_color || '#00A859' }">
     <Head :title="form.title + ' • Tech237'" />
+
+    <!-- Confetti Canvas for Success Celebration -->
+    <canvas ref="confettiCanvas" class="confetti-canvas" v-show="isFinished"></canvas>
 
     <!-- Top Minimal Navigation Bar -->
     <header class="py-3 px-4 bg-white border-bottom shadow-2xs d-flex align-items-center justify-content-between">
@@ -31,17 +34,25 @@
     <!-- MAIN BODY CONTAINER -->
     <main class="flex-grow-1 d-flex align-items-center justify-content-center p-3 p-md-4">
       
-      <!-- CASE 1: FORM FINISHED (SUCCESS SCREEN) -->
-      <div v-if="isFinished" class="card border-0 rounded-5 shadow-lg p-4 p-md-5 bg-white text-center animate-fade-in mx-auto" style="max-width: 600px;">
-        <div class="mb-4">
-          <div class="rounded-circle d-inline-flex align-items-center justify-content-center p-4 shadow-sm" style="background-color: rgba(0, 168, 89, 0.12); width: 88px; height: 88px;">
-            <i class="bi bi-check-circle-fill fs-1" :style="{ color: form.theme_color || '#00A859' }"></i>
+      <!-- CASE 1: FORM FINISHED (SUCCESS SCREEN WITH CELEBRATION) -->
+      <div v-if="isFinished" class="card border-0 rounded-5 shadow-lg p-4 p-md-5 bg-white text-center animate-fade-in mx-auto position-relative overflow-hidden" style="max-width: 600px; z-index: 10;">
+        
+        <!-- Animated Pulsing Celebration Badge -->
+        <div class="mb-4 position-relative d-inline-block">
+          <div class="celebration-ripple" :style="{ borderColor: form.theme_color || '#00A859' }"></div>
+          <div class="celebration-ripple delay" :style="{ borderColor: form.theme_color || '#00A859' }"></div>
+          <div class="rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg celebration-icon" :style="{ backgroundColor: form.theme_color || '#00A859', width: '92px', height: '92px' }">
+            <i class="bi bi-check-lg fs-1 text-white fw-bold"></i>
           </div>
         </div>
 
-        <h3 class="fw-black text-dark mb-2">Merci pour votre réponse !</h3>
+        <div class="d-inline-flex align-items-center gap-1 px-3 py-1 rounded-pill mb-3 mx-auto extra-small fw-bold" style="background-color: rgba(0, 168, 89, 0.12); color: #00A859;">
+          <span>🎉 Félicitations &amp; Merci !</span>
+        </div>
+
+        <h3 class="fw-black text-dark mb-2">Réponse enregistrée avec succès !</h3>
         <p class="text-muted small mb-4">
-          {{ form.confirmation_message || 'Votre soumission a été enregistrée avec succès par l\'équipe Tech237.' }}
+          {{ form.confirmation_message || 'Votre soumission a été transmise à l\'auteur du formulaire sur Tech237.' }}
         </p>
 
         <div v-if="submittedResponseUuid" class="p-3 bg-light rounded-3 border extra-small font-monospace text-muted mb-4">
@@ -594,7 +605,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { Head, Link } from '@inertiajs/vue3'
 import CitySelect2 from '@/Components/CitySelect2.vue'
 
@@ -610,6 +621,7 @@ const isSubmitting = ref(false)
 const isFinished = ref(false)
 const submittedResponseUuid = ref('')
 const startTime = ref(Date.now())
+const confettiCanvas = ref(null)
 
 const answers = ref({})
 const filesMap = ref({})
@@ -763,10 +775,13 @@ async function submitForm() {
     if (res.ok && data.success) {
       isFinished.value = true
       submittedResponseUuid.value = data.response_uuid || ''
+      nextTick(() => {
+        launchConfetti()
+      })
       if (data.redirect_url) {
         setTimeout(() => {
           window.location.href = data.redirect_url
-        }, 2000)
+        }, 3000)
       }
     } else {
       const err = data.error || 'Erreur lors de la soumission de votre réponse.'
@@ -779,6 +794,79 @@ async function submitForm() {
   } finally {
     isSubmitting.value = false
   }
+}
+
+function launchConfetti() {
+  const canvas = confettiCanvas.value
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
+
+  const colors = ['#00A859', '#FFD700', '#2563EB', '#FF0055', '#9333EA', '#10B981', '#F59E0B']
+  const pieces = []
+  const count = 130
+
+  for (let i = 0; i < count; i++) {
+    pieces.push({
+      x: canvas.width / 2 + (Math.random() - 0.5) * 160,
+      y: canvas.height * 0.45 + (Math.random() - 0.5) * 40,
+      vx: (Math.random() - 0.5) * 18,
+      vy: -Math.random() * 15 - 6,
+      size: Math.random() * 9 + 5,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 14,
+      gravity: 0.35 + Math.random() * 0.15,
+      opacity: 1,
+      shape: Math.random() > 0.4 ? 'rect' : 'circle',
+    })
+  }
+
+  let animFrameId = null
+  const startTime = Date.now()
+
+  function draw() {
+    const elapsed = Date.now() - startTime
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    pieces.forEach(p => {
+      p.x += p.vx
+      p.y += p.vy
+      p.vy += p.gravity
+      p.vx *= 0.985
+      p.rotation += p.rotationSpeed
+
+      if (elapsed > 2200) {
+        p.opacity = Math.max(0, 1 - (elapsed - 2200) / 1800)
+      }
+
+      ctx.save()
+      ctx.translate(p.x, p.y)
+      ctx.rotate((p.rotation * Math.PI) / 180)
+      ctx.globalAlpha = p.opacity
+      ctx.fillStyle = p.color
+
+      if (p.shape === 'rect') {
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 1.4)
+      } else {
+        ctx.beginPath()
+        ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2)
+        ctx.fill()
+      }
+
+      ctx.restore()
+    })
+
+    if (elapsed < 4000) {
+      animFrameId = requestAnimationFrame(draw)
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      cancelAnimationFrame(animFrameId)
+    }
+  }
+
+  animFrameId = requestAnimationFrame(draw)
 }
 </script>
 
@@ -810,5 +898,41 @@ async function submitForm() {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+.celebration-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  border: 3px solid #00A859;
+  animation: ripple 2s infinite cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+}
+.celebration-ripple.delay {
+  animation-delay: 0.6s;
+}
+@keyframes ripple {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}
+.celebration-icon {
+  animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.confetti-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
 }
 </style>

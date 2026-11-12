@@ -57,14 +57,14 @@ class FormBuilderTest extends TestCase
         $this->assertGreaterThan(0, $form->fields()->count());
     }
 
-    public function test_user_can_update_form_and_sync_fields()
+    public function test_user_can_update_draft_form_and_publish_it()
     {
         $user = User::factory()->create();
         $form = Form::create([
             'user_id' => $user->id,
             'title' => 'Sondage initial',
             'display_mode' => 'classic',
-            'status' => 'published',
+            'status' => 'draft',
         ]);
 
         $response = $this->actingAs($user, 'web')->put('/espace-utilisateur/formulaires/' . $form->id, [
@@ -97,9 +97,36 @@ class FormBuilderTest extends TestCase
             'title' => 'Sondage Modifié',
             'slug' => 'sondage-modifie',
             'display_mode' => 'conversation',
+            'status' => 'published',
         ]);
 
         $this->assertEquals(2, $form->fresh()->fields()->count());
+    }
+
+    public function test_user_cannot_modify_already_published_form()
+    {
+        $user = User::factory()->create();
+        $form = Form::create([
+            'user_id' => $user->id,
+            'title' => 'Sondage Déjà En Ligne',
+            'display_mode' => 'conversation',
+            'status' => 'published',
+        ]);
+
+        $response = $this->actingAs($user, 'web')->putJson('/espace-utilisateur/formulaires/' . $form->id, [
+            'title' => 'Tentative de modification',
+            'slug' => 'tentative',
+            'display_mode' => 'classic',
+            'status' => 'published',
+            'fields' => [
+                ['label' => 'Nouvelle question', 'type' => 'text']
+            ]
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJson([
+            'error' => 'Ce formulaire a déjà été mis en ligne et ne peut plus être modifié afin de préserver l\'intégrité des réponses et questions. Pour apporter des modifications, vous pouvez le dupliquer.',
+        ]);
     }
 
     public function test_public_user_can_view_published_form()
@@ -256,5 +283,76 @@ class FormBuilderTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+    }
+
+    public function test_user_can_duplicate_form()
+    {
+        $user = User::factory()->create();
+        $form = Form::create([
+            'user_id' => $user->id,
+            'title' => 'Formulaire Original',
+            'slug' => 'form-original',
+            'status' => 'published',
+            'display_mode' => 'conversation',
+        ]);
+        $form->fields()->create([
+            'label' => 'Question 1',
+            'name' => 'q1',
+            'type' => 'text',
+        ]);
+
+        $response = $this->actingAs($user, 'web')->post('/espace-utilisateur/formulaires/' . $form->id . '/dupliquer');
+
+        $duplicated = Form::where('user_id', $user->id)
+            ->where('title', 'Formulaire Original (Copie)')
+            ->first();
+
+        $this->assertNotNull($duplicated);
+        $this->assertEquals('draft', $duplicated->status);
+        $this->assertEquals(1, $duplicated->fields()->count());
+        $response->assertRedirect(route('user.forms.edit', $duplicated->id));
+    }
+
+    public function test_user_can_toggle_status_between_published_and_closed()
+    {
+        $user = User::factory()->create();
+        $form = Form::create([
+            'user_id' => $user->id,
+            'title' => 'Formulaire Clôture',
+            'slug' => 'form-cloture',
+            'status' => 'published',
+        ]);
+
+        // Close form
+        $response = $this->actingAs($user, 'web')->post('/espace-utilisateur/formulaires/' . $form->id . '/statut', [
+            'status' => 'closed',
+        ]);
+        $response->assertSessionHas('success');
+        $this->assertEquals('closed', $form->fresh()->status);
+
+        // Reopen form
+        $response2 = $this->actingAs($user, 'web')->post('/espace-utilisateur/formulaires/' . $form->id . '/statut', [
+            'status' => 'published',
+        ]);
+        $response2->assertSessionHas('success');
+        $this->assertEquals('published', $form->fresh()->status);
+    }
+
+    public function test_seo_meta_tags_on_form_public_show()
+    {
+        $user = User::factory()->create(['name' => 'Paul Biya Tech']);
+        $form = Form::create([
+            'user_id' => $user->id,
+            'title' => 'Enquête Startups 237',
+            'slug' => 'enquete-startups-237',
+            'description' => 'Participez à notre grande enquête annuelle sur la tech camerounaise.',
+            'status' => 'published',
+            'display_mode' => 'classic',
+        ]);
+
+        $response = $this->get('/f/enquete-startups-237');
+        $response->assertStatus(200);
+        $response->assertSee('Formulaire : Enquête Startups 237', false);
+        $response->assertSee('Participez à notre grande enquête annuelle sur la tech camerounaise.', false);
     }
 }

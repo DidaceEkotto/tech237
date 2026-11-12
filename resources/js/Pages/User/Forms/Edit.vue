@@ -17,6 +17,7 @@
                 <input 
                   type="text" 
                   v-model="form.title" 
+                  :disabled="isPublished"
                   class="form-control form-control-sm fw-black border-0 px-1 fs-5 text-dark edit-title-input" 
                   placeholder="Titre du formulaire..." 
                 />
@@ -51,16 +52,85 @@
               <span>Réponses</span>
             </Link>
 
-            <!-- Save Button -->
-            <button 
-              type="button" 
-              @click="saveForm" 
-              :disabled="isSaving" 
-              class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
-            >
-              <span v-if="isSaving" class="spinner-border spinner-border-sm" role="status"></span>
-              <i v-else class="bi bi-check-lg"></i>
-              <span>Enregistrer</span>
+            <!-- Action buttons depending on published status -->
+            <template v-if="isPublished">
+              <span class="badge bg-warning-subtle text-dark border border-warning rounded-pill px-3 py-2 fw-bold d-inline-flex align-items-center gap-1">
+                <i class="bi bi-lock-fill text-warning"></i> En ligne (Verrouillé)
+              </span>
+              <button 
+                type="button" 
+                @click="duplicateForm" 
+                class="btn btn-sm btn-dark rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+                title="Dupliquer ce formulaire pour créer une nouvelle version modifiable"
+              >
+                <i class="bi bi-copy"></i>
+                <span>Dupliquer</span>
+              </button>
+            </template>
+
+            <template v-else-if="form.status === 'draft'">
+              <button 
+                type="button" 
+                @click="publishForm" 
+                :disabled="isSaving" 
+                class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2"
+                title="Mettre en ligne pour commencer à recevoir des réponses"
+              >
+                <span v-if="isSaving" class="spinner-border spinner-border-sm" role="status"></span>
+                <i v-else class="bi bi-cloud-upload-fill"></i>
+                <span>Mettre en ligne</span>
+              </button>
+              <button 
+                type="button" 
+                @click="saveForm" 
+                :disabled="isSaving" 
+                class="btn btn-sm btn-light border rounded-pill px-3 fw-semibold text-dark"
+                title="Enregistrer les modifications en brouillon"
+              >
+                <span>Enregistrer brouillon</span>
+              </button>
+            </template>
+
+            <template v-else>
+              <button 
+                type="button" 
+                @click="toggleStatus('published')" 
+                class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1"
+              >
+                <i class="bi bi-arrow-repeat"></i>
+                <span>Rouvrir le formulaire</span>
+              </button>
+              <button 
+                type="button" 
+                @click="duplicateForm" 
+                class="btn btn-sm btn-dark rounded-pill px-3 fw-bold"
+              >
+                <i class="bi bi-copy me-1"></i> Dupliquer
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Locked Banner if Published -->
+        <div v-if="isPublished" class="alert alert-warning border-2 border-warning rounded-4 shadow-sm p-3 p-md-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-warning text-dark p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px; min-width: 44px;">
+              <i class="bi bi-lock-fill fs-4"></i>
+            </div>
+            <div>
+              <strong class="d-block text-dark">Formulaire mis en ligne • Modifications verrouillées</strong>
+              <div class="small text-muted">
+                Ce formulaire est actuellement en ligne. Sa structure et ses questions sont verrouillées en lecture seule pour préserver l'intégrité des réponses des participants. Pour apporter des changements, dupliquez ce formulaire.
+              </div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" @click="duplicateForm" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+              <i class="bi bi-copy"></i>
+              <span>Dupliquer pour modifier</span>
+            </button>
+            <button type="button" @click="toggleStatus('closed')" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold">
+              Fermer le formulaire
             </button>
           </div>
         </div>
@@ -122,6 +192,7 @@
                   <label class="form-label small fw-bold text-dark">Consignes ou description d'en-tête</label>
                   <textarea 
                     v-model="form.description" 
+                    :disabled="isPublished"
                     rows="2" 
                     class="form-control rounded-3" 
                     placeholder="Expliquez à vos répondants l'objectif de ce formulaire..."
@@ -163,7 +234,7 @@
                         </span>
                       </div>
 
-                      <div class="d-flex align-items-center gap-1">
+                      <div v-if="!isPublished" class="d-flex align-items-center gap-1">
                         <!-- Move Up -->
                         <button 
                           type="button" 
@@ -211,6 +282,7 @@
                       <input 
                         type="text" 
                         v-model="field.label" 
+                        :disabled="isPublished"
                         class="form-control fw-bold rounded-3" 
                         placeholder="ex: Quel est votre nom complet ?" 
                       />
@@ -220,7 +292,7 @@
                     <div v-if="['select', 'radio', 'checkbox'].includes(field.type)" class="mb-3 p-3 bg-light rounded-3 border">
                       <label class="form-label extra-small fw-bold text-dark mb-2 d-flex justify-content-between align-items-center">
                         <span>Options de choix :</span>
-                        <button type="button" @click="addOption(field)" class="btn btn-xs btn-outline-success rounded-pill px-2">
+                        <button v-if="!isPublished" type="button" @click="addOption(field)" class="btn btn-xs btn-outline-success rounded-pill px-2">
                           + Ajouter une option
                         </button>
                       </label>
@@ -231,10 +303,11 @@
                           <input 
                             type="text" 
                             v-model="field.options[optIdx]" 
+                            :disabled="isPublished"
                             class="form-control form-control-sm rounded-2 bg-white" 
                             placeholder="Option de réponse..." 
                           />
-                          <button type="button" @click="removeOption(field, optIdx)" class="btn btn-xs btn-link text-danger p-0" title="Supprimer">
+                          <button v-if="!isPublished" type="button" @click="removeOption(field, optIdx)" class="btn btn-xs btn-link text-danger p-0" title="Supprimer">
                             ✕
                           </button>
                         </div>
@@ -246,7 +319,7 @@
                       <div class="row g-2 align-items-center">
                         <div class="col-md-6">
                           <label class="form-label extra-small fw-bold text-dark mb-1">Langage par défaut suggéré :</label>
-                          <select v-model="field.config.language" class="form-select form-select-sm rounded-2">
+                          <select v-model="field.config.language" :disabled="isPublished" class="form-select form-select-sm rounded-2">
                             <option value="php">PHP / Laravel</option>
                             <option value="javascript">JavaScript / TypeScript</option>
                             <option value="python">Python</option>
@@ -258,7 +331,7 @@
                         </div>
                         <div class="col-md-6">
                           <label class="form-label extra-small fw-bold text-dark mb-1">Texte d'aide pour le code :</label>
-                          <input type="text" v-model="field.help_text" class="form-control form-control-sm rounded-2" placeholder="ex: Max 100 lignes, code indenté..." />
+                          <input type="text" v-model="field.help_text" :disabled="isPublished" class="form-control form-control-sm rounded-2" placeholder="ex: Max 100 lignes, code indenté..." />
                         </div>
                       </div>
                     </div>
@@ -275,18 +348,18 @@
                     <div class="row g-2 mb-3">
                       <div class="col-md-6" v-if="!['select', 'radio', 'checkbox', 'rating'].includes(field.type)">
                         <label class="form-label extra-small text-muted mb-1">Texte indicatif (Placeholder)</label>
-                        <input type="text" v-model="field.placeholder" class="form-control form-control-sm rounded-2" placeholder="ex: Tapez ici..." />
+                        <input type="text" v-model="field.placeholder" :disabled="isPublished" class="form-control form-control-sm rounded-2" placeholder="ex: Tapez ici..." />
                       </div>
                       <div :class="['select', 'radio', 'checkbox', 'rating'].includes(field.type) ? 'col-12' : 'col-md-6'">
                         <label class="form-label extra-small text-muted mb-1">Consigne supplémentaire (Texte d'aide)</label>
-                        <input type="text" v-model="field.help_text" class="form-control form-control-sm rounded-2" placeholder="ex: Format recommandé, etc." />
+                        <input type="text" v-model="field.help_text" :disabled="isPublished" class="form-control form-control-sm rounded-2" placeholder="ex: Format recommandé, etc." />
                       </div>
                     </div>
 
                     <!-- Required Toggle & Conditional Logic Accordion -->
                     <div class="d-flex align-items-center justify-content-between pt-2 border-top flex-wrap gap-2">
                       <div class="form-check form-switch mb-0">
-                        <input class="form-check-input cursor-pointer" type="checkbox" v-model="field.is_required" :id="'req_' + idx">
+                        <input class="form-check-input cursor-pointer" type="checkbox" v-model="field.is_required" :disabled="isPublished" :id="'req_' + idx">
                         <label class="form-check-label extra-small fw-bold text-dark cursor-pointer" :for="'req_' + idx">
                           Réponse obligatoire
                         </label>
@@ -294,7 +367,9 @@
 
                       <!-- Conditional Logic Toggle Button -->
                       <button 
+                        v-if="!isPublished || field.conditional_logic?.enabled"
                         type="button" 
+                        :disabled="isPublished"
                         class="btn btn-xs rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1"
                         :class="field.conditional_logic?.enabled ? 'btn-info text-white' : 'btn-light text-muted border'"
                         @click="toggleConditionalLogic(field)"
@@ -310,7 +385,7 @@
                         <span class="extra-small fw-bold text-dark d-flex align-items-center gap-1">
                           <i class="bi bi-funnel-fill text-info"></i> Règle d'affichage conditionnel :
                         </span>
-                        <button type="button" @click="field.conditional_logic.enabled = false" class="btn btn-xs btn-link text-danger p-0">
+                        <button v-if="!isPublished" type="button" @click="field.conditional_logic.enabled = false" class="btn btn-xs btn-link text-danger p-0">
                           Retirer la condition
                         </button>
                       </div>
@@ -318,7 +393,7 @@
                       <div class="row g-2 align-items-center extra-small">
                         <div class="col-auto">Afficher cette question si</div>
                         <div class="col-md-4">
-                          <select v-model="field.conditional_logic.target_field_id" class="form-select form-select-sm rounded-2">
+                          <select v-model="field.conditional_logic.target_field_id" :disabled="isPublished" class="form-select form-select-sm rounded-2">
                             <option :value="null">Choisir une question précédente...</option>
                             <option 
                               v-for="(fPrev, pIdx) in form.fields.slice(0, idx)" 
@@ -330,7 +405,7 @@
                           </select>
                         </div>
                         <div class="col-md-3">
-                          <select v-model="field.conditional_logic.operator" class="form-select form-select-sm rounded-2">
+                          <select v-model="field.conditional_logic.operator" :disabled="isPublished" class="form-select form-select-sm rounded-2">
                             <option value="equals">est égal à</option>
                             <option value="not_equals">n'est pas égal à</option>
                             <option value="contains">contient</option>
@@ -340,6 +415,7 @@
                           <input 
                             type="text" 
                             v-model="field.conditional_logic.value" 
+                            :disabled="isPublished"
                             class="form-control form-control-sm rounded-2" 
                             placeholder="Valeur requise..." 
                           />
@@ -351,8 +427,8 @@
                 </div>
               </div>
 
-              <!-- Add Question Card Banner -->
-              <div class="card border-2 border-dashed rounded-4 p-4 text-center bg-white">
+              <!-- Add Question Card Banner or Locked Banner -->
+              <div v-if="!isPublished" class="card border-2 border-dashed rounded-4 p-4 text-center bg-white">
                 <h6 class="fw-bold text-dark mb-3">Ajouter une nouvelle question</h6>
                 <div class="d-flex flex-wrap justify-content-center gap-2">
                   <button 
@@ -364,6 +440,17 @@
                   >
                     <i :class="fieldType.icon + ' ' + fieldType.color"></i>
                     <span>{{ fieldType.label }}</span>
+                  </button>
+                </div>
+              </div>
+              <div v-else class="card border-0 rounded-4 p-4 text-center bg-light text-muted">
+                <i class="bi bi-lock-fill fs-2 text-warning mb-2"></i>
+                <h6 class="fw-bold text-dark mb-1">Formulaire verrouillé en lecture seule</h6>
+                <p class="small mb-3">Ce formulaire a déjà été mis en ligne. Pour modifier ses questions ou en ajouter de nouvelles, dupliquez-le.</p>
+                <div>
+                  <button type="button" @click="duplicateForm" class="btn btn-sm btn-dark rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2">
+                    <i class="bi bi-copy"></i>
+                    <span>Dupliquer ce formulaire</span>
                   </button>
                 </div>
               </div>
@@ -400,10 +487,18 @@
                 </div>
 
                 <div class="d-grid gap-2">
-                  <button type="button" @click="saveForm" :disabled="isSaving" class="btn btn-success rounded-pill fw-bold py-2 shadow-sm">
-                    <span v-if="isSaving" class="spinner-border spinner-border-sm me-1"></span>
-                    <span>Enregistrer les modifications</span>
-                  </button>
+                  <template v-if="isPublished">
+                    <button type="button" @click="duplicateForm" class="btn btn-dark rounded-pill fw-bold py-2 shadow-sm d-inline-flex align-items-center justify-content-center gap-2">
+                      <i class="bi bi-copy"></i>
+                      <span>Dupliquer pour modifier</span>
+                    </button>
+                  </template>
+                  <template v-else>
+                    <button type="button" @click="saveForm" :disabled="isSaving" class="btn btn-success rounded-pill fw-bold py-2 shadow-sm">
+                      <span v-if="isSaving" class="spinner-border spinner-border-sm me-1"></span>
+                      <span>Enregistrer le brouillon</span>
+                    </button>
+                  </template>
                   <a :href="`/f/${form.slug}`" target="_blank" class="btn btn-outline-dark rounded-pill fw-semibold py-2">
                     <i class="bi bi-box-arrow-up-right me-1"></i> Tester le formulaire
                   </a>
@@ -426,7 +521,7 @@
               <label class="form-label small fw-bold text-dark">Identifiant URL personnalisée (Slug) <span class="text-danger">*</span></label>
               <div class="input-group">
                 <span class="input-group-text bg-light text-muted small">https://tech237.cm/f/</span>
-                <input type="text" v-model="form.slug" class="form-control font-monospace" required />
+                <input type="text" v-model="form.slug" :disabled="isPublished" class="form-control font-monospace" required />
               </div>
               <div class="extra-small text-muted mt-1">Caractères alphanumériques et tirets uniquement.</div>
             </div>
@@ -436,13 +531,13 @@
               <label class="form-label small fw-bold text-dark d-block">Mode d'affichage pour les répondants :</label>
               <div class="row g-3">
                 <div class="col-md-6">
-                  <div class="p-3 rounded-3 border cursor-pointer" :class="form.display_mode === 'classic' ? 'bg-success bg-opacity-10 border-success' : 'bg-light'" @click="form.display_mode = 'classic'">
+                  <div class="p-3 rounded-3 border" :class="[form.display_mode === 'classic' ? 'bg-success bg-opacity-10 border-success' : 'bg-light', isPublished ? 'opacity-75' : 'cursor-pointer']" @click="!isPublished && (form.display_mode = 'classic')">
                     <div class="fw-bold text-dark mb-1">📄 Mode Classique (Google Forms)</div>
                     <div class="extra-small text-muted">Page continue, tous les champs défilent verticalement.</div>
                   </div>
                 </div>
                 <div class="col-md-6">
-                  <div class="p-3 rounded-3 border cursor-pointer" :class="form.display_mode === 'conversation' ? 'bg-success bg-opacity-10 border-success' : 'bg-light'" @click="form.display_mode = 'conversation'">
+                  <div class="p-3 rounded-3 border" :class="[form.display_mode === 'conversation' ? 'bg-success bg-opacity-10 border-success' : 'bg-light', isPublished ? 'opacity-75' : 'cursor-pointer']" @click="!isPublished && (form.display_mode = 'conversation')">
                     <div class="fw-bold text-dark mb-1">💬 Mode Conversationnel (Typeform)</div>
                     <div class="extra-small text-muted">Une seule question à la fois avec navigation fluide au clavier.</div>
                   </div>
@@ -456,7 +551,7 @@
             <h6 class="fw-bold text-dark mb-3">Restrictions &amp; Sécurité</h6>
 
             <div class="form-check form-switch mb-3">
-              <input class="form-check-input cursor-pointer" type="checkbox" v-model="form.requires_login" id="reqLogin">
+              <input class="form-check-input cursor-pointer" type="checkbox" v-model="form.requires_login" :disabled="isPublished" id="reqLogin">
               <label class="form-check-label small fw-bold text-dark cursor-pointer" for="reqLogin">
                 Exiger une connexion au compte Tech237
               </label>
@@ -464,7 +559,7 @@
             </div>
 
             <div class="form-check form-switch mb-4">
-              <input class="form-check-input cursor-pointer" type="checkbox" v-model="form.one_response_per_user" id="oneResp">
+              <input class="form-check-input cursor-pointer" type="checkbox" v-model="form.one_response_per_user" :disabled="isPublished" id="oneResp">
               <label class="form-check-label small fw-bold text-dark cursor-pointer" for="oneResp">
                 Limiter à 1 seule réponse par participant
               </label>
@@ -474,13 +569,13 @@
             <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <label class="form-label small fw-bold text-dark">Limite de réponses (Quota max)</label>
-                <input type="number" v-model.number="form.max_responses" min="1" class="form-control rounded-3" placeholder="ex: 50 (laisser vide si illimité)" />
+                <input type="number" v-model.number="form.max_responses" :disabled="isPublished" min="1" class="form-control rounded-3" placeholder="ex: 50 (laisser vide si illimité)" />
                 <div class="extra-small text-muted mt-1">Le formulaire se clôturera automatiquement une fois atteint.</div>
               </div>
 
               <div class="col-md-6">
                 <label class="form-label small fw-bold text-dark">Date &amp; Heure d'expiration</label>
-                <input type="datetime-local" v-model="form.expires_at" class="form-control rounded-3" />
+                <input type="datetime-local" v-model="form.expires_at" :disabled="isPublished" class="form-control rounded-3" />
                 <div class="extra-small text-muted mt-1">Fermeture automatique passée cette date.</div>
               </div>
             </div>
@@ -492,28 +587,37 @@
 
             <div class="mb-3">
               <label class="form-label small fw-bold text-dark">Message de remerciement personnalisé</label>
-              <textarea v-model="form.confirmation_message" rows="2" class="form-control rounded-3" placeholder="Merci pour votre participation ! Nous vous recontacterons très prochainement."></textarea>
+              <textarea v-model="form.confirmation_message" :disabled="isPublished" rows="2" class="form-control rounded-3" placeholder="Merci pour votre participation ! Nous vous recontacterons très prochainement."></textarea>
             </div>
 
             <div class="mb-4">
               <label class="form-label small fw-bold text-dark">Lien de redirection après envoi (Optionnel)</label>
-              <input type="url" v-model="form.redirect_url" class="form-control rounded-3" placeholder="https://monsite.cm/merci" />
+              <input type="url" v-model="form.redirect_url" :disabled="isPublished" class="form-control rounded-3" placeholder="https://monsite.cm/merci" />
             </div>
 
             <!-- Status selector -->
             <div class="mb-4">
               <label class="form-label small fw-bold text-dark">Statut du formulaire :</label>
-              <select v-model="form.status" class="form-select rounded-3">
+              <select v-model="form.status" :disabled="isPublished" class="form-select rounded-3">
                 <option value="published">🟢 En ligne (Accepte les réponses)</option>
                 <option value="draft">🟡 Brouillon (Accessible uniquement par l'auteur)</option>
                 <option value="closed">🔴 Fermé (N'accepte plus aucune réponse)</option>
               </select>
             </div>
 
-            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-              <button type="button" @click="saveForm" :disabled="isSaving" class="btn btn-success rounded-pill px-4 fw-bold">
-                Enregistrer les paramètres
-              </button>
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top flex-wrap gap-2">
+              <span v-if="isPublished" class="small text-muted">
+                <i class="bi bi-lock-fill text-warning me-1"></i> Formulaire verrouillé car déjà mis en ligne.
+              </span>
+              <div class="d-flex align-items-center gap-2 ms-auto">
+                <button v-if="isPublished" type="button" @click="duplicateForm" class="btn btn-dark rounded-pill px-4 fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                  <i class="bi bi-copy"></i>
+                  <span>Dupliquer</span>
+                </button>
+                <button v-else type="button" @click="saveForm" :disabled="isSaving" class="btn btn-success rounded-pill px-4 fw-bold">
+                  Enregistrer les paramètres
+                </button>
+              </div>
             </div>
 
           </div>
@@ -532,7 +636,7 @@
             <!-- Notification to Creator -->
             <div class="p-4 bg-light rounded-4 border mb-4">
               <div class="form-check form-switch mb-3">
-                <input class="form-check-input cursor-pointer" type="checkbox" v-model="form.notify_email_on_response" id="notifyAdmin">
+                <input class="form-check-input cursor-pointer" type="checkbox" v-model="form.notify_email_on_response" :disabled="isPublished" id="notifyAdmin">
                 <label class="form-check-label small fw-bold text-dark cursor-pointer" for="notifyAdmin">
                   Recevoir une alerte email à chaque nouvelle réponse
                 </label>
@@ -540,7 +644,7 @@
 
               <div v-if="form.notify_email_on_response">
                 <label class="form-label extra-small fw-bold text-dark mb-1">Adresse email de destination :</label>
-                <input type="email" v-model="form.notification_email" class="form-control rounded-3 bg-white" placeholder="votre-email@exemple.cm" />
+                <input type="email" v-model="form.notification_email" :disabled="isPublished" class="form-control rounded-3 bg-white" placeholder="votre-email@exemple.cm" />
                 <div class="extra-small text-muted mt-1">Par défaut, l'email de votre compte Tech237 est utilisé.</div>
               </div>
             </div>
@@ -548,7 +652,7 @@
             <!-- Confirmation to Respondent -->
             <div class="p-4 bg-light rounded-4 border mb-4">
               <div class="form-check form-switch mb-2">
-                <input class="form-check-input cursor-pointer" type="checkbox" v-model="form.send_respondent_confirmation" id="notifyRespondent">
+                <input class="form-check-input cursor-pointer" type="checkbox" v-model="form.send_respondent_confirmation" :disabled="isPublished" id="notifyRespondent">
                 <label class="form-check-label small fw-bold text-dark cursor-pointer" for="notifyRespondent">
                   Envoyer un accusé de réception automatique au répondant
                 </label>
@@ -558,10 +662,19 @@
               </div>
             </div>
 
-            <div class="d-flex justify-content-end gap-2 pt-3 border-top">
-              <button type="button" @click="saveForm" :disabled="isSaving" class="btn btn-success rounded-pill px-4 fw-bold">
-                Enregistrer les préférences email
-              </button>
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top flex-wrap gap-2">
+              <span v-if="isPublished" class="small text-muted">
+                <i class="bi bi-lock-fill text-warning me-1"></i> Formulaire verrouillé car déjà mis en ligne.
+              </span>
+              <div class="d-flex align-items-center gap-2 ms-auto">
+                <button v-if="isPublished" type="button" @click="duplicateForm" class="btn btn-dark rounded-pill px-4 fw-bold d-inline-flex align-items-center gap-1 shadow-sm">
+                  <i class="bi bi-copy"></i>
+                  <span>Dupliquer</span>
+                </button>
+                <button v-else type="button" @click="saveForm" :disabled="isSaving" class="btn btn-success rounded-pill px-4 fw-bold">
+                  Enregistrer les préférences email
+                </button>
+              </div>
             </div>
 
           </div>
@@ -652,7 +765,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { Head, Link, router } from '@inertiajs/vue3'
 import FrontLayout from '@/Layouts/FrontLayout.vue'
 import { renderQrToCanvas, downloadQrImage, createQrSvg } from '@/Utils/qrcode'
@@ -665,6 +778,7 @@ const props = defineProps({
 })
 
 const form = ref(JSON.parse(JSON.stringify(props.form)))
+const isPublished = computed(() => form.value.status === 'published')
 const activeTab = ref('fields')
 const activeEditingIdx = ref(null)
 const isSaving = ref(false)
@@ -719,6 +833,7 @@ function getFieldTypeIcon(type) {
 }
 
 function addNewField(type) {
+  if (isPublished.value) return
   const newIdx = form.value.fields.length + 1
   const labelNames = {
     text: 'Votre nom ou intitulé',
@@ -756,6 +871,7 @@ function addNewField(type) {
 }
 
 function moveField(idx, delta) {
+  if (isPublished.value) return
   const target = idx + delta
   if (target < 0 || target >= form.value.fields.length) return
   const item = form.value.fields.splice(idx, 1)[0]
@@ -763,6 +879,7 @@ function moveField(idx, delta) {
 }
 
 function duplicateField(idx) {
+  if (isPublished.value) return
   const source = form.value.fields[idx]
   const clone = JSON.parse(JSON.stringify(source))
   clone.id = null
@@ -772,21 +889,25 @@ function duplicateField(idx) {
 }
 
 function removeField(idx) {
+  if (isPublished.value) return
   if (confirm('Voulez-vous supprimer cette question ?')) {
     form.value.fields.splice(idx, 1)
   }
 }
 
 function addOption(field) {
+  if (isPublished.value) return
   if (!Array.isArray(field.options)) field.options = []
   field.options.push(`Option ${field.options.length + 1}`)
 }
 
 function removeOption(field, optIdx) {
+  if (isPublished.value) return
   field.options.splice(optIdx, 1)
 }
 
 function toggleConditionalLogic(field) {
+  if (isPublished.value) return
   if (!field.conditional_logic) {
     field.conditional_logic = { enabled: true, target_field_id: null, operator: 'equals', value: '' }
   } else {
@@ -794,7 +915,52 @@ function toggleConditionalLogic(field) {
   }
 }
 
+function publishForm() {
+  if (!form.value.title) {
+    showToast('Le titre du formulaire est requis.')
+    return
+  }
+  if (!form.value.fields.length) {
+    showToast('Ajoutez au moins une question à votre formulaire avant de le publier.')
+    return
+  }
+  if (!confirm('Attention : Une fois mis en ligne, la structure et les questions du formulaire seront définitivement verrouillées pour garantir l\'intégrité des réponses. Confirmez-vous la mise en ligne ?')) {
+    return
+  }
+  form.value.status = 'published'
+  saveForm()
+}
+
+function duplicateForm() {
+  if (confirm('Voulez-vous dupliquer ce formulaire pour créer une nouvelle version modifiable ?')) {
+    router.post(`/espace-utilisateur/formulaires/${form.value.id}/dupliquer`)
+  }
+}
+
+function toggleStatus(newStatus) {
+  const confirmMsg = newStatus === 'closed'
+    ? 'Voulez-vous fermer ce formulaire ? Les répondants ne pourront plus soumettre de réponses.'
+    : 'Voulez-vous rouvrir ce formulaire pour accepter de nouvelles réponses ?'
+  if (!confirm(confirmMsg)) return
+
+  router.post(`/espace-utilisateur/formulaires/${form.value.id}/statut`, { status: newStatus }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      form.value.status = newStatus
+      showToast(newStatus === 'closed' ? 'Formulaire fermé aux nouvelles réponses.' : 'Formulaire remis en ligne.')
+    },
+    onError: (errs) => {
+      const msg = Object.values(errs)[0] || 'Erreur lors de la mise à jour du statut.'
+      alert(msg)
+    }
+  })
+}
+
 function saveForm() {
+  if (isPublished.value) {
+    showToast('Ce formulaire a été mis en ligne et ne peut plus être modifié. Dupliquez-le pour créer une nouvelle version.')
+    return
+  }
   if (!form.value.title) {
     showToast('Le titre du formulaire est requis.')
     return

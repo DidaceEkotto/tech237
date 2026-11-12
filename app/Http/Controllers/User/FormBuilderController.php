@@ -83,7 +83,7 @@ class FormBuilderController extends Controller
                 'description' => $validated['description'] ?? null,
                 'display_mode' => $validated['display_mode'],
                 'theme_color' => $validated['theme_color'] ?? '#00A859',
-                'status' => 'published',
+                'status' => 'draft',
                 'notify_email_on_response' => true,
                 'notification_email' => $user->email,
             ]);
@@ -162,6 +162,15 @@ class FormBuilderController extends Controller
     {
         $user = Auth::guard('web')->user();
         $form = Form::where('user_id', $user->id)->findOrFail($id);
+
+        // A published form is locked from further modifications to protect responses integrity
+        if ($form->status === 'published') {
+            $msg = 'Ce formulaire a déjà été mis en ligne et ne peut plus être modifié afin de préserver l\'intégrité des réponses et questions. Pour apporter des modifications, vous pouvez le dupliquer.';
+            if ($request->wantsJson()) {
+                return response()->json(['error' => $msg], 422);
+            }
+            return back()->withErrors(['title' => $msg]);
+        }
 
         $validated = $request->validate([
             'title' => 'required|string|max:200',
@@ -310,6 +319,26 @@ class FormBuilderController extends Controller
             DB::rollBack();
             return back()->with('error', 'Erreur lors de la duplication : ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Toggle status between published and closed.
+     */
+    public function toggleStatus(Request $request, $id)
+    {
+        $user = Auth::guard('web')->user();
+        $form = Form::where('user_id', $user->id)->findOrFail($id);
+
+        $newStatus = $request->input('status');
+        if (!in_array($newStatus, ['published', 'closed'])) {
+            return back()->with('error', 'Statut invalide.');
+        }
+
+        $form->status = $newStatus;
+        $form->save();
+
+        $msg = $newStatus === 'published' ? 'Formulaire remis en ligne avec succès !' : 'Formulaire fermé aux nouvelles réponses.';
+        return back()->with('success', $msg);
     }
 
     /**
