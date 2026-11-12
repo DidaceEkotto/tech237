@@ -178,8 +178,8 @@
             </span>
           </div>
 
-          <!-- Center: Real Website Navigation Links (Desktop) -->
-          <nav v-if="websiteNavbar.enabled" class="d-none d-lg-flex align-items-center gap-1">
+          <!-- Center: Real Website Navigation Links (Desktop, hidden if always_hamburger_drawer) -->
+          <nav v-if="websiteNavbar.enabled && websiteNavbar.menu_type !== 'always_hamburger_drawer'" class="d-none d-lg-flex align-items-center gap-1">
             <button
               v-for="item in websiteNavItems"
               :key="item.id"
@@ -234,7 +234,7 @@
 
             <!-- Primary Website CTA Button -->
             <button 
-              v-if="websiteNavbar.enabled"
+              v-if="websiteNavbar.enabled && isBlockEnabled('contact')"
               type="button"
               @click="navigateWebsitePage('contact', 'portfolioContactSection')"
               class="btn btn-sm rounded-pill px-3 py-1 fw-bold text-white shadow-sm d-none d-md-inline-flex align-items-center gap-1"
@@ -255,22 +255,42 @@
               <span class="d-none d-sm-inline">Personnaliser</span>
             </Link>
 
-            <!-- Mobile Burger Menu Button -->
+            <!-- Hamburger Menu Trigger Button (Desktop & Mobile according to menu_type & hamburger_style) -->
             <button
               v-if="websiteNavbar.enabled"
               type="button"
               @click="mobileMenuOpen = !mobileMenuOpen"
-              class="btn btn-sm btn-nav-action rounded-circle d-lg-none p-0 d-flex align-items-center justify-content-center"
-              style="width: 36px; height: 36px;"
-              aria-label="Menu"
+              class="btn btn-sm btn-nav-action border shadow-2xs d-inline-flex align-items-center justify-content-center gap-1"
+              :class="[
+                websiteNavbar.menu_type === 'desktop_links_mobile_drawer' ? 'd-lg-none' : '',
+                websiteNavbar.hamburger_style === 'pill_with_label' ? 'rounded-pill px-3 py-1 fw-bold' : 'rounded-circle p-0'
+              ]"
+              :style="websiteNavbar.hamburger_style === 'pill_with_label' ? {} : { width: '38px', height: '38px' }"
+              aria-label="Menu de navigation"
             >
-              <i class="bi fs-5" :class="mobileMenuOpen ? 'bi-x-lg' : 'bi-list'"></i>
+              <template v-if="mobileMenuOpen">
+                <i class="bi bi-x-lg fs-6"></i>
+                <span v-if="websiteNavbar.hamburger_style === 'pill_with_label'" class="small">Fermer</span>
+              </template>
+              <template v-else-if="websiteNavbar.hamburger_style === 'grid_dots'">
+                <i class="bi bi-grid-3x3-gap-fill fs-6"></i>
+              </template>
+              <template v-else-if="websiteNavbar.hamburger_style === 'modern_stagger'">
+                <i class="bi bi-filter-right fs-5"></i>
+              </template>
+              <template v-else-if="websiteNavbar.hamburger_style === 'pill_with_label'">
+                <i class="bi bi-list fs-5"></i>
+                <span class="small">Menu</span>
+              </template>
+              <template v-else>
+                <i class="bi bi-list fs-5"></i>
+              </template>
             </button>
           </div>
         </div>
 
-        <!-- Mobile Dropdown Navigation Drawer -->
-        <div v-if="websiteNavbar.enabled && mobileMenuOpen" class="d-lg-none py-3 px-3 mb-2 rounded-4 border shadow-lg content-card">
+        <!-- Top Dropdown Navigation Drawer (When drawer_side === 'top_dropdown') -->
+        <div v-if="websiteNavbar.enabled && mobileMenuOpen && websiteNavbar.drawer_side === 'top_dropdown'" class="py-3 px-3 mb-2 rounded-4 border shadow-lg content-card">
           <div class="d-flex flex-column gap-1">
             <button
               v-for="item in websiteNavItems"
@@ -292,11 +312,105 @@
       </div>
     </header>
 
-    <!-- TOP HERO BANNER SLIDESHOW / CAROUSEL -->
+    <!-- LATERAL OFFCANVAS HAMBURGER DRAWER (Left, Right or Fullscreen Overlay) -->
+    <div
+      v-if="websiteNavbar.enabled && mobileMenuOpen && websiteNavbar.drawer_side !== 'top_dropdown'"
+      class="portfolio-offcanvas-backdrop position-fixed top-0 start-0 w-100 h-100 d-print-none"
+      style="z-index: 1090; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px);"
+      @click.self="mobileMenuOpen = false"
+    >
+      <aside
+        class="portfolio-offcanvas-drawer bg-white text-dark shadow-lg d-flex flex-column justify-content-between p-4"
+        :class="[
+          websiteNavbar.drawer_side === 'left' ? 'drawer-side-left' : (websiteNavbar.drawer_side === 'fullscreen' ? 'drawer-side-fullscreen' : 'drawer-side-right')
+        ]"
+      >
+        <div>
+          <!-- Drawer Header with Profile -->
+          <div class="d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom">
+            <div class="d-flex align-items-center gap-2 min-w-0">
+              <img
+                v-if="portfolioUser.avatar"
+                :src="formatImageUrl(portfolioUser.avatar)"
+                :alt="portfolioUser.name"
+                class="rounded-circle border object-fit-cover flex-shrink-0"
+                style="width: 44px; height: 44px;"
+              />
+              <div
+                v-else
+                class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0"
+                style="width: 44px; height: 44px;"
+                :style="{ backgroundColor: accentColor }"
+              >
+                {{ getInitials(portfolioUser.name) }}
+              </div>
+              <div class="min-w-0">
+                <strong class="d-block text-dark text-truncate">{{ websiteNavbar.brand_name || portfolioUser.name }}</strong>
+                <span class="extra-small text-muted d-block text-truncate">{{ websiteNavbar.brand_subtitle || portfolioUser.headline || 'Portfolio Officiel' }}</span>
+              </div>
+            </div>
+            <button type="button" @click="mobileMenuOpen = false" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <!-- Drawer Navigation Links -->
+          <div class="d-flex flex-column gap-2">
+            <button
+              v-for="item in websiteNavItems"
+              :key="'drawer-' + item.id"
+              type="button"
+              @click="navigateWebsitePage(item.id, item.anchor); mobileMenuOpen = false"
+              class="btn rounded-4 py-2 px-3 text-start fw-bold d-flex align-items-center justify-content-between transition"
+              :class="isWebsiteNavItemActive(item.id) ? 'text-white shadow-sm' : 'btn-light text-dark border'"
+              :style="isWebsiteNavItemActive(item.id) ? { backgroundColor: accentColor } : {}"
+            >
+              <span class="d-flex align-items-center gap-2">
+                <i class="bi fs-5" :class="item.icon"></i>
+                <span>{{ item.label }}</span>
+              </span>
+              <i class="bi bi-arrow-right-short fs-5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Drawer Footer: Quick Actions & Socials -->
+        <div class="pt-3 border-top mt-4">
+          <div class="d-grid gap-2 mb-3">
+            <button
+              v-if="isBlockEnabled('contact')"
+              type="button"
+              @click="navigateWebsitePage('contact', 'portfolioContactSection'); mobileMenuOpen = false"
+              class="btn rounded-pill py-2 fw-bold text-white shadow-sm"
+              :style="{ backgroundColor: accentColor }"
+            >
+              <i class="bi bi-send-fill me-1"></i> {{ websiteNavbar.cta_text || 'Me contacter' }}
+            </button>
+            <div class="d-flex gap-2">
+              <button v-if="vcardEnabled" type="button" @click="mobileMenuOpen = false; openVcardModal()" class="btn btn-sm btn-outline-dark rounded-pill flex-grow-1 fw-semibold">
+                <i class="bi bi-qr-code me-1"></i> vCard
+              </button>
+              <a v-if="cvFileUrl" :href="cvFileUrl" target="_blank" download class="btn btn-sm btn-outline-danger rounded-pill flex-grow-1 fw-semibold text-decoration-none text-center">
+                <i class="bi bi-file-earmark-pdf-fill me-1"></i> CV PDF
+              </a>
+            </div>
+          </div>
+
+          <div v-if="hasSocialLinks" class="d-flex align-items-center justify-content-center gap-2">
+            <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;"><i class="bi bi-github"></i></a>
+            <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;"><i class="bi bi-linkedin text-primary"></i></a>
+            <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;"><i class="bi bi-twitter-x"></i></a>
+            <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;"><i class="bi bi-globe2 text-info"></i></a>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- TOP HERO BANNER SLIDESHOW / CAROUSEL (Custom Width, Height & Border Radius) -->
     <div 
       v-if="isSlideshowVisible" 
-      class="portfolio-top-slideshow position-relative overflow-hidden w-100 d-print-none shadow-sm"
-      :style="{ height: slideshowHeight, minHeight: '220px' }"
+      class="portfolio-top-slideshow position-relative overflow-hidden d-print-none shadow-sm"
+      :style="slideshowContainerStyle"
     >
       <div 
         v-for="(slide, sIdx) in slideshowImages" 
@@ -477,15 +591,16 @@
               </div>
 
               <!-- Skills in Sidebar -->
-              <div v-if="portfolioUser.skills && portfolioUser.skills.length" class="pt-3 border-top mb-3">
+              <div v-if="portfolioUser.skills && portfolioUser.skills.length && isBlockEnabled('skills')" class="pt-3 border-top mb-3">
                 <h3 class="h6 fw-bold mb-2">Compétences clés</h3>
                 <div class="d-flex flex-wrap gap-1">
                   <span 
                     v-for="(sk, skIdx) in portfolioUser.skills" 
                     :key="skIdx"
                     class="badge rounded-pill px-2 py-1 extra-small fw-semibold shadow-2xs"
-                    :style="{ backgroundColor: getSkillBg(skIdx), color: getSkillColor(skIdx) }"
+                    :style="{ backgroundColor: getSkillBg(skIdx, sk), color: getSkillColor(skIdx, sk) }"
                   >
+                    <i v-if="typeof sk === 'object' && sk.icon" class="bi me-1" :class="sk.icon"></i>
                     {{ typeof sk === 'object' ? sk.name : sk }}
                     <small v-if="typeof sk === 'object' && sk.level" class="opacity-75 ms-1">&bull; {{ sk.level }}</small>
                   </span>
@@ -1373,7 +1488,7 @@
                 </div>
 
                 <!-- INFINITE TECH MARQUEE RIBBON -->
-                <div v-if="techMarqueeEnabled && portfolioUser.skills && portfolioUser.skills.length" class="tech-marquee-container rounded-4 border shadow-2xs mt-3 py-2 px-3 overflow-hidden content-card d-print-none">
+                <div v-if="techMarqueeEnabled && portfolioUser.skills && portfolioUser.skills.length && isBlockEnabled('skills')" class="tech-marquee-container rounded-4 border shadow-2xs mt-3 py-2 px-3 overflow-hidden content-card d-print-none">
                   <div class="tech-marquee-track d-flex align-items-center gap-4">
                     <span 
                       v-for="(sk, mIdx) in marqueeSkillsLoop" 
@@ -1389,16 +1504,142 @@
 
               </section>
 
-              <!-- 2. ABOUT / BIO BLOCK -->
-              <section v-else-if="block.id === 'about' && portfolioUser.bio" class="portfolio-block h-100">
-                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                  <div class="d-flex align-items-center gap-2 mb-3">
-                    <span class="section-icon-badge" :style="{ color: accentColor }">
-                      <i class="bi bi-person-lines-fill fs-5"></i>
-                    </span>
-                    <h2 class="h5 fw-bold mb-0 section-heading">À propos de moi</h2>
+              <!-- 2. ABOUT / BIO BLOCK (100% Customizable Layout, Text Align, Quote, Image, Ideas & Live Owner Edit) -->
+              <section v-else-if="block.id === 'about' && (liveBioText || (aboutDesign.ideas && aboutDesign.ideas.length))" class="portfolio-block h-100">
+                <div 
+                  class="p-4 p-md-5 rounded-4 h-100 transition"
+                  :class="[
+                    aboutDesign.box_style === 'minimal' ? 'bg-transparent border-0 shadow-none' : (aboutDesign.box_style === 'glass' ? 'content-card backdrop-blur border shadow-sm' : 'card shadow-sm border-0 content-card'),
+                    'anim-entry-' + (aboutDesign.animation || 'fade_up')
+                  ]"
+                  :style="aboutDesign.box_style === 'accent_border' ? { borderLeft: '5px solid ' + accentColor + ' !important' } : {}"
+                >
+                  <!-- Section Header + Owner Direct Edit Toggle -->
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3" :class="aboutDesign.text_align === 'center' ? 'justify-content-center text-center' : ''">
+                    <div>
+                      <div class="d-flex align-items-center gap-2" :class="aboutDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                        <span class="section-icon-badge" :style="{ color: accentColor }">
+                          <i class="bi bi-person-lines-fill fs-5"></i>
+                        </span>
+                        <h2 class="h5 fw-bold mb-0 section-heading">{{ aboutDesign.title || 'À propos de moi' }}</h2>
+                      </div>
+                      <p v-if="aboutDesign.subtitle" class="extra-small text-muted mb-0 mt-1">{{ aboutDesign.subtitle }}</p>
+                    </div>
+
+                    <button
+                      v-if="isOwner"
+                      type="button"
+                      @click="showInlineBioEditor = !showInlineBioEditor"
+                      class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 extra-small fw-bold d-print-none"
+                    >
+                      <i class="bi" :class="showInlineBioEditor ? 'bi-x-lg' : 'bi-pencil-square'"></i>
+                      <span class="ms-1">{{ showInlineBioEditor ? 'Fermer l\'éditeur' : 'Modifier mon À Propos (Table users)' }}</span>
+                    </button>
                   </div>
-                  <div class="text-content leading-relaxed mb-0" v-html="formatHtml(portfolioUser.bio)"></div>
+
+                  <!-- Inline Live Bio Editor for Owner (Directly updates users table) -->
+                  <div v-if="isOwner && showInlineBioEditor" class="p-3 rounded-4 border bg-light mb-4 d-print-none">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <strong class="small text-dark"><i class="bi bi-database-fill-check text-success me-1"></i> Édition directe (Synchronisée avec la table <code>users</code>)</strong>
+                      <span v-if="inlineBioSavedMsg" class="badge bg-success-subtle text-success extra-small">{{ inlineBioSavedMsg }}</span>
+                    </div>
+                    <textarea v-model="liveBioText" class="form-control form-control-sm mb-2" rows="4" placeholder="Modifiez votre présentation ici..."></textarea>
+                    <div class="d-flex justify-content-end gap-2">
+                      <button type="button" @click="saveInlineBioToUsersTable" :disabled="isSavingInlineBio" class="btn btn-xs btn-success rounded-pill px-3 py-1 fw-bold extra-small">
+                        <span v-if="isSavingInlineBio" class="spinner-border spinner-border-sm me-1" style="width: 10px; height: 10px;"></span>
+                        <i v-else class="bi bi-check2-circle me-1"></i> Enregistrer dans la table users
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Highlight Quote Banner (if set or layout === editorial_quote) -->
+                  <blockquote 
+                    v-if="aboutDesign.highlight_quote" 
+                    class="p-3 p-md-4 rounded-4 mb-4 border-start border-4 fst-italic fw-semibold"
+                    :style="{ borderColor: accentColor + ' !important', backgroundColor: accentColor + '10' }"
+                  >
+                    <i class="bi bi-quote fs-3 me-2" :style="{ color: accentColor }"></i>
+                    <span>{{ aboutDesign.highlight_quote }}</span>
+                  </blockquote>
+
+                  <!-- Layout: Split Image Left or Right -->
+                  <div v-if="(aboutDesign.layout_style === 'split_image_left' || aboutDesign.layout_style === 'split_image_right') && aboutDesign.image_url" class="row align-items-center g-4" :class="aboutDesign.layout_style === 'split_image_right' ? 'flex-md-row-reverse' : ''">
+                    <div class="col-md-5 text-center">
+                      <img 
+                        :src="formatImageUrl(aboutDesign.image_url)" 
+                        :alt="portfolioUser.name" 
+                        class="img-fluid shadow-sm border object-fit-cover"
+                        :class="aboutDesign.image_shape === 'circle' ? 'rounded-circle' : 'rounded-4'"
+                        style="max-height: 320px; width: 100%;"
+                      />
+                    </div>
+                    <div class="col-md-7">
+                      <div 
+                        class="text-content leading-relaxed"
+                        :class="[getAboutTextAlignClass(), getAboutFontSizeClass()]"
+                        v-html="formatHtml(liveBioText)"
+                      ></div>
+                    </div>
+                  </div>
+
+                  <!-- Layout: Bento Bio + Ideas Side-by-Side -->
+                  <div v-else-if="aboutDesign.layout_style === 'bento_ideas' && aboutDesign.ideas && aboutDesign.ideas.length" class="row g-4 align-items-start">
+                    <div class="col-lg-6">
+                      <div 
+                        class="text-content leading-relaxed"
+                        :class="[getAboutTextAlignClass(), getAboutFontSizeClass()]"
+                        v-html="formatHtml(liveBioText)"
+                      ></div>
+                    </div>
+                    <div class="col-lg-6">
+                      <div class="row g-3">
+                        <div v-for="(idea, idIdx) in aboutDesign.ideas" :key="idIdx" class="col-12">
+                          <div class="p-3 rounded-4 bg-light border d-flex align-items-start gap-3 transition-hover">
+                            <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 text-white shadow-2xs" style="width: 42px; height: 42px;" :style="{ backgroundColor: idea.color || accentColor }">
+                              <i class="bi fs-5" :class="idea.icon || 'bi-lightbulb-fill'"></i>
+                            </div>
+                            <div>
+                              <h3 class="h6 fw-bold text-dark mb-1">{{ idea.title }}</h3>
+                              <p class="extra-small text-muted mb-0 leading-relaxed">{{ idea.description }}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Layout: Classic or Magazine 2-Columns -->
+                  <div v-else>
+                    <div v-if="aboutDesign.image_url" class="mb-4 text-center">
+                      <img :src="formatImageUrl(aboutDesign.image_url)" :alt="portfolioUser.name" class="img-fluid rounded-4 shadow-sm border object-fit-cover" style="max-height: 280px;" />
+                    </div>
+                    <div 
+                      class="text-content leading-relaxed mb-0"
+                      :class="[
+                        getAboutTextAlignClass(),
+                        getAboutFontSizeClass(),
+                        aboutDesign.layout_style === 'two_columns' ? 'about-two-columns' : ''
+                      ]"
+                      v-html="formatHtml(liveBioText)"
+                    ></div>
+                  </div>
+
+                  <!-- Key Ideas / Pillars Cards Grid (Shown below bio when not in bento_ideas mode) -->
+                  <div v-if="aboutDesign.layout_style !== 'bento_ideas' && aboutDesign.ideas && aboutDesign.ideas.length" class="row g-3 mt-4 pt-3 border-top">
+                    <div v-for="(idea, idIdx) in aboutDesign.ideas" :key="idIdx" :class="aboutDesign.ideas.length === 1 ? 'col-12' : (aboutDesign.ideas.length === 2 ? 'col-md-6' : 'col-md-4')">
+                      <div class="p-3 rounded-4 bg-light border h-100 transition-hover" :class="aboutDesign.text_align === 'center' ? 'text-center' : ''">
+                        <div 
+                          class="rounded-3 d-inline-flex align-items-center justify-content-center text-white mb-2 shadow-2xs" 
+                          style="width: 40px; height: 40px;" 
+                          :style="{ backgroundColor: idea.color || accentColor }"
+                        >
+                          <i class="bi fs-5" :class="idea.icon || 'bi-stars'"></i>
+                        </div>
+                        <h3 class="h6 fw-bold text-dark mb-1">{{ idea.title }}</h3>
+                        <p class="extra-small text-muted mb-0 leading-relaxed">{{ idea.description }}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </section>
 
@@ -1417,32 +1658,38 @@
                 </div>
               </section>
 
-              <!-- 3. SKILLS & STACK BLOCK -->
+              <!-- 3. SKILLS & STACK BLOCK (6 Presentation Modes, Custom Colors, Icons, Hover & Animations) -->
               <section v-else-if="block.id === 'skills' && (portfolioUser.skills && portfolioUser.skills.length)" class="portfolio-block h-100">
                 <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-                    <div class="d-flex align-items-center gap-2">
-                      <span class="section-icon-badge" :style="{ color: accentColor }">
-                        <i class="bi bi-cpu-fill fs-5"></i>
-                      </span>
-                      <h2 class="h5 fw-bold mb-0 section-heading">Compétences &amp; Stack Technique</h2>
+                  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2" :class="skillsDesign.text_align === 'center' ? 'justify-content-center text-center' : ''">
+                    <div>
+                      <div class="d-flex align-items-center gap-2" :class="skillsDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                        <span class="section-icon-badge" :style="{ color: accentColor }">
+                          <i class="bi bi-cpu-fill fs-5"></i>
+                        </span>
+                        <h2 class="h5 fw-bold mb-0 section-heading">{{ skillsDesign.title || 'Compétences & Stack Technique' }}</h2>
+                      </div>
+                      <p v-if="skillsDesign.subtitle" class="extra-small text-muted mb-0 mt-1">{{ skillsDesign.subtitle }}</p>
                     </div>
                     <span class="badge bg-secondary-subtle text-secondary rounded-pill extra-small">
                       {{ portfolioUser.skills.length }} compétence(s)
                     </span>
                   </div>
 
-                  <!-- Chips Variant with Levels -->
-                  <div v-if="skillsStyle === 'chips' || !skillsStyle" class="d-flex flex-wrap gap-2">
+                  <!-- Variant 1: Chips / Pills -->
+                  <div v-if="skillsStyle === 'chips' || !skillsStyle" class="d-flex flex-wrap gap-2" :class="skillsDesign.text_align === 'center' ? 'justify-content-center' : ''">
                     <span 
                       v-for="(skill, sIdx) in portfolioUser.skills" 
                       :key="sIdx"
-                      class="skill-chip badge rounded-pill px-3 py-2 fw-semibold fs-6 shadow-2xs d-inline-flex align-items-center gap-1"
-                      :style="{ backgroundColor: getSkillBg(sIdx), color: getSkillColor(sIdx) }"
+                      class="skill-chip badge rounded-pill px-3 py-2 fw-semibold fs-6 shadow-2xs d-inline-flex align-items-center gap-2 transition"
+                      :class="['skill-hover-' + (skillsDesign.hover_effect || 'lift'), 'skill-anim-' + (skillsDesign.animation || 'none')]"
+                      :style="{ backgroundColor: getSkillBg(sIdx, skill), color: getSkillColor(sIdx, skill) }"
                     >
+                      <i v-if="typeof skill === 'object' && skill.icon" class="bi" :class="skill.icon"></i>
                       <span>{{ typeof skill === 'object' ? skill.name : skill }}</span>
+                      <small v-if="skillsDesign.show_category_badge && typeof skill === 'object' && skill.category" class="opacity-75 extra-small">({{ skill.category }})</small>
                       <span 
-                        v-if="typeof skill === 'object' && skill.level" 
+                        v-if="skillsDesign.show_level_badge !== false && typeof skill === 'object' && skill.level" 
                         class="badge rounded-pill px-2 py-0 extra-small fw-bold ms-1"
                         :class="getSkillLevelBadgeClass(skill.level)"
                       >
@@ -1451,34 +1698,143 @@
                     </span>
                   </div>
 
-                  <!-- Bars Variant with Levels -->
+                  <!-- Variant 2: Neon Badges -->
+                  <div v-else-if="skillsStyle === 'neon_badges'" class="d-flex flex-wrap gap-3" :class="skillsDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                    <div 
+                      v-for="(skill, sIdx) in portfolioUser.skills" 
+                      :key="sIdx"
+                      class="px-3 py-2 rounded-pill border-2 d-inline-flex align-items-center gap-2 fw-bold small transition"
+                      :class="['skill-hover-' + (skillsDesign.hover_effect || 'glow'), 'skill-anim-' + (skillsDesign.animation || 'none')]"
+                      :style="{
+                        borderColor: getSkillSolidColor(sIdx, skill),
+                        color: getSkillSolidColor(sIdx, skill),
+                        boxShadow: `0 0 12px ${getSkillSolidColor(sIdx, skill)}35`,
+                        backgroundColor: `${getSkillSolidColor(sIdx, skill)}10`
+                      }"
+                    >
+                      <i v-if="typeof skill === 'object' && skill.icon" class="bi" :class="skill.icon"></i>
+                      <span>{{ typeof skill === 'object' ? skill.name : skill }}</span>
+                      <span v-if="skillsDesign.show_level_badge !== false" class="badge rounded-pill text-white extra-small" :style="{ backgroundColor: getSkillSolidColor(sIdx, skill) }">
+                        {{ getSkillPercent(skill) }}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Variant 3: Animated Progress Bars -->
                   <div v-else-if="skillsStyle === 'bars'" class="row g-3">
-                    <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" class="col-md-6">
-                      <div class="d-flex justify-content-between small fw-bold mb-1">
-                        <span>{{ typeof skill === 'object' ? skill.name : skill }}</span>
+                    <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" :class="skillsColsClass">
+                      <div class="p-3 rounded-4 bg-light border transition" :class="'skill-hover-' + (skillsDesign.hover_effect || 'lift')">
+                        <div class="d-flex justify-content-between align-items-center small fw-bold mb-2">
+                          <span class="d-flex align-items-center gap-2 text-dark">
+                            <i v-if="typeof skill === 'object' && skill.icon" class="bi" :class="skill.icon" :style="{ color: getSkillSolidColor(sIdx, skill) }"></i>
+                            <span>{{ typeof skill === 'object' ? skill.name : skill }}</span>
+                            <small v-if="skillsDesign.show_category_badge && typeof skill === 'object' && skill.category" class="text-muted extra-small fw-normal">({{ skill.category }})</small>
+                          </span>
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="extra-small fw-bold" :style="{ color: getSkillSolidColor(sIdx, skill) }">{{ getSkillPercent(skill) }}%</span>
+                            <span 
+                              v-if="skillsDesign.show_level_badge !== false"
+                              class="badge rounded-pill px-2 py-0 extra-small fw-bold"
+                              :class="getSkillLevelBadgeClass(typeof skill === 'object' ? skill.level : 'Avancé')"
+                            >
+                              {{ typeof skill === 'object' && skill.level ? skill.level : 'Avancé' }}
+                            </span>
+                          </div>
+                        </div>
+                        <div class="progress rounded-pill bg-white border" style="height: 10px;">
+                          <div 
+                            class="progress-bar rounded-pill" 
+                            :class="skillsDesign.animation === 'shimmer' ? 'progress-bar-striped progress-bar-animated' : ''"
+                            :style="{ width: getSkillPercent(skill) + '%', backgroundColor: getSkillSolidColor(sIdx, skill) }"
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Variant 4: Circular SVG Ring Gauges -->
+                  <div v-else-if="skillsStyle === 'circular'" class="row g-3">
+                    <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" :class="skillsColsClass">
+                      <div class="p-3 rounded-4 bg-light border text-center h-100 d-flex flex-column align-items-center justify-content-center transition" :class="'skill-hover-' + (skillsDesign.hover_effect || 'lift')">
+                        <div class="position-relative d-inline-flex align-items-center justify-content-center mb-2" style="width: 78px; height: 78px;">
+                          <svg viewBox="0 0 36 36" class="w-100 h-100" style="transform: rotate(-90deg);">
+                            <path
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none"
+                              stroke="#E2E8F0"
+                              stroke-width="3.2"
+                            />
+                            <path
+                              d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                              fill="none"
+                              :stroke="getSkillSolidColor(sIdx, skill)"
+                              stroke-width="3.2"
+                              stroke-linecap="round"
+                              :stroke-dasharray="getSkillPercent(skill) + ', 100'"
+                            />
+                          </svg>
+                          <div class="position-absolute fw-black small text-dark">
+                            {{ getSkillPercent(skill) }}%
+                          </div>
+                        </div>
+                        <strong class="d-block small text-dark mb-1">
+                          <i v-if="typeof skill === 'object' && skill.icon" class="bi me-1" :class="skill.icon" :style="{ color: getSkillSolidColor(sIdx, skill) }"></i>
+                          {{ typeof skill === 'object' ? skill.name : skill }}
+                        </strong>
                         <span 
+                          v-if="skillsDesign.show_level_badge !== false"
                           class="badge rounded-pill px-2 py-0 extra-small fw-bold"
                           :class="getSkillLevelBadgeClass(typeof skill === 'object' ? skill.level : 'Avancé')"
                         >
                           {{ typeof skill === 'object' && skill.level ? skill.level : 'Avancé' }}
                         </span>
                       </div>
-                      <div class="progress rounded-pill" style="height: 8px;">
-                        <div class="progress-bar rounded-pill" :style="{ width: getSkillPercent(skill) + '%', backgroundColor: accentColor }"></div>
+                    </div>
+                  </div>
+
+                  <!-- Variant 5: Grouped by Domain (Backend, Frontend, Mobile, DevOps...) -->
+                  <div v-else-if="skillsStyle === 'grouped_domains'" class="row g-3">
+                    <div v-for="(groupSkills, domainName) in groupedSkillsByDomain" :key="domainName" class="col-md-6">
+                      <div class="p-3 p-md-4 rounded-4 bg-light border h-100">
+                        <h3 class="h6 fw-bold text-dark mb-3 d-flex align-items-center justify-content-between pb-2 border-bottom">
+                          <span><i class="bi bi-layers-fill me-2" :style="{ color: accentColor }"></i>{{ domainName }}</span>
+                          <span class="badge bg-white text-muted border extra-small">{{ groupSkills.length }}</span>
+                        </h3>
+                        <div class="d-flex flex-wrap gap-2">
+                          <span
+                            v-for="(sk, gIdx) in groupSkills"
+                            :key="gIdx"
+                            class="badge bg-white text-dark border rounded-pill px-3 py-2 d-inline-flex align-items-center gap-2 shadow-2xs transition"
+                            :class="'skill-hover-' + (skillsDesign.hover_effect || 'lift')"
+                            :style="{ borderLeft: '3px solid ' + getSkillSolidColor(gIdx, sk) }"
+                          >
+                            <i v-if="typeof sk === 'object' && sk.icon" class="bi" :class="sk.icon" :style="{ color: getSkillSolidColor(gIdx, sk) }"></i>
+                            <span class="fw-semibold">{{ typeof sk === 'object' ? sk.name : sk }}</span>
+                            <small v-if="skillsDesign.show_level_badge !== false && typeof sk === 'object' && sk.level" class="text-muted extra-small">&bull; {{ sk.level }}</small>
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Categorized / 3D Cards Variant with Levels -->
+                  <!-- Variant 6: Categorized 3D Cards Grid -->
                   <div v-else class="row g-3">
-                    <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" class="col-6 col-md-4">
-                      <div class="p-3 rounded-4 text-center border skill-grid-box h-100 d-flex flex-column justify-content-between">
+                    <div v-for="(skill, sIdx) in portfolioUser.skills" :key="sIdx" :class="skillsColsClass">
+                      <div 
+                        class="p-3 rounded-4 text-center border skill-grid-box h-100 d-flex flex-column justify-content-between bg-light transition"
+                        :class="'skill-hover-' + (skillsDesign.hover_effect || 'lift')"
+                        :style="{ borderTop: '3px solid ' + getSkillSolidColor(sIdx, skill) }"
+                      >
                         <div>
+                          <div v-if="typeof skill === 'object' && skill.icon" class="fs-4 mb-1" :style="{ color: getSkillSolidColor(sIdx, skill) }">
+                            <i class="bi" :class="skill.icon"></i>
+                          </div>
                           <strong class="d-block text-dark small mb-1">{{ typeof skill === 'object' ? skill.name : skill }}</strong>
-                          <span class="extra-small text-muted d-block mb-2">{{ typeof skill === 'object' && skill.category ? skill.category : 'Tech' }}</span>
+                          <span v-if="skillsDesign.show_category_badge !== false" class="extra-small text-muted d-block mb-2">{{ typeof skill === 'object' && skill.category ? skill.category : 'Tech' }}</span>
                         </div>
                         <div>
                           <span 
+                            v-if="skillsDesign.show_level_badge !== false"
                             class="badge rounded-pill px-2 py-1 extra-small fw-bold"
                             :class="getSkillLevelBadgeClass(typeof skill === 'object' ? skill.level : 'Avancé')"
                           >
@@ -1492,14 +1848,17 @@
                 </div>
               </section>
 
-              <!-- 4. PROJECTS BLOCK (Direct logo, multi-columns or interactive carousel) -->
+              <!-- 4. PROJECTS BLOCK (100% Customizable: Logo Toggle, Per-Project Logo Override, 6 Layouts & Hover Effects) -->
               <section v-else-if="block.id === 'projects' && projects.length" class="portfolio-block h-100">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                  <div class="d-flex align-items-center gap-2">
-                    <span class="section-icon-badge" :style="{ color: accentColor }">
-                      <i class="bi bi-rocket-takeoff-fill fs-5"></i>
-                    </span>
-                    <h2 class="h5 fw-bold mb-0 section-heading">Projets &amp; Réalisations</h2>
+                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2" :class="projectsDesign.text_align === 'center' ? 'justify-content-center text-center' : ''">
+                  <div>
+                    <div class="d-flex align-items-center gap-2" :class="projectsDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                      <span class="section-icon-badge" :style="{ color: accentColor }">
+                        <i class="bi bi-rocket-takeoff-fill fs-5"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">{{ projectsDesign.title || 'Projets & Réalisations' }}</h2>
+                    </div>
+                    <p v-if="projectsDesign.subtitle" class="extra-small text-muted mb-0 mt-1">{{ projectsDesign.subtitle }}</p>
                   </div>
                   <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 extra-small fw-bold">
                     {{ projects.length }} projet(s)
@@ -1511,52 +1870,58 @@
                   <div 
                     v-for="(proj, zIdx) in projects" 
                     :key="proj.id" 
-                    class="card border-0 rounded-4 shadow-sm content-card overflow-hidden p-4 p-md-5 transition-hover"
+                    class="card border-0 shadow-sm content-card overflow-hidden p-4 p-md-5 transition"
+                    :class="'project-hover-' + (projectsDesign.hover_effect || 'lift_shadow')"
+                    :style="{ borderRadius: projectsDesign.card_radius || '20px' }"
                   >
                     <div class="row align-items-center g-4" :class="zIdx % 2 === 1 ? 'flex-md-row-reverse' : ''">
                       <!-- Visual / Showcase Column -->
                       <div class="col-md-5">
                         <div 
-                          class="p-4 rounded-4 d-flex flex-column align-items-center justify-content-center text-center position-relative overflow-hidden border"
+                          class="p-4 rounded-4 d-flex flex-column align-items-center justify-content-center text-center position-relative overflow-hidden border project-visual-box"
                           style="min-height: 210px;"
                           :style="{ background: `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}05 100%)` }"
                         >
-                          <img 
-                            v-if="proj.logo" 
-                            :src="formatImageUrl(proj.logo)" 
-                            :alt="proj.name"
-                            class="rounded-4 shadow-sm border bg-white p-2 mb-3"
-                            style="width: 88px; height: 88px; object-fit: contain;"
-                          />
-                          <div 
-                            v-else 
-                            class="rounded-4 text-white fw-bold d-flex align-items-center justify-content-center shadow-sm mb-3"
-                            style="width: 88px; height: 88px; font-size: 32px;"
-                            :style="{ backgroundColor: accentColor }"
-                          >
-                            <i class="bi bi-rocket-takeoff"></i>
-                          </div>
-                          <span class="badge rounded-pill bg-white text-dark border px-3 py-1 extra-small fw-bold shadow-2xs">
-                            {{ proj.category || 'Solution Digitale' }}
+                          <template v-if="projectsDesign.show_logo !== false">
+                            <img 
+                              v-if="getEffectiveProjectLogo(proj)" 
+                              :src="formatImageUrl(getEffectiveProjectLogo(proj))" 
+                              :alt="proj.name || proj.title"
+                              class="shadow-sm border bg-white p-2 mb-3 object-fit-contain project-logo-img"
+                              :class="getProjectLogoShapeClass()"
+                              :style="getProjectLogoSizeStyle(true)"
+                            />
+                            <div 
+                              v-else 
+                              class="text-white fw-bold d-flex align-items-center justify-content-center shadow-sm mb-3 project-logo-img"
+                              :class="getProjectLogoShapeClass()"
+                              :style="{ ...getProjectLogoSizeStyle(true), backgroundColor: accentColor, fontSize: '30px' }"
+                            >
+                              <i class="bi bi-rocket-takeoff"></i>
+                            </div>
+                          </template>
+                          <span v-if="projectsDesign.show_category_badge !== false" class="badge rounded-pill bg-white text-dark border px-3 py-1 extra-small fw-bold shadow-2xs">
+                            {{ getEffectiveProjectBadge(proj) }}
                           </span>
                         </div>
                       </div>
 
                       <!-- Project Case Study Details Column -->
-                      <div class="col-md-7">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                          <span class="badge rounded-pill text-white extra-small px-3 py-1" :style="{ backgroundColor: accentColor }">
+                      <div class="col-md-7" :class="projectsDesign.text_align === 'center' ? 'text-center' : ''">
+                        <div class="d-flex align-items-center gap-2 mb-2 flex-wrap" :class="projectsDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                          <span v-if="projectsDesign.show_number_badge !== false" class="badge rounded-pill text-white extra-small px-3 py-1" :style="{ backgroundColor: accentColor }">
                             Projet #{{ zIdx + 1 }}
                           </span>
-                          <span v-if="proj.views_count" class="extra-small text-muted">
+                          <span v-if="projectsDesign.show_stats !== false && proj.views_count" class="extra-small text-muted">
                             <i class="bi bi-eye me-1"></i>{{ proj.views_count }} vues
                           </span>
                         </div>
-                        <h3 class="h4 fw-bold mb-2 text-dark">{{ proj.name }}</h3>
+                        <h3 class="h4 fw-bold mb-2 text-dark">{{ proj.name || proj.title }}</h3>
                         <div class="text-muted mb-4 leading-relaxed" v-html="formatHtml(proj.pitch || proj.description || 'Projet innovant développé et propulsé sur Tech237.')"></div>
 
-                        <div class="d-flex flex-wrap align-items-center gap-2 d-print-none">
+                        <div class="d-flex flex-wrap align-items-center gap-2 d-print-none" :class="projectsDesign.text_align === 'center' ? 'justify-content-center' : ''">
                           <button 
+                            v-if="projectsDesign.show_case_study_btn !== false"
                             type="button" 
                             @click="openCaseStudyModal(proj)" 
                             class="btn btn-sm rounded-pill px-4 py-2 fw-bold text-white shadow-2xs"
@@ -1569,7 +1934,7 @@
                             target="_blank" 
                             class="btn btn-sm btn-outline-dark rounded-pill px-4 py-2 fw-semibold"
                           >
-                            Fiche complète &rarr;
+                            {{ projectsDesign.cta_label || 'Découvrir le projet' }} &rarr;
                           </a>
                         </div>
                       </div>
@@ -1577,24 +1942,65 @@
                   </div>
                 </div>
 
+                <!-- MINIMAL EDITORIAL ROWS VARIANT -->
+                <div v-else-if="projectsStyle === 'minimal_rows'" class="card p-3 p-md-4 shadow-sm border-0 content-card" :style="{ borderRadius: projectsDesign.card_radius || '20px' }">
+                  <div class="d-flex flex-column divide-y">
+                    <div 
+                      v-for="(proj, rIdx) in projects" 
+                      :key="proj.id" 
+                      class="py-3 px-2 d-flex align-items-center justify-content-between flex-wrap gap-3 border-bottom transition"
+                      :class="'project-hover-' + (projectsDesign.hover_effect || 'slide_accent')"
+                    >
+                      <div class="d-flex align-items-center gap-3 min-w-0">
+                        <span v-if="projectsDesign.show_number_badge !== false" class="fw-black text-muted font-monospace small">0{{ rIdx + 1 }}</span>
+                        <template v-if="projectsDesign.show_logo !== false">
+                          <img 
+                            v-if="getEffectiveProjectLogo(proj)" 
+                            :src="formatImageUrl(getEffectiveProjectLogo(proj))" 
+                            :alt="proj.name || proj.title"
+                            class="border object-fit-contain flex-shrink-0 bg-white"
+                            :class="getProjectLogoShapeClass()"
+                            :style="getProjectLogoSizeStyle(false)"
+                          />
+                          <div v-else class="text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" :class="getProjectLogoShapeClass()" :style="{ ...getProjectLogoSizeStyle(false), backgroundColor: accentColor }">
+                            <i class="bi bi-rocket-takeoff"></i>
+                          </div>
+                        </template>
+                        <div class="min-w-0">
+                          <h3 class="h6 fw-bold mb-0 text-dark">{{ proj.name || proj.title }}</h3>
+                          <p class="extra-small text-muted mb-0 text-truncate" style="max-width: 520px;">{{ stripHtmlTags(proj.pitch || proj.description) }}</p>
+                        </div>
+                      </div>
+                      <div class="d-flex align-items-center gap-2">
+                        <span v-if="projectsDesign.show_category_badge !== false" class="badge bg-light text-dark border extra-small">{{ getEffectiveProjectBadge(proj) }}</span>
+                        <button v-if="projectsDesign.show_case_study_btn !== false" type="button" @click="openCaseStudyModal(proj)" class="btn btn-xs btn-light border rounded-pill px-3 extra-small fw-semibold">Aperçu</button>
+                        <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-xs btn-dark rounded-pill px-3 extra-small fw-bold">Voir &rarr;</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- CAROUSEL / SLIDER VARIANT -->
-                <div v-else-if="projectsStyle === 'carousel'" class="carousel-project-container card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+                <div v-else-if="projectsStyle === 'carousel'" class="carousel-project-container card p-4 p-md-5 shadow-sm border-0 content-card" :style="{ borderRadius: projectsDesign.card_radius || '20px' }">
                   <div v-if="projects[currentProjectSlide]" class="d-flex flex-column gap-3">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                       <div class="d-flex align-items-center gap-3">
-                        <img 
-                          v-if="projects[currentProjectSlide].logo" 
-                          :src="formatImageUrl(projects[currentProjectSlide].logo)" 
-                          class="rounded-3 border flex-shrink-0" 
-                          style="width: 56px; height: 56px; object-fit: contain;" 
-                          :alt="projects[currentProjectSlide].name"
-                        />
-                        <div v-else class="rounded-3 text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 56px; height: 56px;" :style="{ backgroundColor: accentColor }">
-                          <i class="bi bi-rocket-takeoff fs-4"></i>
-                        </div>
+                        <template v-if="projectsDesign.show_logo !== false">
+                          <img 
+                            v-if="getEffectiveProjectLogo(projects[currentProjectSlide])" 
+                            :src="formatImageUrl(getEffectiveProjectLogo(projects[currentProjectSlide]))" 
+                            class="border flex-shrink-0 object-fit-contain" 
+                            :class="getProjectLogoShapeClass()"
+                            :style="getProjectLogoSizeStyle(false)"
+                            :alt="projects[currentProjectSlide].name || projects[currentProjectSlide].title"
+                          />
+                          <div v-else class="text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" :class="getProjectLogoShapeClass()" :style="{ ...getProjectLogoSizeStyle(false), backgroundColor: accentColor }">
+                            <i class="bi bi-rocket-takeoff fs-4"></i>
+                          </div>
+                        </template>
                         <div class="min-w-0">
-                          <h3 class="h5 fw-bold mb-0 text-dark">{{ projects[currentProjectSlide].name }}</h3>
-                          <span class="badge bg-secondary-subtle text-secondary rounded-pill extra-small">{{ projects[currentProjectSlide].category || 'Tech & Web' }}</span>
+                          <h3 class="h5 fw-bold mb-0 text-dark">{{ projects[currentProjectSlide].name || projects[currentProjectSlide].title }}</h3>
+                          <span v-if="projectsDesign.show_category_badge !== false" class="badge bg-secondary-subtle text-secondary rounded-pill extra-small">{{ getEffectiveProjectBadge(projects[currentProjectSlide]) }}</span>
                         </div>
                       </div>
                       <div class="d-flex align-items-center gap-2">
@@ -1605,11 +2011,11 @@
                     <div class="text-content leading-relaxed my-2" v-html="formatHtml(projects[currentProjectSlide].pitch || projects[currentProjectSlide].description || 'Projet innovant propulsé sur Tech237.')"></div>
                     
                     <div class="d-flex align-items-center justify-content-between pt-3 border-top flex-wrap gap-2">
-                      <div class="d-flex align-items-center gap-3 extra-small text-muted">
+                      <div v-if="projectsDesign.show_stats !== false" class="d-flex align-items-center gap-3 extra-small text-muted">
                         <span v-if="projects[currentProjectSlide].views_count"><i class="bi bi-eye me-1"></i>{{ projects[currentProjectSlide].views_count }} vues</span>
                         <span v-if="projects[currentProjectSlide].upvotes_count"><i class="bi bi-heart-fill text-danger me-1"></i>{{ projects[currentProjectSlide].upvotes_count }} upvotes</span>
                       </div>
-                      <div class="d-flex align-items-center gap-2">
+                      <div class="d-flex align-items-center gap-2 ms-auto">
                         <button type="button" @click="prevProject" class="btn btn-sm btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
                           <i class="bi bi-chevron-left"></i>
                         </button>
@@ -1617,7 +2023,7 @@
                           <i class="bi bi-chevron-right"></i>
                         </button>
                         <a :href="'/projet/' + (projects[currentProjectSlide].slug || projects[currentProjectSlide].id)" target="_blank" class="btn btn-sm btn-dark rounded-pill px-3 fw-bold extra-small">
-                          Consulter la fiche &rarr;
+                          {{ projectsDesign.cta_label || 'Consulter la fiche' }} &rarr;
                         </a>
                       </div>
                     </div>
@@ -1640,59 +2046,70 @@
                 </div>
 
                 <!-- TIMELINE VARIANT -->
-                <div v-else-if="projectsStyle === 'timeline'" class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+                <div v-else-if="projectsStyle === 'timeline'" class="card p-4 p-md-5 shadow-sm border-0 content-card" :style="{ borderRadius: projectsDesign.card_radius || '20px' }">
                   <div class="timeline-stream d-flex flex-column gap-4">
                     <div v-for="proj in projects" :key="proj.id" class="d-flex gap-3 position-relative">
                       <div class="timeline-dot rounded-circle flex-shrink-0 mt-1" :style="{ backgroundColor: accentColor }"></div>
                       <div class="flex-grow-1">
                         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                          <h3 class="h6 fw-bold text-dark mb-0">{{ proj.name }}</h3>
-                          <span class="badge bg-light text-muted border extra-small">{{ proj.category || 'Web / Mobile' }}</span>
+                          <h3 class="h6 fw-bold text-dark mb-0">{{ proj.name || proj.title }}</h3>
+                          <span v-if="projectsDesign.show_category_badge !== false" class="badge bg-light text-muted border extra-small">{{ getEffectiveProjectBadge(proj) }}</span>
                         </div>
                         <div class="small text-muted mt-1 mb-2 leading-relaxed" v-html="formatHtml(proj.pitch || proj.description)"></div>
                         <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-xs btn-link p-0 text-decoration-none fw-bold" :style="{ color: accentColor }">
-                          Découvrir ce projet sur Tech237 &rarr;
+                          {{ projectsDesign.cta_label || 'Découvrir ce projet sur Tech237' }} &rarr;
                         </a>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <!-- MULTI-COLUMN CARDS GRID (1, 2, 3 or 4 columns) -->
+                <!-- MULTI-COLUMN CARDS GRID OR SHOWCASE LARGE -->
                 <div v-else class="row g-4">
-                  <div v-for="proj in projects" :key="proj.id" :class="projectColsClass">
-                    <div class="card border-0 rounded-4 shadow-sm h-100 content-card p-4 d-flex flex-column justify-content-between transition-hover">
+                  <div v-for="(proj, cIdx) in projects" :key="proj.id" :class="projectsStyle === 'showcase_large' ? 'col-12' : projectColsClass">
+                    <div 
+                      class="card border-0 shadow-sm h-100 content-card p-4 d-flex flex-column justify-content-between transition"
+                      :class="[
+                        'project-hover-' + (projectsDesign.hover_effect || 'lift_shadow'),
+                        projectsDesign.text_align === 'center' ? 'text-center' : ''
+                      ]"
+                      :style="{ borderRadius: projectsDesign.card_radius || '20px' }"
+                    >
                       <div>
-                        <div class="d-flex align-items-center gap-3 mb-3">
-                          <img 
-                            v-if="proj.logo" 
-                            :src="formatImageUrl(proj.logo)" 
-                            class="rounded-3 border flex-shrink-0" 
-                            style="width: 48px; height: 48px; object-fit: contain;" 
-                            :alt="proj.name"
-                          />
-                          <div v-else class="rounded-3 text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 48px; height: 48px;" :style="{ backgroundColor: accentColor }">
-                            <i class="bi bi-rocket-takeoff"></i>
-                          </div>
+                        <div class="d-flex align-items-center gap-3 mb-3" :class="projectsDesign.text_align === 'center' ? 'flex-column justify-content-center' : ''">
+                          <template v-if="projectsDesign.show_logo !== false">
+                            <img 
+                              v-if="getEffectiveProjectLogo(proj)" 
+                              :src="formatImageUrl(getEffectiveProjectLogo(proj))" 
+                              class="border flex-shrink-0 object-fit-contain bg-white project-logo-img" 
+                              :class="getProjectLogoShapeClass()"
+                              :style="getProjectLogoSizeStyle(false)"
+                              :alt="proj.name || proj.title"
+                            />
+                            <div v-else class="text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 project-logo-img" :class="getProjectLogoShapeClass()" :style="{ ...getProjectLogoSizeStyle(false), backgroundColor: accentColor }">
+                              <i class="bi bi-rocket-takeoff"></i>
+                            </div>
+                          </template>
                           <div class="min-w-0">
-                            <h3 class="h6 fw-bold mb-0 text-truncate">{{ proj.name }}</h3>
-                            <small class="text-muted extra-small">{{ proj.category || 'Tech & Software' }}</small>
+                            <div v-if="projectsDesign.show_number_badge !== false" class="extra-small fw-bold mb-1" :style="{ color: accentColor }">PROJET #0{{ cIdx + 1 }}</div>
+                            <h3 class="h6 fw-bold mb-0 text-truncate">{{ proj.name || proj.title }}</h3>
+                            <small v-if="projectsDesign.show_category_badge !== false" class="text-muted extra-small">{{ getEffectiveProjectBadge(proj) }}</small>
                           </div>
                         </div>
                         <div class="small text-muted mb-3 leading-relaxed" v-html="formatHtml(proj.pitch || proj.description || 'Projet innovant propulsé sur Tech237.')"></div>
                       </div>
 
-                      <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto">
-                        <div class="d-flex align-items-center gap-2 extra-small text-muted">
+                      <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto flex-wrap gap-2">
+                        <div v-if="projectsDesign.show_stats !== false" class="d-flex align-items-center gap-2 extra-small text-muted">
                           <span v-if="proj.views_count"><i class="bi bi-eye me-1"></i>{{ proj.views_count }}</span>
                           <span v-if="proj.upvotes_count"><i class="bi bi-heart-fill text-danger me-1"></i>{{ proj.upvotes_count }}</span>
                         </div>
-                        <div class="d-flex align-items-center gap-1 d-print-none">
-                          <button type="button" @click="openCaseStudyModal(proj)" class="btn btn-sm btn-light border rounded-pill px-3 fw-semibold extra-small">
+                        <div class="d-flex align-items-center gap-1 d-print-none ms-auto">
+                          <button v-if="projectsDesign.show_case_study_btn !== false" type="button" @click="openCaseStudyModal(proj)" class="btn btn-sm btn-light border rounded-pill px-3 fw-semibold extra-small">
                             <i class="bi bi-eye-fill me-1"></i> Aperçu
                           </button>
                           <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold extra-small">
-                            Fiche &rarr;
+                            {{ projectsDesign.cta_label || 'Fiche' }} &rarr;
                           </a>
                         </div>
                       </div>
@@ -1737,25 +2154,129 @@
                 </div>
               </section>
 
-              <!-- 6. EXPERIENCES BLOCK -->
+              <!-- 6. EXPERIENCES BLOCK (100% Customizable: 5 Layouts, Images/Logos, Icons, Colors & Tags) -->
               <section v-else-if="block.id === 'experiences' && (portfolioUser.experiences && portfolioUser.experiences.length)" class="portfolio-block h-100">
                 <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                  <div class="d-flex align-items-center gap-2 mb-4">
-                    <span class="section-icon-badge" :style="{ color: accentColor }">
-                      <i class="bi bi-briefcase-fill fs-5"></i>
-                    </span>
-                    <h2 class="h5 fw-bold mb-0 section-heading">Parcours &amp; Expériences</h2>
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4" :class="experienceDesign.text_align === 'center' ? 'justify-content-center text-center' : ''">
+                    <div>
+                      <div class="d-flex align-items-center gap-2" :class="experienceDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                        <span class="section-icon-badge" :style="{ color: accentColor }">
+                          <i class="bi fs-5" :class="experienceDesign.icon || 'bi-briefcase-fill'"></i>
+                        </span>
+                        <h2 class="h5 fw-bold mb-0 section-heading">{{ experienceDesign.title || 'Parcours & Expériences' }}</h2>
+                      </div>
+                      <p v-if="experienceDesign.subtitle" class="extra-small text-muted mb-0 mt-1">{{ experienceDesign.subtitle }}</p>
+                    </div>
                   </div>
 
-                  <div class="timeline-stream d-flex flex-column gap-4">
-                    <div v-for="(exp, eIdx) in portfolioUser.experiences" :key="eIdx" class="d-flex gap-3 position-relative">
-                      <div class="timeline-dot rounded-circle flex-shrink-0 mt-1" :style="{ backgroundColor: accentColor }"></div>
-                      <div class="flex-grow-1">
-                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                          <strong class="text-dark">{{ exp.role }} &bull; <span class="fw-semibold text-muted">{{ exp.company }}</span></strong>
-                          <span class="badge bg-light text-muted border extra-small">{{ exp.period }}</span>
+                  <!-- Layout: Cards Grid (2 columns) or Step Cards -->
+                  <div v-if="experienceDesign.layout_style === 'cards_grid' || experienceDesign.layout_style === 'step_cards'" class="row g-3">
+                    <div v-for="(exp, eIdx) in portfolioUser.experiences" :key="eIdx" class="col-md-6">
+                      <div 
+                        class="p-4 rounded-4 bg-light border h-100 position-relative transition"
+                        :class="[
+                          'exp-hover-' + (experienceDesign.hover_effect || 'lift'),
+                          experienceDesign.text_align === 'center' ? 'text-center' : ''
+                        ]"
+                        :style="{ borderTop: '4px solid ' + (exp.color || accentColor) }"
+                      >
+                        <!-- Top Banner Image if configured -->
+                        <div v-if="exp.image_url && experienceDesign.image_position === 'top_banner'" class="mb-3 rounded-3 overflow-hidden border">
+                          <img :src="formatImageUrl(exp.image_url)" :alt="exp.company" class="w-100 object-fit-cover" style="height: 120px;" />
                         </div>
-                        <div v-if="exp.description" class="small text-muted mb-0 leading-relaxed mt-2" v-html="formatHtml(exp.description)"></div>
+
+                        <div class="d-flex align-items-start gap-3" :class="experienceDesign.image_position === 'right' ? 'flex-row-reverse' : ''">
+                          <img 
+                            v-if="exp.image_url && experienceDesign.image_position !== 'hidden' && experienceDesign.image_position !== 'top_banner'" 
+                            :src="formatImageUrl(exp.image_url)" 
+                            :alt="exp.company" 
+                            class="rounded-3 border bg-white p-1 object-fit-contain flex-shrink-0" 
+                            style="width: 48px; height: 48px;" 
+                          />
+                          <div 
+                            v-else 
+                            class="rounded-3 text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 shadow-2xs"
+                            style="width: 44px; height: 44px;"
+                            :style="{ backgroundColor: exp.color || accentColor }"
+                          >
+                            <span v-if="experienceDesign.layout_style === 'step_cards'">0{{ eIdx + 1 }}</span>
+                            <i v-else class="bi fs-5" :class="exp.icon || 'bi-briefcase-fill'"></i>
+                          </div>
+
+                          <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-1 mb-1">
+                              <span class="badge bg-white text-dark border extra-small">{{ exp.period }}</span>
+                              <span v-if="exp.contract_type" class="badge rounded-pill text-white extra-small" :style="{ backgroundColor: exp.color || accentColor }">{{ exp.contract_type }}</span>
+                            </div>
+                            <h3 class="h6 fw-bold text-dark mb-0">{{ exp.role }}</h3>
+                            <div class="small fw-semibold text-muted mb-2">
+                              {{ exp.company }}
+                              <span v-if="exp.location" class="extra-small ms-1"><i class="bi bi-geo-alt-fill text-danger"></i> {{ exp.location }}</span>
+                            </div>
+                            <div v-if="exp.description" class="small text-muted mb-2 leading-relaxed" v-html="formatHtml(exp.description)"></div>
+                            <div v-if="exp.tags" class="d-flex flex-wrap gap-1 mt-2">
+                              <span v-for="(tg, tgIdx) in parseCommaTags(exp.tags)" :key="tgIdx" class="badge bg-white text-dark border rounded-pill extra-small px-2 py-1">
+                                {{ tg }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Layout: Timeline (Left, Alternating, or Editorial Rows) -->
+                  <div v-else class="timeline-stream d-flex flex-column gap-4">
+                    <div 
+                      v-for="(exp, eIdx) in portfolioUser.experiences" 
+                      :key="eIdx" 
+                      class="p-3 p-md-4 rounded-4 bg-light border position-relative transition"
+                      :class="[
+                        'exp-hover-' + (experienceDesign.hover_effect || 'lift'),
+                        experienceDesign.text_align === 'center' ? 'text-center' : (experienceDesign.text_align === 'justify' ? 'text-justify' : 'text-start')
+                      ]"
+                      :style="{ borderLeft: '4px solid ' + (exp.color || accentColor) }"
+                    >
+                      <div v-if="exp.image_url && experienceDesign.image_position === 'top_banner'" class="mb-3 rounded-3 overflow-hidden border">
+                        <img :src="formatImageUrl(exp.image_url)" :alt="exp.company" class="w-100 object-fit-cover" style="height: 140px;" />
+                      </div>
+
+                      <div class="d-flex align-items-start gap-3 flex-wrap" :class="experienceDesign.image_position === 'right' ? 'flex-row-reverse' : ''">
+                        <img 
+                          v-if="exp.image_url && experienceDesign.image_position !== 'hidden' && experienceDesign.image_position !== 'top_banner'" 
+                          :src="formatImageUrl(exp.image_url)" 
+                          :alt="exp.company" 
+                          class="rounded-3 border bg-white p-1 object-fit-contain flex-shrink-0 shadow-2xs" 
+                          style="width: 52px; height: 52px;" 
+                        />
+                        <div 
+                          v-else 
+                          class="rounded-circle text-white d-flex align-items-center justify-content-center flex-shrink-0 shadow-2xs" 
+                          style="width: 42px; height: 42px;" 
+                          :style="{ backgroundColor: exp.color || accentColor }"
+                        >
+                          <i class="bi" :class="exp.icon || 'bi-briefcase-fill'"></i>
+                        </div>
+
+                        <div class="flex-grow-1 min-w-0">
+                          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+                            <div>
+                              <strong class="text-dark fs-6">{{ exp.role }}</strong>
+                              <span class="fw-semibold text-muted ms-1">&bull; {{ exp.company }}</span>
+                              <span v-if="exp.location" class="extra-small text-muted ms-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ exp.location }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1">
+                              <span v-if="exp.contract_type" class="badge rounded-pill text-white extra-small" :style="{ backgroundColor: exp.color || accentColor }">{{ exp.contract_type }}</span>
+                              <span class="badge bg-white text-dark border extra-small">{{ exp.period }}</span>
+                            </div>
+                          </div>
+                          <div v-if="exp.description" class="small text-muted mb-0 leading-relaxed mt-2" v-html="formatHtml(exp.description)"></div>
+                          <div v-if="exp.tags" class="d-flex flex-wrap gap-1 mt-2">
+                            <span v-for="(tg, tgIdx) in parseCommaTags(exp.tags)" :key="tgIdx" class="badge bg-white text-dark border rounded-pill extra-small px-2 py-1">
+                              {{ tg }}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1822,87 +2343,116 @@
                 </div>
               </section>
 
-              <!-- 9.B NOW SECTION (« EN CE MOMENT ») -->
+              <!-- 9.B NOW SECTION (« EN CE MOMENT » — 100% Customizable) -->
               <section v-else-if="block.id === 'now' && hasNowSection" class="portfolio-block h-100">
-                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                  <div class="d-flex align-items-center gap-2 mb-4">
+                <div 
+                  class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100"
+                  :class="nowSection.text_align === 'center' ? 'text-center' : ''"
+                >
+                  <div class="d-flex align-items-center gap-2 mb-4" :class="nowSection.text_align === 'center' ? 'justify-content-center' : ''">
                     <span class="section-icon-badge" :style="{ color: accentColor }">
-                      <i class="bi bi-compass-fill fs-5"></i>
+                      <i class="bi fs-5" :class="nowSection.icon || 'bi-compass-fill'"></i>
                     </span>
-                    <h2 class="h5 fw-bold mb-0 section-heading">En ce moment (Now)</h2>
+                    <h2 class="h5 fw-bold mb-0 section-heading">{{ nowSection.title || 'En ce moment (Now)' }}</h2>
                   </div>
 
-                  <div class="row g-3">
-                    <div v-if="nowSection.project" class="col-md-4">
-                      <div class="p-3 rounded-4 bg-light border h-100">
-                        <span class="badge bg-primary-subtle text-primary extra-small mb-2">🔨 Sur quoi je travaille</span>
-                        <p class="small fw-semibold text-dark mb-0">{{ nowSection.project }}</p>
-                      </div>
+                  <div class="row g-4 align-items-center">
+                    <div v-if="nowSection.image_url" :class="nowSection.layout_style === 'banner_split' ? 'col-md-5' : 'col-12 mb-2'">
+                      <img :src="formatImageUrl(nowSection.image_url)" alt="En ce moment" class="img-fluid rounded-4 shadow-sm border object-fit-cover w-100" style="max-height: 220px;" />
                     </div>
-                    <div v-if="nowSection.learning" class="col-md-4">
-                      <div class="p-3 rounded-4 bg-light border h-100">
-                        <span class="badge bg-success-subtle text-success extra-small mb-2">📚 En apprentissage</span>
-                        <p class="small fw-semibold text-dark mb-0">{{ nowSection.learning }}</p>
-                      </div>
-                    </div>
-                    <div v-if="nowSection.goal" class="col-md-4">
-                      <div class="p-3 rounded-4 bg-light border h-100">
-                        <span class="badge bg-warning-subtle text-warning-emphasis extra-small mb-2">🎯 Prochain objectif</span>
-                        <p class="small fw-semibold text-dark mb-0">{{ nowSection.goal }}</p>
+
+                    <div :class="nowSection.image_url && nowSection.layout_style === 'banner_split' ? 'col-md-7' : 'col-12'">
+                      <div class="row g-3">
+                        <div v-if="nowSection.project" :class="nowSection.layout_style === 'vertical_list' ? 'col-12' : 'col-md-4'">
+                          <div class="p-3 rounded-4 bg-light border h-100 transition" :class="'elem-anim-' + (nowSection.animation || 'lift')">
+                            <span class="badge bg-primary-subtle text-primary extra-small mb-2">
+                              <i class="bi me-1" :class="nowSection.project_icon || 'bi-hammer'"></i> {{ nowSection.project_label || 'Sur quoi je travaille' }}
+                            </span>
+                            <p class="small fw-semibold text-dark mb-0">{{ nowSection.project }}</p>
+                          </div>
+                        </div>
+                        <div v-if="nowSection.learning" :class="nowSection.layout_style === 'vertical_list' ? 'col-12' : 'col-md-4'">
+                          <div class="p-3 rounded-4 bg-light border h-100 transition" :class="'elem-anim-' + (nowSection.animation || 'lift')">
+                            <span class="badge bg-success-subtle text-success extra-small mb-2">
+                              <i class="bi me-1" :class="nowSection.learning_icon || 'bi-book-half'"></i> {{ nowSection.learning_label || 'En apprentissage' }}
+                            </span>
+                            <p class="small fw-semibold text-dark mb-0">{{ nowSection.learning }}</p>
+                          </div>
+                        </div>
+                        <div v-if="nowSection.goal" :class="nowSection.layout_style === 'vertical_list' ? 'col-12' : 'col-md-4'">
+                          <div class="p-3 rounded-4 bg-light border h-100 transition" :class="'elem-anim-' + (nowSection.animation || 'lift')">
+                            <span class="badge bg-warning-subtle text-warning-emphasis extra-small mb-2">
+                              <i class="bi me-1" :class="nowSection.goal_icon || 'bi-bullseye'"></i> {{ nowSection.goal_label || 'Prochain objectif' }}
+                            </span>
+                            <p class="small fw-semibold text-dark mb-0">{{ nowSection.goal }}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </section>
 
-              <!-- 9.C GITHUB LIVE STATS BLOCK -->
+              <!-- 9.C GITHUB LIVE STATS BLOCK (100% Customizable) -->
               <section v-else-if="block.id === 'github' && hasGithubStats" class="portfolio-block h-100">
-                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4">
+                <div 
+                  class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100"
+                  :class="githubStatsConfig.text_align === 'center' ? 'text-center' : ''"
+                >
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4" :class="githubStatsConfig.text_align === 'center' ? 'justify-content-center' : ''">
                     <div class="d-flex align-items-center gap-2">
                       <span class="section-icon-badge" :style="{ color: accentColor }">
-                        <i class="bi bi-github fs-5"></i>
+                        <i class="bi fs-5" :class="githubStatsConfig.icon || 'bi-github'"></i>
                       </span>
-                      <h2 class="h5 fw-bold mb-0 section-heading">Statistiques GitHub &amp; Open-Source</h2>
+                      <h2 class="h5 fw-bold mb-0 section-heading">{{ githubStatsConfig.title || 'Statistiques GitHub & Open-Source' }}</h2>
                     </div>
                     <a :href="'https://github.com/' + githubUsername" target="_blank" class="btn btn-sm btn-dark rounded-pill px-3 extra-small fw-bold">
                       <i class="bi bi-github me-1"></i> @{{ githubUsername }}
                     </a>
                   </div>
 
-                  <div v-if="githubProfile" class="row g-3 mb-4">
+                  <div v-if="githubStatsConfig.image_url" class="mb-4 text-center">
+                    <img :src="formatImageUrl(githubStatsConfig.image_url)" alt="GitHub Banner" class="img-fluid rounded-4 shadow-sm border object-fit-cover" style="max-height: 200px; width: 100%;" />
+                  </div>
+
+                  <div v-if="githubProfile && githubStatsConfig.layout_style !== 'repos_focus'" class="row g-3 mb-4">
                     <div class="col-4">
-                      <div class="p-3 rounded-4 bg-light border text-center">
+                      <div class="p-3 rounded-4 bg-light border text-center transition" :class="'elem-anim-' + (githubStatsConfig.animation || 'lift')">
                         <strong class="fs-4 fw-black d-block" :style="{ color: accentColor }">{{ githubProfile.public_repos || 0 }}</strong>
                         <span class="extra-small text-muted">Dépôts Publics</span>
                       </div>
                     </div>
                     <div class="col-4">
-                      <div class="p-3 rounded-4 bg-light border text-center">
+                      <div class="p-3 rounded-4 bg-light border text-center transition" :class="'elem-anim-' + (githubStatsConfig.animation || 'lift')">
                         <strong class="fs-4 fw-black d-block" :style="{ color: accentColor }">{{ githubTotalStars }}</strong>
                         <span class="extra-small text-muted">Stars cumulées</span>
                       </div>
                     </div>
                     <div class="col-4">
-                      <div class="p-3 rounded-4 bg-light border text-center">
+                      <div class="p-3 rounded-4 bg-light border text-center transition" :class="'elem-anim-' + (githubStatsConfig.animation || 'lift')">
                         <strong class="fs-4 fw-black d-block" :style="{ color: accentColor }">{{ githubProfile.followers || 0 }}</strong>
                         <span class="extra-small text-muted">Followers</span>
                       </div>
                     </div>
                   </div>
 
-                  <div v-if="githubTopLanguages.length" class="mb-4">
+                  <div v-if="githubTopLanguages.length && githubStatsConfig.show_languages !== false" class="mb-4">
                     <span class="extra-small fw-bold text-muted d-block mb-2">Langages les plus utilisés :</span>
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="d-flex flex-wrap gap-2" :class="githubStatsConfig.text_align === 'center' ? 'justify-content-center' : ''">
                       <span v-for="lang in githubTopLanguages" :key="lang.name" class="badge bg-light text-dark border rounded-pill px-3 py-2 extra-small fw-semibold">
                         <i class="bi bi-code-slash me-1" :style="{ color: accentColor }"></i>{{ lang.name }} ({{ lang.percent }}%)
                       </span>
                     </div>
                   </div>
 
-                  <div v-if="githubRepos.length" class="row g-3">
-                    <div v-for="repo in githubRepos.slice(0, 4)" :key="repo.id" class="col-md-6">
-                      <a :href="repo.html_url" target="_blank" class="p-3 rounded-4 bg-light border d-block text-decoration-none h-100 transition-hover">
+                  <div v-if="githubRepos.length && githubStatsConfig.layout_style !== 'compact_banner'" class="row g-3">
+                    <div v-for="repo in githubRepos.slice(0, Number(githubStatsConfig.repos_count) || 4)" :key="repo.id" class="col-md-6">
+                      <a 
+                        :href="repo.html_url" 
+                        target="_blank" 
+                        class="p-3 rounded-4 bg-light border d-block text-decoration-none h-100 transition"
+                        :class="'elem-anim-' + (githubStatsConfig.animation || 'lift')"
+                      >
                         <div class="d-flex align-items-center justify-content-between mb-1">
                           <strong class="small text-dark text-truncate"><i class="bi bi-journal-code me-1"></i>{{ repo.name }}</strong>
                           <span class="badge bg-white text-dark border extra-small">⭐ {{ repo.stargazers_count || 0 }}</span>
@@ -1954,28 +2504,51 @@
                 </div>
               </section>
 
-              <!-- 9.E.0 WORK PROCESS / METHODOLOGY IN 4 STEPS BLOCK -->
+              <!-- 9.E.0 WORK PROCESS / METHODOLOGY IN 4 STEPS BLOCK (100% Customizable) -->
               <section v-else-if="block.id === 'process' && hasWorkProcess" class="portfolio-block h-100">
                 <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                  <div class="d-flex align-items-center justify-content-between mb-4">
-                    <div class="d-flex align-items-center gap-2">
-                      <span class="section-icon-badge" :style="{ color: accentColor }">
-                        <i class="bi bi-diagram-3-fill fs-5"></i>
-                      </span>
-                      <h2 class="h5 fw-bold mb-0 section-heading">{{ workProcessConfig.title || 'Comment je travaille (En 4 étapes)' }}</h2>
+                  <div class="d-flex align-items-center justify-content-between mb-4" :class="workProcessConfig.text_align === 'center' ? 'justify-content-center text-center' : ''">
+                    <div>
+                      <div class="d-flex align-items-center gap-2" :class="workProcessConfig.text_align === 'center' ? 'justify-content-center' : ''">
+                        <span class="section-icon-badge" :style="{ color: accentColor }">
+                          <i class="bi fs-5" :class="workProcessConfig.icon || 'bi-diagram-3-fill'"></i>
+                        </span>
+                        <h2 class="h5 fw-bold mb-0 section-heading">{{ workProcessConfig.title || 'Comment je travaille (En 4 étapes)' }}</h2>
+                      </div>
+                      <p v-if="workProcessConfig.subtitle" class="extra-small text-muted mb-0 mt-1">{{ workProcessConfig.subtitle }}</p>
                     </div>
                   </div>
 
                   <div class="row g-4">
-                    <div v-for="(step, stIdx) in workProcessSteps" :key="stIdx" class="col-md-6 col-lg-3">
-                      <div class="p-4 rounded-4 bg-light border h-100 position-relative transition-hover">
-                        <div 
-                          class="rounded-circle text-white fw-black d-flex align-items-center justify-content-center mb-3 shadow-sm"
-                          style="width: 42px; height: 42px; font-size: 16px;"
-                          :style="{ backgroundColor: accentColor }"
-                        >
-                          0{{ stIdx + 1 }}
+                    <div 
+                      v-for="(step, stIdx) in workProcessSteps" 
+                      :key="stIdx" 
+                      :class="workProcessConfig.layout_style === 'zigzag_cards' || workProcessConfig.layout_style === 'minimal_numbered' ? 'col-md-6' : 'col-md-6 col-lg-3'"
+                    >
+                      <div 
+                        class="p-4 rounded-4 bg-light border h-100 position-relative transition"
+                        :class="[
+                          'elem-anim-' + (workProcessConfig.animation || 'lift'),
+                          workProcessConfig.text_align === 'center' ? 'text-center' : ''
+                        ]"
+                        :style="{ borderTop: '4px solid ' + (step.color || accentColor) }"
+                      >
+                        <div v-if="step.image_url" class="mb-3 rounded-3 overflow-hidden border">
+                          <img :src="formatImageUrl(step.image_url)" :alt="step.title" class="w-100 object-fit-cover" style="height: 120px;" />
                         </div>
+
+                        <div class="d-flex align-items-center justify-content-between mb-3" :class="workProcessConfig.text_align === 'center' ? 'justify-content-center gap-2' : ''">
+                          <div 
+                            class="rounded-circle text-white fw-black d-flex align-items-center justify-content-center shadow-sm flex-shrink-0"
+                            style="width: 42px; height: 42px; font-size: 16px;"
+                            :style="{ backgroundColor: step.color || accentColor }"
+                          >
+                            <i v-if="step.icon" class="bi" :class="step.icon"></i>
+                            <span v-else>0{{ stIdx + 1 }}</span>
+                          </div>
+                          <span v-if="step.badge" class="badge bg-white text-dark border rounded-pill extra-small px-2 py-1">{{ step.badge }}</span>
+                        </div>
+
                         <h3 class="h6 fw-bold text-dark mb-2">{{ step.title }}</h3>
                         <p class="extra-small text-muted leading-relaxed mb-0">{{ step.description }}</p>
                       </div>
@@ -2033,32 +2606,150 @@
                 </div>
               </section>
 
-              <!-- 9.F TESTIMONIALS & SOCIAL PROOF BLOCK -->
+              <!-- 9.F TESTIMONIALS & SOCIAL PROOF BLOCK (Slider Carousel, Marquee, Grid & Illustrated Avatars) -->
               <section v-else-if="block.id === 'testimonials' && testimonialsList.length" class="portfolio-block h-100">
                 <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                  <div class="d-flex align-items-center justify-content-between mb-4">
-                    <div class="d-flex align-items-center gap-2">
-                      <span class="section-icon-badge" :style="{ color: accentColor }">
-                        <i class="bi bi-chat-quote-fill fs-5"></i>
-                      </span>
-                      <h2 class="h5 fw-bold mb-0 section-heading">Témoignages &amp; Recommandations</h2>
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4" :class="testimonialsDesign.text_align === 'center' ? 'justify-content-center text-center' : ''">
+                    <div>
+                      <div class="d-flex align-items-center gap-2" :class="testimonialsDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                        <span class="section-icon-badge" :style="{ color: accentColor }">
+                          <i class="bi bi-chat-quote-fill fs-5"></i>
+                        </span>
+                        <h2 class="h5 fw-bold mb-0 section-heading">{{ testimonialsDesign.title || 'Témoignages & Recommandations' }}</h2>
+                      </div>
+                      <p v-if="testimonialsDesign.subtitle" class="extra-small text-muted mb-0 mt-1">{{ testimonialsDesign.subtitle }}</p>
+                    </div>
+
+                    <!-- Slider Prev/Next Controls when layout_style === 'slider' -->
+                    <div v-if="testimonialsDesign.layout_style === 'slider' && testimonialsList.length > 1" class="d-flex align-items-center gap-2 d-print-none">
+                      <button type="button" @click="prevTestimonialSlide" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+                        <i class="bi bi-chevron-left"></i>
+                      </button>
+                      <span class="badge bg-light text-dark border extra-small">{{ currentTestimonialSlide + 1 }} / {{ testimonialsList.length }}</span>
+                      <button type="button" @click="nextTestimonialSlide" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+                        <i class="bi bi-chevron-right"></i>
+                      </button>
                     </div>
                   </div>
 
-                  <div class="row g-3">
-                    <div v-for="(testi, tIdx) in testimonialsList" :key="tIdx" class="col-md-6">
-                      <div class="p-4 rounded-4 bg-light border h-100 d-flex flex-column justify-content-between">
+                  <!-- MODE 1: INTERACTIVE SLIDER / CAROUSEL -->
+                  <div v-if="testimonialsDesign.layout_style === 'slider'">
+                    <div class="row g-3">
+                      <div 
+                        v-for="(testi, vIdx) in visibleSliderTestimonials" 
+                        :key="'sl-' + currentTestimonialSlide + '-' + vIdx" 
+                        :class="Number(testimonialsDesign.slides_per_view) === 2 && visibleSliderTestimonials.length > 1 ? 'col-md-6' : 'col-12'"
+                      >
+                        <div 
+                          class="p-4 rounded-4 bg-light border h-100 d-flex flex-column justify-content-between transition"
+                          :class="[
+                            'elem-anim-' + (testimonialsDesign.animation || 'lift'),
+                            testimonialsDesign.text_align === 'center' ? 'text-center' : ''
+                          ]"
+                        >
+                          <div>
+                            <div v-if="testimonialsDesign.show_stars !== false" class="text-warning small mb-2">
+                              <i v-for="star in (Number(testi.rating) || 5)" :key="star" class="bi bi-star-fill me-1"></i>
+                            </div>
+                            <p class="fs-6 text-dark fst-italic leading-relaxed mb-3">« {{ testi.comment }} »</p>
+                          </div>
+                          <div class="d-flex align-items-center gap-3 pt-3 border-top" :class="testimonialsDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                            <img 
+                              v-if="getTestimonialAvatarSrc(testi)" 
+                              :src="getTestimonialAvatarSrc(testi)" 
+                              :alt="testi.author_name" 
+                              class="rounded-circle border object-fit-cover flex-shrink-0 shadow-2xs" 
+                              style="width: 46px; height: 46px;" 
+                            />
+                            <div v-else class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center small flex-shrink-0" style="width: 46px; height: 46px;" :style="{ backgroundColor: accentColor }">
+                              {{ getInitials(testi.author_name) }}
+                            </div>
+                            <div class="min-w-0 text-start">
+                              <strong class="d-block small text-dark text-truncate">{{ testi.author_name }}</strong>
+                              <span class="extra-small text-muted d-block text-truncate">{{ testi.author_role }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Slider Dots -->
+                    <div v-if="testimonialsList.length > 1" class="d-flex justify-content-center gap-2 mt-3">
+                      <span
+                        v-for="(_, dIdx) in testimonialsList"
+                        :key="'tdot-' + dIdx"
+                        @click="currentTestimonialSlide = dIdx"
+                        class="cursor-pointer rounded-pill transition"
+                        :style="{
+                          width: currentTestimonialSlide === dIdx ? '24px' : '8px',
+                          height: '8px',
+                          backgroundColor: currentTestimonialSlide === dIdx ? accentColor : '#CBD5E1'
+                        }"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <!-- MODE 2: INFINITE MARQUEE RIBBON -->
+                  <div v-else-if="testimonialsDesign.layout_style === 'marquee'" class="overflow-hidden py-2">
+                    <div class="tech-marquee-track d-flex align-items-stretch gap-3">
+                      <div 
+                        v-for="(testi, mIdx) in [...testimonialsList, ...testimonialsList]" 
+                        :key="'tmq-' + mIdx" 
+                        class="p-4 rounded-4 bg-light border d-flex flex-column justify-content-between flex-shrink-0"
+                        style="width: 340px; white-space: normal;"
+                      >
                         <div>
-                          <div class="text-warning small mb-2">
+                          <div v-if="testimonialsDesign.show_stars !== false" class="text-warning extra-small mb-2">
                             <i v-for="star in (Number(testi.rating) || 5)" :key="star" class="bi bi-star-fill me-1"></i>
                           </div>
                           <p class="small text-dark fst-italic leading-relaxed mb-3">« {{ testi.comment }} »</p>
                         </div>
-                        <div class="d-flex align-items-center gap-3 pt-3 border-top">
-                          <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center small flex-shrink-0" style="width: 38px; height: 38px;" :style="{ backgroundColor: accentColor }">
+                        <div class="d-flex align-items-center gap-2 pt-2 border-top">
+                          <img v-if="getTestimonialAvatarSrc(testi)" :src="getTestimonialAvatarSrc(testi)" :alt="testi.author_name" class="rounded-circle border object-fit-cover flex-shrink-0" style="width: 38px; height: 38px;" />
+                          <div v-else class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center extra-small flex-shrink-0" style="width: 38px; height: 38px;" :style="{ backgroundColor: accentColor }">
                             {{ getInitials(testi.author_name) }}
                           </div>
                           <div class="min-w-0">
+                            <strong class="d-block extra-small text-dark text-truncate">{{ testi.author_name }}</strong>
+                            <span class="extra-small text-muted d-block text-truncate">{{ testi.author_role }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- MODE 3: GRID (2 or 3 Columns) OR FEATURED QUOTE -->
+                  <div v-else class="row g-3">
+                    <div 
+                      v-for="(testi, tIdx) in testimonialsList" 
+                      :key="tIdx" 
+                      :class="testimonialsDesign.layout_style === 'grid_3' ? 'col-md-6 col-lg-4' : (testimonialsDesign.layout_style === 'featured_quote' ? 'col-12' : 'col-md-6')"
+                    >
+                      <div 
+                        class="p-4 rounded-4 bg-light border h-100 d-flex flex-column justify-content-between transition"
+                        :class="[
+                          'elem-anim-' + (testimonialsDesign.animation || 'lift'),
+                          testimonialsDesign.text_align === 'center' ? 'text-center' : ''
+                        ]"
+                      >
+                        <div>
+                          <div v-if="testimonialsDesign.show_stars !== false" class="text-warning small mb-2">
+                            <i v-for="star in (Number(testi.rating) || 5)" :key="star" class="bi bi-star-fill me-1"></i>
+                          </div>
+                          <p class="small text-dark fst-italic leading-relaxed mb-3">« {{ testi.comment }} »</p>
+                        </div>
+                        <div class="d-flex align-items-center gap-3 pt-3 border-top" :class="testimonialsDesign.text_align === 'center' ? 'justify-content-center' : ''">
+                          <img 
+                            v-if="getTestimonialAvatarSrc(testi)" 
+                            :src="getTestimonialAvatarSrc(testi)" 
+                            :alt="testi.author_name" 
+                            class="rounded-circle border object-fit-cover flex-shrink-0 shadow-2xs" 
+                            style="width: 42px; height: 42px;" 
+                          />
+                          <div v-else class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center small flex-shrink-0" style="width: 42px; height: 42px;" :style="{ backgroundColor: accentColor }">
+                            {{ getInitials(testi.author_name) }}
+                          </div>
+                          <div class="min-w-0 text-start">
                             <strong class="d-block small text-dark text-truncate">{{ testi.author_name }}</strong>
                             <span class="extra-small text-muted d-block text-truncate">{{ testi.author_role }}</span>
                           </div>
@@ -2102,108 +2793,126 @@
                 </div>
               </section>
 
-              <!-- 10. CONTACT BLOCK WITH INTERACTIVE EMAIL FORM -->
+              <!-- 10. CONTACT BLOCK WITH INTERACTIVE EMAIL FORM (100% Customizable Layout, Image, Align & Animation) -->
               <section v-else-if="block.id === 'contact'" id="portfolioContactSection" class="portfolio-block h-100">
-                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card text-center h-100">
-                  <div class="mx-auto mb-2 section-icon-badge" :style="{ color: accentColor }">
-                    <i class="bi bi-send-check-fill fs-2"></i>
-                  </div>
-                  <h2 class="h4 fw-bold mb-2">Entrons en contact</h2>
-                  <p class="text-muted small max-w-md mx-auto mb-4">
-                    Un projet innovant, une opportunité ou envie d'échanger sur la tech au Cameroun ? Envoyez-moi un message direct ci-dessous.
-                  </p>
-
-                  <!-- Direct Contact Shortcuts -->
-                  <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mb-4">
-                    <a 
-                      v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" 
-                      :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
-                      target="_blank"
-                      class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
-                    >
-                      <i class="bi bi-whatsapp"></i>
-                      <span>WhatsApp Direct</span>
-                    </a>
-
-                    <a 
-                      v-if="googleMapsUrl" 
-                      :href="googleMapsUrl" 
-                      target="_blank" 
-                      class="btn btn-outline-danger rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2"
-                    >
-                      <i class="bi bi-geo-alt-fill"></i>
-                      <span>Voir sur Google Maps</span>
-                    </a>
-                  </div>
-
-                  <!-- INTERACTIVE CONTACT FORM -->
-                  <div class="text-start mx-auto p-4 rounded-4 bg-light border" style="max-width: 680px; width: 100%;">
-                    <h3 class="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
-                      <i class="bi bi-envelope-paper-fill" :style="{ color: accentColor }"></i> Formulaire de Contact Direct
-                    </h3>
-
-                    <div v-if="contactSuccessMsg" class="alert alert-success d-flex align-items-center gap-2 py-3 rounded-3 shadow-2xs">
-                      <i class="bi bi-check-circle-fill fs-5 text-success"></i>
-                      <div class="small fw-semibold">{{ contactSuccessMsg }}</div>
-                    </div>
-
-                    <div v-if="contactErrorMsg" class="alert alert-danger d-flex align-items-center gap-2 py-2 rounded-3 shadow-2xs">
-                      <i class="bi bi-exclamation-triangle-fill text-danger"></i>
-                      <div class="small">{{ contactErrorMsg }}</div>
-                    </div>
-
-                    <form v-if="!contactSuccessMsg" @submit.prevent="submitContactForm">
-                      <div class="row g-3">
-                        <div class="col-md-6">
-                          <label class="form-label extra-small fw-bold text-dark mb-1">Prénom <span class="text-danger">*</span></label>
-                          <input type="text" v-model="contactForm.first_name" class="form-control form-control-sm rounded-3" placeholder="Votre prénom" required />
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label extra-small fw-bold text-dark mb-1">Nom</label>
-                          <input type="text" v-model="contactForm.last_name" class="form-control form-control-sm rounded-3" placeholder="Votre nom" />
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label extra-small fw-bold text-dark mb-1">Adresse Email <span class="text-danger">*</span></label>
-                          <input type="email" v-model="contactForm.email" class="form-control form-control-sm rounded-3" placeholder="votre.email@domaine.com" required />
-                        </div>
-                        <div class="col-md-6">
-                          <label class="form-label extra-small fw-bold text-dark mb-1">Sujet <span class="text-danger">*</span></label>
-                          <input type="text" v-model="contactForm.subject" class="form-control form-control-sm rounded-3" placeholder="ex: Proposition de projet ou mission" required />
-                        </div>
-                        <div class="col-12">
-                          <label class="form-label extra-small fw-bold text-dark mb-1">Description / Message <span class="text-danger">*</span></label>
-                          <textarea v-model="contactForm.message" class="form-control form-control-sm rounded-3" rows="4" placeholder="Détaillez votre message..." required></textarea>
-                        </div>
-                        <div class="col-12 text-end">
-                          <button 
-                            type="submit" 
-                            class="btn btn-sm rounded-pill px-4 py-2 fw-bold text-white shadow-2xs" 
-                            :style="{ backgroundColor: accentColor }"
-                            :disabled="isSubmittingContact"
-                          >
-                            <span v-if="isSubmittingContact" class="spinner-border spinner-border-sm me-1" role="status"></span>
-                            <i v-else class="bi bi-send-fill me-1"></i>
-                            <span>{{ isSubmittingContact ? 'Envoi en cours...' : 'Envoyer mon message' }}</span>
-                          </button>
-                        </div>
+                <div 
+                  class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100 transition"
+                  :class="[
+                    'elem-anim-' + (contactFormConfig.animation || 'fade_up'),
+                    contactFormConfig.text_align === 'center' ? 'text-center' : 'text-start'
+                  ]"
+                >
+                  <div class="row g-4 align-items-center" :class="contactFormConfig.layout_style === 'split_right_info' ? 'flex-lg-row-reverse' : ''">
+                    <!-- Info & Illustration Column (Full width if centered_card or banner_modern, 5 cols if split) -->
+                    <div :class="(contactFormConfig.layout_style === 'split_left_info' || contactFormConfig.layout_style === 'split_right_info') ? 'col-lg-5' : 'col-12 text-center'">
+                      <div class="mb-2 section-icon-badge d-inline-flex" :style="{ color: accentColor }">
+                        <i class="bi fs-2" :class="contactFormConfig.icon || 'bi-send-check-fill'"></i>
                       </div>
-                    </form>
-                  </div>
+                      <h2 class="h4 fw-bold mb-2">{{ contactFormConfig.title || 'Entrons en contact' }}</h2>
+                      <p class="text-muted small mb-4" :class="(contactFormConfig.layout_style === 'centered_card' || contactFormConfig.text_align === 'center') ? 'max-w-md mx-auto' : ''">
+                        {{ contactFormConfig.subtitle || 'Un projet innovant, une opportunité ou envie d\'échanger ? Envoyez-moi un message direct.' }}
+                      </p>
 
-                  <!-- Social Links in Contact Block -->
-                  <div v-if="hasSocialLinks" class="d-flex align-items-center justify-content-center gap-2 pt-4 border-top mt-4">
-                    <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                      <i class="bi bi-github"></i>
-                    </a>
-                    <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                      <i class="bi bi-linkedin text-primary"></i>
-                    </a>
-                    <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                      <i class="bi bi-twitter-x"></i>
-                    </a>
-                    <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                      <i class="bi bi-globe2 text-info"></i>
-                    </a>
+                      <!-- Optional Contact Illustration Image -->
+                      <div v-if="contactFormConfig.image_url" class="mb-4">
+                        <img :src="formatImageUrl(contactFormConfig.image_url)" alt="Contact" class="img-fluid rounded-4 shadow-sm border object-fit-cover" style="max-height: 220px;" />
+                      </div>
+
+                      <!-- Direct Contact Shortcuts -->
+                      <div v-if="contactFormConfig.show_contact_cards !== false" class="d-flex flex-wrap gap-2 mb-3" :class="(contactFormConfig.layout_style === 'centered_card' || contactFormConfig.text_align === 'center') ? 'justify-content-center' : ''">
+                        <a 
+                          v-if="portfolioUser.phone && portfolioUser.availability !== 'not_available'" 
+                          :href="'https://wa.me/' + cleanPhone(portfolioUser.phone)" 
+                          target="_blank"
+                          class="btn btn-success rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
+                        >
+                          <i class="bi bi-whatsapp"></i>
+                          <span>WhatsApp Direct</span>
+                        </a>
+
+                        <a 
+                          v-if="googleMapsUrl" 
+                          :href="googleMapsUrl" 
+                          target="_blank" 
+                          class="btn btn-outline-danger rounded-pill px-4 py-2 fw-semibold d-inline-flex align-items-center gap-2"
+                        >
+                          <i class="bi bi-geo-alt-fill"></i>
+                          <span>Voir sur Google Maps</span>
+                        </a>
+                      </div>
+
+                      <!-- Social Links -->
+                      <div v-if="hasSocialLinks && contactFormConfig.show_contact_cards !== false" class="d-flex align-items-center gap-2 mt-3" :class="(contactFormConfig.layout_style === 'centered_card' || contactFormConfig.text_align === 'center') ? 'justify-content-center' : ''">
+                        <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                          <i class="bi bi-github"></i>
+                        </a>
+                        <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                          <i class="bi bi-linkedin text-primary"></i>
+                        </a>
+                        <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                          <i class="bi bi-twitter-x"></i>
+                        </a>
+                        <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                          <i class="bi bi-globe2 text-info"></i>
+                        </a>
+                      </div>
+                    </div>
+
+                    <!-- Form Column -->
+                    <div :class="(contactFormConfig.layout_style === 'split_left_info' || contactFormConfig.layout_style === 'split_right_info') ? 'col-lg-7' : 'col-12'">
+                      <div class="text-start mx-auto p-4 rounded-4 bg-light border" style="max-width: 680px; width: 100%;">
+                        <h3 class="h6 fw-bold text-dark mb-3 d-flex align-items-center gap-2">
+                          <i class="bi bi-envelope-paper-fill" :style="{ color: accentColor }"></i> Formulaire de Contact Direct
+                        </h3>
+
+                        <div v-if="contactSuccessMsg" class="alert alert-success d-flex align-items-center gap-2 py-3 rounded-3 shadow-2xs">
+                          <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                          <div class="small fw-semibold">{{ contactSuccessMsg }}</div>
+                        </div>
+
+                        <div v-if="contactErrorMsg" class="alert alert-danger d-flex align-items-center gap-2 py-2 rounded-3 shadow-2xs">
+                          <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                          <div class="small">{{ contactErrorMsg }}</div>
+                        </div>
+
+                        <form v-if="!contactSuccessMsg" @submit.prevent="submitContactForm">
+                          <div class="row g-3">
+                            <div class="col-md-6">
+                              <label class="form-label extra-small fw-bold text-dark mb-1">Prénom <span class="text-danger">*</span></label>
+                              <input type="text" v-model="contactForm.first_name" class="form-control form-control-sm rounded-3" placeholder="Votre prénom" required />
+                            </div>
+                            <div class="col-md-6">
+                              <label class="form-label extra-small fw-bold text-dark mb-1">Nom</label>
+                              <input type="text" v-model="contactForm.last_name" class="form-control form-control-sm rounded-3" placeholder="Votre nom" />
+                            </div>
+                            <div class="col-md-6">
+                              <label class="form-label extra-small fw-bold text-dark mb-1">Adresse Email <span class="text-danger">*</span></label>
+                              <input type="email" v-model="contactForm.email" class="form-control form-control-sm rounded-3" placeholder="votre.email@domaine.com" required />
+                            </div>
+                            <div class="col-md-6">
+                              <label class="form-label extra-small fw-bold text-dark mb-1">Sujet <span class="text-danger">*</span></label>
+                              <input type="text" v-model="contactForm.subject" class="form-control form-control-sm rounded-3" placeholder="ex: Proposition de projet ou mission" required />
+                            </div>
+                            <div class="col-12">
+                              <label class="form-label extra-small fw-bold text-dark mb-1">Description / Message <span class="text-danger">*</span></label>
+                              <textarea v-model="contactForm.message" class="form-control form-control-sm rounded-3" rows="4" placeholder="Détaillez votre message..." required></textarea>
+                            </div>
+                            <div class="col-12 text-end">
+                              <button 
+                                type="submit" 
+                                class="btn btn-sm rounded-pill px-4 py-2 fw-bold text-white shadow-2xs" 
+                                :style="{ backgroundColor: accentColor }"
+                                :disabled="isSubmittingContact"
+                              >
+                                <span v-if="isSubmittingContact" class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                <i v-else class="bi bi-send-fill me-1"></i>
+                                <span>{{ isSubmittingContact ? 'Envoi en cours...' : (contactFormConfig.button_text || 'Envoyer mon message') }}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -2238,7 +2947,7 @@
                 </div>
               </div>
               <p class="extra-small text-muted leading-relaxed mb-3">
-                {{ stripHtmlTags(portfolioUser.bio || seoDescription).slice(0, 180) }}
+                {{ stripHtmlTags(liveBioText || seoDescription).slice(0, 180) }}
               </p>
               <div v-if="footerConfig.show_socials !== false && hasSocialLinks" class="d-flex align-items-center gap-2">
                 <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
@@ -2268,8 +2977,8 @@
               </ul>
             </div>
 
-            <!-- Col 3: Top Skills / Services -->
-            <div class="col-6 col-lg-3">
+            <!-- Col 3: Top Skills / Services (Only if skills block is enabled) -->
+            <div v-if="isBlockEnabled('skills') && portfolioUser.skills && portfolioUser.skills.length" class="col-6 col-lg-3">
               <h4 class="h6 fw-bold mb-3">Expertises clés</h4>
               <div class="d-flex flex-wrap gap-1">
                 <span 
@@ -2294,7 +3003,7 @@
                 </div>
               </div>
               <div class="d-flex flex-wrap gap-2">
-                <button type="button" @click="navigateWebsitePage('contact', 'portfolioContactSection')" class="btn btn-xs rounded-pill px-3 py-1 fw-bold text-white" :style="{ backgroundColor: accentColor }">
+                <button v-if="isBlockEnabled('contact')" type="button" @click="navigateWebsitePage('contact', 'portfolioContactSection')" class="btn btn-xs rounded-pill px-3 py-1 fw-bold text-white" :style="{ backgroundColor: accentColor }">
                   M'écrire
                 </button>
                 <button v-if="vcardEnabled" type="button" @click="openVcardModal" class="btn btn-xs btn-outline-secondary rounded-pill px-3 py-1 fw-semibold">
@@ -2759,6 +3468,9 @@ const websiteNavbar = computed(() => {
       enabled: true,
       style: 'floating_pill',
       navigation_mode: 'multi_page',
+      menu_type: 'desktop_links_mobile_drawer',
+      drawer_side: 'right',
+      hamburger_style: 'classic',
       brand_name: '',
       brand_subtitle: '',
       cta_text: 'Me contacter'
@@ -2768,6 +3480,9 @@ const websiteNavbar = computed(() => {
     enabled: nav.enabled !== false,
     style: nav.style || 'floating_pill',
     navigation_mode: nav.navigation_mode || 'multi_page',
+    menu_type: nav.menu_type || 'desktop_links_mobile_drawer',
+    drawer_side: nav.drawer_side || 'right',
+    hamburger_style: nav.hamburger_style || 'classic',
     brand_name: nav.brand_name || '',
     brand_subtitle: nav.brand_subtitle || '',
     cta_text: nav.cta_text || 'Me contacter'
@@ -2776,16 +3491,28 @@ const websiteNavbar = computed(() => {
 
 const websiteNavItems = computed(() => {
   const items = [
-    { id: 'home', label: 'Accueil', icon: 'bi-house-door-fill', anchor: 'block-hero' },
-    { id: 'about', label: 'À Propos & Parcours', icon: 'bi-person-badge-fill', anchor: 'block-about' },
+    { id: 'home', label: 'Accueil', icon: 'bi-house-door-fill', anchor: 'block-hero' }
   ]
-  if ((props.projects && props.projects.length) || (props.pocs && props.pocs.length) || hasGithubStats.value) {
+  const hasAboutPageBlocks = ['about', 'video', 'now', 'skills', 'experiences', 'educations', 'certifications', 'badges'].some(id => isBlockEnabled(id) && shouldRenderBlock(id))
+  if (hasAboutPageBlocks) {
+    items.push({ id: 'about', label: 'À Propos & Parcours', icon: 'bi-person-badge-fill', anchor: 'block-about' })
+  }
+  const hasProjectsPageBlocks = (isBlockEnabled('projects') && props.projects && props.projects.length)
+    || (isBlockEnabled('pocs') && props.pocs && props.pocs.length)
+    || (isBlockEnabled('github') && hasGithubStats.value)
+  if (hasProjectsPageBlocks) {
     items.push({ id: 'projects', label: 'Réalisations', icon: 'bi-rocket-takeoff-fill', anchor: 'block-projects' })
   }
-  if (pricingPackagesList.value.length || hasWorkProcess.value || testimonialsList.value.length || faqItemsList.value.length) {
+  const hasServicesPageBlocks = (isBlockEnabled('pricing') && pricingPackagesList.value.length)
+    || (isBlockEnabled('process') && hasWorkProcess.value)
+    || (isBlockEnabled('testimonials') && testimonialsList.value.length)
+    || (isBlockEnabled('faq') && faqItemsList.value.length)
+  if (hasServicesPageBlocks) {
     items.push({ id: 'services', label: 'Services & Tarifs', icon: 'bi-tags-fill', anchor: 'block-pricing' })
   }
-  items.push({ id: 'contact', label: 'Contact', icon: 'bi-envelope-paper-fill', anchor: 'portfolioContactSection' })
+  if (isBlockEnabled('contact')) {
+    items.push({ id: 'contact', label: 'Contact', icon: 'bi-envelope-paper-fill', anchor: 'portfolioContactSection' })
+  }
   return items
 })
 
@@ -2909,12 +3636,25 @@ const youtubeEmbedUrl = computed(() => {
 })
 
 // Slideshow banner
-const slideshowConfig = computed(() => layout.value.slideshow || { enabled: false, slides: [], images: [] })
+const slideshowConfig = computed(() => layout.value.slideshow || { enabled: false, slides: [], images: [], width: '100%', border_radius: '0px' })
 const slideshowHeight = computed(() => {
   const h = slideshowConfig.value.height
   if (!h) return '340px'
   const str = String(h).trim()
   return str.endsWith('px') ? str : `${str}px`
+})
+const slideshowContainerStyle = computed(() => {
+  const w = slideshowConfig.value.width || '100%'
+  const r = slideshowConfig.value.border_radius || '0px'
+  const isFramed = w !== '100%' || (r && r !== '0px')
+  return {
+    height: slideshowHeight.value,
+    minHeight: '220px',
+    width: w.endsWith('px') ? '96%' : w,
+    maxWidth: w,
+    borderRadius: r,
+    margin: isFramed ? '16px auto' : '0 auto'
+  }
 })
 const slideshowImages = computed(() => {
   const list = slideshowConfig.value.slides || slideshowConfig.value.images || []
@@ -3013,45 +3753,68 @@ function getTabBtnClass(tabId) {
   return 'btn-light border text-dark'
 }
 
+function isBlockEnabled(blockId) {
+  const blk = orderedBlocks.value.find(b => b.id === blockId)
+  return blk ? blk.enabled !== false : true
+}
+
 const availableTabs = computed(() => {
   const tabs = [
     { id: 'all', label: 'Vue Globale', iconClass: 'bi-grid-fill' }
   ]
-  if (props.portfolioUser.bio) {
+  if (isBlockEnabled('about') && (liveBioText.value || (aboutDesign.value.ideas && aboutDesign.value.ideas.length))) {
     tabs.push({ id: 'about', label: 'À Propos', iconClass: 'bi-person-lines-fill' })
   }
-  if (youtubeEmbedUrl.value) {
+  if (isBlockEnabled('video') && youtubeEmbedUrl.value) {
     tabs.push({ id: 'video', label: 'Vidéo Pitch', iconClass: 'bi-play-btn-fill' })
   }
-  if (props.portfolioUser.skills && props.portfolioUser.skills.length) {
+  if (isBlockEnabled('now') && hasNowSection.value) {
+    tabs.push({ id: 'now', label: 'En ce moment', iconClass: 'bi-broadcast-pin' })
+  }
+  if (isBlockEnabled('github') && hasGithubStats.value) {
+    tabs.push({ id: 'github', label: 'GitHub', iconClass: 'bi-github' })
+  }
+  if (isBlockEnabled('skills') && props.portfolioUser.skills && props.portfolioUser.skills.length) {
     tabs.push({ id: 'skills', label: 'Compétences', iconClass: 'bi-cpu-fill', count: props.portfolioUser.skills.length })
   }
-  if (props.projects && props.projects.length) {
+  if (isBlockEnabled('projects') && props.projects && props.projects.length) {
     tabs.push({ id: 'projects', label: 'Projets', iconClass: 'bi-rocket-takeoff-fill', count: props.projects.length })
   }
-  if (props.portfolioUser.experiences && props.portfolioUser.experiences.length) {
+  if (isBlockEnabled('experiences') && props.portfolioUser.experiences && props.portfolioUser.experiences.length) {
     tabs.push({ id: 'experiences', label: 'Parcours', iconClass: 'bi-briefcase-fill' })
   }
-  if (props.portfolioUser.educations && props.portfolioUser.educations.length) {
+  if (isBlockEnabled('educations') && props.portfolioUser.educations && props.portfolioUser.educations.length) {
     tabs.push({ id: 'educations', label: 'Formations', iconClass: 'bi-mortarboard-fill' })
   }
-  if (props.pocs && props.pocs.length) {
+  if (isBlockEnabled('pocs') && props.pocs && props.pocs.length) {
     tabs.push({ id: 'pocs', label: 'POCs', iconClass: 'bi-lightning-charge-fill', count: props.pocs.length })
   }
-  if (pricingPackagesList.value.length) {
+  if (isBlockEnabled('process') && hasWorkProcess.value) {
+    tabs.push({ id: 'process', label: 'Méthodologie', iconClass: 'bi-diagram-3-fill' })
+  }
+  if (isBlockEnabled('pricing') && pricingPackagesList.value.length) {
     tabs.push({ id: 'pricing', label: 'Offres & Tarifs', iconClass: 'bi-tags-fill', count: pricingPackagesList.value.length })
   }
-  if (certificationsList.value.length) {
+  if (isBlockEnabled('certifications') && certificationsList.value.length) {
     tabs.push({ id: 'certifications', label: 'Certifications', iconClass: 'bi-patch-check-fill', count: certificationsList.value.length })
   }
-  if (testimonialsList.value.length) {
+  if (isBlockEnabled('testimonials') && testimonialsList.value.length) {
     tabs.push({ id: 'testimonials', label: 'Témoignages', iconClass: 'bi-chat-quote-fill', count: testimonialsList.value.length })
   }
-  tabs.push({ id: 'contact', label: 'Contact', iconClass: 'bi-envelope-fill' })
+  if (isBlockEnabled('faq') && faqItemsList.value.length) {
+    tabs.push({ id: 'faq', label: 'FAQ', iconClass: 'bi-question-circle-fill' })
+  }
+  if (isBlockEnabled('badges') && props.badges && props.badges.length) {
+    tabs.push({ id: 'badges', label: 'Trophées', iconClass: 'bi-trophy-fill', count: props.badges.length })
+  }
+  if (isBlockEnabled('contact')) {
+    tabs.push({ id: 'contact', label: 'Contact', iconClass: 'bi-envelope-fill' })
+  }
   return tabs
 })
 
 function isBlockActiveInTab(blockId) {
+  if (!isBlockEnabled(blockId)) return false
   if (isTabbedMode.value) {
     if (activeTab.value === 'all') return true
     if (activeTab.value === blockId) return true
@@ -3181,7 +3944,7 @@ const orderedBlocks = computed(() => {
 })
 
 function shouldRenderBlock(id) {
-  if (id === 'about') return Boolean(props.portfolioUser.bio)
+  if (id === 'about') return Boolean(liveBioText.value || (aboutDesign.value.ideas && aboutDesign.value.ideas.length))
   if (id === 'video') return Boolean(youtubeEmbedUrl.value)
   if (id === 'now') return Boolean(hasNowSection.value)
   if (id === 'github') return Boolean(hasGithubStats.value)
@@ -3199,6 +3962,260 @@ function shouldRenderBlock(id) {
   if (id === 'custom') return Boolean(props.portfolioUser.custom_sections && props.portfolioUser.custom_sections.length)
   return true
 }
+
+// 11. 100% Section Design Customizations (About, Skills, Projects, Experiences, Testimonials, Contact)
+const aboutDesign = computed(() => {
+  return layout.value.about_design || {
+    title: 'À Propos',
+    subtitle: '',
+    icon: 'bi-person-lines-fill',
+    layout_style: 'classic',
+    text_align: 'left',
+    font_size: 'md',
+    box_style: 'card',
+    animation: 'fade_up',
+    highlight_quote: '',
+    image_url: '',
+    ideas: []
+  }
+})
+
+const liveBioText = ref(props.portfolioUser.bio || '')
+const showInlineBioEditor = ref(false)
+const isSavingInlineBio = ref(false)
+const inlineBioSavedMsg = ref(false)
+
+async function saveInlineBioToUsersTable() {
+  if (isSavingInlineBio.value) return
+  isSavingInlineBio.value = true
+  inlineBioSavedMsg.value = false
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    const payload = {
+      headline: props.portfolioUser.headline || '',
+      bio: liveBioText.value || '',
+      location: props.portfolioUser.location || '',
+      availability: props.portfolioUser.availability || 'open',
+      is_portfolio_public: props.portfolioUser.is_portfolio_public !== false,
+      social_links: props.portfolioUser.social_links || {},
+      skills: props.portfolioUser.skills || [],
+      experiences: props.portfolioUser.experiences || [],
+      educations: props.portfolioUser.educations || [],
+      custom_sections: props.portfolioUser.custom_sections || [],
+      portfolio_layout: props.portfolioUser.portfolio_layout || {}
+    }
+    const res = await fetch('/espace-utilisateur/portfolio/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': csrfToken
+      },
+      body: JSON.stringify(payload)
+    })
+    if (res.ok) {
+      inlineBioSavedMsg.value = true
+      setTimeout(() => {
+        inlineBioSavedMsg.value = false
+        showInlineBioEditor.value = false
+      }, 1500)
+    }
+  } catch (e) {} finally {
+    isSavingInlineBio.value = false
+  }
+}
+
+function getAboutTextAlignClass() {
+  const align = aboutDesign.value.text_align
+  if (align === 'center') return 'text-center'
+  if (align === 'justify') return 'text-justify'
+  return 'text-start'
+}
+
+function getAboutFontSizeClass() {
+  const sz = aboutDesign.value.font_size
+  if (sz === 'sm') return 'small'
+  if (sz === 'lg') return 'fs-5'
+  if (sz === 'xl') return 'fs-4'
+  return ''
+}
+
+const skillsDesign = computed(() => {
+  return layout.value.skills_design || {
+    title: 'Compétences & Stack Technique',
+    subtitle: '',
+    icon: 'bi-cpu-fill',
+    layout_style: layout.value.skills_style || 'chips',
+    color_mode: 'custom_per_skill',
+    hover_effect: 'lift',
+    animation: 'shimmer',
+    columns: 3,
+    show_percentage: true,
+    show_category: true
+  }
+})
+
+const skillsColsClass = computed(() => {
+  const c = Number(skillsDesign.value.columns) || 3
+  if (c === 2) return 'col-12 col-sm-6'
+  if (c === 4) return 'col-6 col-md-3'
+  return 'col-12 col-sm-6 col-md-4'
+})
+
+const groupedSkillsByDomain = computed(() => {
+  const groups = {}
+  const list = props.portfolioUser.skills || []
+  list.forEach(s => {
+    const cat = (typeof s === 'object' && s.category) ? s.category : 'Général & Stack'
+    if (!groups[cat]) groups[cat] = []
+    groups[cat].push(s)
+  })
+  return groups
+})
+
+const projectsDesign = computed(() => {
+  return layout.value.projects_design || {
+    title: 'Projets & Réalisations',
+    subtitle: '',
+    icon: 'bi-rocket-takeoff-fill',
+    layout_style: layout.value.projects_style || 'zigzag',
+    columns: layout.value.projects_columns || 2,
+    show_logo: true,
+    logo_shape: 'rounded',
+    logo_size: 'md',
+    hover_effect: 'lift_shadow',
+    card_radius: '20px',
+    text_align: 'left',
+    show_case_study_btn: true,
+    show_stats: true,
+    show_category: true,
+    show_project_number: true,
+    project_overrides: {}
+  }
+})
+
+function getEffectiveProjectLogo(proj) {
+  if (!proj) return ''
+  const ov = projectsDesign.value.project_overrides?.[proj.id]
+  if (ov && ov.custom_logo) return formatImageUrl(ov.custom_logo)
+  if (proj.logo_url) return formatImageUrl(proj.logo_url)
+  return ''
+}
+
+function getEffectiveProjectBadge(proj) {
+  if (!proj) return ''
+  const ov = projectsDesign.value.project_overrides?.[proj.id]
+  return (ov && ov.custom_badge) ? ov.custom_badge : ''
+}
+
+function getProjectLogoShapeClass() {
+  const s = projectsDesign.value.logo_shape
+  if (s === 'circle') return 'rounded-circle'
+  if (s === 'square') return 'rounded-1'
+  return 'rounded-3'
+}
+
+function getProjectLogoSizeStyle(isLarge = false) {
+  const sz = projectsDesign.value.logo_size || 'md'
+  if (sz === 'sm') return isLarge ? { width: '48px', height: '48px' } : { width: '36px', height: '36px' }
+  if (sz === 'lg') return isLarge ? { width: '80px', height: '80px' } : { width: '58px', height: '58px' }
+  return isLarge ? { width: '64px', height: '64px' } : { width: '46px', height: '46px' }
+}
+
+const experienceDesign = computed(() => {
+  return layout.value.experience_design || {
+    title: 'Parcours & Expériences',
+    subtitle: '',
+    icon: 'bi-briefcase-fill',
+    layout_style: 'timeline_left',
+    text_align: 'left',
+    show_company_image: true,
+    image_position: 'left',
+    hover_effect: 'lift',
+    show_icons: true
+  }
+})
+
+function parseCommaTags(str) {
+  if (!str) return []
+  if (Array.isArray(str)) return str
+  return String(str).split(',').map(s => s.trim()).filter(Boolean)
+}
+
+const testimonialsDesign = computed(() => {
+  return layout.value.testimonials_design || {
+    title: 'Témoignages & Recommandations',
+    subtitle: '',
+    icon: 'bi-chat-quote-fill',
+    display_mode: 'slider',
+    autoplay: true,
+    speed: 5,
+    cards_per_view: 2,
+    hover_effect: 'lift',
+    text_align: 'left'
+  }
+})
+
+const currentTestimonialSlide = ref(0)
+const visibleSliderTestimonials = computed(() => {
+  const list = testimonialsList.value
+  if (!list.length) return []
+  const perView = Number(testimonialsDesign.value.cards_per_view) || 2
+  const start = currentTestimonialSlide.value % list.length
+  const res = []
+  for (let i = 0; i < Math.min(perView, list.length); i++) {
+    res.push(list[(start + i) % list.length])
+  }
+  return res
+})
+
+function nextTestimonialSlide() {
+  if (testimonialsList.value.length) {
+    currentTestimonialSlide.value = (currentTestimonialSlide.value + 1) % testimonialsList.value.length
+  }
+}
+
+function prevTestimonialSlide() {
+  if (testimonialsList.value.length) {
+    currentTestimonialSlide.value = (currentTestimonialSlide.value - 1 + testimonialsList.value.length) % testimonialsList.value.length
+  }
+}
+
+const presetAvatarsMap = {
+  preset_dev_male: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#1E293B"/><circle cx="40" cy="30" r="14" fill="#FBBF24"/><path d="M18 70c4-14 14-20 22-20s18 6 22 20" fill="#10B981"/><rect x="28" y="26" width="10" height="6" rx="2" fill="none" stroke="#fff" stroke-width="2"/><rect x="42" y="26" width="10" height="6" rx="2" fill="none" stroke="#fff" stroke-width="2"/></svg>')}`,
+  preset_dev_female: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#4C1D95"/><path d="M22 32c0-12 8-18 18-18s18 6 18 18v12H22z" fill="#111827"/><circle cx="40" cy="32" r="13" fill="#FDE68A"/><path d="M18 70c4-13 13-19 22-19s18 6 22 19" fill="#EC4899"/></svg>')}`,
+  preset_ceo: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#0F172A"/><circle cx="40" cy="29" r="14" fill="#FDBA74"/><path d="M16 70c5-15 15-21 24-21s19 6 24 21" fill="#3B82F6"/><polygon points="40,50 36,64 40,70 44,64" fill="#EF4444"/></svg>')}`,
+  preset_designer: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#831843"/><circle cx="40" cy="30" r="14" fill="#FED7AA"/><path d="M18 70c4-14 14-20 22-20s18 6 22 20" fill="#F59E0B"/><path d="M24 22c6-6 26-6 32 0" stroke="#A855F7" stroke-width="6" stroke-linecap="round"/></svg>')}`,
+  preset_startup: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#064E3B"/><circle cx="40" cy="30" r="14" fill="#FDE047"/><path d="M18 70c4-14 14-20 22-20s18 6 22 20" fill="#06B6D4"/></svg>')}`,
+  preset_pm: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#1E3A8A"/><circle cx="40" cy="30" r="14" fill="#FCD34D"/><path d="M18 70c4-14 14-20 22-20s18 6 22 20" fill="#8B5CF6"/></svg>')}`,
+  preset_bot: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#111827"/><rect x="22" y="22" width="36" height="30" rx="8" fill="#10B981"/><circle cx="33" cy="36" r="4" fill="#fff"/><circle cx="47" cy="36" r="4" fill="#fff"/><rect x="30" y="44" width="20" height="3" rx="1.5" fill="#fff"/></svg>')}`,
+  preset_rocket: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#31102F"/><circle cx="40" cy="40" r="22" fill="#F43F5E"/><polygon points="40,22 50,48 40,43 30,48" fill="#fff"/></svg>')}`
+}
+
+function getTestimonialAvatarSrc(testi) {
+  if (!testi) return ''
+  if (testi.avatar_preset && presetAvatarsMap[testi.avatar_preset]) {
+    return presetAvatarsMap[testi.avatar_preset]
+  }
+  if (testi.avatar_url) {
+    return formatImageUrl(testi.avatar_url)
+  }
+  return ''
+}
+
+const contactFormConfig = computed(() => {
+  return layout.value.contact_form || {
+    enabled: true,
+    title: 'Entrons en contact',
+    subtitle: 'Un projet web, mobile ou une opportunité ? Envoyez-moi un message direct.',
+    icon: 'bi-send-check-fill',
+    image_url: '',
+    layout_style: 'split_info_left',
+    text_align: 'left',
+    animation: 'lift',
+    button_text: 'Envoyer le message'
+  }
+})
 
 const socialLinks = computed(() => {
   return props.portfolioUser.social_links || {}
@@ -3331,22 +4348,51 @@ const skillBgPalette = [
 const skillColorPalette = [
   '#166534', '#1E40AF', '#92400E', '#6B21A8', '#9D174D', '#075985', '#9A3412'
 ]
+const skillSolidPalette = [
+  '#10B981', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'
+]
 
-function getSkillBg(idx) {
+function getSkillSolidColor(idx, skill) {
+  const mode = skillsDesign.value.color_mode
+  if (mode === 'accent') return accentColor.value
+  if (mode === 'custom_per_skill' && typeof skill === 'object' && skill?.color) {
+    return skill.color
+  }
+  return skillSolidPalette[idx % skillSolidPalette.length]
+}
+
+function getSkillBg(idx, skill) {
+  const mode = skillsDesign.value.color_mode
+  if (mode === 'accent') return `${accentColor.value}18`
+  if (mode === 'gradient') return `linear-gradient(135deg, ${accentColor.value}22, #6366f122)`
+  if (mode === 'custom_per_skill' && typeof skill === 'object' && skill?.color) {
+    return `${skill.color}18`
+  }
   return skillBgPalette[idx % skillBgPalette.length]
 }
 
-function getSkillColor(idx) {
+function getSkillColor(idx, skill) {
+  const mode = skillsDesign.value.color_mode
+  if (mode === 'accent') return accentColor.value
+  if (mode === 'custom_per_skill' && typeof skill === 'object' && skill?.color) {
+    return skill.color
+  }
   return skillColorPalette[idx % skillColorPalette.length]
 }
 
 function getSkillPercent(skill) {
-  if (typeof skill === 'object' && skill.level) {
-    const l = skill.level.toLowerCase()
-    if (l.includes('expert')) return 95
-    if (l.includes('avancé') || l.includes('avance')) return 80
-    if (l.includes('intermédiaire') || l.includes('intermediaire')) return 60
-    return 40
+  if (typeof skill === 'object' && skill !== null) {
+    if (skill.percent !== undefined && skill.percent !== null && skill.percent !== '') {
+      const p = Number(skill.percent)
+      if (!isNaN(p) && p >= 0 && p <= 100) return p
+    }
+    if (skill.level) {
+      const l = skill.level.toLowerCase()
+      if (l.includes('expert')) return 95
+      if (l.includes('avancé') || l.includes('avance')) return 80
+      if (l.includes('intermédiaire') || l.includes('intermediaire')) return 60
+      return 40
+    }
   }
   return 85
 }
@@ -3419,6 +4465,7 @@ function getBubbleStyle(n) {
 }
 
 let slideshowInterval = null
+let testimonialsInterval = null
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
@@ -3440,6 +4487,14 @@ onMounted(() => {
     }, speed)
   }
 
+  // Testimonials slider autoplay
+  if (testimonialsDesign.value.display_mode === 'slider' && testimonialsDesign.value.autoplay !== false && testimonialsList.value.length > 1) {
+    const tSpeed = (Number(testimonialsDesign.value.speed) || 5) * 1000
+    testimonialsInterval = setInterval(() => {
+      nextTestimonialSlide()
+    }, tSpeed)
+  }
+
   if (typewriterEnabled.value) {
     runTypewriterStep()
   }
@@ -3453,6 +4508,9 @@ onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
   if (slideshowInterval) {
     clearInterval(slideshowInterval)
+  }
+  if (testimonialsInterval) {
+    clearInterval(testimonialsInterval)
   }
   if (typewriterTimer) {
     clearTimeout(typewriterTimer)
@@ -4145,10 +5203,174 @@ onUnmounted(() => {
 }
 
 /* ==========================================================================
+   HAMBURGER LATERAL DRAWER, SECTION HOVER EFFECTS & CUSTOM LAYOUTS
+   ========================================================================== */
+.portfolio-offcanvas-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 2050;
+  animation: pageFade 0.25s ease-out;
+}
+
+.portfolio-offcanvas-drawer {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: min(340px, 86vw);
+  background: #ffffff;
+  color: #0f172a;
+  z-index: 2060;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+}
+.portfolio-offcanvas-drawer.drawer-side-left {
+  left: 0;
+  animation: slideDrawerLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.portfolio-offcanvas-drawer.drawer-side-right {
+  right: 0;
+  animation: slideDrawerRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.portfolio-offcanvas-drawer.drawer-side-fullscreen {
+  left: 0;
+  right: 0;
+  width: 100vw;
+  max-width: 100vw;
+  animation: pageZoom 0.28s ease-out;
+}
+.theme-dark .portfolio-offcanvas-drawer,
+.theme-cyberpunk .portfolio-offcanvas-drawer,
+.theme-emerald-night .portfolio-offcanvas-drawer {
+  background: #111827;
+  color: #f8fafc;
+}
+.theme-dark .portfolio-offcanvas-drawer .bg-light,
+.theme-cyberpunk .portfolio-offcanvas-drawer .bg-light,
+.theme-emerald-night .portfolio-offcanvas-drawer .bg-light {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  color: #f8fafc !important;
+}
+
+@keyframes slideDrawerLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideDrawerRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.about-two-columns {
+  column-count: 1;
+  column-gap: 2.2rem;
+}
+@media (min-width: 768px) {
+  .about-two-columns {
+    column-count: 2;
+  }
+}
+
+.text-justify {
+  text-align: justify;
+}
+
+/* Skill Hover & Animation Effects */
+.skill-hover-lift,
+.exp-hover-lift,
+.elem-anim-lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.skill-hover-lift:hover,
+.exp-hover-lift:hover,
+.elem-anim-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px -8px rgba(15, 23, 42, 0.14) !important;
+}
+
+.skill-hover-glow,
+.exp-hover-glow,
+.elem-anim-glow {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.skill-hover-glow:hover,
+.exp-hover-glow:hover,
+.elem-anim-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.35) !important;
+}
+
+.skill-hover-scale,
+.elem-anim-scale {
+  transition: transform 0.25s ease;
+}
+.skill-hover-scale:hover,
+.elem-anim-scale:hover {
+  transform: scale(1.04);
+}
+
+.skill-hover-border_pulse,
+.exp-hover-border_slide {
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+.skill-hover-border_pulse:hover,
+.exp-hover-border_slide:hover {
+  border-color: var(--accent-color, #00A859) !important;
+  transform: translateX(4px);
+}
+
+.skill-anim-pulse,
+.elem-anim-pulse:hover {
+  animation: pulseLogo 2.2s infinite ease-in-out;
+}
+
+/* Project Hover Effects */
+.project-hover-lift_shadow {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.project-hover-lift_shadow:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 34px -10px rgba(15, 23, 42, 0.18) !important;
+}
+
+.project-hover-glow_border {
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.project-hover-glow_border:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent-color, #00A859) !important;
+  box-shadow: 0 0 24px rgba(0, 168, 89, 0.25) !important;
+}
+
+.project-hover-zoom_visual img {
+  transition: transform 0.45s ease;
+}
+.project-hover-zoom_visual:hover img {
+  transform: scale(1.07);
+}
+
+.project-hover-tilt_3d {
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+.project-hover-tilt_3d:hover {
+  transform: perspective(900px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.16) !important;
+}
+
+.project-hover-slide_accent {
+  transition: transform 0.25s ease, border-left 0.25s ease;
+}
+.project-hover-slide_accent:hover {
+  transform: translateX(6px);
+  border-left: 5px solid var(--accent-color, #00A859) !important;
+}
+
+/* ==========================================================================
    PRINT / PDF EXPORT OPTIMIZATIONS
    ========================================================================== */
 @media print {
-  .portfolio-nav, .btn, .d-print-none, .ambient-effects-layer, .preloader-overlay, .portfolio-tabbed-bar, .portfolio-top-slideshow, .btn-floating-back-to-top {
+  .portfolio-nav, .btn, .d-print-none, .ambient-effects-layer, .preloader-overlay, .portfolio-tabbed-bar, .portfolio-top-slideshow, .btn-floating-back-to-top, .portfolio-offcanvas-backdrop, .portfolio-offcanvas-drawer {
     display: none !important;
   }
   .portfolio-root {
