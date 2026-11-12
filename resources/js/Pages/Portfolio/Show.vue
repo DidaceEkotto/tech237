@@ -129,105 +129,166 @@
       </template>
     </div>
 
-    <!-- TOP FLOATING BAR (Screen only, hidden on print) -->
-    <header class="portfolio-nav sticky-top py-2 px-3 px-md-4 d-print-none shadow-2xs backdrop-blur position-relative z-10">
-      <div class="container d-flex align-items-center justify-content-between">
-        
-        <!-- Brand & Verified Badge -->
-        <div class="d-flex align-items-center gap-2">
-          <Link href="/" class="d-flex align-items-center gap-2 text-decoration-none">
-            <img src="/assets/images/logo.png" alt="Tech237" style="height: 28px; object-fit: contain;">
-            <span class="fw-bold fs-6 nav-brand-text">Tech237</span>
-          </Link>
-          <span class="vr d-none d-sm-block opacity-25 mx-1" style="height: 18px;"></span>
-          <span class="badge rounded-pill px-2 py-1 extra-small fw-semibold border nav-verified-pill d-none d-sm-inline-flex align-items-center gap-1">
-            <i class="bi bi-patch-check-fill text-success"></i>
-            <span>Portfolio vérifié</span>
-          </span>
+    <!-- TOP WEBSITE NAVBAR (Real Personal Website Header + Mobile Menu) -->
+    <header 
+      class="portfolio-nav sticky-top d-print-none position-relative z-20"
+      :class="[
+        websiteNavbar.enabled ? 'website-nav-mode nav-style-' + websiteNavbar.style : 'py-2 px-3 px-md-4 shadow-2xs backdrop-blur'
+      ]"
+    >
+      <div class="container" :style="{ maxWidth: websiteNavbar.enabled ? '1320px' : undefined }">
+        <div 
+          class="d-flex align-items-center justify-content-between gap-2"
+          :class="websiteNavbar.enabled && websiteNavbar.style === 'floating_pill' ? 'website-floating-pill-bar px-3 px-md-4 py-2 rounded-pill shadow-sm border my-2' : 'py-2'"
+        >
+          <!-- Left: Owner Brand Identity (or Tech237 fallback) -->
+          <div class="d-flex align-items-center gap-2 min-w-0">
+            <a 
+              href="#top" 
+              @click.prevent="navigateWebsitePage('home')" 
+              class="d-flex align-items-center gap-2 text-decoration-none min-w-0"
+            >
+              <img 
+                v-if="portfolioUser.avatar" 
+                :src="formatImageUrl(portfolioUser.avatar)" 
+                :alt="portfolioUser.name" 
+                class="rounded-circle border object-fit-cover flex-shrink-0 shadow-2xs"
+                style="width: 36px; height: 36px;"
+              />
+              <div 
+                v-else 
+                class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 extra-small"
+                style="width: 36px; height: 36px;"
+                :style="{ backgroundColor: accentColor }"
+              >
+                {{ getInitials(portfolioUser.name) }}
+              </div>
+              <div class="min-w-0">
+                <span class="fw-bold fs-6 nav-brand-text d-block text-truncate lh-sm">
+                  {{ websiteNavbar.brand_name || portfolioUser.name }}
+                </span>
+                <small v-if="websiteNavbar.brand_subtitle" class="text-muted extra-small d-none d-sm-block text-truncate lh-1">
+                  {{ websiteNavbar.brand_subtitle }}
+                </small>
+              </div>
+            </a>
+            <span class="badge rounded-pill px-2 py-1 extra-small fw-semibold border nav-verified-pill d-none d-xl-inline-flex align-items-center gap-1 ms-1" title="Portfolio certifié sur Tech237">
+              <i class="bi bi-patch-check-fill text-success"></i>
+              <span>Vérifié</span>
+            </span>
+          </div>
+
+          <!-- Center: Real Website Navigation Links (Desktop) -->
+          <nav v-if="websiteNavbar.enabled" class="d-none d-lg-flex align-items-center gap-1">
+            <button
+              v-for="item in websiteNavItems"
+              :key="item.id"
+              type="button"
+              @click="navigateWebsitePage(item.id, item.anchor)"
+              class="btn btn-sm rounded-pill px-3 py-1 fw-semibold transition d-inline-flex align-items-center gap-1 website-nav-link"
+              :class="isWebsiteNavItemActive(item.id) ? 'active text-white shadow-2xs' : ''"
+              :style="isWebsiteNavItemActive(item.id) ? { backgroundColor: accentColor } : {}"
+            >
+              <i class="bi" :class="item.icon"></i>
+              <span>{{ item.label }}</span>
+            </button>
+          </nav>
+
+          <!-- Right: Utility & Primary Website CTA -->
+          <div class="d-flex align-items-center gap-2">
+            <!-- Share Link Copy Button -->
+            <button 
+              type="button" 
+              @click="copyPortfolioLink" 
+              class="btn btn-sm btn-nav-action rounded-pill px-2 px-md-3 fw-semibold d-inline-flex align-items-center gap-1"
+              title="Copier le lien du site"
+            >
+              <i class="bi" :class="isCopied ? 'bi-check-lg text-success' : 'bi-share'"></i>
+              <span class="d-none d-xl-inline">{{ isCopied ? 'Copié !' : 'Partager' }}</span>
+            </button>
+
+            <!-- Digital Business Card (vCard + QR Code) Button -->
+            <button 
+              v-if="vcardEnabled" 
+              type="button" 
+              @click="openVcardModal" 
+              class="btn btn-sm btn-nav-action rounded-pill px-2 px-md-3 fw-semibold d-inline-flex align-items-center gap-1"
+              title="Carte de Visite Digitale (.vcf & QR Code)"
+            >
+              <i class="bi bi-qr-code-scan text-primary"></i>
+              <span class="d-none d-xl-inline">vCard</span>
+            </button>
+
+            <!-- Download CV Button -->
+            <a 
+              v-if="cvFileUrl" 
+              :href="cvFileUrl" 
+              target="_blank" 
+              download
+              class="btn btn-sm btn-nav-action rounded-pill px-2 px-md-3 fw-semibold d-none d-sm-inline-flex align-items-center gap-1 text-decoration-none"
+              title="Télécharger mon CV"
+            >
+              <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+              <span class="d-none d-xl-inline">CV</span>
+            </a>
+
+            <!-- Primary Website CTA Button -->
+            <button 
+              v-if="websiteNavbar.enabled"
+              type="button"
+              @click="navigateWebsitePage('contact', 'portfolioContactSection')"
+              class="btn btn-sm rounded-pill px-3 py-1 fw-bold text-white shadow-sm d-none d-md-inline-flex align-items-center gap-1"
+              :style="{ backgroundColor: accentColor }"
+            >
+              <span>{{ websiteNavbar.cta_text || 'Me contacter' }}</span>
+              <i class="bi bi-arrow-up-right extra-small"></i>
+            </button>
+
+            <!-- Owner Quick Edit Shortcut -->
+            <Link 
+              v-if="isOwner" 
+              href="/espace-utilisateur?section=portfolio" 
+              class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold shadow-2xs d-inline-flex align-items-center gap-1"
+              title="Modifier ce site portfolio"
+            >
+              <i class="bi bi-sliders"></i>
+              <span class="d-none d-sm-inline">Personnaliser</span>
+            </Link>
+
+            <!-- Mobile Burger Menu Button -->
+            <button
+              v-if="websiteNavbar.enabled"
+              type="button"
+              @click="mobileMenuOpen = !mobileMenuOpen"
+              class="btn btn-sm btn-nav-action rounded-circle d-lg-none p-0 d-flex align-items-center justify-content-center"
+              style="width: 36px; height: 36px;"
+              aria-label="Menu"
+            >
+              <i class="bi fs-5" :class="mobileMenuOpen ? 'bi-x-lg' : 'bi-list'"></i>
+            </button>
+          </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="d-flex align-items-center gap-2">
-          <!-- Share Link Copy Button -->
-          <button 
-            type="button" 
-            @click="copyPortfolioLink" 
-            class="btn btn-sm btn-nav-action rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1"
-            title="Copier mon lien de partage public"
-          >
-            <i class="bi" :class="isCopied ? 'bi-check-lg text-success' : 'bi-link-45deg'"></i>
-            <span>{{ isCopied ? 'Lien copié !' : 'Partager' }}</span>
-          </button>
-
-          <!-- WhatsApp Direct Share -->
-          <a 
-            :href="whatsappShareUrl" 
-            target="_blank" 
-            class="btn btn-sm btn-success rounded-circle shadow-2xs p-0 d-flex align-items-center justify-content-center"
-            style="width: 32px; height: 32px; background-color: #25D366; border-color: #25D366;"
-            title="Partager sur WhatsApp"
-          >
-            <i class="bi bi-whatsapp text-white" style="font-size: 14px;"></i>
-          </a>
-
-          <!-- LinkedIn Direct Share -->
-          <a 
-            :href="linkedinShareUrl" 
-            target="_blank" 
-            class="btn btn-sm btn-primary rounded-circle shadow-2xs p-0 d-flex align-items-center justify-content-center"
-            style="width: 32px; height: 32px; background-color: #0A66C2; border-color: #0A66C2;"
-            title="Partager sur LinkedIn"
-          >
-            <i class="bi bi-linkedin text-white" style="font-size: 13px;"></i>
-          </a>
-
-          <!-- Digital Business Card (vCard + QR Code) Button -->
-          <button 
-            v-if="vcardEnabled" 
-            type="button" 
-            @click="openVcardModal" 
-            class="btn btn-sm btn-nav-action rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1"
-            title="Carte de Visite Digitale (.vcf & QR Code)"
-          >
-            <i class="bi bi-qr-code-scan text-primary"></i>
-            <span class="d-none d-md-inline">Carte de visite</span>
-          </button>
-
-          <!-- Download CV Button (Custom File or PDF Print) -->
-          <a 
-            v-if="cvFileUrl" 
-            :href="cvFileUrl" 
-            target="_blank" 
-            download
-            class="btn btn-sm btn-nav-action rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1 text-decoration-none"
-            title="Télécharger mon CV au format officiel"
-          >
-            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
-            <span class="d-none d-md-inline">Télécharger CV</span>
-          </a>
-          <button 
-            v-else 
-            type="button" 
-            @click="printCV" 
-            class="btn btn-sm btn-nav-action rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1"
-            title="Exporter ou Imprimer ce CV en PDF"
-          >
-            <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
-            <span class="d-none d-md-inline">Exporter PDF</span>
-          </button>
-
-          <!-- Owner Quick Edit Shortcut -->
-          <Link 
-            v-if="isOwner" 
-            href="/espace-utilisateur?section=portfolio" 
-            class="btn btn-sm btn-warning text-dark rounded-pill px-3 fw-bold shadow-2xs d-inline-flex align-items-center gap-1"
-            title="Modifier ce portfolio"
-          >
-            <i class="bi bi-sliders"></i>
-            <span class="d-none d-sm-inline">Personnaliser</span>
-          </Link>
+        <!-- Mobile Dropdown Navigation Drawer -->
+        <div v-if="websiteNavbar.enabled && mobileMenuOpen" class="d-lg-none py-3 px-3 mb-2 rounded-4 border shadow-lg content-card">
+          <div class="d-flex flex-column gap-1">
+            <button
+              v-for="item in websiteNavItems"
+              :key="'mob-' + item.id"
+              type="button"
+              @click="navigateWebsitePage(item.id, item.anchor); mobileMenuOpen = false"
+              class="btn btn-sm rounded-3 py-2 px-3 text-start fw-bold d-flex align-items-center justify-content-between"
+              :class="isWebsiteNavItemActive(item.id) ? 'text-white' : 'text-dark'"
+              :style="isWebsiteNavItemActive(item.id) ? { backgroundColor: accentColor } : {}"
+            >
+              <span class="d-flex align-items-center gap-2">
+                <i class="bi" :class="item.icon"></i>
+                {{ item.label }}
+              </span>
+              <i class="bi bi-chevron-right extra-small"></i>
+            </button>
+          </div>
         </div>
-
       </div>
     </header>
 
@@ -823,13 +884,140 @@
             
             <div 
               v-if="block.enabled && shouldRenderBlock(block.id) && isBlockActiveInTab(block.id)" 
+              :id="'block-' + block.id"
               :class="getBlockGridClass(block)"
             >
               <!-- 1. HERO / HEADER BLOCK -->
               <section v-if="block.id === 'hero'" class="portfolio-block h-100">
                 
+                <!-- Variant: Agency Landing 2-Columns (Real Website Hero) -->
+                <div v-if="heroStyle === 'agency_landing'" class="hero-box hero-agency-landing p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
+                  <div class="hero-glow-orb"></div>
+                  <div class="row align-items-center g-4 g-lg-5 position-relative z-1">
+                    <!-- Left Column: Marketing Pitch, Headline, CTAs -->
+                    <div class="col-lg-7 text-center text-lg-start">
+                      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3 availability-pill" :class="getAvailabilityClass(portfolioUser.availability)">
+                        <span class="status-pulse-dot"></span>
+                        <span>{{ getAvailabilityLabel(portfolioUser.availability) }}</span>
+                      </div>
+
+                      <h1 class="display-5 fw-black mb-2 user-name-heading lh-sm">
+                        {{ portfolioUser.name }}
+                      </h1>
+
+                      <p class="fs-4 fw-bold mb-3 user-headline-text" :style="{ color: accentColor }">
+                        <span>{{ displayedHeadline }}</span>
+                        <span v-if="typewriterEnabled" class="typewriter-cursor">|</span>
+                      </p>
+
+                      <p v-if="portfolioUser.bio" class="text-muted mb-4 leading-relaxed" style="font-size: 1.02rem;">
+                        {{ stripHtmlTags(portfolioUser.bio).slice(0, 240) }}{{ stripHtmlTags(portfolioUser.bio).length > 240 ? '...' : '' }}
+                      </p>
+
+                      <!-- Primary & Secondary Website CTA Buttons -->
+                      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start gap-2 mb-4 d-print-none">
+                        <button 
+                          type="button"
+                          @click="navigateWebsitePage('contact', 'portfolioContactSection')"
+                          class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
+                          :style="{ backgroundColor: accentColor }"
+                        >
+                          <i class="bi bi-send-fill"></i>
+                          <span>{{ websiteNavbar.cta_text || 'Démarrer un projet' }}</span>
+                        </button>
+
+                        <button 
+                          v-if="projects && projects.length"
+                          type="button"
+                          @click="navigateWebsitePage('projects', 'block-projects')"
+                          class="btn btn-outline-dark rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2"
+                        >
+                          <i class="bi bi-grid-1x2-fill"></i>
+                          <span>Voir mes réalisations ({{ projects.length }})</span>
+                        </button>
+
+                        <button 
+                          v-if="audioPitchEnabled && effectiveAudioPitchText" 
+                          type="button" 
+                          @click="handleAudioPitchClick" 
+                          class="btn btn-light border rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-2 shadow-2xs"
+                        >
+                          <i class="bi text-success" :class="isPlaying && !isPaused ? 'bi-pause-circle-fill' : 'bi-mic-fill'"></i>
+                          <span>{{ isPlaying && !isPaused ? 'Pause Pitch' : (isPaused ? 'Reprendre' : 'Pitch Vocal') }}</span>
+                        </button>
+
+                        <button 
+                          v-if="vcardEnabled" 
+                          type="button" 
+                          @click="openVcardModal" 
+                          class="btn btn-light border rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-2xs"
+                        >
+                          <i class="bi bi-qr-code text-primary"></i>
+                          <span>vCard</span>
+                        </button>
+                      </div>
+
+                      <!-- Quick Meta Badges -->
+                      <div class="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start gap-2">
+                        <span v-if="portfolioUser.location" class="badge rounded-pill px-3 py-2 meta-pill">
+                          <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ portfolioUser.location }}
+                        </span>
+                        <span v-if="yearsOfExperience" class="badge rounded-pill px-3 py-2 meta-pill">
+                          <i class="bi bi-briefcase-fill text-primary me-1"></i>{{ yearsOfExperience }}
+                        </span>
+                        <span class="badge rounded-pill px-3 py-2 meta-pill">
+                          <i class="bi bi-trophy-fill text-warning me-1"></i>{{ portfolioUser.rank_title || 'Membre Vérifié' }} &bull; {{ portfolioUser.xp || 0 }} XP
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Right Column: Visual Showcase Card with Floating Badges -->
+                    <div class="col-lg-5 text-center">
+                      <div class="agency-hero-visual-wrapper position-relative d-inline-block p-4">
+                        <div class="agency-visual-backdrop rounded-4" :style="{ backgroundColor: accentColor + '18', borderColor: accentColor + '40' }"></div>
+                        <div class="position-relative d-inline-block">
+                          <img 
+                            v-if="portfolioUser.avatar" 
+                            :src="formatImageUrl(portfolioUser.avatar)" 
+                            :alt="portfolioUser.name"
+                            class="border border-4 border-white shadow-lg agency-hero-avatar"
+                            :class="[avatarShapeClass, avatarBorderClass]"
+                          />
+                          <div 
+                            v-else 
+                            class="border border-4 border-white shadow-lg text-white fw-bold d-flex align-items-center justify-content-center agency-hero-avatar mx-auto"
+                            :class="[avatarShapeClass, avatarBorderClass]"
+                            :style="{ backgroundColor: accentColor }"
+                          >
+                            {{ getInitials(portfolioUser.name) }}
+                          </div>
+                          <span v-if="showOnlinePulse" class="avatar-online-pulse-badge" title="En ligne & Actif"></span>
+                        </div>
+
+                        <!-- Floating Badge 1: Top-Right -->
+                        <div class="agency-floating-badge badge-top-right bg-white text-dark shadow rounded-4 px-3 py-2 border d-none d-sm-flex align-items-center gap-2">
+                          <i class="bi bi-patch-check-fill fs-5 text-success"></i>
+                          <div class="text-start lh-1">
+                            <strong class="d-block extra-small">Profil Vérifié</strong>
+                            <span class="text-muted" style="font-size: 10px;">Tech237 Official</span>
+                          </div>
+                        </div>
+
+                        <!-- Floating Badge 2: Bottom-Left -->
+                        <div class="agency-floating-badge badge-bottom-left bg-white text-dark shadow rounded-4 px-3 py-2 border d-none d-sm-flex align-items-center gap-2">
+                          <i class="bi bi-code-slash fs-5" :style="{ color: accentColor }"></i>
+                          <div class="text-start lh-1">
+                            <strong class="d-block extra-small">{{ (portfolioUser.skills || []).length || '+5' }} Compétences</strong>
+                            <span class="text-muted" style="font-size: 10px;">{{ (projects || []).length }} Projet(s) publiés</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Variant: Centered (Default) -->
-                <div v-if="heroStyle === 'centered'" class="hero-box hero-centered text-center p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
+                <div v-else-if="heroStyle === 'centered'" class="hero-box hero-centered text-center p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
                   <div class="hero-glow-orb"></div>
                   <div class="position-relative z-1">
                     <!-- Avatar with Shape, Border & Online Pulse -->
@@ -1174,6 +1362,31 @@
                   </div>
                 </div>
 
+                <!-- WEBSITE KPI STATS STRIP (Right under Hero) -->
+                <div v-if="kpiStatsConfig.enabled && kpiStatsItems.length" class="row g-3 mt-3 d-print-none">
+                  <div v-for="(kpi, kIdx) in kpiStatsItems" :key="kIdx" class="col-6 col-md-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 text-center content-card h-100 transition-hover">
+                      <div class="fs-3 fw-black mb-1" :style="{ color: accentColor }">{{ kpi.value }}</div>
+                      <div class="extra-small fw-semibold text-muted">{{ kpi.label }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- INFINITE TECH MARQUEE RIBBON -->
+                <div v-if="techMarqueeEnabled && portfolioUser.skills && portfolioUser.skills.length" class="tech-marquee-container rounded-4 border shadow-2xs mt-3 py-2 px-3 overflow-hidden content-card d-print-none">
+                  <div class="tech-marquee-track d-flex align-items-center gap-4">
+                    <span 
+                      v-for="(sk, mIdx) in marqueeSkillsLoop" 
+                      :key="'mq-' + mIdx" 
+                      class="d-inline-flex align-items-center gap-2 small fw-bold text-nowrap"
+                    >
+                      <i class="bi bi-Stars text-warning" :style="{ color: accentColor }">✦</i>
+                      <span>{{ typeof sk === 'object' ? sk.name : sk }}</span>
+                      <span v-if="typeof sk === 'object' && sk.level" class="badge bg-light text-muted border extra-small">{{ sk.level }}</span>
+                    </span>
+                  </div>
+                </div>
+
               </section>
 
               <!-- 2. ABOUT / BIO BLOCK -->
@@ -1293,8 +1506,79 @@
                   </span>
                 </div>
 
+                <!-- ZIG-ZAG ALTERNATING AGENCY SHOWCASE VARIANT -->
+                <div v-if="projectsStyle === 'zigzag'" class="d-flex flex-column gap-4">
+                  <div 
+                    v-for="(proj, zIdx) in projects" 
+                    :key="proj.id" 
+                    class="card border-0 rounded-4 shadow-sm content-card overflow-hidden p-4 p-md-5 transition-hover"
+                  >
+                    <div class="row align-items-center g-4" :class="zIdx % 2 === 1 ? 'flex-md-row-reverse' : ''">
+                      <!-- Visual / Showcase Column -->
+                      <div class="col-md-5">
+                        <div 
+                          class="p-4 rounded-4 d-flex flex-column align-items-center justify-content-center text-center position-relative overflow-hidden border"
+                          style="min-height: 210px;"
+                          :style="{ background: `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}05 100%)` }"
+                        >
+                          <img 
+                            v-if="proj.logo" 
+                            :src="formatImageUrl(proj.logo)" 
+                            :alt="proj.name"
+                            class="rounded-4 shadow-sm border bg-white p-2 mb-3"
+                            style="width: 88px; height: 88px; object-fit: contain;"
+                          />
+                          <div 
+                            v-else 
+                            class="rounded-4 text-white fw-bold d-flex align-items-center justify-content-center shadow-sm mb-3"
+                            style="width: 88px; height: 88px; font-size: 32px;"
+                            :style="{ backgroundColor: accentColor }"
+                          >
+                            <i class="bi bi-rocket-takeoff"></i>
+                          </div>
+                          <span class="badge rounded-pill bg-white text-dark border px-3 py-1 extra-small fw-bold shadow-2xs">
+                            {{ proj.category || 'Solution Digitale' }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Project Case Study Details Column -->
+                      <div class="col-md-7">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                          <span class="badge rounded-pill text-white extra-small px-3 py-1" :style="{ backgroundColor: accentColor }">
+                            Projet #{{ zIdx + 1 }}
+                          </span>
+                          <span v-if="proj.views_count" class="extra-small text-muted">
+                            <i class="bi bi-eye me-1"></i>{{ proj.views_count }} vues
+                          </span>
+                        </div>
+                        <h3 class="h4 fw-bold mb-2 text-dark">{{ proj.name }}</h3>
+                        <div class="text-muted mb-4 leading-relaxed" v-html="formatHtml(proj.pitch || proj.description || 'Projet innovant développé et propulsé sur Tech237.')"></div>
+
+                        <div class="d-flex flex-wrap align-items-center gap-2 d-print-none">
+                          <button 
+                            type="button" 
+                            @click="openCaseStudyModal(proj)" 
+                            class="btn btn-sm rounded-pill px-4 py-2 fw-bold text-white shadow-2xs"
+                            :style="{ backgroundColor: accentColor }"
+                          >
+                            <i class="bi bi-journal-richtext me-1"></i> Étude de cas (Aperçu)
+                          </button>
+                          <a 
+                            :href="'/projet/' + (proj.slug || proj.id)" 
+                            target="_blank" 
+                            class="btn btn-sm btn-outline-dark rounded-pill px-4 py-2 fw-semibold"
+                          >
+                            Fiche complète &rarr;
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- CAROUSEL / SLIDER VARIANT -->
-                <div v-if="projectsStyle === 'carousel'" class="carousel-project-container card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
+                <div v-else-if="projectsStyle === 'carousel'" class="carousel-project-container card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card">
                   <div v-if="projects[currentProjectSlide]" class="d-flex flex-column gap-3">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                       <div class="d-flex align-items-center gap-3">
@@ -1403,9 +1687,14 @@
                           <span v-if="proj.views_count"><i class="bi bi-eye me-1"></i>{{ proj.views_count }}</span>
                           <span v-if="proj.upvotes_count"><i class="bi bi-heart-fill text-danger me-1"></i>{{ proj.upvotes_count }}</span>
                         </div>
-                        <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold extra-small d-print-none">
-                          Voir la fiche &rarr;
-                        </a>
+                        <div class="d-flex align-items-center gap-1 d-print-none">
+                          <button type="button" @click="openCaseStudyModal(proj)" class="btn btn-sm btn-light border rounded-pill px-3 fw-semibold extra-small">
+                            <i class="bi bi-eye-fill me-1"></i> Aperçu
+                          </button>
+                          <a :href="'/projet/' + (proj.slug || proj.id)" target="_blank" class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-semibold extra-small">
+                            Fiche &rarr;
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1665,6 +1954,36 @@
                 </div>
               </section>
 
+              <!-- 9.E.0 WORK PROCESS / METHODOLOGY IN 4 STEPS BLOCK -->
+              <section v-else-if="block.id === 'process' && hasWorkProcess" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center justify-content-between mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="section-icon-badge" :style="{ color: accentColor }">
+                        <i class="bi bi-diagram-3-fill fs-5"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">{{ workProcessConfig.title || 'Comment je travaille (En 4 étapes)' }}</h2>
+                    </div>
+                  </div>
+
+                  <div class="row g-4">
+                    <div v-for="(step, stIdx) in workProcessSteps" :key="stIdx" class="col-md-6 col-lg-3">
+                      <div class="p-4 rounded-4 bg-light border h-100 position-relative transition-hover">
+                        <div 
+                          class="rounded-circle text-white fw-black d-flex align-items-center justify-content-center mb-3 shadow-sm"
+                          style="width: 42px; height: 42px; font-size: 16px;"
+                          :style="{ backgroundColor: accentColor }"
+                        >
+                          0{{ stIdx + 1 }}
+                        </div>
+                        <h3 class="h6 fw-bold text-dark mb-2">{{ step.title }}</h3>
+                        <p class="extra-small text-muted leading-relaxed mb-0">{{ step.description }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               <!-- 9.E PRICING PACKAGES & SERVICES BLOCK -->
               <section v-else-if="block.id === 'pricing' && pricingPackagesList.length" class="portfolio-block h-100">
                 <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
@@ -1744,6 +2063,39 @@
                             <span class="extra-small text-muted d-block text-truncate">{{ testi.author_role }}</span>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9.G INTERACTIVE FAQ ACCORDION BLOCK -->
+              <section v-else-if="block.id === 'faq' && faqItemsList.length" class="portfolio-block h-100">
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex align-items-center gap-2 mb-4">
+                    <span class="section-icon-badge" :style="{ color: accentColor }">
+                      <i class="bi bi-question-circle-fill fs-5"></i>
+                    </span>
+                    <h2 class="h5 fw-bold mb-0 section-heading">Questions Fréquentes (FAQ)</h2>
+                  </div>
+
+                  <div class="d-flex flex-column gap-3">
+                    <div 
+                      v-for="(faq, fIdx) in faqItemsList" 
+                      :key="fIdx" 
+                      class="rounded-4 border overflow-hidden transition"
+                      :class="openFaqIdx === fIdx ? 'bg-white shadow-2xs' : 'bg-light'"
+                    >
+                      <button 
+                        type="button" 
+                        @click="openFaqIdx = openFaqIdx === fIdx ? -1 : fIdx"
+                        class="btn w-100 p-3 p-md-4 text-start d-flex align-items-center justify-content-between fw-bold text-dark border-0"
+                      >
+                        <span>{{ faq.question }}</span>
+                        <i class="bi fs-5 transition" :class="openFaqIdx === fIdx ? 'bi-dash-circle-fill' : 'bi-plus-circle'" :style="openFaqIdx === fIdx ? { color: accentColor } : {}"></i>
+                      </button>
+                      <div v-if="openFaqIdx === fIdx" class="px-3 px-md-4 pb-4 pt-0 small text-muted leading-relaxed border-top pt-3">
+                        {{ faq.answer }}
                       </div>
                     </div>
                   </div>
@@ -1864,38 +2216,152 @@
 
       </main>
 
-      <!-- CUSTOMIZABLE GLOBAL FOOTER -->
-      <footer class="portfolio-global-footer py-5 mt-5 border-top d-print-none text-center position-relative z-10">
-        <div class="container">
-          <!-- Custom Footer Text -->
-          <p v-if="footerConfig.custom_text" class="fw-semibold text-dark mb-2" v-html="formatHtml(footerConfig.custom_text)"></p>
+      <!-- CUSTOMIZABLE GLOBAL FOOTER (Multi-Column Real Website Footer or Minimal) -->
+      <footer class="portfolio-global-footer py-5 mt-5 border-top d-print-none position-relative z-10">
+        <div class="container" :style="{ maxWidth: websiteNavbar.enabled ? '1320px' : undefined }">
           
-          <!-- Social Icons if enabled -->
-          <div v-if="footerConfig.show_socials !== false && hasSocialLinks" class="d-flex align-items-center justify-content-center gap-2 mb-3">
-            <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
-              <i class="bi bi-github"></i>
-            </a>
-            <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
-              <i class="bi bi-linkedin text-primary"></i>
-            </a>
-            <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
-              <i class="bi bi-twitter-x"></i>
-            </a>
-            <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
-              <i class="bi bi-globe2 text-info"></i>
-            </a>
+          <!-- Multi-Column Website Footer -->
+          <div v-if="footerConfig.layout_style !== 'minimal'" class="row g-4 text-start pb-4 mb-4 border-bottom">
+            <!-- Col 1: Brand & Bio -->
+            <div class="col-lg-4">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <img 
+                  v-if="portfolioUser.avatar" 
+                  :src="formatImageUrl(portfolioUser.avatar)" 
+                  :alt="portfolioUser.name" 
+                  class="rounded-circle border object-fit-cover" 
+                  style="width: 42px; height: 42px;"
+                />
+                <div>
+                  <strong class="d-block fs-6">{{ websiteNavbar.brand_name || portfolioUser.name }}</strong>
+                  <span class="extra-small text-muted">{{ portfolioUser.headline || 'Expert & Bâtisseur Tech' }}</span>
+                </div>
+              </div>
+              <p class="extra-small text-muted leading-relaxed mb-3">
+                {{ stripHtmlTags(portfolioUser.bio || seoDescription).slice(0, 180) }}
+              </p>
+              <div v-if="footerConfig.show_socials !== false && hasSocialLinks" class="d-flex align-items-center gap-2">
+                <a v-if="socialLinks.github" :href="socialLinks.github" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+                  <i class="bi bi-github"></i>
+                </a>
+                <a v-if="socialLinks.linkedin" :href="socialLinks.linkedin" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+                  <i class="bi bi-linkedin text-primary"></i>
+                </a>
+                <a v-if="socialLinks.twitter" :href="socialLinks.twitter" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+                  <i class="bi bi-twitter-x"></i>
+                </a>
+                <a v-if="socialLinks.website" :href="socialLinks.website" target="_blank" class="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-2xs" style="width: 34px; height: 34px;">
+                  <i class="bi bi-globe2 text-info"></i>
+                </a>
+              </div>
+            </div>
+
+            <!-- Col 2: Quick Website Sitemap -->
+            <div class="col-6 col-lg-2">
+              <h4 class="h6 fw-bold mb-3">Navigation</h4>
+              <ul class="list-unstyled d-flex flex-column gap-2 extra-small mb-0">
+                <li v-for="item in websiteNavItems" :key="'ft-' + item.id">
+                  <a href="#" @click.prevent="navigateWebsitePage(item.id, item.anchor)" class="text-muted text-decoration-none fw-semibold">
+                    {{ item.label }}
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Col 3: Top Skills / Services -->
+            <div class="col-6 col-lg-3">
+              <h4 class="h6 fw-bold mb-3">Expertises clés</h4>
+              <div class="d-flex flex-wrap gap-1">
+                <span 
+                  v-for="(sk, sIdx) in (portfolioUser.skills || []).slice(0, 8)" 
+                  :key="'ft-sk-' + sIdx" 
+                  class="badge bg-light text-dark border extra-small"
+                >
+                  {{ typeof sk === 'object' ? sk.name : sk }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Col 4: Direct Contact & vCard -->
+            <div class="col-lg-3">
+              <h4 class="h6 fw-bold mb-3">Contact Rapide</h4>
+              <div class="d-flex flex-column gap-2 extra-small text-muted mb-3">
+                <div v-if="portfolioUser.location">
+                  <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ portfolioUser.location }}
+                </div>
+                <div>
+                  <i class="bi bi-check-circle-fill text-success me-1"></i> {{ getAvailabilityLabel(portfolioUser.availability) }}
+                </div>
+              </div>
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" @click="navigateWebsitePage('contact', 'portfolioContactSection')" class="btn btn-xs rounded-pill px-3 py-1 fw-bold text-white" :style="{ backgroundColor: accentColor }">
+                  M'écrire
+                </button>
+                <button v-if="vcardEnabled" type="button" @click="openVcardModal" class="btn btn-xs btn-outline-secondary rounded-pill px-3 py-1 fw-semibold">
+                  <i class="bi bi-qr-code me-1"></i> vCard
+                </button>
+              </div>
+            </div>
           </div>
 
-          <!-- Tech237 Signature Badge if enabled -->
-          <div v-if="footerConfig.show_tech237_badge !== false" class="d-flex align-items-center justify-content-center gap-2 mb-1">
-            <img src="/assets/images/logo.png" alt="Tech237" style="height: 20px; object-fit: contain;">
-            <span class="fw-bold small text-muted">Tech237 Community</span>
+          <!-- Bottom Copyright & Tech237 Verified Bar -->
+          <div class="text-center">
+            <p v-if="footerConfig.custom_text" class="fw-semibold mb-2" v-html="formatHtml(footerConfig.custom_text)"></p>
+            <div v-if="footerConfig.show_tech237_badge !== false" class="d-flex align-items-center justify-content-center gap-2 mb-1">
+              <img src="/assets/images/logo.png" alt="Tech237" style="height: 18px; object-fit: contain;">
+              <span class="fw-bold extra-small text-muted">Propulsé &amp; Vérifié par Tech237</span>
+            </div>
           </div>
-          <p v-if="footerConfig.show_tech237_badge !== false" class="extra-small text-muted mb-0">
-            Portfolio vérifié hébergé sur Tech237 &bull; Le média et réseau d'innovation tech au Cameroun.
-          </p>
         </div>
       </footer>
+
+      <!-- MODAL: PROJECT CASE STUDY (QUICK-VIEW) -->
+      <div v-if="selectedCaseStudyProject" class="modal fade show d-block d-print-none" tabindex="-1" style="background-color: rgba(0,0,0,0.65); z-index: 1085;" @click.self="selectedCaseStudyProject = null">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header text-white p-4 border-0" :style="{ backgroundColor: accentColor }">
+              <div class="d-flex align-items-center gap-3">
+                <img 
+                  v-if="selectedCaseStudyProject.logo" 
+                  :src="formatImageUrl(selectedCaseStudyProject.logo)" 
+                  class="rounded-3 bg-white p-1 object-fit-contain" 
+                  style="width: 52px; height: 52px;" 
+                  :alt="selectedCaseStudyProject.name"
+                />
+                <div>
+                  <span class="badge bg-white text-dark extra-small mb-1">{{ selectedCaseStudyProject.category || 'Projet Tech' }}</span>
+                  <h5 class="modal-title fw-bold mb-0">{{ selectedCaseStudyProject.name }}</h5>
+                </div>
+              </div>
+              <button type="button" @click="selectedCaseStudyProject = null" class="btn-close btn-close-white"></button>
+            </div>
+            <div class="modal-body p-4 p-md-5 bg-white text-dark">
+              <h6 class="fw-bold text-uppercase extra-small text-muted mb-2">Présentation &amp; Étude de cas</h6>
+              <div class="text-content leading-relaxed mb-4" v-html="formatHtml(selectedCaseStudyProject.description || selectedCaseStudyProject.pitch || 'Projet développé et présenté sur Tech237.')"></div>
+
+              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 pt-3 border-top">
+                <div class="d-flex align-items-center gap-3 small text-muted">
+                  <span v-if="selectedCaseStudyProject.views_count"><i class="bi bi-eye me-1"></i>{{ selectedCaseStudyProject.views_count }} consultations</span>
+                  <span v-if="selectedCaseStudyProject.upvotes_count"><i class="bi bi-heart-fill text-danger me-1"></i>{{ selectedCaseStudyProject.upvotes_count }} soutiens</span>
+                </div>
+                <div class="d-flex gap-2">
+                  <button type="button" @click="selectedCaseStudyProject = null" class="btn btn-sm btn-light border rounded-pill px-3 fw-semibold">
+                    Fermer
+                  </button>
+                  <a 
+                    :href="'/projet/' + (selectedCaseStudyProject.slug || selectedCaseStudyProject.id)" 
+                    target="_blank" 
+                    class="btn btn-sm rounded-pill px-4 fw-bold text-white"
+                    :style="{ backgroundColor: accentColor }"
+                  >
+                    Ouvrir la page officielle du projet &rarr;
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- FLOATING WHATSAPP DIRECT BUBBLE -->
       <a 
@@ -2055,8 +2521,8 @@ const currentStructure = computed(() => layout.value.layout_structure || 'single
 const currentFont = computed(() => layout.value.font_family || 'poppins')
 const currentPattern = computed(() => layout.value.bg_pattern || 'none')
 const accentColor = computed(() => layout.value.accent_color || '#00A859')
-const heroStyle = computed(() => layout.value.hero_style || 'centered')
-const projectsStyle = computed(() => layout.value.projects_style || 'cards')
+const heroStyle = computed(() => layout.value.hero_style || 'agency_landing')
+const projectsStyle = computed(() => layout.value.projects_style || 'zigzag')
 const skillsStyle = computed(() => layout.value.skills_style || 'chips')
 const ambientEffect = computed(() => layout.value.ambient_effect || 'none')
 const pageAnimation = computed(() => layout.value.page_animation || 'fade')
@@ -2280,6 +2746,125 @@ const testimonialsList = computed(() => {
   return (Array.isArray(layout.value.testimonials) ? layout.value.testimonials : []).filter(t => t && t.comment)
 })
 
+// 10. Real Website Navbar, Multi-Page Routing, KPIs, Marquee, Process, Case Study Modal & FAQ
+const mobileMenuOpen = ref(false)
+const currentWebsitePage = ref('home')
+const selectedCaseStudyProject = ref(null)
+const openFaqIdx = ref(0)
+
+const websiteNavbar = computed(() => {
+  const nav = layout.value.website_navbar
+  if (!nav) {
+    return {
+      enabled: true,
+      style: 'floating_pill',
+      navigation_mode: 'multi_page',
+      brand_name: '',
+      brand_subtitle: '',
+      cta_text: 'Me contacter'
+    }
+  }
+  return {
+    enabled: nav.enabled !== false,
+    style: nav.style || 'floating_pill',
+    navigation_mode: nav.navigation_mode || 'multi_page',
+    brand_name: nav.brand_name || '',
+    brand_subtitle: nav.brand_subtitle || '',
+    cta_text: nav.cta_text || 'Me contacter'
+  }
+})
+
+const websiteNavItems = computed(() => {
+  const items = [
+    { id: 'home', label: 'Accueil', icon: 'bi-house-door-fill', anchor: 'block-hero' },
+    { id: 'about', label: 'À Propos & Parcours', icon: 'bi-person-badge-fill', anchor: 'block-about' },
+  ]
+  if ((props.projects && props.projects.length) || (props.pocs && props.pocs.length) || hasGithubStats.value) {
+    items.push({ id: 'projects', label: 'Réalisations', icon: 'bi-rocket-takeoff-fill', anchor: 'block-projects' })
+  }
+  if (pricingPackagesList.value.length || hasWorkProcess.value || testimonialsList.value.length || faqItemsList.value.length) {
+    items.push({ id: 'services', label: 'Services & Tarifs', icon: 'bi-tags-fill', anchor: 'block-pricing' })
+  }
+  items.push({ id: 'contact', label: 'Contact', icon: 'bi-envelope-paper-fill', anchor: 'portfolioContactSection' })
+  return items
+})
+
+function isWebsiteNavItemActive(pageId) {
+  if (websiteNavbar.value.navigation_mode === 'multi_page') {
+    return currentWebsitePage.value === pageId
+  }
+  return pageId === 'home'
+}
+
+function navigateWebsitePage(pageId, anchorId) {
+  if (websiteNavbar.value.enabled && websiteNavbar.value.navigation_mode === 'multi_page') {
+    currentWebsitePage.value = pageId
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+  if (anchorId) {
+    const el = document.getElementById(anchorId)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const kpiStatsConfig = computed(() => {
+  return layout.value.kpi_stats || { enabled: true, items: [] }
+})
+
+const kpiStatsItems = computed(() => {
+  if (Array.isArray(kpiStatsConfig.value.items) && kpiStatsConfig.value.items.length) {
+    return kpiStatsConfig.value.items.filter(k => k && (k.value || k.label))
+  }
+  return [
+    { value: props.projects?.length ? `+${props.projects.length}` : '+10', label: 'Projets & Réalisations' },
+    { value: yearsOfExperience.value || '100%', label: yearsOfExperience.value ? 'Expérience métier' : 'Engagement & Qualité' },
+    { value: `${props.portfolioUser.xp || 100} XP`, label: props.portfolioUser.rank_title || 'Membre Vérifié Tech237' },
+    { value: '24h', label: 'Réactivité & Écoute' }
+  ]
+})
+
+const techMarqueeEnabled = computed(() => layout.value.tech_marquee_enabled !== false)
+const marqueeSkillsLoop = computed(() => {
+  const s = props.portfolioUser.skills || []
+  if (!s.length) return []
+  return [...s, ...s, ...s]
+})
+
+const workProcessConfig = computed(() => {
+  return layout.value.work_process || { enabled: true, title: 'Comment je travaille (En 4 étapes)', steps: [] }
+})
+const workProcessSteps = computed(() => {
+  if (Array.isArray(workProcessConfig.value.steps) && workProcessConfig.value.steps.length) {
+    return workProcessConfig.value.steps.filter(st => st && st.title)
+  }
+  return [
+    { title: '1. Audit & Cadrage', description: 'Analyse de vos besoins, définition des objectifs et rédaction du cahier des charges.' },
+    { title: '2. Design & Architecture', description: 'Conception UI/UX moderne et choix d\'une architecture technique robuste et évolutive.' },
+    { title: '3. Développement Agile', description: 'Développement itératif avec code propre, tests de sécurité et démonstrations régulières.' },
+    { title: '4. Déploiement & Suivi', description: 'Mise en production, optimisation des performances et accompagnement technique.' }
+  ]
+})
+const hasWorkProcess = computed(() => Boolean(workProcessConfig.value?.enabled !== false && workProcessSteps.value.length))
+
+const faqSectionConfig = computed(() => layout.value.faq_section || { enabled: false, items: [] })
+const faqItemsList = computed(() => {
+  return (Array.isArray(faqSectionConfig.value.items) ? faqSectionConfig.value.items : []).filter(f => f && f.question)
+})
+
+function openCaseStudyModal(proj) {
+  selectedCaseStudyProject.value = proj
+}
+
+function stripHtmlTags(str) {
+  if (!str) return ''
+  return String(str).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
+
 function parsePackageFeatures(featuresStr) {
   if (!featuresStr) return []
   if (Array.isArray(featuresStr)) return featuresStr
@@ -2467,11 +3052,31 @@ const availableTabs = computed(() => {
 })
 
 function isBlockActiveInTab(blockId) {
-  if (!isTabbedMode.value) return true
-  if (activeTab.value === 'all') return true
-  if (activeTab.value === blockId) return true
-  if (activeTab.value === 'about' && blockId === 'hero') return true
-  return false
+  if (isTabbedMode.value) {
+    if (activeTab.value === 'all') return true
+    if (activeTab.value === blockId) return true
+    if (activeTab.value === 'about' && blockId === 'hero') return true
+    return false
+  }
+  if (websiteNavbar.value.enabled && websiteNavbar.value.navigation_mode === 'multi_page') {
+    const page = currentWebsitePage.value
+    if (page === 'home') {
+      return ['hero', 'about', 'projects', 'process', 'pricing', 'testimonials', 'faq', 'contact'].includes(blockId)
+    }
+    if (page === 'about') {
+      return ['about', 'video', 'now', 'skills', 'experiences', 'educations', 'certifications', 'badges'].includes(blockId)
+    }
+    if (page === 'projects') {
+      return ['projects', 'pocs', 'github', 'skills'].includes(blockId)
+    }
+    if (page === 'services') {
+      return ['process', 'pricing', 'custom', 'testimonials', 'faq', 'contact'].includes(blockId)
+    }
+    if (page === 'contact') {
+      return ['contact', 'faq'].includes(blockId)
+    }
+  }
+  return true
 }
 
 // Project multi-columns class
@@ -2504,9 +3109,10 @@ const isBentoGrid = computed(() => {
 
 const containerMaxWidth = computed(() => {
   if (currentStructure.value === 'bento_3col') return '1340px'
-  if (isBentoGrid.value) return '1180px'
+  if (isBentoGrid.value) return '1240px'
   if (currentStructure.value === 'compact') return '760px'
   if (currentStructure.value === 'zen') return '840px'
+  if (websiteNavbar.value.enabled) return '1240px'
   return '980px'
 })
 
@@ -2539,8 +3145,10 @@ const defaultBlocks = [
   { id: 'experiences', name: 'Expériences professionnelles', enabled: true, width: 'full' },
   { id: 'educations', name: 'Formations & Diplômes', enabled: true, width: 'half' },
   { id: 'certifications', name: 'Certifications & Distinctions', enabled: true, width: 'half' },
+  { id: 'process', name: 'Mon Processus & Méthodologie', enabled: true, width: 'full' },
   { id: 'pricing', name: 'Grille Tarifaire & Packs Services', enabled: true, width: 'full' },
   { id: 'testimonials', name: 'Témoignages & Recommandations', enabled: true, width: 'full' },
+  { id: 'faq', name: 'Questions Fréquentes (FAQ)', enabled: true, width: 'full' },
   { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, width: 'half' },
   { id: 'custom', name: 'Sections personnalisées libres', enabled: true, width: 'full' },
   { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, width: 'full' },
@@ -2557,7 +3165,7 @@ const orderedBlocks = computed(() => {
     list.splice(insertIdx, 0, { id: 'video', name: 'Vidéo de Présentation', enabled: true, width: 'full' })
   }
 
-  const extraBlocks = defaultBlocks.filter(db => ['now', 'github', 'certifications', 'pricing', 'testimonials'].includes(db.id))
+  const extraBlocks = defaultBlocks.filter(db => ['now', 'github', 'certifications', 'process', 'pricing', 'testimonials', 'faq'].includes(db.id))
   extraBlocks.forEach(eb => {
     if (!list.some(b => b.id === eb.id)) {
       const contactIdx = list.findIndex(b => b.id === 'contact')
@@ -2583,8 +3191,10 @@ function shouldRenderBlock(id) {
   if (id === 'experiences') return Boolean(props.portfolioUser.experiences && props.portfolioUser.experiences.length)
   if (id === 'educations') return Boolean(props.portfolioUser.educations && props.portfolioUser.educations.length)
   if (id === 'certifications') return Boolean(certificationsList.value.length)
+  if (id === 'process') return Boolean(hasWorkProcess.value)
   if (id === 'pricing') return Boolean(pricingPackagesList.value.length)
   if (id === 'testimonials') return Boolean(testimonialsList.value.length)
+  if (id === 'faq') return Boolean(faqItemsList.value.length)
   if (id === 'badges') return Boolean(props.badges && props.badges.length)
   if (id === 'custom') return Boolean(props.portfolioUser.custom_sections && props.portfolioUser.custom_sections.length)
   return true
@@ -3154,6 +3764,86 @@ onUnmounted(() => {
 .btn-floating-whatsapp:hover {
   transform: translateY(-4px) scale(1.03);
   color: #FFFFFF;
+}
+
+/* ==========================================================================
+   REAL WEBSITE NAVBAR, AGENCY HERO & INFINITE MARQUEE
+   ========================================================================== */
+.website-floating-pill-bar {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+}
+.theme-dark .website-floating-pill-bar,
+.theme-navy .website-floating-pill-bar,
+.theme-cyber .website-floating-pill-bar,
+.theme-synthwave .website-floating-pill-bar {
+  background: rgba(17, 24, 39, 0.88);
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+.nav-style-full_sticky {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.website-nav-link {
+  color: inherit;
+  font-size: 13.5px;
+}
+.website-nav-link:hover:not(.active) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+.theme-dark .website-nav-link:hover:not(.active) {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Agency Hero Visual & Floating Badges */
+.agency-hero-avatar {
+  width: 220px;
+  height: 220px;
+  object-fit: cover;
+  font-size: 64px;
+}
+.agency-visual-backdrop {
+  position: absolute;
+  inset: 12px;
+  border: 2px dashed;
+  transform: rotate(-4deg);
+  z-index: 0;
+}
+.agency-floating-badge {
+  position: absolute;
+  z-index: 3;
+  animation: floatBadge 3.5s ease-in-out infinite alternate;
+}
+.agency-floating-badge.badge-top-right {
+  top: 8px;
+  right: -10px;
+}
+.agency-floating-badge.badge-bottom-left {
+  bottom: 8px;
+  left: -10px;
+  animation-delay: 1.2s;
+}
+@keyframes floatBadge {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-8px); }
+}
+
+/* Infinite Tech Marquee */
+.tech-marquee-container {
+  position: relative;
+  white-space: nowrap;
+}
+.tech-marquee-track {
+  display: inline-flex;
+  animation: marqueeScroll 28s linear infinite;
+}
+.tech-marquee-container:hover .tech-marquee-track {
+  animation-play-state: paused;
+}
+@keyframes marqueeScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-33.33%); }
 }
 
 /* HERO GLOW ORB */

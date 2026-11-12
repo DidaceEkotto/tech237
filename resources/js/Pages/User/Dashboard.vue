@@ -2026,6 +2026,109 @@
               
               <!-- 1.0 Mode de Structure Globale & Bouton Surprenez-moi -->
               <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <!-- 0.9 VRAIE BARRE DE NAVIGATION (NAVBAR) & MODE MULTI-PAGES SITE WEB -->
+                <div class="p-4 rounded-4 border border-2 border-success border-opacity-25 bg-success-subtle bg-opacity-10 mb-4">
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <div>
+                      <span class="badge bg-success text-white rounded-pill px-3 py-1 extra-small fw-bold mb-1">
+                        🌐 NOUVEAU : EXPÉRIENCE VRAI SITE WEB
+                      </span>
+                      <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                        <i class="bi bi-window-fullscreen text-success"></i> Barre de Navigation (Navbar) Personnalisée &amp; Mode Multi-Pages
+                      </h4>
+                      <p class="text-muted extra-small mb-0">
+                        Transformez votre portfolio en un véritable site web (Studio / Agence / SaaS) avec votre propre menu de navigation, vos sous-pages dédiées, un bandeau de chiffres clés (KPIs) et un ruban défilant de technologies.
+                      </p>
+                    </div>
+                    <div class="form-check form-switch fs-5">
+                      <input 
+                        class="form-check-input cursor-pointer" 
+                        type="checkbox" 
+                        v-model="portfolioForm.portfolio_layout.website_navbar.enabled" 
+                        id="websiteNavbarToggle"
+                      />
+                    </div>
+                  </div>
+
+                  <div v-if="portfolioForm.portfolio_layout.website_navbar.enabled" class="row g-3 pt-2 border-top">
+                    <div class="col-md-4">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Mode de Navigation du Site</label>
+                      <select v-model="portfolioForm.portfolio_layout.website_navbar.navigation_mode" class="form-select form-select-sm rounded-3">
+                        <option value="multi_page">🗂️ Vrai Site Multi-Pages (Accueil, Projets, Services, Parcours, Contact)</option>
+                        <option value="one_page_scroll">📜 Site Vitrine One-Page (Défilement fluide par ancres)</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-4">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Style Visuel de la Navbar</label>
+                      <select v-model="portfolioForm.portfolio_layout.website_navbar.style" class="form-select form-select-sm rounded-3">
+                        <option value="floating_pill">💊 Pilule Flottante Glassmorphism (Style Apple / Linear)</option>
+                        <option value="full_sticky">🏢 Header Pleine Largeur Sticky (Style Agence Web)</option>
+                        <option value="sidebar_left">📐 Sidebar Latérale Gauche Fixe (Style App / Dashboard)</option>
+                        <option value="transparent">✨ Header Épuré Transparent</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-4">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Texte du Bouton d'Action (CTA)</label>
+                      <input 
+                        type="text" 
+                        v-model="portfolioForm.portfolio_layout.website_navbar.cta_text" 
+                        class="form-control form-control-sm rounded-3" 
+                        placeholder="ex: Demander un devis / Me recruter" 
+                      />
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Nom de Marque / Studio affiché dans le Header (Optionnel)</label>
+                      <input 
+                        type="text" 
+                        v-model="portfolioForm.portfolio_layout.website_navbar.brand_name" 
+                        class="form-control form-control-sm rounded-3" 
+                        :placeholder="user.name + ' Studio'" 
+                      />
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Slogan court sous le nom (Optionnel)</label>
+                      <input 
+                        type="text" 
+                        v-model="portfolioForm.portfolio_layout.website_navbar.brand_subtitle" 
+                        class="form-control form-control-sm rounded-3" 
+                        placeholder="ex: Ingénierie Logicielle & Produits Digitaux" 
+                      />
+                    </div>
+
+                    <!-- KPI Stats Strip & Tech Marquee Toggles -->
+                    <div class="col-md-6">
+                      <div class="form-check form-switch pt-2">
+                        <input 
+                          class="form-check-input cursor-pointer" 
+                          type="checkbox" 
+                          v-model="portfolioForm.portfolio_layout.kpi_stats.enabled" 
+                          id="kpiStatsStripToggle"
+                        />
+                        <label class="form-check-label small fw-bold text-dark cursor-pointer" for="kpiStatsStripToggle">
+                          📊 Afficher le Bandeau de Chiffres Clés (KPIs) sous le Hero
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="col-md-6">
+                      <div class="form-check form-switch pt-2">
+                        <input 
+                          class="form-check-input cursor-pointer" 
+                          type="checkbox" 
+                          v-model="portfolioForm.portfolio_layout.tech_marquee_enabled" 
+                          id="techMarqueeToggle"
+                        />
+                        <label class="form-check-label small fw-bold text-dark cursor-pointer" for="techMarqueeToggle">
+                          ⚡ Ruban Défilant Infini (Marquee) des Technologies
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
                   <div>
                     <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
@@ -2276,6 +2379,7 @@
                   <div class="col-md-3">
                     <label class="form-label small fw-bold text-dark mb-1">Variante d'En-tête (Hero)</label>
                     <select v-model="portfolioForm.portfolio_layout.hero_style" class="form-select form-select-sm rounded-3">
+                      <option value="agency_landing">🌐 Landing Page Agence 2 Colonnes (Vrai Site Web)</option>
                       <option value="centered">Centré moderne</option>
                       <option value="split">Asymétrique (2 colonnes)</option>
                       <option value="terminal">Console bash / Geek</option>
@@ -2289,6 +2393,7 @@
                   <div class="col-md-3">
                     <label class="form-label small fw-bold text-dark mb-1">Variante d'affichage des Projets</label>
                     <select v-model="portfolioForm.portfolio_layout.projects_style" class="form-select form-select-sm rounded-3">
+                      <option value="zigzag">⚡ Alternance Gauche/Droite (Site Vitrine Zig-Zag)</option>
                       <option value="cards">Grille de cartes</option>
                       <option value="carousel">🎠 Carrousel interactif (Slider)</option>
                       <option value="timeline">Chronologie verticale</option>
@@ -2916,7 +3021,14 @@
                 </p>
 
                 <div class="row g-3">
-                  <div class="col-12">
+                  <div class="col-md-5">
+                    <label class="form-label small fw-bold text-dark mb-1">Architecture du Pied de Page (Footer)</label>
+                    <select v-model="portfolioForm.portfolio_layout.footer.layout_style" class="form-select form-select-sm rounded-3">
+                      <option value="multi_column">🏢 Vrai Footer de Site Web (4 Colonnes : Identité, Plan du site, Expertises, Contact)</option>
+                      <option value="minimal">Ligne de signature centrée minimaliste</option>
+                    </select>
+                  </div>
+                  <div class="col-md-7">
                     <label class="form-label small fw-bold text-dark mb-1">Texte ou Signature personnalisée</label>
                     <input 
                       type="text" 
@@ -3931,6 +4043,122 @@
                 </div>
                 <div v-else class="text-center py-3 text-muted extra-small">
                   Aucun témoignage enregistré. Cliquez sur « + Ajouter un témoignage ».
+                </div>
+              </div>
+
+              <!-- 2.5.F Chiffres Clés (KPIs) & Méthodologie de Travail (Processus en 4 étapes) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-diagram-3-fill text-primary"></i> Chiffres Clés (KPIs) &amp; Processus de Travail (En 4 étapes)
+                    </h4>
+                    <small class="text-muted extra-small">Donnez à votre portfolio l'allure d'un vrai site d'agence avec vos compteurs de performance et les étapes de votre méthodologie.</small>
+                  </div>
+                </div>
+
+                <!-- KPIs Editor -->
+                <div class="p-3 rounded-4 border bg-light mb-4">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <strong class="small text-dark"><i class="bi bi-bar-chart-line-fill text-success me-1"></i> Bandeau des 4 Chiffres Clés (KPIs sous le Hero)</strong>
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.kpi_stats.enabled" id="kpiContentToggle" />
+                    </div>
+                  </div>
+                  <div v-if="portfolioForm.portfolio_layout.kpi_stats.enabled" class="row g-2">
+                    <div v-for="(kpi, kIdx) in portfolioForm.portfolio_layout.kpi_stats.items" :key="kIdx" class="col-6 col-md-3">
+                      <div class="p-2 rounded-3 bg-white border">
+                        <label class="form-label extra-small fw-bold text-muted mb-1">Chiffre #{{ kIdx + 1 }}</label>
+                        <input type="text" v-model="kpi.value" class="form-control form-control-sm fw-bold mb-1" placeholder="ex: +25 ou 100%" />
+                        <input type="text" v-model="kpi.label" class="form-control form-control-sm extra-small" placeholder="ex: Projets livrés" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Work Process 4 Steps Editor -->
+                <div class="p-3 rounded-4 border bg-light">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                      <strong class="small text-dark"><i class="bi bi-kanban-fill text-primary me-1"></i> Section « Comment je travaille / Mon Processus »</strong>
+                      <span class="d-block extra-small text-muted">Expliquez votre méthode de travail étape par étape à vos futurs clients ou employeurs.</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <button type="button" @click="addProcessStep" class="btn btn-xs btn-outline-primary rounded-pill px-3 fw-bold extra-small">
+                        + Étape
+                      </button>
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.work_process.enabled" id="workProcessToggle" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="portfolioForm.portfolio_layout.work_process.enabled" class="row g-3">
+                    <div 
+                      v-for="(step, stIdx) in portfolioForm.portfolio_layout.work_process.steps" 
+                      :key="stIdx" 
+                      class="col-md-6"
+                    >
+                      <div class="p-3 rounded-3 bg-white border position-relative h-100">
+                        <button type="button" @click="removeProcessStep(stIdx)" class="btn btn-xs btn-link text-danger position-absolute top-0 end-0 mt-1 me-1" title="Supprimer">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                        <div class="mb-2">
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Titre de l'étape #{{ stIdx + 1 }}</label>
+                          <input type="text" v-model="step.title" class="form-control form-control-sm" placeholder="ex: 1. Audit & Architecture" />
+                        </div>
+                        <div>
+                          <label class="form-label extra-small fw-bold text-dark mb-1">Description courte</label>
+                          <textarea v-model="step.description" class="form-control form-control-sm" rows="2" placeholder="Expliquez comment se déroule cette étape..."></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2.5.G Section FAQ Interactive (Questions Fréquentes en Accordéon) -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <i class="bi bi-question-circle-fill text-info"></i> Section FAQ Interactive (Questions Fréquentes)
+                    </h4>
+                    <small class="text-muted extra-small">Répondez aux questions récurrentes des clients et recruteurs sous forme d'accordéon interactif.</small>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <button type="button" @click="prefillDefaultFaq" class="btn btn-sm btn-light border rounded-pill px-3 extra-small fw-bold">
+                      ✨ Pré-remplir 4 questions types
+                    </button>
+                    <button type="button" @click="addFaqItem" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold">
+                      + Ajouter une question
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.faq_section.items.length" class="d-flex flex-column gap-3">
+                  <div 
+                    v-for="(faq, fIdx) in portfolioForm.portfolio_layout.faq_section.items" 
+                    :key="fIdx"
+                    class="p-3 rounded-4 border bg-light position-relative"
+                  >
+                    <button type="button" @click="removeFaqItem(fIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2" title="Supprimer">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <div class="row g-2">
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Question #{{ fIdx + 1 }}</label>
+                        <input type="text" v-model="faq.question" class="form-control form-control-sm fw-semibold" placeholder="ex: Quels sont vos délais moyens pour livrer un projet web ou mobile ?" />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Réponse détaillée</label>
+                        <textarea v-model="faq.answer" class="form-control form-control-sm" rows="2" placeholder="ex: Un MVP ou site vitrine est généralement livré entre 2 et 4 semaines avec des points d'étape hebdomadaires..."></textarea>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="text-center py-3 text-muted extra-small">
+                  Aucune question FAQ configurée. Cliquez sur « ✨ Pré-remplir 4 questions types » ou « + Ajouter une question ».
                 </div>
               </div>
 
@@ -7746,8 +7974,10 @@ const defaultBlocksList = [
   { id: 'experiences', name: 'Expériences professionnelles', enabled: true, width: 'full', icon: 'bi-briefcase', desc: 'Postes occupés, missions et réalisations en entreprise' },
   { id: 'educations', name: 'Formations & Diplômes', enabled: true, width: 'half', icon: 'bi-mortarboard', desc: 'Études supérieures, certifications et diplômes' },
   { id: 'certifications', name: 'Certifications & Distinctions', enabled: true, width: 'half', icon: 'bi-patch-check text-info', desc: 'Certifications officielles vérifiables, hackathons et prix' },
+  { id: 'process', name: 'Mon Processus & Méthodologie (4 étapes)', enabled: true, width: 'full', icon: 'bi-diagram-3 text-primary', desc: 'Étapes clés de votre méthode de travail façon site d\'agence' },
   { id: 'pricing', name: 'Grille Tarifaire & Packs Services', enabled: true, width: 'full', icon: 'bi-tags text-success', desc: 'Forfaits freelance, TJM et offres de services prêts à commander' },
   { id: 'testimonials', name: 'Témoignages & Recommandations', enabled: true, width: 'full', icon: 'bi-chat-quote text-warning', desc: 'Avis clients, recommandations de collègues et notes 5 étoiles' },
+  { id: 'faq', name: 'Questions Fréquentes (FAQ Accordéon)', enabled: true, width: 'full', icon: 'bi-question-circle text-info', desc: 'Accordéon interactif de réponses aux questions clients/recruteurs' },
   { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, width: 'half', icon: 'bi-trophy', desc: 'Niveau XP et distinctions officielles gagnées sur Tech237' },
   { id: 'custom', name: 'Sections personnalisées libres', enabled: true, width: 'full', icon: 'bi-stars', desc: 'Blocs libres : services, tarifs, recommandations, etc.' },
   { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, width: 'full', icon: 'bi-envelope', desc: 'Liens vers GitHub, LinkedIn, WhatsApp et email' },
@@ -7792,8 +8022,8 @@ const portfolioForm = ref({
     font_family: initialUserLayout.font_family || 'poppins',
     bg_pattern: initialUserLayout.bg_pattern || 'none',
     accent_color: initialUserLayout.accent_color || '#00A859',
-    hero_style: initialUserLayout.hero_style || 'centered',
-    projects_style: initialUserLayout.projects_style || 'cards',
+    hero_style: initialUserLayout.hero_style || 'agency_landing',
+    projects_style: initialUserLayout.projects_style || 'zigzag',
     projects_columns: Number(initialUserLayout.projects_columns) || 2,
     skills_style: initialUserLayout.skills_style || 'chips',
     ambient_effect: initialUserLayout.ambient_effect || 'none',
@@ -7834,11 +8064,81 @@ const portfolioForm = ref({
       duration: 1.0,
       custom_image: ''
     },
-    footer: initialUserLayout.footer || {
+    footer: initialUserLayout.footer ? {
+      layout_style: initialUserLayout.footer.layout_style || 'multi_column',
+      custom_text: initialUserLayout.footer.custom_text || '',
+      show_socials: initialUserLayout.footer.show_socials !== false,
+      show_tech237_badge: initialUserLayout.footer.show_tech237_badge !== false,
+      show_back_to_top: initialUserLayout.footer.show_back_to_top !== false
+    } : {
+      layout_style: 'multi_column',
       custom_text: '',
       show_socials: true,
       show_tech237_badge: true,
       show_back_to_top: true
+    },
+    website_navbar: initialUserLayout.website_navbar ? {
+      enabled: initialUserLayout.website_navbar.enabled !== false,
+      style: initialUserLayout.website_navbar.style || 'floating_pill',
+      navigation_mode: initialUserLayout.website_navbar.navigation_mode || 'multi_page',
+      brand_name: initialUserLayout.website_navbar.brand_name || '',
+      brand_subtitle: initialUserLayout.website_navbar.brand_subtitle || '',
+      cta_text: initialUserLayout.website_navbar.cta_text || 'Me contacter'
+    } : {
+      enabled: true,
+      style: 'floating_pill',
+      navigation_mode: 'multi_page',
+      brand_name: '',
+      brand_subtitle: '',
+      cta_text: 'Me contacter'
+    },
+    kpi_stats: initialUserLayout.kpi_stats ? {
+      enabled: initialUserLayout.kpi_stats.enabled !== false,
+      items: Array.isArray(initialUserLayout.kpi_stats.items) && initialUserLayout.kpi_stats.items.length
+        ? JSON.parse(JSON.stringify(initialUserLayout.kpi_stats.items))
+        : [
+            { value: '+10', label: 'Projets & Réalisations', icon: 'bi-rocket-takeoff-fill' },
+            { value: '100%', label: 'Engagement & Qualité', icon: 'bi-patch-check-fill' },
+            { value: '24h', label: 'Réactivité & Écoute', icon: 'bi-lightning-charge-fill' },
+            { value: '5/5', label: 'Satisfaction Client', icon: 'bi-star-fill' }
+          ]
+    } : {
+      enabled: true,
+      items: [
+        { value: '+10', label: 'Projets & Réalisations', icon: 'bi-rocket-takeoff-fill' },
+        { value: '100%', label: 'Engagement & Qualité', icon: 'bi-patch-check-fill' },
+        { value: '24h', label: 'Réactivité & Écoute', icon: 'bi-lightning-charge-fill' },
+        { value: '5/5', label: 'Satisfaction Client', icon: 'bi-star-fill' }
+      ]
+    },
+    tech_marquee_enabled: initialUserLayout.tech_marquee_enabled !== false,
+    work_process: initialUserLayout.work_process ? {
+      enabled: initialUserLayout.work_process.enabled !== false,
+      title: initialUserLayout.work_process.title || 'Comment je travaille (En 4 étapes)',
+      steps: Array.isArray(initialUserLayout.work_process.steps) && initialUserLayout.work_process.steps.length
+        ? JSON.parse(JSON.stringify(initialUserLayout.work_process.steps))
+        : [
+            { title: '1. Audit & Cadrage', description: 'Analyse de vos besoins, définition des objectifs et rédaction du cahier des charges.', icon: 'bi-search' },
+            { title: '2. Design & Architecture', description: 'Conception UI/UX moderne et choix d\'une architecture technique robuste et évolutive.', icon: 'bi-layers-fill' },
+            { title: '3. Développement Agile', description: 'Développement itératif avec code propre, tests de sécurité et démonstrations régulières.', icon: 'bi-code-square' },
+            { title: '4. Déploiement & Suivi', description: 'Mise en production, optimisation des performances et accompagnement technique.', icon: 'bi-rocket-takeoff-fill' }
+          ]
+    } : {
+      enabled: true,
+      title: 'Comment je travaille (En 4 étapes)',
+      steps: [
+        { title: '1. Audit & Cadrage', description: 'Analyse de vos besoins, définition des objectifs et rédaction du cahier des charges.', icon: 'bi-search' },
+        { title: '2. Design & Architecture', description: 'Conception UI/UX moderne et choix d\'une architecture technique robuste et évolutive.', icon: 'bi-layers-fill' },
+        { title: '3. Développement Agile', description: 'Développement itératif avec code propre, tests de sécurité et démonstrations régulières.', icon: 'bi-code-square' },
+        { title: '4. Déploiement & Suivi', description: 'Mise en production, optimisation des performances et accompagnement technique.', icon: 'bi-rocket-takeoff-fill' }
+      ]
+    },
+    faq_section: initialUserLayout.faq_section ? {
+      enabled: Boolean(initialUserLayout.faq_section.enabled),
+      items: Array.isArray(initialUserLayout.faq_section.items) ? JSON.parse(JSON.stringify(initialUserLayout.faq_section.items)) : []
+    } : {
+      enabled: false,
+      items: []
     },
     avatar_shape: initialUserLayout.avatar_shape || 'circle',
     avatar_border: initialUserLayout.avatar_border || 'standard',
@@ -7878,7 +8178,7 @@ const portfolioForm = ref({
         const insertIdx = aboutIdx !== -1 ? aboutIdx + 1 : 1
         list.splice(insertIdx, 0, { id: 'video', name: 'Vidéo de Présentation (YouTube)', enabled: true, width: 'full', icon: 'bi-youtube text-danger', desc: 'Lecteur vidéo immersif 16:9 de pitch ou démo' })
       }
-      const extraDefaultBlocks = defaultBlocksList.filter(db => ['now', 'github', 'certifications', 'pricing', 'testimonials'].includes(db.id))
+      const extraDefaultBlocks = defaultBlocksList.filter(db => ['now', 'github', 'certifications', 'process', 'pricing', 'testimonials', 'faq'].includes(db.id))
       extraDefaultBlocks.forEach(eb => {
         if (!list.some(b => b.id === eb.id)) {
           const contactIdx = list.findIndex(b => b.id === 'contact')
@@ -8075,6 +8375,55 @@ function addCertification() {
 
 function removeCertification(idx) {
   portfolioForm.value.portfolio_layout.certifications.splice(idx, 1)
+}
+
+// Work Process Steps handling
+function addProcessStep() {
+  const num = (portfolioForm.value.portfolio_layout.work_process.steps?.length || 0) + 1
+  portfolioForm.value.portfolio_layout.work_process.steps.push({
+    title: `${num}. Nouvelle étape`,
+    description: '',
+    icon: 'bi-check2-circle',
+  })
+}
+
+function removeProcessStep(idx) {
+  portfolioForm.value.portfolio_layout.work_process.steps.splice(idx, 1)
+}
+
+// FAQ Section handling
+function addFaqItem() {
+  portfolioForm.value.portfolio_layout.faq_section.enabled = true
+  portfolioForm.value.portfolio_layout.faq_section.items.push({
+    question: '',
+    answer: '',
+  })
+}
+
+function removeFaqItem(idx) {
+  portfolioForm.value.portfolio_layout.faq_section.items.splice(idx, 1)
+}
+
+function prefillDefaultFaq() {
+  portfolioForm.value.portfolio_layout.faq_section.enabled = true
+  portfolioForm.value.portfolio_layout.faq_section.items = [
+    {
+      question: 'Quels types de missions ou projets acceptez-vous ?',
+      answer: 'J\'interviens aussi bien sur la création complète d\'applications web/mobiles (MVP, SaaS, plateformes métiers) que sur le renfort d\'équipe technique, l\'audit d\'architecture et l\'intégration d\'APIs.'
+    },
+    {
+      question: 'Comment se déroule la collaboration et le suivi d\'un projet ?',
+      answer: 'Chaque mission démarre par un cadrage précis des besoins, suivi de points d\'étape réguliers avec démonstration sur un environnement de test jusqu\'à la livraison finale.'
+    },
+    {
+      question: 'Travaillez-vous à distance ou en présentiel ?',
+      answer: 'Je travaille en télétravail complet avec des clients au Cameroun et à l\'international, ainsi qu\'en mode hybride/présentiel selon la localisation.'
+    },
+    {
+      question: 'Assurez-vous la maintenance après la mise en ligne ?',
+      answer: 'Oui, j\'assure un suivi post-lancement, les mises à jour de sécurité ainsi que l\'évolution fonctionnelle de vos plateformes.'
+    }
+  ]
 }
 
 // Portfolio Digital vCard & QR Code
