@@ -17,6 +17,7 @@ class KanbanColumn extends Model
         'color',
         'order',
         'is_done_column',
+        'wip_limit',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class KanbanColumn extends Model
         return [
             'order' => 'integer',
             'is_done_column' => 'boolean',
+            'wip_limit' => 'integer',
         ];
     }
 

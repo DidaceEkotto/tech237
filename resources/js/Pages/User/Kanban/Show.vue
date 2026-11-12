@@ -66,12 +66,26 @@
               <div class="input-group input-group-sm" style="width: 200px;">
                 <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
                 <input 
+                  id="kanbanSearchInput"
                   type="text" 
                   v-model="searchFilter" 
                   class="form-control border-start-0 ps-0" 
-                  placeholder="Filtrer les cartes..." 
+                  placeholder="Filtrer (/)..." 
+                  title="Raccourci: Touche / ou F"
                 />
               </div>
+
+              <!-- Quick Filter "Mes tâches uniquement" -->
+              <button 
+                type="button"
+                @click="myTasksOnly = !myTasksOnly"
+                class="btn btn-sm rounded-pill px-3 fw-bold d-flex align-items-center gap-1 transition shadow-2xs"
+                :class="myTasksOnly ? 'btn-primary text-white shadow-xs' : 'btn-white bg-white text-dark border'"
+                title="Afficher uniquement les tâches qui me sont assignées (Raccourci: Touche M)"
+              >
+                <i class="bi bi-person-check-fill" :class="myTasksOnly ? 'text-white' : 'text-primary'"></i>
+                <span>Mes tâches</span>
+              </button>
 
               <!-- Priority Filter -->
               <select v-model="priorityFilter" class="form-select form-select-sm bg-white" style="width: 140px;">
@@ -81,6 +95,54 @@
                 <option value="medium">🔵 Moyenne</option>
                 <option value="low">⚪ Faible</option>
               </select>
+
+              <!-- View Switcher (Tableau ⇄ Liste) -->
+              <div class="btn-group btn-group-sm bg-white rounded-pill p-1 border shadow-2xs">
+                <button 
+                  type="button" 
+                  class="btn btn-sm rounded-pill px-3 py-1 fw-bold d-flex align-items-center gap-1"
+                  :class="currentView === 'board' ? 'btn-dark text-white' : 'btn-link text-muted text-decoration-none'"
+                  @click="currentView = 'board'"
+                  title="Vue colonnes Kanban"
+                >
+                  <i class="bi bi-kanban"></i> Tableau
+                </button>
+                <button 
+                  type="button" 
+                  class="btn btn-sm rounded-pill px-3 py-1 fw-bold d-flex align-items-center gap-1"
+                  :class="currentView === 'list' ? 'btn-dark text-white' : 'btn-link text-muted text-decoration-none'"
+                  @click="currentView = 'list'"
+                  title="Vue tableau / liste ordonnée"
+                >
+                  <i class="bi bi-list-task"></i> Liste
+                </button>
+              </div>
+
+              <!-- Export Dropdown -->
+              <div class="dropdown">
+                <button 
+                  class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-bold text-dark d-flex align-items-center gap-1 shadow-2xs dropdown-toggle" 
+                  type="button" 
+                  data-bs-toggle="dropdown" 
+                  aria-expanded="false"
+                  title="Exporter les données du tableau"
+                >
+                  <i class="bi bi-download text-success"></i>
+                  <span>Exporter</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 p-1">
+                  <li>
+                    <button class="dropdown-item small rounded-2 py-2 d-flex align-items-center gap-2" @click="exportCSV">
+                      <i class="bi bi-filetype-csv text-primary fs-6"></i> Exporter en CSV (Excel)
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item small rounded-2 py-2 d-flex align-items-center gap-2" @click="exportMarkdown">
+                      <i class="bi bi-markdown-fill text-dark fs-6"></i> Copier résumé Markdown
+                    </button>
+                  </li>
+                </ul>
+              </div>
 
               <!-- Manage Team / Contributors Button -->
               <button 
@@ -139,8 +201,8 @@
         </div>
       </header>
 
-      <!-- Kanban Canvas (Responsive Wrap: never exceeds screen width, wraps to next line) -->
-      <main class="kanban-canvas flex-grow-1 p-3 p-md-4">
+      <!-- Kanban Board Canvas -->
+      <main v-if="currentView === 'board'" class="kanban-canvas flex-grow-1 p-3 p-md-4">
         <div class="row g-4 align-items-start">
           
           <!-- Column Item -->
@@ -158,11 +220,19 @@
             >
             <!-- Column Header -->
             <div class="column-header p-3 border-bottom d-flex align-items-center justify-content-between bg-white rounded-top-4">
-              <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
                 <span class="rounded-pill d-inline-block" :style="{ width: '12px', height: '12px', backgroundColor: column.color || '#3b82f6' }"></span>
                 <h3 class="h6 fw-bold text-dark mb-0">{{ column.title }}</h3>
-                <span class="badge bg-slate-100 text-muted rounded-pill px-2 py-0 extra-small" style="background-color: #f1f5f9;">
-                  {{ getFilteredCards(column).length }}
+                <span 
+                  class="badge rounded-pill px-2 py-0 extra-small transition"
+                  :class="column.wip_limit && getFilteredCards(column).length > column.wip_limit ? 'bg-danger text-white fw-bold shadow-2xs' : 'bg-slate-100 text-muted'"
+                  :style="column.wip_limit && getFilteredCards(column).length > column.wip_limit ? 'background-color: #dc2626 !important;' : 'background-color: #f1f5f9;'"
+                  :title="column.wip_limit ? (getFilteredCards(column).length > column.wip_limit ? 'Limite WIP dépassée !' : 'Limite WIP: ' + column.wip_limit) : 'Nombre de cartes'"
+                >
+                  {{ getFilteredCards(column).length }}<span v-if="column.wip_limit"> / {{ column.wip_limit }}</span>
+                </span>
+                <span v-if="column.wip_limit && getFilteredCards(column).length > column.wip_limit" class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill extra-small px-1 py-0" title="Limite de travail en cours dépassée">
+                  WIP Dépassé
                 </span>
               </div>
 
@@ -204,8 +274,8 @@
                 @click="openCardModal(card)"
               >
                 <!-- Card Cover Image Preview -->
-                <div v-if="card.attachments && card.attachments.length" class="mb-2 rounded-2 overflow-hidden border" style="max-height: 110px;">
-                  <img :src="'/' + card.attachments[0].url" class="w-100 object-fit-cover" style="max-height: 110px;" :alt="card.attachments[0].name" />
+                <div v-if="getCoverImageUrl(card)" class="mb-2 rounded-2 overflow-hidden border shadow-2xs" style="max-height: 110px;">
+                  <img :src="getCoverImageUrl(card)" class="w-100 object-fit-cover" style="max-height: 110px;" :alt="card.title" />
                 </div>
 
                 <!-- Labels pills & priority badge -->
@@ -245,13 +315,19 @@
                   </div>
                 </div>
 
-                <!-- Footer: Due date, Devlog badge & Assignee -->
+                <!-- Footer: Due date, Time tracking, Devlog badge & Assignee -->
                 <div class="d-flex align-items-center justify-content-between pt-2 mt-1 border-top extra-small text-muted">
-                  <div class="d-flex align-items-center gap-2">
+                  <div class="d-flex align-items-center gap-2 flex-wrap">
                     <!-- Due date -->
                     <span v-if="card.due_date" class="d-flex align-items-center gap-1" :class="{ 'text-danger fw-bold': isOverdue(card.due_date) }">
                       <i class="bi bi-calendar3"></i>
                       <span>{{ formatDateShort(card.due_date) }}</span>
+                    </span>
+
+                    <!-- Time tracking badge -->
+                    <span v-if="card.estimated_hours || card.spent_hours" class="badge bg-light text-dark border extra-small px-1 py-0 d-inline-flex align-items-center gap-1" :title="'Temps passé: ' + (card.spent_hours || 0) + 'h / Estimé: ' + (card.estimated_hours || 0) + 'h'">
+                      <i class="bi bi-clock-history text-primary"></i>
+                      <span>{{ card.spent_hours || 0 }}h<span v-if="card.estimated_hours">/{{ card.estimated_hours }}h</span></span>
                     </span>
 
                     <!-- Attachments counter badge -->
@@ -325,6 +401,131 @@
           </button>
         </div>
 
+      </div>
+    </main>
+
+    <!-- Table / List View Alternative -->
+    <main v-else-if="currentView === 'list'" class="kanban-canvas flex-grow-1 p-3 p-md-4">
+      <div class="card border-0 rounded-4 shadow-sm bg-white overflow-hidden">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light extra-small text-uppercase text-muted fw-bold">
+              <tr>
+                <th style="width: 45px;" class="text-center">Fait</th>
+                <th>Tâche</th>
+                <th>Colonne / Statut</th>
+                <th>Priorité</th>
+                <th>Échéance</th>
+                <th>Temps (h)</th>
+                <th>Responsable</th>
+                <th class="text-end pe-3">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="column in board.columns" :key="'col-table-' + column.id">
+                <!-- Group Header Row -->
+                <tr class="table-light border-top border-bottom">
+                  <td colspan="8" class="py-2 px-3">
+                    <div class="d-flex align-items-center justify-content-between">
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="rounded-pill d-inline-block" :style="{ width: '10px', height: '10px', backgroundColor: column.color || '#3b82f6' }"></span>
+                        <strong class="small text-dark">{{ column.title }}</strong>
+                        <span class="badge rounded-pill bg-white text-dark border extra-small">
+                          {{ getFilteredCards(column).length }}<span v-if="column.wip_limit"> / {{ column.wip_limit }}</span>
+                        </span>
+                        <span v-if="column.wip_limit && getFilteredCards(column).length > column.wip_limit" class="badge bg-danger text-white extra-small px-1 py-0">
+                          WIP Dépassé
+                        </span>
+                      </div>
+                      <button v-if="canEdit" class="btn btn-xs btn-outline-dark rounded-pill px-2" @click="openQuickAdd(column)">
+                        + Ajouter une carte
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Cards in this Column -->
+                <tr 
+                  v-for="card in getFilteredCards(column)" 
+                  :key="'card-table-' + card.id" 
+                  class="cursor-pointer transition-all"
+                  @click="openCardModal(card)"
+                >
+                  <td class="text-center" @click.stop>
+                    <input 
+                      type="checkbox" 
+                      class="form-check-input cursor-pointer" 
+                      :checked="card.is_completed" 
+                      @change="toggleCardCompletionFromList(card)"
+                      title="Marquer comme terminée"
+                    />
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <div v-if="getCoverImageUrl(card)" class="rounded-2 overflow-hidden border flex-shrink-0" style="width: 34px; height: 34px;">
+                        <img :src="getCoverImageUrl(card)" class="w-100 h-100 object-fit-cover" :alt="card.title" />
+                      </div>
+                      <div class="min-w-0">
+                        <span class="fw-bold text-dark small d-block text-truncate" :class="{ 'text-decoration-line-through text-muted': card.is_completed }" style="max-width: 320px;">
+                          {{ card.title }}
+                        </span>
+                        <div class="d-flex align-items-center gap-1 flex-wrap mt-0">
+                          <span v-for="(lbl, li) in (card.labels || [])" :key="li" class="badge bg-light text-muted border extra-small px-1 py-0" style="font-size: 10px;">
+                            {{ lbl }}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge rounded-pill px-2 py-1 extra-small text-white" :style="{ backgroundColor: column.color || '#3b82f6' }">
+                      {{ column.title }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge rounded-pill px-2 py-0 extra-small fw-bold" :class="getPriorityClass(card.priority)">
+                      {{ getPriorityLabel(card.priority) }}
+                    </span>
+                  </td>
+                  <td class="small">
+                    <span v-if="card.due_date" :class="{ 'text-danger fw-bold': isOverdue(card.due_date), 'text-muted': !isOverdue(card.due_date) }">
+                      {{ formatDateShort(card.due_date) }}
+                    </span>
+                    <span v-else class="text-muted extra-small">--</span>
+                  </td>
+                  <td class="small">
+                    <span v-if="card.estimated_hours || card.spent_hours" class="badge bg-light text-dark border extra-small">
+                      ⏱️ {{ card.spent_hours || 0 }}h<span v-if="card.estimated_hours">/{{ card.estimated_hours }}h</span>
+                    </span>
+                    <span v-else class="text-muted extra-small">--</span>
+                  </td>
+                  <td>
+                    <div v-if="card.assignee" class="d-flex align-items-center gap-2">
+                      <div class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center shadow-2xs" style="width: 24px; height: 24px; font-size: 9px; background: #0B2559;">
+                        <img v-if="card.assignee.avatar" :src="'/' + card.assignee.avatar" class="w-100 h-100 rounded-circle object-fit-cover" :alt="card.assignee.name" />
+                        <span v-else>{{ card.assignee.name.charAt(0).toUpperCase() }}</span>
+                      </div>
+                      <span class="extra-small text-dark fw-semibold text-truncate" style="max-width: 110px;">{{ card.assignee.name }}</span>
+                    </div>
+                    <span v-else class="text-muted extra-small">Non assigné</span>
+                  </td>
+                  <td class="text-end pe-3" @click.stop>
+                    <button class="btn btn-xs btn-light rounded-pill px-3 fw-semibold border" @click="openCardModal(card)">
+                      Ouvrir &rarr;
+                    </button>
+                  </td>
+                </tr>
+
+                <!-- Empty Column notice in List View -->
+                <tr v-if="!getFilteredCards(column).length">
+                  <td colspan="8" class="text-center py-3 text-muted extra-small bg-white">
+                    Aucune tâche dans « {{ column.title }} ».
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
 
@@ -727,6 +928,44 @@
                   </div>
                 </div>
 
+                <!-- Time Tracking & Estimation -->
+                <div class="mb-3 p-3 bg-light rounded-3 border">
+                  <label class="form-label extra-small fw-bold text-dark mb-2 d-flex align-items-center justify-content-between">
+                    <span><i class="bi bi-stopwatch text-primary me-1"></i>Estimation & Temps Passé</span>
+                    <span v-if="editCardForm.estimated_hours || editCardForm.spent_hours" class="badge bg-white text-dark border extra-small">
+                      ⏱️ {{ editCardForm.spent_hours || 0 }}h / {{ editCardForm.estimated_hours || 0 }}h
+                    </span>
+                  </label>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <label class="extra-small text-muted mb-1 d-block">Estimation (h)</label>
+                      <input 
+                        v-if="canEdit && !isCardLocked"
+                        type="number" 
+                        step="0.5" 
+                        min="0"
+                        v-model.number="editCardForm.estimated_hours" 
+                        class="form-control form-control-sm rounded-3" 
+                        placeholder="ex: 6" 
+                      />
+                      <div v-else class="small text-dark fw-bold">{{ activeCard.estimated_hours ? activeCard.estimated_hours + 'h' : '--' }}</div>
+                    </div>
+                    <div class="col-6">
+                      <label class="extra-small text-muted mb-1 d-block">Temps passé (h)</label>
+                      <input 
+                        v-if="canEdit && !isCardLocked"
+                        type="number" 
+                        step="0.5" 
+                        min="0"
+                        v-model.number="editCardForm.spent_hours" 
+                        class="form-control form-control-sm rounded-3" 
+                        placeholder="ex: 4" 
+                      />
+                      <div v-else class="small text-dark fw-bold">{{ activeCard.spent_hours ? activeCard.spent_hours + 'h' : '--' }}</div>
+                    </div>
+                  </div>
+                </div>
+
                 <!-- Labels -->
                 <div class="mb-4">
                   <label class="form-label small fw-bold text-dark mb-1">Étiquettes / Tags</label>
@@ -808,9 +1047,22 @@
                           <span class="extra-small text-muted">{{ formatFileSize(att.size) }} &bull; {{ att.uploader_name }}</span>
                         </div>
                       </a>
-                      <button v-if="canEdit && !isCardLocked" @click.stop="deleteAttachment(att.id)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer l'image">
-                        <i class="bi bi-trash"></i>
-                      </button>
+                      <div class="d-flex align-items-center gap-1">
+                        <button 
+                          v-if="canEdit && !isCardLocked" 
+                          type="button" 
+                          @click.stop="toggleCardCover(att.url)" 
+                          class="btn btn-xs rounded-pill px-2 py-0 border extra-small"
+                          :class="editCardForm.cover_image === att.url ? 'btn-warning text-dark fw-bold' : 'btn-light text-muted'"
+                          :title="editCardForm.cover_image === att.url ? 'Couverture active de la carte' : 'Définir comme couverture'"
+                        >
+                          <i class="bi" :class="editCardForm.cover_image === att.url ? 'bi-star-fill text-dark' : 'bi-star'"></i>
+                          <span class="d-none d-sm-inline ms-1">{{ editCardForm.cover_image === att.url ? 'Couverture' : 'Couvrir' }}</span>
+                        </button>
+                        <button v-if="canEdit && !isCardLocked" @click.stop="deleteAttachment(att.id)" class="btn btn-sm btn-link text-danger p-0" title="Supprimer l'image">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div v-else-if="!canEdit || isCardLocked" class="extra-small text-muted">
@@ -903,13 +1155,32 @@
               </div>
 
               <!-- Done Column switch -->
-              <div class="form-check form-switch mb-2">
+              <div class="form-check form-switch mb-3">
                 <input class="form-check-input" type="checkbox" id="doneColSwitch" v-model="columnForm.is_done_column" />
                 <label class="form-check-label small fw-semibold text-dark" for="doneColSwitch">
                   Marquer comme colonne de « Tâches Terminées »
                 </label>
                 <div class="extra-small text-muted">
                   Permet de calculer le taux de complétion du projet et d'activer l'export en Devlog.
+                </div>
+              </div>
+
+              <!-- WIP Limit -->
+              <div class="mb-2">
+                <label class="form-label small fw-bold text-dark d-flex align-items-center justify-content-between mb-1">
+                  <span><i class="bi bi-speedometer2 text-warning me-1"></i>Limite WIP (Work-In-Progress)</span>
+                  <span class="badge bg-light text-muted border extra-small">Optionnel</span>
+                </label>
+                <input 
+                  type="number" 
+                  v-model.number="columnForm.wip_limit" 
+                  class="form-control rounded-3" 
+                  placeholder="ex: 3 ou 5 (Laisser vide pour illimité)" 
+                  min="1" 
+                  max="99" 
+                />
+                <div class="extra-small text-muted mt-1">
+                  Affiche un avertissement visuel si le nombre de cartes en cours dépasse cette valeur.
                 </div>
               </div>
 
@@ -1197,6 +1468,9 @@ function getCsrfToken() {
 
 const searchFilter = ref('')
 const priorityFilter = ref('all')
+const myTasksOnly = ref(false)
+const currentView = ref('board')
+const currentUserId = computed(() => page.props.auth?.user?.id)
 
 // Archived Cards State
 const localArchivedCards = ref([...(props.archivedCards || [])])
@@ -1336,6 +1610,9 @@ const editCardForm = ref({
   assigned_to: null,
   labels: [],
   checklist: [],
+  estimated_hours: null,
+  spent_hours: null,
+  cover_image: null,
 })
 const newChecklistText = ref('')
 const newLabelText = ref('')
@@ -1354,8 +1631,37 @@ function openCardModal(card) {
     assigned_to: card.assigned_to || null,
     labels: Array.isArray(card.labels) ? [...card.labels] : [],
     checklist: Array.isArray(card.checklist) ? card.checklist.map(i => ({ ...i })) : [],
+    estimated_hours: card.estimated_hours ?? null,
+    spent_hours: card.spent_hours ?? null,
+    cover_image: card.cover_image ?? null,
   }
   startCommentsPolling()
+}
+
+function toggleCardCover(attUrl) {
+  if (editCardForm.value.cover_image === attUrl) {
+    editCardForm.value.cover_image = null
+  } else {
+    editCardForm.value.cover_image = attUrl
+  }
+}
+
+function toggleCardCompletionFromList(card) {
+  fetch(`/espace-utilisateur/kanban/cards/${card.id}/toggle-completion`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': getCsrfToken(),
+    }
+  }).then(r => r.json()).then(data => {
+    if (data && data.success) {
+      card.is_completed = data.is_completed
+      if (activeCard.value && activeCard.value.id === card.id) {
+        activeCard.value.is_completed = data.is_completed
+      }
+    }
+  }).catch(err => console.error('Toggle completion error:', err))
 }
 
 function closeCardModal() {
@@ -1950,6 +2256,7 @@ const columnForm = ref({
   title: '',
   color: '#3b82f6',
   is_done_column: false,
+  wip_limit: null,
 })
 
 function openEditColumnModal(col) {
@@ -1958,13 +2265,14 @@ function openEditColumnModal(col) {
     title: col.title,
     color: col.color || '#3b82f6',
     is_done_column: !!col.is_done_column,
+    wip_limit: col.wip_limit ?? null,
   }
 }
 
 function closeColumnModal() {
   showAddColumnModal.value = false
   editingColumn.value = null
-  columnForm.value = { title: '', color: '#3b82f6', is_done_column: false }
+  columnForm.value = { title: '', color: '#3b82f6', is_done_column: false, wip_limit: null }
 }
 
 function submitColumnForm() {
@@ -2019,6 +2327,9 @@ function deleteBoard() {
 // Card helpers & filters
 function getFilteredCards(column) {
   let cards = column.cards || []
+  if (myTasksOnly.value && currentUserId.value) {
+    cards = cards.filter(c => c.assigned_to === currentUserId.value)
+  }
   if (searchFilter.value.trim()) {
     const q = searchFilter.value.toLowerCase()
     cards = cards.filter(c => 
@@ -2032,6 +2343,137 @@ function getFilteredCards(column) {
   }
   return cards
 }
+
+function getCoverImageUrl(card) {
+  if (!card) return null
+  if (card.cover_image) {
+    return card.cover_image.startsWith('http') || card.cover_image.startsWith('/') 
+      ? card.cover_image 
+      : '/' + card.cover_image
+  }
+  if (card.attachments && card.attachments.length > 0) {
+    const first = card.attachments[0]
+    return first.url.startsWith('http') || first.url.startsWith('/') ? first.url : '/' + first.url
+  }
+  return null
+}
+
+function exportCSV() {
+  const headers = ['ID', 'Titre', 'Colonne', 'Statut', 'Priorite', 'Echeance', 'Assigne', 'Estimation_h', 'Temps_Passe_h', 'Checklist']
+  const rows = []
+  for (const col of props.board.columns || []) {
+    for (const card of col.cards || []) {
+      const checklistDone = (card.checklist || []).filter(i => i.done).length
+      const checklistTotal = (card.checklist || []).length
+      rows.push([
+        card.id,
+        `"${(card.title || '').replace(/"/g, '""')}"`,
+        `"${(col.title || '').replace(/"/g, '""')}"`,
+        card.is_completed ? 'Termine' : 'En cours',
+        card.priority || 'medium',
+        card.due_date ? card.due_date.substring(0, 10) : '',
+        `"${(card.assignee?.name || '').replace(/"/g, '""')}"`,
+        card.estimated_hours || 0,
+        card.spent_hours || 0,
+        checklistTotal > 0 ? `${checklistDone}/${checklistTotal}` : '',
+      ])
+    }
+  }
+  const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\r\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.setAttribute('href', url)
+  const safeTitle = (props.board.title || 'kanban').toLowerCase().replace(/[^a-z0-9]/gi, '_')
+  link.setAttribute('download', `${safeTitle}_export_${new Date().toISOString().substring(0, 10)}.csv`)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+function exportMarkdown() {
+  let md = `# 📋 ${props.board.title}\n`
+  if (props.board.description) {
+    md += `> ${props.board.description}\n\n`
+  }
+  md += `*Exporté depuis Tech237 Kanban le ${new Date().toLocaleDateString('fr-FR')}*\n\n`
+  
+  for (const col of props.board.columns || []) {
+    const cards = col.cards || []
+    md += `### ${col.title} (${cards.length})\n`
+    if (cards.length === 0) {
+      md += `*Aucune tâche dans cette colonne*\n\n`
+      continue
+    }
+    for (const card of cards) {
+      const check = card.is_completed ? '[x]' : '[ ]'
+      let meta = []
+      if (card.priority) meta.push(`Priorité: ${getPriorityLabel(card.priority)}`)
+      if (card.assignee?.name) meta.push(`Assigné: ${card.assignee.name}`)
+      if (card.due_date) meta.push(`Échéance: ${formatDateShort(card.due_date)}`)
+      if (card.estimated_hours || card.spent_hours) meta.push(`⏱️ ${card.spent_hours || 0}h/${card.estimated_hours || 0}h`)
+      
+      const metaStr = meta.length ? ` *(${meta.join(' • ')})*` : ''
+      md += `- ${check} **${card.title}**${metaStr}\n`
+      if (card.checklist && card.checklist.length) {
+        for (const item of card.checklist) {
+          md += `  - [${item.done ? 'x' : ' '}] ${item.text}\n`
+        }
+      }
+    }
+    md += `\n`
+  }
+  
+  if (navigator?.clipboard?.writeText) {
+    navigator.clipboard.writeText(md).then(() => {
+      alert('📋 Résumé Markdown copié avec succès dans le presse-papier !')
+    }).catch(() => {
+      prompt('Copiez le texte Markdown ci-dessous :', md)
+    })
+  } else {
+    prompt('Copiez le texte Markdown ci-dessous :', md)
+  }
+}
+
+function handleGlobalKeydown(e) {
+  const tag = (e.target?.tagName || '').toLowerCase()
+  if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target?.isContentEditable) {
+    if (e.key === 'Escape') {
+      e.target.blur()
+    }
+    return
+  }
+
+  if (e.key === 'Escape') {
+    if (activeCard.value) closeCardModal()
+    else if (showAddColumnModal.value || editingColumn.value) closeColumnModal()
+    else if (showBoardSettingsModal.value) showBoardSettingsModal.value = false
+    else if (showTeamModal.value) showTeamModal.value = false
+    else if (showArchivesModal.value) showArchivesModal.value = false
+  } else if ((e.key === 'f' || e.key === 'F' || e.key === '/') && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault()
+    const searchInput = document.getElementById('kanbanSearchInput')
+    if (searchInput) searchInput.focus()
+  } else if ((e.key === 'n' || e.key === 'N') && !e.ctrlKey && !e.metaKey && props.canEdit) {
+    e.preventDefault()
+    if (props.board.columns && props.board.columns.length > 0) {
+      openQuickAdd(props.board.columns[0])
+    }
+  } else if ((e.key === 'm' || e.key === 'M') && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault()
+    myTasksOnly.value = !myTasksOnly.value
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleGlobalKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown)
+  stopCommentsPolling()
+})
 
 function getPriorityLabel(p) {
   const map = {

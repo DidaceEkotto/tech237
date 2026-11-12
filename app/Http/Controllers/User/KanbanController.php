@@ -247,6 +247,7 @@ class KanbanController extends Controller
             'description' => 'nullable|string|max:500',
             'project_id' => 'nullable|exists:projects,id',
             'is_public' => 'boolean',
+            'template' => 'nullable|string|in:standard,scrum,bug_tracker,startup_launch,freelance',
         ]);
 
         if (!empty($validated['project_id'])) {
@@ -259,15 +260,18 @@ class KanbanController extends Controller
             }
         }
 
+        $template = $validated['template'] ?? 'standard';
+
         $board = KanbanBoard::create([
             'user_id' => $user->id,
             'project_id' => $validated['project_id'] ?? null,
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'is_public' => $request->boolean('is_public', false),
+            'template' => $template,
         ]);
 
-        $this->createDefaultColumns($board->id);
+        $this->createDefaultColumns($board->id, $template);
 
         // Add contributors if selected during creation
         if ($request->has('contributor_ids') && is_array($request->input('contributor_ids'))) {
@@ -665,6 +669,7 @@ class KanbanController extends Controller
             'title' => 'required|string|max:60',
             'color' => 'nullable|string|max:20',
             'is_done_column' => 'boolean',
+            'wip_limit' => 'nullable|integer|min:1|max:99',
         ]);
 
         $maxOrder = KanbanColumn::where('board_id', $board->id)->max('order') ?? 0;
@@ -675,6 +680,7 @@ class KanbanController extends Controller
             'color' => $validated['color'] ?: '#3b82f6',
             'order' => $maxOrder + 1,
             'is_done_column' => $request->boolean('is_done_column', false),
+            'wip_limit' => $request->filled('wip_limit') ? (int)$request->input('wip_limit') : null,
         ]);
 
         if ($request->wantsJson()) {
@@ -700,12 +706,14 @@ class KanbanController extends Controller
             'title' => 'required|string|max:60',
             'color' => 'nullable|string|max:20',
             'is_done_column' => 'boolean',
+            'wip_limit' => 'nullable|integer|min:1|max:99',
         ]);
 
         $column->update([
             'title' => $validated['title'],
-            'color' => $validated['color'] ?: $column->color,
-            'is_done_column' => $request->boolean('is_done_column', $column->is_done_column),
+            'color' => !empty($validated['color']) ? $validated['color'] : $column->color,
+            'is_done_column' => $request->has('is_done_column') ? $request->boolean('is_done_column') : $column->is_done_column,
+            'wip_limit' => $request->has('wip_limit') ? ($request->filled('wip_limit') ? (int)$request->input('wip_limit') : null) : $column->wip_limit,
         ]);
 
         if ($request->wantsJson()) {
@@ -756,6 +764,9 @@ class KanbanController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'labels' => 'nullable|array',
             'checklist' => 'nullable|array',
+            'estimated_hours' => 'nullable|numeric|min:0|max:9999',
+            'spent_hours' => 'nullable|numeric|min:0|max:9999',
+            'cover_image' => 'nullable|string',
         ]);
 
         $maxOrder = KanbanCard::where('column_id', $column->id)->max('order') ?? 0;
@@ -770,6 +781,9 @@ class KanbanController extends Controller
             'assigned_to' => $validated['assigned_to'] ?? null,
             'labels' => $validated['labels'] ?? [],
             'checklist' => $validated['checklist'] ?? [],
+            'estimated_hours' => $validated['estimated_hours'] ?? null,
+            'spent_hours' => $validated['spent_hours'] ?? null,
+            'cover_image' => $validated['cover_image'] ?? null,
             'order' => $maxOrder + 1,
         ]);
 
@@ -813,9 +827,12 @@ class KanbanController extends Controller
             'assigned_to' => 'nullable|exists:users,id',
             'labels' => 'nullable|array',
             'checklist' => 'nullable|array',
+            'estimated_hours' => 'nullable|numeric|min:0|max:9999',
+            'spent_hours' => 'nullable|numeric|min:0|max:9999',
+            'cover_image' => 'nullable|string',
         ]);
 
-        $card->update([
+        $updateData = [
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
             'priority' => $validated['priority'] ?? $card->priority,
@@ -823,7 +840,19 @@ class KanbanController extends Controller
             'assigned_to' => $validated['assigned_to'] ?? null,
             'labels' => $validated['labels'] ?? $card->labels,
             'checklist' => $validated['checklist'] ?? $card->checklist,
-        ]);
+        ];
+
+        if ($request->has('estimated_hours')) {
+            $updateData['estimated_hours'] = $request->filled('estimated_hours') ? (float)$request->input('estimated_hours') : null;
+        }
+        if ($request->has('spent_hours')) {
+            $updateData['spent_hours'] = $request->filled('spent_hours') ? (float)$request->input('spent_hours') : null;
+        }
+        if ($request->has('cover_image')) {
+            $updateData['cover_image'] = $request->input('cover_image') ?: null;
+        }
+
+        $card->update($updateData);
 
         $card->load('assignee:id,name,first_name,avatar');
 
@@ -979,18 +1008,49 @@ class KanbanController extends Controller
     }
 
     /**
-     * Helper to populate default 4 Trello-style columns
+     * Helper to populate default columns based on template
      */
-    private function createDefaultColumns(int $boardId): void
+    private function createDefaultColumns(int $boardId, string $template = 'standard'): void
     {
-        $defaults = [
-            ['title' => 'Backlog & Idées', 'color' => '#64748b', 'order' => 1, 'is_done_column' => false],
-            ['title' => 'À faire', 'color' => '#3b82f6', 'order' => 2, 'is_done_column' => false],
-            ['title' => 'En cours', 'color' => '#f59e0b', 'order' => 3, 'is_done_column' => false],
-            ['title' => 'Terminé', 'color' => '#00A859', 'order' => 4, 'is_done_column' => true],
+        $templates = [
+            'standard' => [
+                ['title' => 'Backlog & Idées', 'color' => '#64748b', 'order' => 1, 'is_done_column' => false, 'wip_limit' => null],
+                ['title' => 'À faire', 'color' => '#3b82f6', 'order' => 2, 'is_done_column' => false, 'wip_limit' => null],
+                ['title' => 'En cours', 'color' => '#f59e0b', 'order' => 3, 'is_done_column' => false, 'wip_limit' => 4],
+                ['title' => 'Terminé', 'color' => '#00A859', 'order' => 4, 'is_done_column' => true, 'wip_limit' => null],
+            ],
+            'scrum' => [
+                ['title' => 'Product Backlog', 'color' => '#64748b', 'order' => 1, 'is_done_column' => false, 'wip_limit' => null],
+                ['title' => 'Sprint en cours', 'color' => '#3b82f6', 'order' => 2, 'is_done_column' => false, 'wip_limit' => null],
+                ['title' => 'En Développement', 'color' => '#8b5cf6', 'order' => 3, 'is_done_column' => false, 'wip_limit' => 5],
+                ['title' => 'Code Review & QA', 'color' => '#f59e0b', 'order' => 4, 'is_done_column' => false, 'wip_limit' => 3],
+                ['title' => 'Déployé / Terminé', 'color' => '#00A859', 'order' => 5, 'is_done_column' => true, 'wip_limit' => null],
+            ],
+            'bug_tracker' => [
+                ['title' => 'Signalés / Nouveaux', 'color' => '#ef4444', 'order' => 1, 'is_done_column' => false, 'wip_limit' => null],
+                ['title' => 'En Analyse & Repro', 'color' => '#f97316', 'order' => 2, 'is_done_column' => false, 'wip_limit' => 4],
+                ['title' => 'En Correction', 'color' => '#3b82f6', 'order' => 3, 'is_done_column' => false, 'wip_limit' => 4],
+                ['title' => 'Test & Validation', 'color' => '#8b5cf6', 'order' => 4, 'is_done_column' => false, 'wip_limit' => 3],
+                ['title' => 'Résolu / Fermé', 'color' => '#00A859', 'order' => 5, 'is_done_column' => true, 'wip_limit' => null],
+            ],
+            'startup_launch' => [
+                ['title' => 'Idéation & Recherches', 'color' => '#6366f1', 'order' => 1, 'is_done_column' => false, 'wip_limit' => null],
+                ['title' => 'Design & Spécifications', 'color' => '#ec4899', 'order' => 2, 'is_done_column' => false, 'wip_limit' => 4],
+                ['title' => 'MVP & Dév', 'color' => '#3b82f6', 'order' => 3, 'is_done_column' => false, 'wip_limit' => 5],
+                ['title' => 'Marketing & Go-to-Market', 'color' => '#f59e0b', 'order' => 4, 'is_done_column' => false, 'wip_limit' => 4],
+                ['title' => 'Lancé en Production', 'color' => '#00A859', 'order' => 5, 'is_done_column' => true, 'wip_limit' => null],
+            ],
+            'freelance' => [
+                ['title' => 'Cahier des charges & Devis', 'color' => '#64748b', 'order' => 1, 'is_done_column' => false, 'wip_limit' => null],
+                ['title' => 'En cours de réalisation', 'color' => '#3b82f6', 'order' => 2, 'is_done_column' => false, 'wip_limit' => 3],
+                ['title' => 'En attente retour client', 'color' => '#f59e0b', 'order' => 3, 'is_done_column' => false, 'wip_limit' => 4],
+                ['title' => 'Facturé & Livré', 'color' => '#00A859', 'order' => 4, 'is_done_column' => true, 'wip_limit' => null],
+            ],
         ];
 
-        foreach ($defaults as $col) {
+        $columns = $templates[$template] ?? $templates['standard'];
+
+        foreach ($columns as $col) {
             KanbanColumn::create(array_merge($col, ['board_id' => $boardId]));
         }
     }

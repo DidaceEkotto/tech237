@@ -105,4 +105,68 @@ class KanbanTest extends TestCase
         ]);
         $addCardRes->assertStatus(403);
     }
+
+    public function test_user_can_create_board_with_scrum_template_and_wip_limits()
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user, 'web')->post('/espace-utilisateur/kanban/boards', [
+            'title' => 'Scrum Sprint Project',
+            'template' => 'scrum',
+            'is_public' => false,
+        ]);
+
+        $board = KanbanBoard::where('title', 'Scrum Sprint Project')->first();
+        $this->assertNotNull($board);
+        $this->assertEquals('scrum', $board->template);
+        $this->assertCount(5, $board->columns);
+        $this->assertTrue($board->columns->contains('title', 'Product Backlog'));
+        $this->assertTrue($board->columns->contains('title', 'Déployé / Terminé'));
+
+        // Test updating column WIP limit
+        $devCol = $board->columns->where('title', 'En Développement')->first();
+        $this->assertNotNull($devCol);
+        $this->assertEquals(5, $devCol->wip_limit);
+
+        $updateColRes = $this->actingAs($user, 'web')->putJson("/espace-utilisateur/kanban/columns/{$devCol->id}", [
+            'title' => 'En Développement Actif',
+            'wip_limit' => 3,
+        ]);
+        $updateColRes->assertJson(['success' => true]);
+        $this->assertEquals(3, $devCol->fresh()->wip_limit);
+    }
+
+    public function test_user_can_track_time_and_cover_image_on_card()
+    {
+        $user = User::factory()->create();
+        $board = KanbanBoard::create([
+            'user_id' => $user->id,
+            'title' => 'Time Tracking Board',
+        ]);
+        $col = KanbanColumn::create(['board_id' => $board->id, 'title' => 'À faire', 'order' => 1]);
+
+        // Create card with estimation
+        $createRes = $this->actingAs($user, 'web')->postJson("/espace-utilisateur/kanban/columns/{$col->id}/cards", [
+            'title' => 'Développer Passerelle MTN MoMo',
+            'estimated_hours' => 8.5,
+            'spent_hours' => 2,
+            'cover_image' => 'storage/kanban_attachments/mock_cover.png',
+        ]);
+
+        $createRes->assertJson(['success' => true]);
+        $card = KanbanCard::where('title', 'Développer Passerelle MTN MoMo')->first();
+        $this->assertNotNull($card);
+        $this->assertEquals(8.5, (float)$card->estimated_hours);
+        $this->assertEquals(2.0, (float)$card->spent_hours);
+        $this->assertEquals('storage/kanban_attachments/mock_cover.png', $card->cover_image);
+
+        // Update card spent time
+        $updateRes = $this->actingAs($user, 'web')->putJson("/espace-utilisateur/kanban/cards/{$card->id}", [
+            'title' => 'Développer Passerelle MTN MoMo - Validé',
+            'estimated_hours' => 8.5,
+            'spent_hours' => 7.5,
+        ]);
+        $updateRes->assertJson(['success' => true]);
+        $this->assertEquals(7.5, (float)$card->fresh()->spent_hours);
+    }
 }

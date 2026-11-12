@@ -174,6 +174,40 @@ class PortfolioController extends Controller
             ?: $request->file('slide') 
             ?: $request->file('file') 
             ?: (count($request->allFiles()) > 0 ? array_values($request->allFiles())[0] : null);
+
+        // Fallback: Check if base64 data string was provided
+        $base64Data = $request->input('image_base64') ?: $request->input('image') ?: $request->input('slide');
+        if (!$file && is_string($base64Data) && preg_match('/^data:image\/(\w+);base64,/', $base64Data, $type)) {
+            $data = substr($base64Data, strpos($base64Data, ',') + 1);
+            $data = base64_decode($data);
+            if ($data !== false) {
+                $ext = strtolower($type[1]);
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'])) {
+                    $ext = 'png';
+                }
+                $filename = 'slide_' . time() . '_' . Str::random(8) . '.' . $ext;
+                $storageFolder = storage_path('app/public/portfolio_slides');
+                if (!is_dir($storageFolder)) {
+                    @mkdir($storageFolder, 0777, true);
+                }
+                $publicFolder = public_path('storage/portfolio_slides');
+                if (!is_dir($publicFolder)) {
+                    @mkdir($publicFolder, 0777, true);
+                }
+                file_put_contents($storageFolder . '/' . $filename, $data);
+                if (is_dir($publicFolder)) {
+                    @copy($storageFolder . '/' . $filename, $publicFolder . '/' . $filename);
+                }
+                $path = 'portfolio_slides/' . $filename;
+                return response()->json([
+                    'success' => true,
+                    'url' => asset('storage/' . $path),
+                    'relative_url' => '/storage/' . $path,
+                    'path' => 'storage/' . $path,
+                ]);
+            }
+        }
+
         if (!$file) {
             return response()->json(['error' => 'Aucun fichier image trouvé. Veuillez sélectionner une image (PNG, JPG, WebP).'], 422);
         }

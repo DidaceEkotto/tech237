@@ -46,8 +46,15 @@ class SiteSetting extends Model
 
     public static function current(): self
     {
-        $setting = self::first();
-        if (!$setting) {
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasTable('site_settings')) {
+                return new self([
+                    'site_name' => 'Tech237',
+                    'logo' => 'assets/images/logo.png',
+                ]);
+            }
+            $setting = self::first();
+            if (!$setting) {
             $setting = self::create([
                 'site_name' => 'Tech237',
                 'logo' => 'assets/images/logo.png',
@@ -88,5 +95,11 @@ class SiteSetting extends Model
             }
         }
         return $setting;
+        } catch (\Throwable $e) {
+            return new self([
+                'site_name' => 'Tech237',
+                'logo' => 'assets/images/logo.png',
+            ]);
+        }
     }
 }

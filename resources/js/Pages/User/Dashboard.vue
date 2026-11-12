@@ -6936,9 +6936,19 @@ async function uploadSlideFile(file, idx) {
   if (!file) return
   const isImg = (file.type && file.type.startsWith('image/')) || /\.(jpg|jpeg|png|webp|gif|svg|avif)$/i.test(file.name || '')
   if (!isImg) {
-    slideUploadError.value = 'Le fichier sélectionné doit être une image (PNG, JPG, WebP, SVG, GIF).'
+    slideUploadError.value = 'Le fichier sélectionné doit être une image valide (PNG, JPG, WebP, SVG, GIF).'
     return
   }
+
+  // Instant local preview
+  try {
+    const objectUrl = URL.createObjectURL(file)
+    if (portfolioForm.value.portfolio_layout.slideshow?.slides?.[idx]) {
+      portfolioForm.value.portfolio_layout.slideshow.slides[idx].image = objectUrl
+      portfolioForm.value.portfolio_layout.slideshow.slides[idx].url = objectUrl
+    }
+  } catch (e) {}
+
   uploadingSlideIdx.value = idx
   slideUploadLoading.value = true
   slideUploadError.value = ''
@@ -6947,6 +6957,19 @@ async function uploadSlideFile(file, idx) {
     formData.append('image', file)
     formData.append('slide', file)
     formData.append('file', file)
+
+    // Base64 fallback if needed
+    try {
+      const reader = new FileReader()
+      const base64Promise = new Promise(resolve => {
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = () => resolve(null)
+        reader.readAsDataURL(file)
+      })
+      const b64 = await base64Promise
+      if (b64) formData.append('image_base64', b64)
+    } catch (e) {}
+
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
     const response = await fetch('/espace-utilisateur/portfolio/upload-slide', {
       method: 'POST',
@@ -6966,7 +6989,11 @@ async function uploadSlideFile(file, idx) {
       portfolioForm.value.portfolio_layout.slideshow.enabled = true
       slideUploadError.value = ''
     } else {
-      slideUploadError.value = resData?.error || resData?.errors?.image?.[0] || resData?.errors?.slide?.[0] || resData?.message || 'Erreur lors du téléversement de la diapositive.'
+      let rawErr = resData?.error || resData?.errors?.image?.[0] || resData?.errors?.slide?.[0] || resData?.message || 'Erreur lors du téléversement de la diapositive.'
+      if (typeof rawErr === 'string' && rawErr.toLowerCase().includes('the image field is required')) {
+        rawErr = 'Veuillez sélectionner un fichier image valide (PNG, JPG, WebP).'
+      }
+      slideUploadError.value = rawErr
     }
   } catch (err) {
     slideUploadError.value = err.message || 'Erreur réseau lors du téléversement.'

@@ -193,6 +193,35 @@
                 </div>
               </div>
 
+              <!-- Template Selection -->
+              <div class="mb-3">
+                <label class="form-label small fw-bold text-dark d-flex align-items-center justify-content-between mb-1">
+                  <span><i class="bi bi-grid-1x2-fill text-primary me-1"></i>Modèle de tableau préréglé</span>
+                  <span class="badge bg-light text-muted border extra-small">{{ templates.find(t => t.id === form.template)?.title || 'Standard' }}</span>
+                </label>
+                <div class="row g-2">
+                  <div v-for="tmpl in templates" :key="tmpl.id" class="col-sm-6">
+                    <div 
+                      class="p-2 rounded-3 border cursor-pointer h-100 transition template-card"
+                      :class="form.template === tmpl.id ? 'border-primary bg-primary-subtle shadow-xs' : 'bg-light hover-bg-white'"
+                      @click="form.template = tmpl.id"
+                      style="cursor: pointer;"
+                    >
+                      <div class="d-flex align-items-center gap-2 mb-1">
+                        <i :class="['bi', tmpl.icon]" :style="{ color: tmpl.color }"></i>
+                        <span class="extra-small fw-bold text-dark text-truncate">{{ tmpl.title }}</span>
+                      </div>
+                      <p class="extra-small text-muted mb-1 line-clamp-1" style="font-size: 11px;">{{ tmpl.description }}</p>
+                      <div class="d-flex flex-wrap gap-1">
+                        <span v-for="(c, ci) in tmpl.cols" :key="ci" class="badge bg-white text-dark border extra-small px-1 py-0" style="font-size: 9.5px;">
+                          {{ c }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Description -->
               <div class="mb-3">
                 <label class="form-label small fw-bold text-dark">Description (optionnelle)</label>
@@ -269,10 +298,54 @@ const props = defineProps({
 const showModal = ref(false)
 const isSubmitting = ref(false)
 
+const templates = [
+  {
+    id: 'standard',
+    title: 'Standard (Trello)',
+    icon: 'bi-kanban',
+    description: 'Backlog, À faire, En cours, Terminé.',
+    cols: ['Backlog & Idées', 'À faire', 'En cours', 'Terminé'],
+    color: '#3b82f6'
+  },
+  {
+    id: 'scrum',
+    title: 'Scrum / Agile Sprint',
+    icon: 'bi-arrow-repeat',
+    description: 'Backlog, Sprint en cours, En Dév, Code Review, Déployé.',
+    cols: ['Backlog', 'Sprint', 'En Dév', 'Review', 'Déployé'],
+    color: '#8b5cf6'
+  },
+  {
+    id: 'bug_tracker',
+    title: 'Bug & Issue Tracker',
+    icon: 'bi-bug',
+    description: 'Signalés, Analyse & Repro, En Correction, Validation, Résolu.',
+    cols: ['Signalés', 'Analyse', 'Correction', 'Validation', 'Résolu'],
+    color: '#ef4444'
+  },
+  {
+    id: 'startup_launch',
+    title: 'Lancement Produit / MVP',
+    icon: 'bi-rocket-takeoff',
+    description: 'Idéation, Spécifications, MVP & Dév, Marketing, Production.',
+    cols: ['Idéation', 'Design/Spéc', 'MVP', 'Marketing', 'Production'],
+    color: '#ec4899'
+  },
+  {
+    id: 'freelance',
+    title: 'Mission Freelance & Client',
+    icon: 'bi-briefcase',
+    description: 'Cahier des charges, Réalisation, Retour client, Facturé.',
+    cols: ['Cahier charges', 'Réalisation', 'Retour client', 'Livré & Facturé'],
+    color: '#f59e0b'
+  },
+]
+
 const form = ref({
   title: '',
   description: '',
   project_id: null,
+  template: 'standard',
   is_public: false,
   contributor_ids: [],
 })
@@ -282,6 +355,7 @@ function openCreateModal() {
     title: '',
     description: '',
     project_id: props.myProjects.length > 0 ? props.myProjects[0].id : null,
+    template: 'standard',
     is_public: false,
     contributor_ids: [],
   }

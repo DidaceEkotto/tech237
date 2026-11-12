@@ -17,6 +17,7 @@ class KanbanBoard extends Model
         'title',
         'description',
         'is_public',
+        'template',
     ];
 
     protected function casts(): array
