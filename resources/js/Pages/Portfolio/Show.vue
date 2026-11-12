@@ -7,22 +7,33 @@
       'font-' + currentFont,
       'bg-pattern-' + currentPattern,
       'structure-' + currentStructure,
-      customCursorEnabled ? 'custom-cursor-active' : ''
+      'heading-style-' + designEffects.heading_style,
+      'btn-style-' + designEffects.button_style,
+      'card-border-' + designEffects.card_border_effect,
+      (customCursorEnabled || designEffects.cursor_effect === 'magnetic_ring' || designEffects.cursor_effect === 'glow_trail') ? 'custom-cursor-active' : ''
     ]" 
     :style="cssVars"
     @mousemove="handleMouseMove"
   >
+    <!-- FLOATING MESH GLOW ORBS (Design Effect) -->
+    <div v-if="designEffects.floating_orbs" class="portfolio-floating-orbs pointer-events-none d-print-none">
+      <div class="mesh-orb orb-1" :style="{ background: accentColor }"></div>
+      <div class="mesh-orb orb-2"></div>
+      <div class="mesh-orb orb-3" :style="{ background: accentColor }"></div>
+    </div>
+
     <!-- MOUSE SPOTLIGHT HALO -->
     <div 
-      v-if="spotlightEnabled" 
+      v-if="spotlightEnabled || designEffects.cursor_effect === 'spotlight'" 
       class="portfolio-spotlight-layer position-fixed top-0 start-0 w-100 h-100 pointer-events-none d-print-none"
       :style="spotlightStyle"
     ></div>
 
-    <!-- CUSTOM TECH CURSOR RING (Desktop) -->
+    <!-- CUSTOM TECH CURSOR RING / GLOW TRAIL (Desktop) -->
     <div 
-      v-if="customCursorEnabled" 
+      v-if="customCursorEnabled || designEffects.cursor_effect === 'magnetic_ring' || designEffects.cursor_effect === 'glow_trail'" 
       class="portfolio-custom-cursor pointer-events-none d-none d-lg-block d-print-none"
+      :class="designEffects.cursor_effect === 'glow_trail' ? 'cursor-glow-trail' : ''"
       :style="customCursorStyle"
     ></div>
     <Head>
@@ -131,6 +142,7 @@
 
     <!-- TOP WEBSITE NAVBAR (Real Personal Website Header + Mobile Menu) -->
     <header 
+      v-if="!isBlankCanvasMode || !blankCanvasConfig.hide_default_navbar"
       class="portfolio-nav sticky-top d-print-none position-relative z-20"
       :class="[
         websiteNavbar.enabled ? 'website-nav-mode nav-style-' + websiteNavbar.style : 'py-2 px-3 px-md-4 shadow-2xs backdrop-blur'
@@ -476,12 +488,16 @@
       </div>
     </div>
 
-    <!-- TABBED MULTI-PAGE NAVIGATION BAR (Bootstrap Icons, fully customizable) -->
+    <!-- TABBED MULTI-PAGE NAVIGATION BAR (Show/Hide, Top/Sticky/Bottom Dock, Custom Styles) -->
     <div 
-      v-if="isTabbedMode" 
-      class="portfolio-tabbed-bar sticky-top py-2 px-3 d-print-none backdrop-blur border-bottom shadow-xs position-relative z-10" 
-      style="top: 50px;"
-      :class="['tabs-align-' + tabAlignment, 'tabs-style-' + tabStyle]"
+      v-if="isTabbedBarVisible && availableTabs.length > 0" 
+      class="portfolio-tabbed-bar py-2 px-3 d-print-none backdrop-blur z-10" 
+      :class="[
+        'tabs-align-' + tabAlignment,
+        'tabs-style-' + tabStyle,
+        tabPosition === 'bottom_dock' ? 'tabbed-bar-bottom-dock shadow-lg border rounded-pill' : (tabPosition === 'sticky_top' ? 'sticky-top border-bottom shadow-xs position-relative' : 'border-bottom shadow-2xs position-relative')
+      ]"
+      :style="tabPosition === 'sticky_top' ? { top: '50px' } : {}"
     >
       <div class="container d-flex align-items-center flex-wrap gap-2" :class="getTabJustifyClass()">
         <button 
@@ -989,6 +1005,172 @@
               <span class="badge bg-secondary-subtle text-muted extra-small font-monospace d-none d-sm-inline">projects.ts</span>
             </div>
             <span class="badge bg-success-subtle text-success extra-small font-monospace"><i class="bi bi-check2-all me-1"></i>0 Errors</span>
+          </div>
+        </div>
+
+        <!-- BLANK CANVAS PAGE BUILDER WIDGETS (When Feuille Blanche is active) -->
+        <div v-if="isBlankCanvasMode" class="mb-4">
+          <!-- Owner Floating Studio Bar on Blank Canvas -->
+          <div v-if="isOwner" class="p-3 mb-4 rounded-4 bg-dark text-white d-flex align-items-center justify-content-between flex-wrap gap-2 shadow-sm d-print-none border border-secondary border-opacity-50">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-primary text-white rounded-pill px-3 py-1 extra-small fw-bold">📄 Mode Feuille Blanche Actif</span>
+              <span class="extra-small text-white-50">{{ blankCanvasWidgets.length }} bloc(s) personnalisé(s) actif(s)</span>
+            </div>
+            <a href="/espace-utilisateur?section=portfolio" class="btn btn-xs btn-success rounded-pill px-3 py-1 fw-bold text-white text-decoration-none">
+              <i class="bi bi-sliders me-1"></i> Gérer mes Blocs Feuille Blanche
+            </a>
+          </div>
+
+          <!-- Empty Blank Sheet Notice (when 0 widgets and default hero hidden) -->
+          <div v-if="blankCanvasWidgets.length === 0 && blankCanvasConfig.hide_default_hero" class="p-5 rounded-4 border border-2 border-dashed text-center content-card my-4">
+            <i class="bi bi-file-earmark-plus display-4 d-block mb-3" :style="{ color: accentColor }"></i>
+            <h2 class="h4 fw-bold mb-2">Feuille Blanche Vierge</h2>
+            <p class="text-muted small mb-3 mx-auto" style="max-width: 520px;">
+              Cet espace a été réinitialisé à zéro pour une création 100 % sur-mesure. Ajoutez vos bannières Hero, textes, grilles de cartes, images, terminaux de code et sections depuis votre studio.
+            </p>
+            <a v-if="isOwner" href="/espace-utilisateur?section=portfolio" class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm" :style="{ backgroundColor: accentColor }">
+              <i class="bi bi-plus-circle me-1"></i> Ajouter mon premier bloc
+            </a>
+          </div>
+
+          <!-- Render Custom Blank Canvas Widgets -->
+          <div v-if="customOnlyCanvasWidgets.length > 0" class="row g-4">
+            <div 
+              v-for="(w, wIdx) in customOnlyCanvasWidgets" 
+              :key="w.id || wIdx" 
+              :class="getCanvasWidgetColClass(w.width)"
+            >
+              <!-- Spacer / Divider Widget -->
+              <div v-if="w.type === 'spacer_divider'" :style="{ padding: ((w.spacer_height || 48) / 2) + 'px 0' }">
+                <div v-if="w.divider_style === 'neon_line'" class="section-divider-neon" :style="{ '--accent-color': accentColor }"></div>
+                <div v-else-if="w.divider_style === 'tech_dots'" class="d-flex align-items-center justify-content-center gap-3">
+                  <span class="rounded-circle" :style="{ width: '8px', height: '8px', backgroundColor: accentColor }"></span>
+                  <span class="rounded-circle" :style="{ width: '12px', height: '12px', backgroundColor: accentColor }"></span>
+                  <span class="rounded-circle" :style="{ width: '8px', height: '8px', backgroundColor: accentColor }"></span>
+                </div>
+                <div v-else-if="w.divider_style === 'svg_wave'" class="text-center overflow-hidden" style="height: 32px;">
+                  <svg viewBox="0 0 1200 60" preserveAspectRatio="none" class="w-100 h-100">
+                    <path d="M0,30 C300,60 900,0 1200,30 L1200,60 L0,60 Z" :fill="accentColor" fill-opacity="0.18"></path>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- Standard Custom Canvas Widget Card -->
+              <div 
+                v-else 
+                class="h-100 position-relative overflow-hidden transition"
+                :class="[getCanvasWidgetBoxClass(w), getCanvasWidgetPaddingClass(w)]"
+                :style="getCanvasWidgetInlineStyle(w)"
+              >
+                <!-- 1. CUSTOM HERO WIDGET -->
+                <div v-if="w.type === 'custom_hero'">
+                  <div class="row align-items-center g-4" :class="w.hero_layout === 'split_left' ? 'flex-row-reverse' : ''">
+                    <div :class="w.image_url && w.hero_layout !== 'centered' ? 'col-lg-7' : 'col-12'" :style="{ textAlign: w.hero_layout === 'centered' ? 'center' : (w.text_align || 'left') }">
+                      <span v-if="w.badge" class="badge rounded-pill px-3 py-1 fw-bold extra-small mb-3" :style="{ backgroundColor: accentColor, color: '#FFFFFF' }">
+                        {{ w.badge }}
+                      </span>
+                      <h1 class="display-5 fw-bold mb-3">{{ w.title }}</h1>
+                      <p v-if="w.subtitle" class="fs-5 opacity-85 mb-4 leading-relaxed">{{ w.subtitle }}</p>
+                      <div class="d-flex flex-wrap gap-2" :class="w.hero_layout === 'centered' || w.text_align === 'center' ? 'justify-content-center' : ''">
+                        <a v-if="w.cta_primary_text" :href="w.cta_primary_link || '#portfolioContactSection'" class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm" :style="{ backgroundColor: accentColor }">
+                          {{ w.cta_primary_text }}
+                        </a>
+                        <a v-if="w.cta_secondary_text" :href="w.cta_secondary_link || '#'" class="btn btn-outline-light border rounded-pill px-4 py-2 fw-bold">
+                          {{ w.cta_secondary_text }}
+                        </a>
+                      </div>
+                    </div>
+                    <div v-if="w.image_url" :class="w.hero_layout === 'centered' ? 'col-12 mt-3 text-center' : 'col-lg-5 text-center'">
+                      <img :src="formatImageUrl(w.image_url)" class="img-fluid rounded-4 shadow-lg object-fit-cover" style="max-height: 360px;" :alt="w.title" />
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 2. RICH TEXT WIDGET -->
+                <div v-else-if="w.type === 'rich_text'" :style="{ textAlign: w.text_align || 'left' }">
+                  <h2 v-if="w.title" class="h4 fw-bold mb-1">{{ w.title }}</h2>
+                  <p v-if="w.subtitle" class="small opacity-75 mb-3">{{ w.subtitle }}</p>
+                  <blockquote v-if="w.quote" class="p-3 rounded-4 mb-3 fst-italic fw-semibold border-start border-4" :style="{ borderColor: accentColor + ' !important', backgroundColor: 'rgba(16,185,129,0.06)' }">
+                    « {{ w.quote }} »
+                  </blockquote>
+                  <div class="leading-relaxed" :class="w.columns === 2 ? 'about-two-columns' : ''" v-html="formatHtml(w.content)"></div>
+                </div>
+
+                <!-- 3. FEATURE CARDS WIDGET -->
+                <div v-else-if="w.type === 'feature_cards'" :style="{ textAlign: w.text_align || 'left' }">
+                  <h2 v-if="w.title" class="h4 fw-bold mb-1">{{ w.title }}</h2>
+                  <p v-if="w.subtitle" class="small opacity-75 mb-4">{{ w.subtitle }}</p>
+                  <div class="row g-3">
+                    <div v-for="(c, cIdx) in (w.cards || [])" :key="cIdx" :class="w.columns === 4 ? 'col-sm-6 col-lg-3' : (w.columns === 2 ? 'col-md-6' : 'col-md-4')">
+                      <div class="p-3 p-md-4 rounded-4 border h-100 elem-anim-lift bg-white bg-opacity-10">
+                        <div class="rounded-3 d-inline-flex align-items-center justify-content-center mb-3 text-white shadow-2xs" :style="{ width: '44px', height: '44px', backgroundColor: c.color || accentColor }">
+                          <i class="bi fs-5" :class="c.icon || 'bi-stars'"></i>
+                        </div>
+                        <h3 class="h6 fw-bold mb-2">{{ c.title }}</h3>
+                        <p class="small opacity-80 mb-0 leading-relaxed">{{ c.text }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. IMAGE BANNER WIDGET -->
+                <div v-else-if="w.type === 'image_banner'" :style="{ textAlign: w.text_align || 'center' }">
+                  <h2 v-if="w.title" class="h5 fw-bold mb-3">{{ w.title }}</h2>
+                  <div v-if="w.image_url" class="rounded-4 overflow-hidden shadow-sm">
+                    <img :src="formatImageUrl(w.image_url)" class="w-100 object-fit-cover" :style="{ height: w.image_height && w.image_height !== 'auto' ? w.image_height : 'auto' }" :alt="w.caption || w.title" />
+                  </div>
+                  <p v-if="w.caption" class="extra-small opacity-75 mt-2 mb-0 fst-italic">{{ w.caption }}</p>
+                </div>
+
+                <!-- 5. CTA BANNER WIDGET -->
+                <div v-else-if="w.type === 'cta_banner'" :style="{ textAlign: w.text_align || 'center' }">
+                  <h2 class="h3 fw-bold mb-2">{{ w.title }}</h2>
+                  <p v-if="w.subtitle" class="mb-4 opacity-90">{{ w.subtitle }}</p>
+                  <a v-if="w.button_text" :href="w.button_link || '#portfolioContactSection'" class="btn btn-light rounded-pill px-4 py-2 fw-bold shadow-sm">
+                    {{ w.button_text }} <i class="bi bi-arrow-right ms-1"></i>
+                  </a>
+                </div>
+
+                <!-- 6. STATS COUNTER WIDGET -->
+                <div v-else-if="w.type === 'stats_counter'" :style="{ textAlign: w.text_align || 'center' }">
+                  <h2 v-if="w.title" class="h5 fw-bold mb-3">{{ w.title }}</h2>
+                  <div class="row g-3 justify-content-center">
+                    <div v-for="(st, stIdx) in (w.stats || [])" :key="stIdx" class="col-6 col-md-3">
+                      <div class="p-3 rounded-4 border text-center h-100 elem-anim-lift">
+                        <i v-if="st.icon" class="bi fs-4 d-block mb-1" :class="st.icon" :style="{ color: st.color || accentColor }"></i>
+                        <div class="fs-2 fw-black" :style="{ color: st.color || accentColor }">{{ st.value }}</div>
+                        <div class="extra-small fw-semibold opacity-80">{{ st.label }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 7. CODE TERMINAL WIDGET -->
+                <div v-else-if="w.type === 'code_terminal'">
+                  <h2 v-if="w.title" class="h5 fw-bold mb-3">{{ w.title }}</h2>
+                  <div class="rounded-4 overflow-hidden shadow-lg border border-secondary border-opacity-25" :style="{ backgroundColor: w.terminal_theme === 'matrix_green' ? '#021a09' : '#0F172A' }">
+                    <div class="px-3 py-2 bg-black bg-opacity-50 d-flex align-items-center justify-content-between border-bottom border-secondary border-opacity-25">
+                      <div class="d-flex gap-2">
+                        <span class="rounded-circle bg-danger d-inline-block" style="width: 11px; height: 11px;"></span>
+                        <span class="rounded-circle bg-warning d-inline-block" style="width: 11px; height: 11px;"></span>
+                        <span class="rounded-circle bg-success d-inline-block" style="width: 11px; height: 11px;"></span>
+                      </div>
+                      <span class="extra-small font-monospace text-white-50">{{ w.terminal_title || 'terminal.sh' }}</span>
+                      <span></span>
+                    </div>
+                    <pre class="p-3 p-md-4 mb-0 font-monospace small overflow-auto" :style="{ color: w.terminal_theme === 'matrix_green' ? '#4ADE80' : (w.terminal_theme === 'cyberpunk' ? '#38BDF8' : '#E2E8F0') }"><code>{{ w.code }}</code></pre>
+                  </div>
+                </div>
+
+                <!-- 8. VIDEO EMBED WIDGET -->
+                <div v-else-if="w.type === 'video_embed'">
+                  <h2 v-if="w.title" class="h5 fw-bold mb-3">{{ w.title }}</h2>
+                  <div v-if="extractYouTubeEmbedUrl(w.video_url)" class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm">
+                    <iframe :src="extractYouTubeEmbedUrl(w.video_url)" allowfullscreen></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2917,6 +3099,22 @@
                 </div>
               </section>
 
+              <!-- SECTION DIVIDER EFFECT (If enabled in Design Effects Studio) -->
+              <div v-if="designEffects.section_divider && designEffects.section_divider !== 'none' && block.id !== 'contact'" class="portfolio-section-divider my-3 d-print-none">
+                <div v-if="designEffects.section_divider === 'neon_line'" class="section-divider-neon" :style="{ '--accent-color': accentColor }"></div>
+                <div v-else-if="designEffects.section_divider === 'tech_dots'" class="d-flex align-items-center justify-content-center gap-3 py-1">
+                  <span class="rounded-circle opacity-50" :style="{ width: '6px', height: '6px', backgroundColor: accentColor }"></span>
+                  <span class="rounded-1" :style="{ width: '10px', height: '10px', backgroundColor: accentColor, transform: 'rotate(45deg)' }"></span>
+                  <span class="rounded-circle opacity-50" :style="{ width: '6px', height: '6px', backgroundColor: accentColor }"></span>
+                </div>
+                <div v-else-if="designEffects.section_divider === 'svg_wave'" class="overflow-hidden" style="height: 24px;">
+                  <svg viewBox="0 0 1200 60" preserveAspectRatio="none" class="w-100 h-100">
+                    <path d="M0,30 C350,65 850,-5 1200,30 L1200,60 L0,60 Z" :fill="accentColor" fill-opacity="0.14"></path>
+                  </svg>
+                </div>
+                <div v-else-if="designEffects.section_divider === 'diagonal_slash'" class="section-divider-diagonal" :style="{ '--accent-color': accentColor }"></div>
+              </div>
+
             </div>
 
           </template>
@@ -2926,7 +3124,7 @@
       </main>
 
       <!-- CUSTOMIZABLE GLOBAL FOOTER (Multi-Column Real Website Footer or Minimal) -->
-      <footer class="portfolio-global-footer py-5 mt-5 border-top d-print-none position-relative z-10">
+      <footer v-if="!isBlankCanvasMode || !blankCanvasConfig.hide_default_footer" class="portfolio-global-footer py-5 mt-5 border-top d-print-none position-relative z-10">
         <div class="container" :style="{ maxWidth: websiteNavbar.enabled ? '1320px' : undefined }">
           
           <!-- Multi-Column Website Footer -->
@@ -3729,12 +3927,17 @@ const customBgStyle = computed(() => ({
   zIndex: 0
 }))
 
-// Tabbed multi-page website mode (NO EMOJIS, Bootstrap Icons)
+// Tabbed multi-page website mode (Show/Hide, Position, Bootstrap Icons)
 const isTabbedMode = computed(() => {
   return currentStructure.value.startsWith('tabbed') || Boolean(layout.value.tabbed_nav?.enabled)
 })
 
+const isTabbedBarVisible = computed(() => {
+  return isTabbedMode.value && layout.value.tabbed_nav?.show_bar !== false
+})
+
 const activeTab = ref(layout.value.tabbed_nav?.default_tab || 'all')
+const tabPosition = computed(() => layout.value.tabbed_nav?.position || 'top')
 const tabStyle = computed(() => layout.value.tabbed_nav?.style || 'pills')
 const tabSize = computed(() => layout.value.tabbed_nav?.size || 'md')
 const tabRadius = computed(() => layout.value.tabbed_nav?.radius || 'full')
@@ -3759,6 +3962,7 @@ function isBlockEnabled(blockId) {
 }
 
 const availableTabs = computed(() => {
+  const hidden = Array.isArray(layout.value.tabbed_nav?.hidden_tabs) ? layout.value.tabbed_nav.hidden_tabs : []
   const tabs = [
     { id: 'all', label: 'Vue Globale', iconClass: 'bi-grid-fill' }
   ]
@@ -3810,7 +4014,7 @@ const availableTabs = computed(() => {
   if (isBlockEnabled('contact')) {
     tabs.push({ id: 'contact', label: 'Contact', iconClass: 'bi-envelope-fill' })
   }
-  return tabs
+  return tabs.filter(t => !hidden.includes(t.id))
 })
 
 function isBlockActiveInTab(blockId) {
@@ -3870,7 +4074,90 @@ const isBentoGrid = computed(() => {
   return currentStructure.value.startsWith('bento')
 })
 
+// Design Effects Studio & Blank Canvas Page Builder
+const designEffects = computed(() => {
+  const d = layout.value.design_effects || {}
+  return {
+    cursor_effect: d.cursor_effect || (layout.value.spotlight_enabled ? 'spotlight' : (layout.value.custom_cursor_enabled ? 'magnetic_ring' : 'none')),
+    section_divider: d.section_divider || 'none',
+    heading_style: d.heading_style || 'classic',
+    button_style: d.button_style || 'classic',
+    card_border_effect: d.card_border_effect || 'subtle',
+    scroll_reveal: d.scroll_reveal || 'fade_up',
+    floating_orbs: Boolean(d.floating_orbs),
+    glass_blur_intensity: Number(d.glass_blur_intensity ?? 12)
+  }
+})
+
+const blankCanvasConfig = computed(() => {
+  return layout.value.blank_canvas || {
+    enabled: false,
+    hide_default_hero: false,
+    hide_default_navbar: false,
+    hide_default_footer: false,
+    hide_kpi_ribbon: true,
+    hide_tech_marquee: true,
+    canvas_max_width: '1240px',
+    widgets: []
+  }
+})
+
+const isBlankCanvasMode = computed(() => {
+  return currentStructure.value === 'blank_canvas' || Boolean(blankCanvasConfig.value.enabled)
+})
+
+const blankCanvasWidgets = computed(() => {
+  const list = blankCanvasConfig.value.widgets
+  if (!Array.isArray(list)) return []
+  return list.filter(w => w && w.enabled !== false)
+})
+
+const customOnlyCanvasWidgets = computed(() => {
+  return blankCanvasWidgets.value.filter(w => w.type !== 'system_block')
+})
+
+function getCanvasWidgetColClass(width) {
+  if (width === '33%') return 'col-12 col-md-4'
+  if (width === '50%') return 'col-12 col-md-6'
+  if (width === '66%') return 'col-12 col-md-8'
+  return 'col-12'
+}
+
+function getCanvasWidgetBoxClass(w) {
+  if (w.bg_style === 'transparent') return ''
+  if (w.bg_style === 'glass') return 'backdrop-blur border shadow-sm'
+  return 'content-card shadow-sm border'
+}
+
+function getCanvasWidgetPaddingClass(w) {
+  if (w.padding === 'none') return 'p-0'
+  if (w.padding === 'sm') return 'p-3'
+  if (w.padding === 'md') return 'p-3 p-md-4'
+  if (w.padding === 'xl') return 'p-4 p-md-5 py-md-5'
+  return 'p-4 p-md-5'
+}
+
+function getCanvasWidgetInlineStyle(w) {
+  const style = {
+    borderRadius: w.border_radius || '24px'
+  }
+  if (w.bg_style === 'custom_color') {
+    style.backgroundColor = w.bg_color || '#FFFFFF'
+    style.color = w.text_color || '#0F172A'
+  } else if (w.bg_style === 'gradient_dark') {
+    style.background = 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)'
+    style.color = '#FFFFFF'
+  } else if (w.bg_style === 'gradient_accent') {
+    style.background = `linear-gradient(135deg, ${accentColor.value} 0%, #0F172A 100%)`
+    style.color = '#FFFFFF'
+  }
+  return style
+}
+
 const containerMaxWidth = computed(() => {
+  if (isBlankCanvasMode.value && blankCanvasConfig.value.canvas_max_width) {
+    return blankCanvasConfig.value.canvas_max_width
+  }
   if (currentStructure.value === 'bento_3col') return '1340px'
   if (isBentoGrid.value) return '1240px'
   if (currentStructure.value === 'compact') return '760px'
@@ -3918,6 +4205,16 @@ const defaultBlocks = [
 ]
 
 const orderedBlocks = computed(() => {
+  if (isBlankCanvasMode.value && blankCanvasConfig.value.hide_default_hero) {
+    const sysWidgets = blankCanvasWidgets.value.filter(w => w.type === 'system_block' && w.system_block_id)
+    const activeSysIds = sysWidgets.map(w => w.system_block_id)
+    return defaultBlocks.map(db => ({
+      ...db,
+      enabled: activeSysIds.includes(db.id),
+      width: 'full'
+    }))
+  }
+
   let list = Array.isArray(layout.value.blocks) && layout.value.blocks.length > 0 
     ? [...layout.value.blocks] 
     : [...defaultBlocks]
@@ -4143,16 +4440,18 @@ function parseCommaTags(str) {
 }
 
 const testimonialsDesign = computed(() => {
-  return layout.value.testimonials_design || {
-    title: 'Témoignages & Recommandations',
-    subtitle: '',
-    icon: 'bi-chat-quote-fill',
-    display_mode: 'slider',
-    autoplay: true,
-    speed: 5,
-    cards_per_view: 2,
-    hover_effect: 'lift',
-    text_align: 'left'
+  const t = layout.value.testimonials_design || {}
+  return {
+    title: t.title || 'Témoignages & Recommandations',
+    subtitle: t.subtitle || '',
+    icon: t.icon || 'bi-chat-quote-fill',
+    display_mode: t.display_mode || t.layout_style || 'slider',
+    autoplay: t.autoplay !== false,
+    speed: Number(t.speed || t.interval) || 5,
+    cards_per_view: Number(t.cards_per_view || t.slides_per_view) || 2,
+    hover_effect: t.hover_effect || t.animation || 'lift',
+    text_align: t.text_align || 'left',
+    show_stars: t.show_stars !== false
   }
 })
 
@@ -4182,6 +4481,13 @@ function prevTestimonialSlide() {
 }
 
 const presetAvatarsMap = {
+  ceo_male: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#1E3A8A"/><circle cx="50" cy="36" r="18" fill="#FBBF24"/><path d="M22 90 C22 65 78 65 78 90" fill="#0F172A"/><path d="M44 68 L50 84 L56 68 Z" fill="#EF4444"/><circle cx="44" cy="34" r="2.2" fill="#1E293B"/><circle cx="56" cy="34" r="2.2" fill="#1E293B"/><path d="M44 43 Q50 48 56 43" stroke="#1E293B" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>')}`,
+  ceo_female: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#831843"/><path d="M26 42 C26 16 74 16 74 42 L78 65 L22 65 Z" fill="#1F2937"/><circle cx="50" cy="38" r="17" fill="#F59E0B"/><path d="M24 90 C24 67 76 67 76 90" fill="#EC4899"/><circle cx="44" cy="36" r="2.2" fill="#1E293B"/><circle cx="56" cy="36" r="2.2" fill="#1E293B"/><path d="M44 44 Q50 49 56 44" stroke="#BE185D" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>')}`,
+  dev_male: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#065F46"/><circle cx="50" cy="37" r="18" fill="#D97706"/><path d="M22 90 C22 66 78 66 78 90" fill="#10B981"/><rect x="37" y="31" width="11" height="8" rx="2" stroke="#FFFFFF" stroke-width="2" fill="none"/><rect x="52" y="31" width="11" height="8" rx="2" stroke="#FFFFFF" stroke-width="2" fill="none"/><line x1="48" y1="35" x2="52" y2="35" stroke="#FFFFFF" stroke-width="2"/><path d="M45 45 Q50 49 55 45" stroke="#1E293B" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>')}`,
+  dev_female: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#4C1D95"/><circle cx="50" cy="24" r="12" fill="#111827"/><circle cx="50" cy="40" r="17" fill="#B45309"/><path d="M24 90 C24 68 76 68 76 90" fill="#8B5CF6"/><rect x="38" y="34" width="10" height="7" rx="2" stroke="#FDE68A" stroke-width="2" fill="none"/><rect x="52" y="34" width="10" height="7" rx="2" stroke="#FDE68A" stroke-width="2" fill="none"/><path d="M45 47 Q50 51 55 47" stroke="#FFF" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>')}`,
+  designer: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#7C2D12"/><circle cx="50" cy="38" r="18" fill="#FBBF24"/><path d="M30 28 C35 16 65 16 70 28" fill="#EA580C"/><path d="M22 90 C22 66 78 66 78 90" fill="#F97316"/><circle cx="44" cy="36" r="2.3" fill="#1E293B"/><circle cx="56" cy="36" r="2.3" fill="#1E293B"/><path d="M44 45 Q50 50 56 45" stroke="#1E293B" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>')}`,
+  consultant: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#0F766E"/><circle cx="50" cy="37" r="18" fill="#92400E"/><path d="M22 90 C22 66 78 66 78 90" fill="#14B8A6"/><circle cx="44" cy="35" r="2.3" fill="#FFF"/><circle cx="56" cy="35" r="2.3" fill="#FFF"/><path d="M43 45 Q50 50 57 45" stroke="#FFF" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>')}`,
+  client_vip: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="50" fill="#1E293B"/><circle cx="50" cy="37" r="18" fill="#F59E0B"/><path d="M22 90 C22 66 78 66 78 90" fill="#EAB308"/><polygon points="50,10 54,18 62,18 56,23 58,30 50,26 42,30 44,23 38,18 46,18" fill="#FDE047"/><circle cx="44" cy="36" r="2.3" fill="#1E293B"/><circle cx="56" cy="36" r="2.3" fill="#1E293B"/><path d="M44 45 Q50 50 56 45" stroke="#1E293B" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>')}`,
   preset_dev_male: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#1E293B"/><circle cx="40" cy="30" r="14" fill="#FBBF24"/><path d="M18 70c4-14 14-20 22-20s18 6 22 20" fill="#10B981"/><rect x="28" y="26" width="10" height="6" rx="2" fill="none" stroke="#fff" stroke-width="2"/><rect x="42" y="26" width="10" height="6" rx="2" fill="none" stroke="#fff" stroke-width="2"/></svg>')}`,
   preset_dev_female: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#4C1D95"/><path d="M22 32c0-12 8-18 18-18s18 6 18 18v12H22z" fill="#111827"/><circle cx="40" cy="32" r="13" fill="#FDE68A"/><path d="M18 70c4-13 13-19 22-19s18 6 22 19" fill="#EC4899"/></svg>')}`,
   preset_ceo: `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="40" fill="#0F172A"/><circle cx="40" cy="29" r="14" fill="#FDBA74"/><path d="M16 70c5-15 15-21 24-21s19 6 24 21" fill="#3B82F6"/><polygon points="40,50 36,64 40,70 44,64" fill="#EF4444"/></svg>')}`,
@@ -5364,6 +5670,177 @@ onUnmounted(() => {
 .project-hover-slide_accent:hover {
   transform: translateX(6px);
   border-left: 5px solid var(--accent-color, #00A859) !important;
+}
+
+/* ==========================================================================
+   MACOS BOTTOM DOCK TAB BAR, FLOATING ORBS & DESIGN EFFECTS STUDIO
+   ========================================================================== */
+.tabbed-bar-bottom-dock {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 92vw;
+  width: max-content;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px);
+  z-index: 1040;
+  padding: 8px 14px !important;
+}
+.theme-dark .tabbed-bar-bottom-dock,
+.theme-synthwave .tabbed-bar-bottom-dock {
+  background: rgba(15, 23, 42, 0.88);
+  border-color: rgba(255, 255, 255, 0.14) !important;
+}
+
+.tabs-style-glass_dock {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(18px);
+}
+.tabs-style-neon_glow .tab-nav-btn {
+  box-shadow: 0 0 12px rgba(0, 168, 89, 0.18);
+}
+
+/* Floating Mesh Orbs */
+.portfolio-floating-orbs {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+.mesh-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.16;
+  animation: floatOrb 14s infinite alternate ease-in-out;
+}
+.mesh-orb.orb-1 {
+  width: 380px;
+  height: 380px;
+  top: -80px;
+  left: -80px;
+}
+.mesh-orb.orb-2 {
+  width: 440px;
+  height: 440px;
+  top: 40%;
+  right: -120px;
+  background: #6366F1;
+  animation-delay: -5s;
+}
+.mesh-orb.orb-3 {
+  width: 320px;
+  height: 320px;
+  bottom: -60px;
+  left: 30%;
+  animation-delay: -9s;
+}
+@keyframes floatOrb {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(40px, 35px) scale(1.12); }
+}
+
+/* Cursor Glow Trail */
+.cursor-glow-trail {
+  width: 36px !important;
+  height: 36px !important;
+  background: radial-gradient(circle, var(--accent-color, #00A859) 0%, transparent 70%) !important;
+  border: none !important;
+  filter: blur(4px);
+}
+
+/* Section Dividers */
+.section-divider-neon {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent 0%, var(--accent-color, #00A859) 50%, transparent 100%);
+  box-shadow: 0 0 12px var(--accent-color, #00A859);
+  opacity: 0.65;
+}
+.section-divider-diagonal {
+  height: 16px;
+  width: 100%;
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 8px,
+    rgba(0, 168, 89, 0.15) 8px,
+    rgba(0, 168, 89, 0.15) 10px
+  );
+}
+
+/* Global Heading Styles */
+.heading-style-gradient_text .portfolio-block h2 {
+  background: linear-gradient(90deg, var(--accent-color, #00A859), #3B82F6, #8B5CF6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.heading-style-neon_underline .portfolio-block h2 {
+  position: relative;
+  padding-bottom: 8px;
+}
+.heading-style-neon_underline .portfolio-block h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 56px;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--accent-color, #00A859);
+  box-shadow: 0 0 10px var(--accent-color, #00A859);
+}
+.heading-style-pill_badge .portfolio-block h2 {
+  display: inline-flex;
+  padding: 6px 18px;
+  border-radius: 999px;
+  background: rgba(0, 168, 89, 0.08);
+  border: 1px solid rgba(0, 168, 89, 0.22);
+}
+
+/* Global Button Styles */
+.btn-style-glow_pill .btn {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.btn-style-glow_pill .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 18px rgba(0, 168, 89, 0.45) !important;
+}
+.btn-style-neo_brutalist .btn {
+  border: 2px solid #0F172A !important;
+  box-shadow: 4px 4px 0px #0F172A !important;
+  border-radius: 10px !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-style-neo_brutalist .btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #0F172A !important;
+}
+.btn-style-glass_frost .btn {
+  backdrop-filter: blur(10px);
+}
+
+/* Global Card Border Effects */
+.card-border-top_accent_bar .content-card {
+  border-top: 4px solid var(--accent-color, #00A859) !important;
+}
+.card-border-glow_hover .content-card {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.card-border-glow_hover .content-card:hover {
+  border-color: var(--accent-color, #00A859) !important;
+  box-shadow: 0 0 26px rgba(0, 168, 89, 0.18) !important;
+}
+.card-border-neo_brutal .content-card,
+.card-border-neo_brutal .hero-box {
+  border: 2px solid #0F172A !important;
+  box-shadow: 6px 6px 0px #0F172A !important;
+}
+.card-border-gradient_frame .content-card {
+  border: 1px solid rgba(0, 168, 89, 0.28) !important;
+  box-shadow: 0 10px 30px -10px rgba(0, 168, 89, 0.12) !important;
 }
 
 /* ==========================================================================
