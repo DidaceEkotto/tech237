@@ -11,6 +11,9 @@
         </div>
 
         <div class="d-flex align-items-center gap-2 flex-wrap">
+            <button type="button" wire:click="importAllCities" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold shadow-xs" title="Importer ou resynchroniser les 98 villes officielles du Cameroun">
+                <i class="bi bi-cloud-arrow-down-fill me-1"></i> Importer les 98 villes
+            </button>
             <span class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-semibold shadow-xs">
                 <i class="bi bi-buildings me-1 text-primary"></i> Total : <strong>{{ $totalCount }}</strong>
             </span>
@@ -24,6 +27,21 @@
             @endif
         </div>
     </div>
+
+    @if($totalCount === 0)
+        <div class="alert alert-info rounded-4 border-2 border-info shadow-sm p-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-cloud-arrow-down-fill fs-1 text-info"></i>
+                <div>
+                    <strong class="d-block text-dark fs-6">Aucune ville n'est actuellement enregistrée dans la base de données.</strong>
+                    <span class="small text-muted">Vous pouvez importer instantanément la liste officielle des 98 principales villes du Cameroun réparties par régions.</span>
+                </div>
+            </div>
+            <button type="button" wire:click="importAllCities" class="btn btn-info text-white rounded-pill px-4 fw-bold shadow-sm">
+                <i class="bi bi-download me-1"></i> Importer les 98 villes
+            </button>
+        </div>
+    @endif
 
     @if (session()->has('success'))
         <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-xs d-flex align-items-center gap-2 mb-4" role="alert">

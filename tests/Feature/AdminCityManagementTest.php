@@ -34,20 +34,43 @@ class AdminCityManagementTest extends TestCase
 
         Livewire::actingAs($admin, 'admin')
             ->test(AdminCitiesIndex::class)
-            ->set('name', 'Bafia')
-            ->set('region', 'Centre')
+            ->set('name', 'Idool')
+            ->set('region', 'Adamaoua')
             ->set('sort_order', 5)
             ->set('is_active', true)
             ->call('save')
             ->assertHasNoErrors();
 
         $this->assertDatabaseHas('cities', [
-            'name' => 'Bafia',
-            'slug' => 'bafia',
-            'region' => 'Centre',
+            'name' => 'Idool',
+            'slug' => 'idool',
+            'region' => 'Adamaoua',
             'sort_order' => 5,
             'is_active' => true,
         ]);
+    }
+
+    public function test_mount_auto_seeds_cities_when_table_is_empty()
+    {
+        $admin = Admin::factory()->create(['role' => 'admin']);
+        $this->assertEquals(0, City::count());
+
+        Livewire::actingAs($admin, 'admin')
+            ->test(AdminCitiesIndex::class);
+
+        $this->assertEquals(98, City::count());
+    }
+
+    public function test_admin_can_import_all_cities()
+    {
+        $admin = Admin::factory()->create(['role' => 'admin']);
+
+        Livewire::actingAs($admin, 'admin')
+            ->test(AdminCitiesIndex::class)
+            ->call('importAllCities')
+            ->assertSee('Les 98 villes camerounaises de référence ont été importées avec succès !');
+
+        $this->assertGreaterThanOrEqual(98, City::count());
     }
 
     public function test_admin_cannot_create_duplicate_city_with_exact_name()

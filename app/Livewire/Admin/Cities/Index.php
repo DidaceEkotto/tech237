@@ -71,6 +71,21 @@ class Index extends Component
         'sort_order.min' => 'L\'ordre d\'affichage ne peut pas être négatif.',
     ];
 
+    public function mount(): void
+    {
+        // Auto-seed if database table is currently empty
+        if (City::count() === 0) {
+            (new \Database\Seeders\CitySeeder())->run();
+        }
+    }
+
+    public function importAllCities(): void
+    {
+        (new \Database\Seeders\CitySeeder())->run();
+        AdminLog::record('cities_imported', "Importation des 98 villes de référence du Cameroun");
+        session()->flash('success', "Les 98 villes camerounaises de référence ont été importées avec succès !");
+    }
+
     public function updatedName($val): void
     {
         if (!$this->cityId) {
