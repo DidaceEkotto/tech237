@@ -211,6 +211,69 @@
                 <i class="bi bi-award-fill text-warning"></i> Niveaux XP &amp; Badges
             </a>
 
+            <div class="nav-heading">Outils &amp; Services Membres</div>
+            @if(!$admin || $admin->canAccessCommunityServices() || $admin->isProjectsManager())
+            <a href="{{ route('admin.kanban.index') }}" class="nav-link {{ request()->routeIs('admin.kanban.*') ? 'active' : '' }}">
+                <i class="bi bi-kanban text-primary"></i> Tableaux Kanban
+                @php
+                    $kanbanCount = 0;
+                    try {
+                        if (\Illuminate\Support\Facades\Schema::hasTable('kanban_boards')) {
+                            $kanbanCount = \App\Models\KanbanBoard::count();
+                        }
+                    } catch (\Throwable $e) {}
+                @endphp
+                <span class="badge bg-secondary ms-auto">{{ $kanbanCount }}</span>
+            </a>
+            @endif
+
+            @if(!$admin || $admin->canAccessCommunityServices() || $admin->isFormsManager())
+            <a href="{{ route('admin.forms.index') }}" class="nav-link {{ request()->routeIs('admin.forms.*') ? 'active' : '' }}">
+                <i class="bi bi-ui-checks-grid text-success"></i> Formulaires &amp; Sondages
+                @php
+                    $formsCount = 0;
+                    try {
+                        if (\Illuminate\Support\Facades\Schema::hasTable('forms')) {
+                            $formsCount = \App\Models\Form::count();
+                        }
+                    } catch (\Throwable $e) {}
+                @endphp
+                <span class="badge bg-secondary ms-auto">{{ $formsCount }}</span>
+            </a>
+            @endif
+
+            @if(!$admin || $admin->canAccessCommunityServices() || $admin->isFreelanceManager())
+            <a href="{{ route('admin.freelance.index') }}" class="nav-link {{ request()->routeIs('admin.freelance.*') ? 'active' : '' }}">
+                <i class="bi bi-receipt-cutoff text-warning"></i> Devis &amp; Facturation
+                @php
+                    $freelanceQuotesCount = 0;
+                    try {
+                        if (\Illuminate\Support\Facades\Schema::hasTable('freelance_quotes')) {
+                            $freelanceQuotesCount = \App\Models\FreelanceQuote::count();
+                        }
+                    } catch (\Throwable $e) {}
+                @endphp
+                <span class="badge bg-secondary ms-auto">{{ $freelanceQuotesCount }}</span>
+            </a>
+            @endif
+
+            @if(!$admin || $admin->canAccessCommunityServices() || $admin->isHeartbeatManager())
+            <a href="{{ route('admin.heartbeat.index') }}" class="nav-link {{ request()->routeIs('admin.heartbeat.*') ? 'active' : '' }}">
+                <i class="bi bi-activity text-danger"></i> Surveillance Heartbeat
+                @php
+                    $downCountBadge = 0;
+                    try {
+                        if (\Illuminate\Support\Facades\Schema::hasTable('heartbeat_monitors')) {
+                            $downCountBadge = \App\Models\HeartbeatMonitor::where('is_currently_down', true)->where('is_active', true)->count();
+                        }
+                    } catch (\Throwable $e) {}
+                @endphp
+                @if($downCountBadge > 0)
+                    <span class="badge bg-danger ms-auto">{{ $downCountBadge }} DOWN</span>
+                @endif
+            </a>
+            @endif
+
             <div class="nav-heading">Gestion & Sécurité</div>
             <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                 <i class="bi bi-people"></i> Admins & Rôles

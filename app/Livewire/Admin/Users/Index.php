@@ -17,7 +17,7 @@ class Index extends Component
     public string $phone = '';
     public string $birth_date = '';
     public string $city = '';
-    public string $role = 'admin'; // super_admin, admin, editor, moderator, recruiter_admin, events_manager, analyst, tester_reviews
+    public string $role = 'admin'; // super_admin, admin, editor, moderator, recruiter_admin, events_manager, analyst, tester_reviews, projects_manager, forms_manager, freelance_manager, devops_manager, community_services_manager
     public bool $isEditing = false;
 
     protected function rules(): array
@@ -29,7 +29,7 @@ class Index extends Component
             'phone' => 'nullable|string|max:30',
             'birth_date' => 'nullable|date',
             'city' => 'nullable|string|max:100',
-            'role' => 'required|in:super_admin,admin,editor,moderator,recruiter_admin,events_manager,analyst,tester_reviews',
+            'role' => 'required|in:super_admin,admin,editor,moderator,recruiter_admin,events_manager,analyst,tester_reviews,projects_manager,forms_manager,freelance_manager,devops_manager,community_services_manager',
         ];
     }
 

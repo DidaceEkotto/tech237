@@ -73,6 +73,39 @@ class Admin extends Authenticatable
         return in_array($this->role, ['super_admin', 'admin']);
     }
 
+    public function isProjectsManager(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'projects_manager', 'community_services_manager']);
+    }
+
+    public function isFormsManager(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'forms_manager', 'community_services_manager']);
+    }
+
+    public function isFreelanceManager(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'freelance_manager', 'community_services_manager']);
+    }
+
+    public function isHeartbeatManager(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'devops_manager', 'community_services_manager']);
+    }
+
+    public function canAccessCommunityServices(): bool
+    {
+        return in_array($this->role, [
+            'super_admin',
+            'admin',
+            'community_services_manager',
+            'projects_manager',
+            'forms_manager',
+            'freelance_manager',
+            'devops_manager',
+        ]);
+    }
+
     public function articles()
     {
         return $this->hasMany(Article::class, 'admin_id');

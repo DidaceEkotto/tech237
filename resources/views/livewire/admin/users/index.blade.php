@@ -71,6 +71,11 @@
                                 <option value="events_manager">Gestionnaire Événements (Validation des conférences et meetups)</option>
                                 <option value="analyst">Analyste Données (Statistiques, audience et reporting)</option>
                                 <option value="tester_reviews">Testeur (Tests Applications & Tests Jeux Vidéo uniquement)</option>
+                                <option value="community_services_manager">Responsable Services Communautaires (Kanban, Formulaires, Freelance, Heartbeat)</option>
+                                <option value="projects_manager">Responsable Projets & Kanban (Supervision des roadmaps et tableaux)</option>
+                                <option value="forms_manager">Responsable Formulaires & Enquêtes (Supervision des formulaires et réponses)</option>
+                                <option value="freelance_manager">Responsable Services Freelance (Supervision des devis et simulateurs)</option>
+                                <option value="devops_manager">Superviseur Heartbeat (Monitoring uptime et santé des projets)</option>
                             </select>
                         </div>
 
@@ -132,6 +137,16 @@
                                             <span class="badge bg-dark">Analyste</span>
                                         @elseif($adm->role === 'tester_reviews')
                                             <span class="badge bg-primary text-white"><i class="bi bi-controller me-1"></i>Testeur Apps & Jeux</span>
+                                        @elseif($adm->role === 'community_services_manager')
+                                            <span class="badge bg-primary-subtle text-primary border border-primary"><i class="bi bi-tools me-1"></i>Services Membres</span>
+                                        @elseif($adm->role === 'projects_manager')
+                                            <span class="badge bg-info-subtle text-info border border-info"><i class="bi bi-kanban me-1"></i>Projets & Kanban</span>
+                                        @elseif($adm->role === 'forms_manager')
+                                            <span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-ui-checks me-1"></i>Formulaires</span>
+                                        @elseif($adm->role === 'freelance_manager')
+                                            <span class="badge bg-warning-subtle text-dark border border-warning"><i class="bi bi-receipt-cutoff me-1"></i>Freelance & Devis</span>
+                                        @elseif($adm->role === 'devops_manager')
+                                            <span class="badge bg-danger-subtle text-danger border border-danger"><i class="bi bi-activity me-1"></i>Heartbeat DevOps</span>
                                         @else
                                             <span class="badge bg-secondary">{{ $adm->role }}</span>
                                         @endif

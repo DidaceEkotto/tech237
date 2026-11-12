@@ -59,6 +59,15 @@ use App\Livewire\Admin\FrontUsers\Index as AdminFrontUsersIndex;
 use App\Livewire\Admin\Disputes\Index as AdminDisputesIndex;
 use App\Livewire\Admin\Comments\Index as AdminCommentsIndex;
 use App\Livewire\Admin\Users\Index as AdminUsersIndex;
+use App\Livewire\Admin\Kanban\Index as AdminKanbanIndex;
+use App\Livewire\Admin\Kanban\Show as AdminKanbanShow;
+use App\Livewire\Admin\Forms\Index as AdminFormsIndex;
+use App\Livewire\Admin\Forms\Show as AdminFormsShow;
+use App\Livewire\Admin\Forms\Responses as AdminFormsResponses;
+use App\Livewire\Admin\Freelance\Index as AdminFreelanceIndex;
+use App\Livewire\Admin\Freelance\Show as AdminFreelanceShow;
+use App\Livewire\Admin\Heartbeat\Index as AdminHeartbeatIndex;
+use App\Livewire\Admin\Heartbeat\Show as AdminHeartbeatShow;
 use App\Livewire\Admin\Banned\Index as AdminBannedIndex;
 use App\Livewire\Admin\Logs\Index as AdminLogsIndex;
 use App\Livewire\Admin\Stats\MyStats as AdminMyStats;
@@ -472,6 +481,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/messages', App\Livewire\Admin\Messages\Index::class)->name('messages.index');
         Route::get('/retention/upvotes', AdminUpvotesIndex::class)->name('retention.upvotes');
         Route::get('/retention/badges', AdminBadgesIndex::class)->name('retention.badges');
+
+        // Supervision des Outils & Espaces Membres (Lecture Admin)
+        Route::get('/kanban', AdminKanbanIndex::class)->name('kanban.index');
+        Route::get('/kanban/{id}', AdminKanbanShow::class)->name('kanban.show');
+        Route::get('/formulaires', AdminFormsIndex::class)->name('forms.index');
+        Route::get('/formulaires/{id}', AdminFormsShow::class)->name('forms.show');
+        Route::get('/formulaires/{id}/reponses', AdminFormsResponses::class)->name('forms.responses');
+        Route::get('/freelance', AdminFreelanceIndex::class)->name('freelance.index');
+        Route::get('/freelance/devis/{id}', AdminFreelanceShow::class)->name('freelance.show');
+        Route::get('/heartbeat', AdminHeartbeatIndex::class)->name('heartbeat.index');
+        Route::get('/heartbeat/{id}', AdminHeartbeatShow::class)->name('heartbeat.show');
 
         // Administration, Security & Users
         Route::get('/users', AdminUsersIndex::class)->name('users.index');
