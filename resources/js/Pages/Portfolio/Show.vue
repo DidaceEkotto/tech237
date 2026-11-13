@@ -188,93 +188,110 @@
     <!-- TOP WEBSITE NAVBAR (Real Personal Website Header + Mobile Menu) -->
     <header 
       v-if="!isBlankCanvasMode || !blankCanvasConfig.hide_default_navbar"
-      class="portfolio-nav sticky-top d-print-none position-relative z-20"
+      class="portfolio-nav d-print-none z-20"
       :class="[
+        navbarPositionClass,
         websiteNavbar.enabled ? 'website-nav-mode nav-style-' + websiteNavbar.style : 'py-2 px-3 px-md-4 shadow-2xs backdrop-blur'
       ]"
     >
       <div class="container" :style="{ maxWidth: websiteNavbar.enabled ? '1320px' : undefined }">
         <div 
           class="d-flex align-items-center justify-content-between gap-2"
-          :class="websiteNavbar.enabled && websiteNavbar.style === 'floating_pill' ? 'website-floating-pill-bar px-3 px-md-4 py-2 rounded-pill shadow-sm border my-2' : 'py-2'"
+          :class="websiteNavbar.enabled && websiteNavbar.style === 'floating_pill' ? 'website-floating-pill-bar px-3 px-md-4 py-2 shadow-sm border my-2' : 'py-2 px-3'"
+          :style="navbarInlineStyle"
         >
-          <!-- Left: Owner Brand Identity (or Tech237 fallback) -->
+          <!-- Left: Owner Brand Logo ONLY (Custom Logo -> Avatar -> Initials; no username text) -->
           <div class="d-flex align-items-center gap-2 min-w-0">
             <a 
               href="#top" 
-              @click.prevent="navigateWebsitePage('home')" 
+              @click.prevent="navigateToTargetBlock('hero', 'home')" 
               class="d-flex align-items-center gap-2 text-decoration-none min-w-0"
             >
               <img 
-                v-if="portfolioUser.avatar" 
+                v-if="websiteNavbar.logo_url" 
+                :src="formatImageUrl(websiteNavbar.logo_url)" 
+                :alt="portfolioUser.name" 
+                class="rounded-circle border object-fit-cover flex-shrink-0 shadow-2xs"
+                style="width: 38px; height: 38px;"
+              />
+              <img 
+                v-else-if="portfolioUser.avatar" 
                 :src="formatImageUrl(portfolioUser.avatar)" 
                 :alt="portfolioUser.name" 
                 class="rounded-circle border object-fit-cover flex-shrink-0 shadow-2xs"
-                style="width: 36px; height: 36px;"
+                style="width: 38px; height: 38px;"
               />
               <div 
                 v-else 
                 class="rounded-circle text-white fw-bold d-flex align-items-center justify-content-center flex-shrink-0 extra-small"
-                style="width: 36px; height: 36px;"
+                style="width: 38px; height: 38px;"
                 :style="{ backgroundColor: accentColor }"
               >
                 {{ getInitials(portfolioUser.name) }}
               </div>
-              <div class="min-w-0">
-                <span class="fw-bold fs-6 nav-brand-text d-block text-truncate lh-sm">
-                  {{ websiteNavbar.brand_name || portfolioUser.name }}
-                </span>
-                <small v-if="websiteNavbar.brand_subtitle" class="text-muted extra-small d-none d-sm-block text-truncate lh-1">
-                  {{ websiteNavbar.brand_subtitle }}
-                </small>
-              </div>
             </a>
-            <span class="badge rounded-pill px-2 py-1 extra-small fw-semibold border nav-verified-pill d-none d-xl-inline-flex align-items-center gap-1 ms-1" title="Portfolio certifié sur Tech237">
-              <i class="bi bi-patch-check-fill text-success"></i>
-              <span>Vérifié</span>
-            </span>
           </div>
 
-          <!-- Center: Real Website Navigation Links (Desktop, hidden if always_hamburger_drawer) -->
-          <nav v-if="websiteNavbar.enabled && websiteNavbar.menu_type !== 'always_hamburger_drawer'" class="d-none d-lg-flex align-items-center gap-1">
-            <button
+          <!-- Center: Real Website Navigation Links with Accordion Sub-menus -->
+          <nav v-if="websiteNavbar.enabled && websiteNavbar.menu_type !== 'always_hamburger_drawer'" class="d-none d-lg-flex align-items-center gap-1 position-relative">
+            <div
               v-for="item in websiteNavItems"
               :key="item.id"
-              type="button"
-              @click="navigateWebsitePage(item.id, item.anchor)"
-              class="btn btn-sm rounded-pill px-3 py-1 fw-semibold transition d-inline-flex align-items-center gap-1 website-nav-link"
-              :class="isWebsiteNavItemActive(item.id) ? 'active text-white shadow-2xs' : ''"
-              :style="isWebsiteNavItemActive(item.id) ? { backgroundColor: accentColor } : {}"
+              class="position-relative"
             >
-              <i class="bi" :class="item.icon"></i>
-              <span>{{ item.label }}</span>
-            </button>
+              <button
+                type="button"
+                @click="item.children && item.children.length ? toggleAccordionMenu(item.id) : navigateToTargetBlock(item.target_block || 'hero', item.id)"
+                class="btn btn-sm rounded-pill px-3 py-1 fw-semibold transition d-inline-flex align-items-center gap-1 website-nav-link"
+                :class="isWebsiteNavItemActive(item.id) ? 'active text-white shadow-2xs' : ''"
+                :style="[
+                  isWebsiteNavItemActive(item.id) ? { backgroundColor: accentColor } : (websiteNavbar.bg_type !== 'auto' ? { color: websiteNavbar.text_color } : {}),
+                  { fontSize: navbarFontSizePx }
+                ]"
+              >
+                <i class="bi" :class="item.icon"></i>
+                <span>{{ item.label }}</span>
+                <i
+                  v-if="item.children && item.children.length"
+                  class="bi bi-chevron-down extra-small ms-1 transition"
+                  :style="{ transform: openAccordionMenuId === item.id ? 'rotate(180deg)' : 'rotate(0deg)' }"
+                ></i>
+              </button>
+
+              <!-- Desktop Accordion / Dropdown Sub-menu -->
+              <transition name="accordion-slide">
+                <div
+                  v-if="item.children && item.children.length && openAccordionMenuId === item.id"
+                  class="position-absolute start-0 mt-2 p-2 rounded-4 shadow-lg border bg-white d-flex flex-column gap-1"
+                  style="min-width: 220px; z-index: 1050;"
+                >
+                  <button
+                    type="button"
+                    @click="navigateToTargetBlock(item.target_block || 'hero', item.id)"
+                    class="btn btn-sm btn-light text-start rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 text-dark"
+                    :style="{ fontSize: navbarFontSizePx }"
+                  >
+                    <i class="bi" :class="item.icon" :style="{ color: accentColor }"></i>
+                    <span>{{ item.label }} (Principal)</span>
+                  </button>
+                  <button
+                    v-for="sub in item.children"
+                    :key="sub.id"
+                    type="button"
+                    @click="navigateToTargetBlock(sub.target_block || 'about', sub.id)"
+                    class="btn btn-sm btn-light text-start rounded-3 px-3 py-2 fw-semibold d-flex align-items-center gap-2 text-dark"
+                    :style="{ fontSize: navbarFontSizePx }"
+                  >
+                    <i class="bi" :class="sub.icon || 'bi-arrow-return-right'" :style="{ color: accentColor }"></i>
+                    <span>{{ sub.label }}</span>
+                  </button>
+                </div>
+              </transition>
+            </div>
           </nav>
 
-          <!-- Right: Utility & Primary Website CTA -->
+          <!-- Right: Utility & Primary Website CTA (Partager & vCard removed per user request) -->
           <div class="d-flex align-items-center gap-2">
-            <!-- Share Link Copy Button -->
-            <button 
-              type="button" 
-              @click="copyPortfolioLink" 
-              class="btn btn-sm btn-nav-action rounded-pill px-2 px-md-3 fw-semibold d-inline-flex align-items-center gap-1"
-              title="Copier le lien du site"
-            >
-              <i class="bi" :class="isCopied ? 'bi-check-lg text-success' : 'bi-share'"></i>
-              <span class="d-none d-xl-inline">{{ isCopied ? 'Copié !' : 'Partager' }}</span>
-            </button>
-
-            <!-- Digital Business Card (vCard + QR Code) Button -->
-            <button 
-              v-if="vcardEnabled" 
-              type="button" 
-              @click="openVcardModal" 
-              class="btn btn-sm btn-nav-action rounded-pill px-2 px-md-3 fw-semibold d-inline-flex align-items-center gap-1"
-              title="Carte de Visite Digitale (.vcf & QR Code)"
-            >
-              <i class="bi bi-qr-code-scan text-primary"></i>
-              <span class="d-none d-xl-inline">vCard</span>
-            </button>
 
             <!-- Download CV Button -->
             <a 
@@ -423,23 +440,50 @@
             </button>
           </div>
 
-          <!-- Drawer Navigation Links -->
+          <!-- Drawer Navigation Links (True Accordion Support) -->
           <div class="d-flex flex-column gap-2">
-            <button
-              v-for="item in websiteNavItems"
-              :key="'drawer-' + item.id"
-              type="button"
-              @click="navigateWebsitePage(item.id, item.anchor); mobileMenuOpen = false"
-              class="btn rounded-4 py-2 px-3 text-start fw-bold d-flex align-items-center justify-content-between transition"
-              :class="isWebsiteNavItemActive(item.id) ? 'text-white shadow-sm' : 'btn-light text-dark border'"
-              :style="isWebsiteNavItemActive(item.id) ? { backgroundColor: accentColor } : {}"
-            >
-              <span class="d-flex align-items-center gap-2">
-                <i class="bi fs-5" :class="item.icon"></i>
-                <span>{{ item.label }}</span>
-              </span>
-              <i class="bi bi-arrow-right-short fs-5"></i>
-            </button>
+            <div v-for="item in websiteNavItems" :key="'drawer-' + item.id" class="d-flex flex-column gap-1">
+              <button
+                type="button"
+                @click="item.children && item.children.length ? toggleAccordionMenu(item.id) : (navigateToTargetBlock(item.target_block || 'hero', item.id), mobileMenuOpen = false)"
+                class="btn rounded-4 py-2 px-3 text-start fw-bold d-flex align-items-center justify-content-between transition"
+                :class="isWebsiteNavItemActive(item.id) ? 'text-white shadow-sm' : 'btn-light text-dark border'"
+                :style="[isWebsiteNavItemActive(item.id) ? { backgroundColor: accentColor } : {}, { fontSize: navbarFontSizePx }]"
+              >
+                <span class="d-flex align-items-center gap-2">
+                  <i class="bi fs-5" :class="item.icon"></i>
+                  <span>{{ item.label }}</span>
+                </span>
+                <i
+                  class="bi fs-5 transition"
+                  :class="item.children && item.children.length ? 'bi-chevron-down' : 'bi-arrow-right-short'"
+                  :style="item.children && item.children.length && openAccordionMenuId === item.id ? { transform: 'rotate(180deg)' } : {}"
+                ></i>
+              </button>
+
+              <transition name="accordion-slide">
+                <div v-if="item.children && item.children.length && openAccordionMenuId === item.id" class="ms-3 ps-2 border-start border-2 d-flex flex-column gap-1 py-1" :style="{ borderColor: accentColor }">
+                  <button
+                    type="button"
+                    @click="navigateToTargetBlock(item.target_block || 'hero', item.id); mobileMenuOpen = false"
+                    class="btn btn-sm btn-light text-start rounded-3 py-2 px-3 fw-semibold d-flex align-items-center gap-2"
+                  >
+                    <i class="bi" :class="item.icon" :style="{ color: accentColor }"></i>
+                    <span>{{ item.label }}</span>
+                  </button>
+                  <button
+                    v-for="sub in item.children"
+                    :key="'dsub-' + sub.id"
+                    type="button"
+                    @click="navigateToTargetBlock(sub.target_block || 'about', sub.id); mobileMenuOpen = false"
+                    class="btn btn-sm btn-light text-start rounded-3 py-2 px-3 fw-semibold d-flex align-items-center gap-2"
+                  >
+                    <i class="bi" :class="sub.icon || 'bi-arrow-return-right'" :style="{ color: accentColor }"></i>
+                    <span>{{ sub.label }}</span>
+                  </button>
+                </div>
+              </transition>
+            </div>
           </div>
         </div>
 
@@ -542,40 +586,6 @@
             backgroundColor: currentSlideIndex === dIdx ? (accentColor || '#FFFFFF') : 'rgba(255,255,255,0.5)'
           }"
         ></span>
-      </div>
-    </div>
-
-    <!-- TABBED MULTI-PAGE NAVIGATION BAR (Show/Hide, Top/Sticky/Bottom Dock, Custom Styles) -->
-    <div 
-      v-if="isTabbedBarVisible && availableTabs.length > 0" 
-      class="portfolio-tabbed-bar py-2 px-3 d-print-none backdrop-blur z-10" 
-      :class="[
-        'tabs-align-' + tabAlignment,
-        'tabs-style-' + tabStyle,
-        tabPosition === 'bottom_dock' ? 'tabbed-bar-bottom-dock shadow-lg border rounded-pill' : (tabPosition === 'sticky_top' ? 'sticky-top border-bottom shadow-xs position-relative' : 'border-bottom shadow-2xs position-relative')
-      ]"
-      :style="tabPosition === 'sticky_top' ? { top: '50px' } : {}"
-    >
-      <div class="container d-flex align-items-center flex-wrap gap-2" :class="getTabJustifyClass()">
-        <button 
-          v-for="t in availableTabs" 
-          :key="t.id"
-          type="button" 
-          @click="activeTab = t.id" 
-          class="btn transition d-inline-flex align-items-center gap-2 tab-nav-btn"
-          :class="[
-            getTabBtnClass(t.id),
-            'tab-size-' + tabSize,
-            'tab-radius-' + tabRadius
-          ]"
-          :style="activeTab === t.id ? { backgroundColor: accentColor, borderColor: accentColor, color: '#FFFFFF' } : {}"
-        >
-          <i class="bi" :class="t.iconClass"></i>
-          <span>{{ t.label }}</span>
-          <span v-if="t.count !== undefined" class="badge rounded-pill extra-small px-2" :class="activeTab === t.id ? 'bg-white text-dark' : 'bg-secondary-subtle text-secondary'">
-            {{ t.count }}
-          </span>
-        </button>
       </div>
     </div>
 
@@ -1239,13 +1249,96 @@
             <div 
               v-if="block.enabled && shouldRenderBlock(block.id) && isBlockActiveInTab(block.id)" 
               :id="'block-' + block.id"
-              :class="getBlockGridClass(block)"
+              :class="[getBlockGridClass(block), 'block-model-' + getBlockModel(block.id)]"
             >
               <!-- 1. HERO / HEADER BLOCK -->
-              <section v-if="block.id === 'hero'" class="portfolio-block h-100">
+              <section v-if="block.id === 'hero'" id="block-hero" class="portfolio-block h-100" :class="'hero-model-' + getBlockModel('hero')">
+
+                <!-- NEW HERO MODEL: IMPACT SPLIT / IMPACT SPLIT REVERSE (Style ONG / Agence Moderne) -->
+                <div
+                  v-if="getBlockModel('hero') === 'impact_split' || getBlockModel('hero') === 'impact_split_reverse'"
+                  class="hero-box p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100 border-0"
+                  :style="{ background: `linear-gradient(135deg, ${accentColor}12 0%, #FFFFFF 55%, #FEF9C3 100%)` }"
+                >
+                  <div class="row align-items-center g-4 g-lg-5" :class="getBlockModel('hero') === 'impact_split_reverse' ? 'flex-lg-row-reverse' : ''">
+                    <div class="col-lg-6 text-center text-lg-start">
+                      <span class="badge bg-white text-dark border shadow-2xs rounded-pill px-3 py-2 mb-3 d-inline-flex align-items-center gap-2 extra-small fw-bold">
+                        <span class="rounded-circle d-inline-block" style="width: 8px; height: 8px;" :style="{ backgroundColor: accentColor }"></span>
+                        <span>{{ portfolioUser.rank_title || 'Profil Certifié Tech237' }} &bull; {{ portfolioUser.location || 'Tech & Innovation' }}</span>
+                      </span>
+                      <h1 class="display-5 fw-black text-dark mb-3 lh-sm">
+                        {{ portfolioUser.name }} — <span :style="{ color: accentColor }">{{ displayedHeadline || 'Créons votre prochain succès digital' }}</span>
+                      </h1>
+                      <p v-if="portfolioUser.bio" class="text-muted mb-4 leading-relaxed">
+                        {{ stripHtmlTags(portfolioUser.bio).slice(0, 220) }}{{ stripHtmlTags(portfolioUser.bio).length > 220 ? '...' : '' }}
+                      </p>
+                      <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-2 mb-4 d-print-none">
+                        <button
+                          type="button"
+                          @click="navigateToTargetBlock('contact', 'contact')"
+                          class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm d-inline-flex align-items-center gap-2"
+                          :style="{ backgroundColor: accentColor }"
+                        >
+                          <i class="bi bi-heart-fill"></i>
+                          <span>{{ websiteNavbar.cta_text || 'Démarrer un projet' }}</span>
+                        </button>
+                        <button
+                          v-if="projects && projects.length"
+                          type="button"
+                          @click="navigateToTargetBlock('projects', 'projects')"
+                          class="btn btn-outline-success rounded-pill px-4 py-2 fw-bold d-inline-flex align-items-center gap-2"
+                        >
+                          <span>Découvrir mes réalisations</span>
+                          <i class="bi bi-arrow-right"></i>
+                        </button>
+                      </div>
+                      <div class="d-flex align-items-center justify-content-center justify-content-lg-start gap-2 extra-small text-muted">
+                        <div class="d-flex">
+                          <span class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center border border-2 border-white" style="width: 28px; height: 28px; background: #16A34A;">{{ getInitials(portfolioUser.name) }}</span>
+                          <span class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center border border-2 border-white ms-n2" style="width: 28px; height: 28px; background: #F59E0B;">★</span>
+                          <span class="rounded-circle text-white fw-bold d-inline-flex align-items-center justify-content-center border border-2 border-white ms-n2" style="width: 28px; height: 28px; background: #0284C7;">✓</span>
+                        </div>
+                        <span><strong>{{ projects?.length || 10 }}+ projets</strong> &bull; {{ portfolioUser.xp || 100 }} XP sur Tech237</span>
+                      </div>
+                    </div>
+
+                    <div class="col-lg-6">
+                      <div class="position-relative p-2">
+                        <img
+                          v-if="portfolioUser.avatar"
+                          :src="formatImageUrl(portfolioUser.avatar)"
+                          :alt="portfolioUser.name"
+                          class="w-100 rounded-4 shadow-lg object-fit-cover"
+                          style="height: 360px;"
+                        />
+                        <div v-else class="w-100 rounded-4 shadow-lg d-flex align-items-center justify-content-center text-white display-1 fw-black" style="height: 360px;" :style="{ backgroundColor: accentColor }">
+                          {{ getInitials(portfolioUser.name) }}
+                        </div>
+                        <!-- Floating Badge Top-Right -->
+                        <div class="position-absolute top-0 end-0 m-3 bg-white rounded-4 shadow p-2 px-3 d-flex align-items-center gap-2">
+                          <span class="rounded-circle text-white d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" :style="{ backgroundColor: accentColor }">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                          </span>
+                          <div class="lh-1">
+                            <strong class="extra-small d-block text-dark">Impact 100% Terrain</strong>
+                            <span class="text-muted" style="font-size: 10px;">{{ getAvailabilityLabel(portfolioUser.availability) }}</span>
+                          </div>
+                        </div>
+                        <!-- Floating Badge Bottom-Left -->
+                        <div class="position-absolute bottom-0 start-0 m-3 bg-white rounded-4 shadow p-2 px-3 d-flex align-items-center gap-2">
+                          <i class="bi bi-patch-check-fill fs-5" :style="{ color: accentColor }"></i>
+                          <div class="lh-1">
+                            <strong class="extra-small d-block text-dark">{{ portfolioUser.name }}</strong>
+                            <span class="text-muted" style="font-size: 10px;">{{ yearsOfExperience || 'Expertise Confirmée' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 <!-- Variant: Agency Landing 2-Columns (Real Website Hero) -->
-                <div v-if="heroStyle === 'agency_landing'" class="hero-box hero-agency-landing p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
+                <div v-else-if="heroStyle === 'agency_landing'" class="hero-box hero-agency-landing p-4 p-md-5 rounded-4 shadow-sm position-relative overflow-hidden h-100">
                   <div class="hero-glow-orb"></div>
                   <div class="row align-items-center g-4 g-lg-5 position-relative z-1">
                     <!-- Left Column: Marketing Pitch, Headline, CTAs -->
@@ -1902,18 +1995,67 @@
                 </div>
               </section>
 
-              <!-- YOUTUBE VIDEO SHOWCASE BLOCK -->
-              <section v-else-if="block.id === 'video' && youtubeEmbedUrl" class="portfolio-block h-100">
-                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
-                  <div class="d-flex align-items-center gap-2 mb-3">
-                    <span class="section-icon-badge text-danger">
-                      <i class="bi bi-play-btn-fill fs-5"></i>
-                    </span>
-                    <h2 class="h5 fw-bold mb-0 section-heading">Vidéo de Présentation &amp; Pitch</h2>
+              <!-- YOUTUBE VIDEO SHOWCASE BLOCK (10 Models) -->
+              <section v-else-if="block.id === 'video' && youtubeEmbedUrl" id="block-video" class="portfolio-block h-100" :class="'block-model-' + getBlockModel('video')">
+                <div
+                  class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100"
+                  :class="[
+                    getBlockModel('video') === 'studio_dark' ? 'bg-dark text-white' : '',
+                    getBlockModel('video') === 'minimal_clean' ? 'bg-transparent shadow-none border-0 p-2' : '',
+                    getBlockModel('video') === 'neon_glow' ? 'border border-2' : ''
+                  ]"
+                  :style="getBlockModel('video') === 'neon_glow' ? { borderColor: accentColor, boxShadow: `0 0 24px ${accentColor}30` } : {}"
+                >
+                  <!-- Split Text + Video Models -->
+                  <div v-if="getBlockModel('video') === 'split_text_left' || getBlockModel('video') === 'split_text_right'" class="row g-4 align-items-center" :class="getBlockModel('video') === 'split_text_right' ? 'flex-lg-row-reverse' : ''">
+                    <div class="col-lg-5">
+                      <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 extra-small fw-bold mb-2">
+                        <i class="bi bi-play-btn-fill me-1"></i> Vidéo Pitch
+                      </span>
+                      <h2 class="h4 fw-bold mb-2 section-heading">Vidéo de Présentation &amp; Pitch</h2>
+                      <p class="small opacity-75 mb-0">Découvrez mon parcours, ma vision technique et mes réalisations en vidéo.</p>
+                    </div>
+                    <div class="col-lg-7">
+                      <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-sm border">
+                        <iframe :src="youtubeEmbedUrl" title="Vidéo pitch portfolio" allowfullscreen></iframe>
+                      </div>
+                    </div>
                   </div>
-                  <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-xs border">
-                    <iframe :src="youtubeEmbedUrl" title="Vidéo pitch portfolio" allowfullscreen></iframe>
-                  </div>
+
+                  <!-- Browser Frame Model -->
+                  <template v-else-if="getBlockModel('video') === 'browser_frame'">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                      <span class="section-icon-badge text-danger"><i class="bi bi-play-btn-fill fs-5"></i></span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">Vidéo de Présentation &amp; Pitch</h2>
+                    </div>
+                    <div class="rounded-4 overflow-hidden border shadow-sm">
+                      <div class="bg-light border-bottom px-3 py-2 d-flex align-items-center gap-2">
+                        <span class="rounded-circle bg-danger d-inline-block" style="width: 10px; height: 10px;"></span>
+                        <span class="rounded-circle bg-warning d-inline-block" style="width: 10px; height: 10px;"></span>
+                        <span class="rounded-circle bg-success d-inline-block" style="width: 10px; height: 10px;"></span>
+                        <small class="extra-small text-muted ms-2 font-monospace">youtube.com/watch</small>
+                      </div>
+                      <div class="ratio ratio-16x9">
+                        <iframe :src="youtubeEmbedUrl" title="Vidéo pitch portfolio" allowfullscreen></iframe>
+                      </div>
+                    </div>
+                  </template>
+
+                  <!-- Standard / Dark / Neon / Compact / Floating / Banner Models -->
+                  <template v-else>
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                      <span class="section-icon-badge text-danger">
+                        <i class="bi bi-play-btn-fill fs-5"></i>
+                      </span>
+                      <h2 class="h5 fw-bold mb-0 section-heading">Vidéo de Présentation &amp; Pitch</h2>
+                    </div>
+                    <div
+                      class="ratio ratio-16x9 rounded-4 overflow-hidden shadow-xs border mx-auto"
+                      :style="getBlockModel('video') === 'compact_player' ? { maxWidth: '640px' } : {}"
+                    >
+                      <iframe :src="youtubeEmbedUrl" title="Vidéo pitch portfolio" allowfullscreen></iframe>
+                    </div>
+                  </template>
                 </div>
               </section>
 
@@ -3144,12 +3286,12 @@
                 </div>
               </section>
 
-              <!-- 9c. VISUAL GALLERY & BEFORE/AFTER COMPARATOR -->
+              <!-- 9c. VISUAL GALLERY & BEFORE/AFTER COMPARATOR (10 Models) -->
               <section
                 v-else-if="block.id === 'visual_gallery' && visualGalleryConfig.enabled && visualGalleryConfig.items?.length"
                 id="block-visual_gallery"
                 class="portfolio-block h-100"
-                :class="{ 'd-print-none': isHiddenInPrint('visual_gallery') }"
+                :class="[{ 'd-print-none': isHiddenInPrint('visual_gallery') }, 'gallery-model-' + getBlockModel('visual_gallery')]"
               >
                 <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
                   <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -3175,15 +3317,40 @@
                     </div>
                   </div>
 
-                  <div class="row g-3">
+                  <!-- Horizontal Scroll / Masonry / Grid Models -->
+                  <div
+                    :class="[
+                      getBlockModel('visual_gallery') === 'horizontal_scroll' ? 'd-flex gap-3 overflow-x-auto pb-2' : (
+                        getBlockModel('visual_gallery') === 'masonry' ? 'gallery-masonry-cols' : 'row g-3'
+                      )
+                    ]"
+                  >
                     <div
                       v-for="(item, gIdx) in filteredGalleryItems"
                       :key="item.id || gIdx"
-                      :class="visualGalleryConfig.columns === 2 ? 'col-md-6' : 'col-md-6 col-lg-4'"
+                      :class="[
+                        getBlockModel('visual_gallery') === 'horizontal_scroll' ? 'flex-shrink-0' : (
+                          getBlockModel('visual_gallery') === 'masonry' ? 'mb-3 break-inside-avoid' : (
+                            getBlockModel('visual_gallery') === 'fullscreen_showcase' ? 'col-12' : (
+                              getBlockModel('visual_gallery') === 'grid_2' ? 'col-md-6' : (
+                                getBlockModel('visual_gallery') === 'grid_4' ? 'col-6 col-md-3' : (
+                                  getBlockModel('visual_gallery') === 'bento_mosaic' && gIdx === 0 ? 'col-md-8' : (
+                                    visualGalleryConfig.columns === 2 ? 'col-md-6' : 'col-md-6 col-lg-4'
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        )
+                      ]"
+                      :style="getBlockModel('visual_gallery') === 'horizontal_scroll' ? { width: '310px' } : {}"
                     >
-                      <div class="rounded-4 border overflow-hidden bg-light h-100 d-flex flex-column shadow-2xs">
+                      <div
+                        class="rounded-4 border overflow-hidden bg-light h-100 d-flex flex-column shadow-2xs"
+                        :class="getBlockModel('visual_gallery') === 'polaroid' ? 'p-2 pb-3 bg-white shadow' : ''"
+                      >
                         <!-- Before/After Slider Mode -->
-                        <div v-if="item.is_before_after && item.before_image_url" class="before-after-wrapper position-relative" style="height: 220px;">
+                        <div v-if="item.is_before_after && item.before_image_url" class="before-after-wrapper position-relative" :style="{ height: getBlockModel('visual_gallery') === 'fullscreen_showcase' ? '380px' : '220px' }">
                           <img :src="formatImageUrl(item.image_url)" :alt="item.title" class="w-100 h-100 object-fit-cover" />
                           <div
                             class="position-absolute top-0 start-0 h-100 overflow-hidden"
@@ -3207,7 +3374,7 @@
                         <div
                           v-else
                           class="position-relative overflow-hidden cursor-pointer"
-                          style="height: 220px;"
+                          :style="{ height: getBlockModel('visual_gallery') === 'fullscreen_showcase' ? '380px' : (getBlockModel('visual_gallery') === 'masonry' ? 'auto' : '220px') }"
                           @click="visualGalleryConfig.enable_lightbox !== false && (lightboxItem = item)"
                         >
                           <img :src="formatImageUrl(item.image_url)" :alt="item.title" class="w-100 h-100 object-fit-cover transition-hover" />
@@ -4120,6 +4287,15 @@ const websiteNavbar = computed(() => {
       menu_type: 'desktop_links_mobile_drawer',
       drawer_side: 'right',
       hamburger_style: 'classic',
+      position: 'sticky',
+      font_size: 'sm',
+      border_radius: '9999px',
+      bg_type: 'auto',
+      bg_color: '#FFFFFF',
+      bg_color_2: '#F8FAFC',
+      text_color: '#0F172A',
+      logo_url: '',
+      custom_menu_items: [],
       brand_name: '',
       brand_subtitle: '',
       cta_text: 'Me contacter'
@@ -4132,35 +4308,122 @@ const websiteNavbar = computed(() => {
     menu_type: nav.menu_type || 'desktop_links_mobile_drawer',
     drawer_side: nav.drawer_side || 'right',
     hamburger_style: nav.hamburger_style || 'classic',
+    position: nav.position || 'sticky',
+    font_size: nav.font_size || 'sm',
+    border_radius: nav.border_radius ?? '9999px',
+    bg_type: nav.bg_type || 'auto',
+    bg_color: nav.bg_color || '#FFFFFF',
+    bg_color_2: nav.bg_color_2 || '#F8FAFC',
+    text_color: nav.text_color || '#0F172A',
+    logo_url: nav.logo_url || '',
+    custom_menu_items: Array.isArray(nav.custom_menu_items) ? nav.custom_menu_items : [],
     brand_name: nav.brand_name || '',
     brand_subtitle: nav.brand_subtitle || '',
     cta_text: nav.cta_text || 'Me contacter'
   }
 })
 
+const navbarPositionClass = computed(() => {
+  const pos = websiteNavbar.value.position || 'sticky'
+  if (pos === 'fixed') return 'fixed-top'
+  if (pos === 'static') return 'position-relative'
+  return 'sticky-top'
+})
+
+const navbarFontSizePx = computed(() => {
+  const f = websiteNavbar.value.font_size || 'sm'
+  if (f === 'xs') return '11px'
+  if (f === 'md') return '14px'
+  if (f === 'lg') return '16px'
+  return '13px'
+})
+
+const navbarInlineStyle = computed(() => {
+  const nav = websiteNavbar.value
+  const style = {
+    borderRadius: nav.border_radius || (nav.style === 'floating_pill' ? '9999px' : '0px')
+  }
+  if (nav.bg_type === 'solid') {
+    style.background = nav.bg_color || '#FFFFFF'
+    style.color = nav.text_color || '#0F172A'
+  } else if (nav.bg_type === 'gradient') {
+    style.background = `linear-gradient(90deg, ${nav.bg_color || '#FFFFFF'}, ${nav.bg_color_2 || '#F8FAFC'})`
+    style.color = nav.text_color || '#0F172A'
+  } else if (nav.bg_type === 'glass') {
+    style.background = 'rgba(255, 255, 255, 0.72)'
+    style.backdropFilter = 'blur(14px)'
+    style.color = nav.text_color || '#0F172A'
+  }
+  return style
+})
+
+const openAccordionMenuId = ref(null)
+function toggleAccordionMenu(menuId) {
+  openAccordionMenuId.value = openAccordionMenuId.value === menuId ? null : menuId
+}
+
+function getBlockAnchorId(blockId) {
+  if (blockId === 'contact') return 'portfolioContactSection'
+  return 'block-' + blockId
+}
+
+function navigateToTargetBlock(blockId, menuId) {
+  openAccordionMenuId.value = null
+  const anchor = getBlockAnchorId(blockId)
+  if (websiteNavbar.value.enabled && websiteNavbar.value.navigation_mode === 'multi_page' && !(websiteNavbar.value.custom_menu_items?.length)) {
+    navigateWebsitePage(menuId || blockId, anchor)
+    return
+  }
+  if (websiteNavbar.value.enabled && websiteNavbar.value.navigation_mode === 'multi_page') {
+    currentWebsitePage.value = 'home'
+  }
+  setTimeout(() => {
+    const el = document.getElementById(anchor)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    else window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, 40)
+}
+
+function getBlockModel(blockId) {
+  const models = layout.value.block_models || {}
+  if (models[blockId]) return models[blockId]
+  return 'classic'
+}
+
 const websiteNavItems = computed(() => {
+  const custom = websiteNavbar.value.custom_menu_items
+  if (Array.isArray(custom) && custom.length > 0) {
+    return custom.map(it => ({
+      id: it.id || it.target_block,
+      label: it.label || it.target_block,
+      icon: it.icon || 'bi-grid-fill',
+      target_block: it.target_block || 'hero',
+      anchor: getBlockAnchorId(it.target_block || 'hero'),
+      children: Array.isArray(it.children) ? it.children : []
+    }))
+  }
   const items = [
-    { id: 'home', label: 'Accueil', icon: 'bi-house-door-fill', anchor: 'block-hero' }
+    { id: 'home', label: 'Accueil', icon: 'bi-house-door-fill', target_block: 'hero', anchor: 'block-hero', children: [] }
   ]
   const hasAboutPageBlocks = ['about', 'video', 'now', 'skills', 'experiences', 'educations', 'certifications', 'badges'].some(id => isBlockEnabled(id) && shouldRenderBlock(id))
   if (hasAboutPageBlocks) {
-    items.push({ id: 'about', label: 'À Propos & Parcours', icon: 'bi-person-badge-fill', anchor: 'block-about' })
+    items.push({ id: 'about', label: 'À Propos & Parcours', icon: 'bi-person-badge-fill', target_block: 'about', anchor: 'block-about', children: [] })
   }
   const hasProjectsPageBlocks = (isBlockEnabled('projects') && props.projects && props.projects.length)
     || (isBlockEnabled('pocs') && props.pocs && props.pocs.length)
     || (isBlockEnabled('github') && hasGithubStats.value)
   if (hasProjectsPageBlocks) {
-    items.push({ id: 'projects', label: 'Réalisations', icon: 'bi-rocket-takeoff-fill', anchor: 'block-projects' })
+    items.push({ id: 'projects', label: 'Réalisations', icon: 'bi-rocket-takeoff-fill', target_block: 'projects', anchor: 'block-projects', children: [] })
   }
   const hasServicesPageBlocks = (isBlockEnabled('pricing') && pricingPackagesList.value.length)
     || (isBlockEnabled('process') && hasWorkProcess.value)
     || (isBlockEnabled('testimonials') && testimonialsList.value.length)
     || (isBlockEnabled('faq') && faqItemsList.value.length)
   if (hasServicesPageBlocks) {
-    items.push({ id: 'services', label: 'Services & Tarifs', icon: 'bi-tags-fill', anchor: 'block-pricing' })
+    items.push({ id: 'services', label: 'Services & Tarifs', icon: 'bi-tags-fill', target_block: 'pricing', anchor: 'block-pricing', children: [] })
   }
   if (isBlockEnabled('contact')) {
-    items.push({ id: 'contact', label: 'Contact', icon: 'bi-envelope-paper-fill', anchor: 'portfolioContactSection' })
+    items.push({ id: 'contact', label: 'Contact', icon: 'bi-envelope-paper-fill', target_block: 'contact', anchor: 'portfolioContactSection', children: [] })
   }
   return items
 })
@@ -4386,16 +4649,12 @@ const customBgStyle = computed(() => ({
   zIndex: 0
 }))
 
-// Tabbed multi-page website mode (Show/Hide, Position, Bootstrap Icons)
-const isTabbedMode = computed(() => {
-  return currentStructure.value.startsWith('tabbed') || Boolean(layout.value.tabbed_nav?.enabled)
-})
+// Tabbed multi-page website mode removed by user request
+const isTabbedMode = computed(() => false)
 
-const isTabbedBarVisible = computed(() => {
-  return isTabbedMode.value && layout.value.tabbed_nav?.show_bar !== false
-})
+const isTabbedBarVisible = computed(() => false)
 
-const activeTab = ref(layout.value.tabbed_nav?.default_tab || 'all')
+const activeTab = ref('all')
 const tabPosition = computed(() => layout.value.tabbed_nav?.position || 'top')
 const tabStyle = computed(() => layout.value.tabbed_nav?.style || 'pills')
 const tabSize = computed(() => layout.value.tabbed_nav?.size || 'md')
@@ -4732,6 +4991,17 @@ const orderedBlocks = computed(() => {
       }
     }
   })
+
+  // Fusion avec le constructeur de menu : si un menu cible un bloc, on s'assure qu'il est activé dans la page
+  const customMenus = websiteNavbar.value.custom_menu_items || []
+  if (customMenus.length > 0) {
+    const linkedIds = new Set()
+    customMenus.forEach(m => {
+      if (m.target_block) linkedIds.add(m.target_block)
+      if (Array.isArray(m.children)) m.children.forEach(c => c.target_block && linkedIds.add(c.target_block))
+    })
+    list = list.map(b => linkedIds.has(b.id) ? { ...b, enabled: true } : b)
+  }
 
   return list
 })
@@ -6584,5 +6854,86 @@ onUnmounted(() => {
 .before-after-range {
   accent-color: var(--accent-color, #00A859);
   cursor: ew-resize;
+}
+
+/* Accordion Menu Transition */
+.accordion-slide-enter-active,
+.accordion-slide-leave-active {
+  transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.accordion-slide-enter-from,
+.accordion-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* Visual Gallery Masonry Model */
+.gallery-masonry-cols {
+  column-count: 3;
+  column-gap: 1rem;
+}
+@media (max-width: 991px) {
+  .gallery-masonry-cols { column-count: 2; }
+}
+@media (max-width: 575px) {
+  .gallery-masonry-cols { column-count: 1; }
+}
+.break-inside-avoid {
+  break-inside: avoid;
+}
+
+/* Hero Models */
+.hero-model-centered_saas .hero-box {
+  text-align: center !important;
+}
+.hero-model-glass_dark .hero-box,
+.block-model-dark_studio .content-card,
+.block-model-dark_contrast .content-card {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
+  color: #F8FAFC !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+.hero-model-glass_dark .text-muted,
+.block-model-dark_studio .text-muted,
+.block-model-dark_contrast .text-muted {
+  color: #94A3B8 !important;
+}
+.hero-model-terminal_dev .hero-box,
+.block-model-terminal_bio .content-card {
+  background: #0B1120 !important;
+  color: #34D399 !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  border: 1px solid rgba(52, 211, 153, 0.3) !important;
+}
+.hero-model-minimal_typo .hero-box,
+.block-model-minimal_clean .content-card,
+.block-model-minimal_centered .content-card {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+.block-model-minimal_centered .content-card {
+  text-align: center !important;
+}
+.hero-model-floating_card .hero-box,
+.block-model-modern_cards .content-card {
+  box-shadow: 0 22px 45px -12px rgba(15, 23, 42, 0.14) !important;
+}
+.block-model-glass_panel .content-card,
+.block-model-glass_card .content-card {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+}
+.block-model-neo_brutal .content-card {
+  border: 2px solid #0F172A !important;
+  box-shadow: 6px 6px 0px #0F172A !important;
+}
+.block-model-accent_border .content-card {
+  border-left: 5px solid var(--accent-color, #00A859) !important;
+}
+.block-model-gradient_soft .content-card,
+.hero-model-cover_banner .hero-box {
+  background: linear-gradient(135deg, rgba(0, 168, 89, 0.08) 0%, rgba(255, 255, 255, 0.96) 100%) !important;
 }
 </style>

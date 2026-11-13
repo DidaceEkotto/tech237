@@ -2116,7 +2116,7 @@
                     </div>
 
                     <div class="col-md-6">
-                      <label class="form-label extra-small fw-bold text-dark mb-1">Nom de Marque / Studio affiché dans le Header (Optionnel)</label>
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Nom de Marque / Studio (Optionnel)</label>
                       <input 
                         type="text" 
                         v-model="portfolioForm.portfolio_layout.website_navbar.brand_name" 
@@ -2126,13 +2126,206 @@
                     </div>
 
                     <div class="col-md-6">
-                      <label class="form-label extra-small fw-bold text-dark mb-1">Slogan court sous le nom (Optionnel)</label>
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Slogan court (Optionnel)</label>
                       <input 
                         type="text" 
                         v-model="portfolioForm.portfolio_layout.website_navbar.brand_subtitle" 
                         class="form-control form-control-sm rounded-3" 
                         placeholder="ex: Ingénierie Logicielle & Produits Digitaux" 
                       />
+                    </div>
+
+                    <!-- NOUVEAU : Personnalisation Avancée du Menu (Position, Taille, Arrondi, Background, Logo) -->
+                    <div class="col-md-3">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Position du Menu</label>
+                      <select v-model="portfolioForm.portfolio_layout.website_navbar.position" class="form-select form-select-sm rounded-3">
+                        <option value="sticky">📌 Collant (Sticky au scroll)</option>
+                        <option value="fixed">🔒 Fixe en haut (Fixed)</option>
+                        <option value="static">📜 Non fixe (Défile avec la page)</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-3">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Taille des écritures du menu</label>
+                      <select v-model="portfolioForm.portfolio_layout.website_navbar.font_size" class="form-select form-select-sm rounded-3">
+                        <option value="xs">Très petite (11px)</option>
+                        <option value="sm">Petite (13px)</option>
+                        <option value="md">Moyenne (14px)</option>
+                        <option value="lg">Grande (16px)</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-3">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Arrondi des bords du menu</label>
+                      <select v-model="portfolioForm.portfolio_layout.website_navbar.border_radius" class="form-select form-select-sm rounded-3">
+                        <option value="0px">Carré (0px)</option>
+                        <option value="10px">Léger (10px)</option>
+                        <option value="20px">Arrondi doux (20px)</option>
+                        <option value="9999px">Pilule complète (9999px)</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-3">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Arrière-plan (Background)</label>
+                      <select v-model="portfolioForm.portfolio_layout.website_navbar.bg_type" class="form-select form-select-sm rounded-3">
+                        <option value="auto">Automatique (Thème)</option>
+                        <option value="solid">Couleur unie</option>
+                        <option value="gradient">Dégradé</option>
+                        <option value="glass">Verre dépoli (Glass)</option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-3" v-if="portfolioForm.portfolio_layout.website_navbar.bg_type === 'solid' || portfolioForm.portfolio_layout.website_navbar.bg_type === 'gradient'">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Couleur de fond 1</label>
+                      <input type="color" v-model="portfolioForm.portfolio_layout.website_navbar.bg_color" class="form-control form-control-color w-100" />
+                    </div>
+                    <div class="col-md-3" v-if="portfolioForm.portfolio_layout.website_navbar.bg_type === 'gradient'">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Couleur de fond 2</label>
+                      <input type="color" v-model="portfolioForm.portfolio_layout.website_navbar.bg_color_2" class="form-control form-control-color w-100" />
+                    </div>
+                    <div class="col-md-3" v-if="portfolioForm.portfolio_layout.website_navbar.bg_type && portfolioForm.portfolio_layout.website_navbar.bg_type !== 'auto'">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Couleur du texte</label>
+                      <input type="color" v-model="portfolioForm.portfolio_layout.website_navbar.text_color" class="form-control form-control-color w-100" />
+                    </div>
+
+                    <!-- Logo du Menu (avec fallback Avatar -> Initiales) -->
+                    <div class="col-md-6">
+                      <label class="form-label extra-small fw-bold text-dark mb-1">Logo du Menu (Sinon photo de profil, sinon initiales)</label>
+                      <div class="input-group input-group-sm">
+                        <input type="text" v-model="portfolioForm.portfolio_layout.website_navbar.logo_url" class="form-control" placeholder="URL du logo ou téléverser ->" />
+                        <label class="btn btn-outline-success mb-0 cursor-pointer">
+                          <i class="bi bi-upload me-1"></i> Logo
+                          <input type="file" accept="image/*" class="d-none" @change="e => e.target.files[0] && uploadGenericPortfolioAsset(e.target.files[0], url => portfolioForm.portfolio_layout.website_navbar.logo_url = url)" />
+                        </label>
+                        <button v-if="portfolioForm.portfolio_layout.website_navbar.logo_url" type="button" @click="portfolioForm.portfolio_layout.website_navbar.logo_url = ''" class="btn btn-outline-danger" title="Retirer le logo">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- CONSTRUCTEUR DE MENU ACCORDÉON & ASSOCIATION AUX BLOCS + MODÈLES -->
+                    <div class="col-12 mt-3 pt-3 border-top">
+                      <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                        <div>
+                          <strong class="small text-dark d-flex align-items-center gap-2">
+                            <i class="bi bi-menu-button-wide-fill text-success"></i> Constructeur de Menu Accordéon &amp; Modèles Associés
+                          </strong>
+                          <small class="text-muted extra-small d-block">
+                            Créez vos liens de menu (ex: « Accueil » → En-tête Hero, « Galerie » → Galerie Visuelle, « Vidéo » → Vidéo YouTube). Chaque menu active son bloc dans la page et débloque le choix de son modèle visuel !
+                          </small>
+                        </div>
+                        <button type="button" @click="addNavbarMenuItem('hero')" class="btn btn-sm btn-success rounded-pill px-3 fw-bold">
+                          + Ajouter un menu
+                        </button>
+                      </div>
+
+                      <!-- Bootstrap Icon Search Picker Popover -->
+                      <div v-if="iconPickerTarget" class="p-3 rounded-4 border bg-white shadow-sm mb-3">
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                          <strong class="extra-small text-dark"><i class="bi bi-stars text-warning me-1"></i> Rechercher et choisir une icône Bootstrap</strong>
+                          <button type="button" @click="iconPickerTarget = null" class="btn btn-xs btn-light border rounded-pill px-2 extra-small">Fermer</button>
+                        </div>
+                        <input type="text" v-model="iconSearchQuery" class="form-control form-control-sm mb-2" placeholder="Rechercher une icône (ex: house, play, image, envelope, cpu, star...)" />
+                        <div class="d-flex flex-wrap gap-1" style="max-height: 150px; overflow-y: auto;">
+                          <button
+                            v-for="ic in filteredBootstrapIcons"
+                            :key="ic"
+                            type="button"
+                            @click="selectBootstrapIcon(ic)"
+                            class="btn btn-sm btn-light border d-inline-flex align-items-center gap-1 px-2 py-1"
+                            :class="iconPickerTarget.icon === ic ? 'border-success bg-success-subtle fw-bold' : ''"
+                            :title="ic"
+                          >
+                            <i class="bi" :class="ic"></i>
+                            <span class="extra-small">{{ ic.replace('bi-', '') }}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div v-if="portfolioForm.portfolio_layout.website_navbar.custom_menu_items?.length" class="d-flex flex-column gap-2">
+                        <div
+                          v-for="(mItem, mIdx) in portfolioForm.portfolio_layout.website_navbar.custom_menu_items"
+                          :key="mItem.id || mIdx"
+                          class="p-3 rounded-4 border bg-white shadow-2xs"
+                        >
+                          <div class="row g-2 align-items-center">
+                            <div class="col-md-3">
+                              <label class="form-label extra-small fw-bold mb-1">Nom du menu</label>
+                              <input type="text" v-model="mItem.label" class="form-control form-control-sm" placeholder="ex: Accueil" />
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label extra-small fw-bold mb-1">Associer au bloc</label>
+                              <select v-model="mItem.target_block" @change="onMenuTargetBlockChange(mItem)" class="form-select form-select-sm">
+                                <option v-for="b in portfolioForm.portfolio_layout.blocks" :key="'opt_' + b.id" :value="b.id">
+                                  {{ b.name }}
+                                </option>
+                              </select>
+                            </div>
+                            <div class="col-md-3">
+                              <label class="form-label extra-small fw-bold mb-1">Modèle du bloc ({{ getModelsForBlock(mItem.target_block).length }})</label>
+                              <select
+                                :value="getBlockModelValue(mItem.target_block)"
+                                @change="e => setBlockModelValue(mItem.target_block, e.target.value)"
+                                class="form-select form-select-sm border-success"
+                              >
+                                <option v-for="mod in getModelsForBlock(mItem.target_block)" :key="mod.id" :value="mod.id">
+                                  {{ mod.name }}
+                                </option>
+                              </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end gap-1 pt-3">
+                              <button type="button" @click="openIconPickerFor(mItem)" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" title="Choisir une icône Bootstrap">
+                                <i class="bi" :class="mItem.icon || 'bi-grid-fill'"></i>
+                                <span class="extra-small">Icône</span>
+                              </button>
+                              <button type="button" @click="addSubMenuItem(mItem)" class="btn btn-sm btn-outline-primary extra-small" title="Ajouter un sous-menu (Accordéon)">
+                                + Accordéon
+                              </button>
+                              <button type="button" @click="removeNavbarMenuItem(mIdx)" class="btn btn-sm btn-link text-danger ms-auto" title="Supprimer">
+                                <i class="bi bi-trash"></i>
+                              </button>
+                            </div>
+                          </div>
+
+                          <!-- Sous-menus Accordéon -->
+                          <div v-if="mItem.children && mItem.children.length" class="mt-2 ms-3 ps-3 border-start border-2 border-success d-flex flex-column gap-2">
+                            <div v-for="(sub, sIdx) in mItem.children" :key="sub.id || sIdx" class="row g-2 align-items-center bg-light p-2 rounded-3 mx-0">
+                              <div class="col-md-3">
+                                <input type="text" v-model="sub.label" class="form-control form-control-sm" placeholder="Sous-menu" />
+                              </div>
+                              <div class="col-md-3">
+                                <select v-model="sub.target_block" @change="onMenuTargetBlockChange(sub)" class="form-select form-select-sm">
+                                  <option v-for="b in portfolioForm.portfolio_layout.blocks" :key="'subopt_' + b.id" :value="b.id">
+                                    {{ b.name }}
+                                  </option>
+                                </select>
+                              </div>
+                              <div class="col-md-4">
+                                <select
+                                  :value="getBlockModelValue(sub.target_block)"
+                                  @change="e => setBlockModelValue(sub.target_block, e.target.value)"
+                                  class="form-select form-select-sm"
+                                >
+                                  <option v-for="mod in getModelsForBlock(sub.target_block)" :key="mod.id" :value="mod.id">
+                                    {{ mod.name }}
+                                  </option>
+                                </select>
+                              </div>
+                              <div class="col-md-2 d-flex align-items-center justify-content-end gap-1">
+                                <button type="button" @click="openIconPickerFor(sub)" class="btn btn-xs btn-outline-secondary">
+                                  <i class="bi" :class="sub.icon || 'bi-arrow-return-right'"></i>
+                                </button>
+                                <button type="button" @click="removeSubMenuItem(mItem, sIdx)" class="btn btn-xs btn-link text-danger">
+                                  <i class="bi bi-trash"></i>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-else class="text-center py-3 rounded-4 border bg-white extra-small text-muted">
+                        Aucun menu personnalisé créé pour l'instant (la barre utilise les liens automatiques par défaut). Cliquez sur <strong>+ Ajouter un menu</strong> pour construire votre menu accordéon sur mesure.
+                      </div>
                     </div>
 
                     <!-- KPI Stats Strip & Tech Marquee Toggles -->
@@ -2981,119 +3174,6 @@
                 </div>
               </div>
 
-              <!-- 1.5 Application Web Multi-Pages & Navigation par Onglets (AFFICHER / MASQUER & PERSONNALISATION) -->
-              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-3">
-                  <div>
-                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                      <i class="bi bi-segmented-nav text-success"></i> Menu à Onglets (Afficher / Masquer, Position &amp; Style)
-                    </h4>
-                    <p class="text-muted small mb-0">
-                      Vous pouvez afficher ou masquer librement la barre du menu à onglets, la placer en haut, en barre collante (sticky) ou en Dock flottant en bas de l'écran façon macOS, et choisir quels onglets afficher.
-                    </p>
-                  </div>
-                  <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <div class="form-check form-switch mb-0">
-                      <input 
-                        class="form-check-input cursor-pointer" 
-                        type="checkbox" 
-                        v-model="portfolioForm.portfolio_layout.tabbed_nav.enabled" 
-                        id="tabbedNavToggle"
-                      />
-                      <label class="form-check-label small fw-bold text-dark cursor-pointer" for="tabbedNavToggle">
-                        Activer le filtrage par onglets
-                      </label>
-                    </div>
-                    <div class="form-check form-switch mb-0">
-                      <input 
-                        class="form-check-input cursor-pointer" 
-                        type="checkbox" 
-                        v-model="portfolioForm.portfolio_layout.tabbed_nav.show_bar" 
-                        id="tabbedNavShowBarToggle"
-                      />
-                      <label class="form-check-label small fw-bold cursor-pointer" :class="portfolioForm.portfolio_layout.tabbed_nav.show_bar !== false ? 'text-success' : 'text-danger'" for="tabbedNavShowBarToggle">
-                        {{ portfolioForm.portfolio_layout.tabbed_nav.show_bar !== false ? '👁️ Barre d\'onglets Visible' : '🙈 Barre d\'onglets Masquée' }}
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="(portfolioForm.portfolio_layout.tabbed_nav.enabled || (portfolioForm.portfolio_layout.layout_structure && portfolioForm.portfolio_layout.layout_structure.startsWith('tabbed'))) && portfolioForm.portfolio_layout.tabbed_nav.show_bar !== false" class="row g-3 pt-2 border-top">
-                  <div class="col-md-3">
-                    <label class="form-label small fw-bold text-dark mb-1">Position du Menu à Onglets</label>
-                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.position" class="form-select form-select-sm rounded-3">
-                      <option value="top">⬆️ En haut (Sous l'en-tête)</option>
-                      <option value="sticky_top">📌 Collant en haut au scroll (Sticky)</option>
-                      <option value="bottom_dock">💻 Dock flottant en bas (Style macOS)</option>
-                    </select>
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label small fw-bold text-dark mb-1">Onglet ouvert par défaut</label>
-                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.default_tab" class="form-select form-select-sm rounded-3">
-                      <option value="all">Vue Globale (Tout afficher)</option>
-                      <option value="about">À Propos &amp; Bio</option>
-                      <option value="skills">Compétences &amp; Stack</option>
-                      <option value="projects">Projets &amp; Réalisations</option>
-                      <option value="experiences">Parcours &amp; Expériences</option>
-                      <option value="contact">Contact &amp; Réseaux</option>
-                    </select>
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label small fw-bold text-dark mb-1">Style Visuel des Onglets</label>
-                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.style" class="form-select form-select-sm rounded-3">
-                      <option value="pills">💊 Pastilles Pilules modernes</option>
-                      <option value="glass_dock">🧊 Glassmorphism Verre Dépoli</option>
-                      <option value="neon_glow">✨ Néon Lumineux (Cyber Glow)</option>
-                      <option value="underline">📏 Ligne soulignée épurée</option>
-                      <option value="bordered">🔲 Boutons encadrés 3D</option>
-                    </select>
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label small fw-bold text-dark mb-1">Taille des Onglets</label>
-                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.size" class="form-select form-select-sm rounded-3">
-                      <option value="sm">Petite (Compacte)</option>
-                      <option value="md">Moyenne (Standard)</option>
-                      <option value="lg">Grande (Confort)</option>
-                    </select>
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label small fw-bold text-dark mb-1">Arrondis des Onglets</label>
-                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.radius" class="form-select form-select-sm rounded-3">
-                      <option value="full">Pilules rondes (999px)</option>
-                      <option value="rounded">Arrondi doux (14px)</option>
-                      <option value="sharp">Tranché moderne (4px)</option>
-                    </select>
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label small fw-bold text-dark mb-1">Alignement horizontal</label>
-                    <select v-model="portfolioForm.portfolio_layout.tabbed_nav.alignment" class="form-select form-select-sm rounded-3">
-                      <option value="center">Centré au milieu</option>
-                      <option value="start">Aligné à gauche</option>
-                      <option value="end">Aligné à droite</option>
-                    </select>
-                  </div>
-
-                  <!-- Individual Tab Visibility Selector -->
-                  <div class="col-12 pt-2 border-top">
-                    <label class="form-label extra-small fw-bold text-dark mb-2">
-                      <i class="bi bi-check2-square text-success me-1"></i> Choisissez quels onglets afficher ou masquer dans la barre :
-                    </label>
-                    <div class="d-flex flex-wrap gap-2">
-                      <button
-                        v-for="tItem in configurableTabItems"
-                        :key="tItem.id"
-                        type="button"
-                        @click="toggleTabVisibleInConfig(tItem.id)"
-                        class="btn btn-xs rounded-pill px-3 py-1 fw-bold d-inline-flex align-items-center gap-1 transition"
-                        :class="isTabVisibleInConfig(tItem.id) ? 'btn-success text-white shadow-2xs' : 'btn-light border text-muted text-decoration-line-through opacity-75'"
-                      >
-                        <i class="bi" :class="tItem.icon"></i>
-                        <span>{{ tItem.label }}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               <!-- 1.5.B STUDIO D'EFFETS DE DESIGN AVANCÉS (CURSEUR, SÉPARATEURS SVG, TITRES, BOUTONS & ORBES) -->
               <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white border-start border-4 border-warning">
@@ -3395,7 +3475,7 @@
                       <i class="bi bi-layers-half text-primary"></i> Organisateur &amp; Ordre d'affichage des Blocs
                     </h4>
                     <p class="text-muted small mb-0">
-                      Placez chaque bloc où vous le souhaitez avec <strong>🔝 / ▲ / ▼ / 🔻</strong>. Lorsqu'un bloc est décoché (<strong>Masqué</strong>), il disparaît <strong>partout</strong> (du corps de la page, des menus à onglets, de la barre de navigation et du pied de page).
+                      Placez chaque bloc où vous le souhaitez avec <strong>🔝 / ▲ / ▼ / 🔻</strong> et choisissez son <strong>Modèle visuel</strong> (débloqué dès qu'un menu lui est associé). Lorsqu'un bloc est décoché (<strong>Masqué</strong>), il disparaît partout.
                     </p>
                   </div>
 
@@ -3437,8 +3517,32 @@
                       </div>
                     </div>
 
-                    <!-- Right Controls: Move Top / Up / Down / Bottom + Bento Width + Toggle Switch -->
-                    <div class="d-flex align-items-center gap-1 gap-sm-2 flex-shrink-0">
+                    <!-- Right Controls: Model Selector + Move Top / Up / Down / Bottom + Bento Width + Toggle Switch -->
+                    <div class="d-flex align-items-center gap-1 gap-sm-2 flex-shrink-0 flex-wrap">
+
+                      <!-- Per-Block Model Selector (Unlocked when menu exists or in legacy mode) -->
+                      <template v-if="!(portfolioForm.portfolio_layout.website_navbar.custom_menu_items?.length) || hasMenuForBlock(blk.id)">
+                        <select
+                          :value="getBlockModelValue(blk.id)"
+                          @change="e => setBlockModelValue(blk.id, e.target.value)"
+                          class="form-select form-select-sm rounded-pill extra-small border-success"
+                          style="width: auto; max-width: 210px;"
+                          title="Modèle visuel de ce bloc"
+                        >
+                          <option v-for="mod in getModelsForBlock(blk.id)" :key="'bm_' + blk.id + '_' + mod.id" :value="mod.id">
+                            🎨 {{ mod.name }}
+                          </option>
+                        </select>
+                      </template>
+                      <button
+                        v-else
+                        type="button"
+                        @click="addNavbarMenuItem(blk.id)"
+                        class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1 extra-small fw-semibold"
+                        title="Créez d'abord un menu associé pour débloquer le choix du modèle"
+                      >
+                        🔒 + Créer le menu pour choisir un modèle
+                      </button>
                       
                       <!-- Width Badge in Bento mode -->
                       <button 
@@ -9343,9 +9447,6 @@ const layoutStructuresList = [
   { id: 'bento_asym', name: 'Bento Asymétrique Pro', icon: '📐', desc: 'Composition dynamique avec grands blocs vedettes et sous-cartes.' },
   { id: 'cv_split', name: 'CV Split Suisse (Gauche)', icon: '📑', desc: 'Colonne latérale profil & skills fixe à gauche + réalisations à droite.' },
   { id: 'cv_split_right', name: 'CV Split Droite', icon: '📋', desc: 'Profil et coordonnées fixés à droite avec grand flux principal à gauche.' },
-  { id: 'tabbed', name: 'Application Web à Onglets', icon: '📑', desc: 'Navigation par onglets (Accueil, Stack, Projets, Parcours, Contact).' },
-  { id: 'tabbed_pills', name: 'Multi-Pages Pilules Flottantes', icon: '💊', desc: 'Onglets arrondis flottants avec compteurs de badges dynamiques.' },
-  { id: 'tabbed_vertical', name: 'Multi-Pages Barre Latérale', icon: '🗂️', desc: 'Menu à onglets vertical sur le côté gauche façon SaaS moderne.' },
   { id: 'terminal', name: 'Terminal Dev Console', icon: '>_', desc: 'Fenêtre Unix geek avec commandes bash et syntaxe monospacée.' },
   { id: 'code_editor', name: 'Éditeur de Code IDE', icon: '💻', desc: 'Interface style VS Code avec onglets de fichiers et arborescence.' },
   { id: 'cyberpunk', name: 'Cyberpunk HUD Sci-Fi', icon: '🤖', desc: 'Lignes néon, grille futuriste et accents haute technologie.' },
@@ -9725,27 +9826,6 @@ const portfolioForm = ref({
       button_text: 'Envoyer mon message',
       show_contact_cards: true
     },
-    tabbed_nav: initialUserLayout.tabbed_nav ? {
-      enabled: Boolean(initialUserLayout.tabbed_nav.enabled),
-      show_bar: initialUserLayout.tabbed_nav.show_bar !== false,
-      position: initialUserLayout.tabbed_nav.position || 'top',
-      style: initialUserLayout.tabbed_nav.style || 'pills',
-      size: initialUserLayout.tabbed_nav.size || 'md',
-      radius: initialUserLayout.tabbed_nav.radius || 'full',
-      alignment: initialUserLayout.tabbed_nav.alignment || 'center',
-      default_tab: initialUserLayout.tabbed_nav.default_tab || 'all',
-      hidden_tabs: Array.isArray(initialUserLayout.tabbed_nav.hidden_tabs) ? [...initialUserLayout.tabbed_nav.hidden_tabs] : []
-    } : {
-      enabled: false,
-      show_bar: true,
-      position: 'top',
-      style: 'pills',
-      size: 'md',
-      radius: 'full',
-      alignment: 'center',
-      default_tab: 'all',
-      hidden_tabs: []
-    },
     design_effects: initialUserLayout.design_effects ? {
       cursor_effect: initialUserLayout.design_effects.cursor_effect || (initialUserLayout.spotlight_enabled ? 'spotlight' : (initialUserLayout.custom_cursor_enabled ? 'magnetic_ring' : 'none')),
       section_divider: initialUserLayout.design_effects.section_divider || 'none',
@@ -9802,6 +9882,15 @@ const portfolioForm = ref({
       menu_type: initialUserLayout.website_navbar.menu_type || 'desktop_links_mobile_drawer',
       drawer_side: initialUserLayout.website_navbar.drawer_side || 'right',
       hamburger_style: initialUserLayout.website_navbar.hamburger_style || 'classic',
+      position: initialUserLayout.website_navbar.position || 'sticky',
+      font_size: initialUserLayout.website_navbar.font_size || 'sm',
+      border_radius: initialUserLayout.website_navbar.border_radius ?? '9999px',
+      bg_type: initialUserLayout.website_navbar.bg_type || 'auto',
+      bg_color: initialUserLayout.website_navbar.bg_color || '#FFFFFF',
+      bg_color_2: initialUserLayout.website_navbar.bg_color_2 || '#F8FAFC',
+      text_color: initialUserLayout.website_navbar.text_color || '#0F172A',
+      logo_url: initialUserLayout.website_navbar.logo_url || '',
+      custom_menu_items: Array.isArray(initialUserLayout.website_navbar.custom_menu_items) ? JSON.parse(JSON.stringify(initialUserLayout.website_navbar.custom_menu_items)) : [],
       brand_name: initialUserLayout.website_navbar.brand_name || '',
       brand_subtitle: initialUserLayout.website_navbar.brand_subtitle || '',
       cta_text: initialUserLayout.website_navbar.cta_text || 'Me contacter'
@@ -9812,10 +9901,20 @@ const portfolioForm = ref({
       menu_type: 'desktop_links_mobile_drawer',
       drawer_side: 'right',
       hamburger_style: 'classic',
+      position: 'sticky',
+      font_size: 'sm',
+      border_radius: '9999px',
+      bg_type: 'auto',
+      bg_color: '#FFFFFF',
+      bg_color_2: '#F8FAFC',
+      text_color: '#0F172A',
+      logo_url: '',
+      custom_menu_items: [],
       brand_name: '',
       brand_subtitle: '',
       cta_text: 'Me contacter'
     },
+    block_models: initialUserLayout.block_models ? JSON.parse(JSON.stringify(initialUserLayout.block_models)) : {},
     about_design: initialUserLayout.about_design ? {
       title: initialUserLayout.about_design.title || 'À propos de moi',
       subtitle: initialUserLayout.about_design.subtitle || '',
@@ -10360,42 +10459,200 @@ function disableOptionalBlocks() {
   })
 }
 
-// Tabbed Navigation Show/Hide individual tabs
-const configurableTabItems = [
-  { id: 'all', label: 'Vue Globale', icon: 'bi-grid-fill' },
-  { id: 'about', label: 'À Propos', icon: 'bi-person-lines-fill' },
-  { id: 'video', label: 'Vidéo Pitch', icon: 'bi-play-btn-fill' },
-  { id: 'now', label: 'En ce moment', icon: 'bi-broadcast-pin' },
-  { id: 'github', label: 'GitHub', icon: 'bi-github' },
-  { id: 'skills', label: 'Compétences', icon: 'bi-cpu-fill' },
-  { id: 'projects', label: 'Projets', icon: 'bi-rocket-takeoff-fill' },
-  { id: 'experiences', label: 'Parcours', icon: 'bi-briefcase-fill' },
-  { id: 'educations', label: 'Formations', icon: 'bi-mortarboard-fill' },
-  { id: 'pocs', label: 'POCs', icon: 'bi-lightning-charge-fill' },
-  { id: 'process', label: 'Méthodologie', icon: 'bi-diagram-3-fill' },
-  { id: 'pricing', label: 'Offres & Tarifs', icon: 'bi-tags-fill' },
-  { id: 'certifications', label: 'Certifications', icon: 'bi-patch-check-fill' },
-  { id: 'testimonials', label: 'Témoignages', icon: 'bi-chat-quote-fill' },
-  { id: 'faq', label: 'FAQ', icon: 'bi-question-circle-fill' },
-  { id: 'badges', label: 'Trophées', icon: 'bi-trophy-fill' },
-  { id: 'contact', label: 'Contact', icon: 'bi-envelope-fill' }
+// =========================================================================
+// MENU ACCORDÉON, SÉLECTEUR D'ICÔNES BOOTSTRAP & MODÈLES PAR BLOC
+// =========================================================================
+const bootstrapIconCatalog = [
+  'bi-house-door-fill', 'bi-person-fill', 'bi-person-lines-fill', 'bi-play-btn-fill', 'bi-youtube',
+  'bi-images', 'bi-camera-fill', 'bi-envelope-fill', 'bi-send-fill', 'bi-telephone-fill',
+  'bi-rocket-takeoff-fill', 'bi-cpu-fill', 'bi-code-slash', 'bi-terminal-fill', 'bi-github',
+  'bi-briefcase-fill', 'bi-mortarboard-fill', 'bi-patch-check-fill', 'bi-award-fill', 'bi-trophy-fill',
+  'bi-tags-fill', 'bi-calculator-fill', 'bi-diagram-3-fill', 'bi-chat-quote-fill', 'bi-question-circle-fill',
+  'bi-translate', 'bi-tools', 'bi-activity', 'bi-lightning-charge-fill', 'bi-broadcast-pin',
+  'bi-stars', 'bi-palette-fill', 'bi-brush-fill', 'bi-layers-fill', 'bi-grid-1x2-fill',
+  'bi-globe', 'bi-geo-alt-fill', 'bi-calendar-event-fill', 'bi-clock-fill', 'bi-shield-check',
+  'bi-heart-fill', 'bi-star-fill', 'bi-bookmark-fill', 'bi-folder-fill', 'bi-file-earmark-pdf-fill',
+  'bi-bag-fill', 'bi-cart-fill', 'bi-credit-card-fill', 'bi-graph-up-arrow', 'bi-bar-chart-fill',
+  'bi-megaphone-fill', 'bi-bell-fill', 'bi-search', 'bi-sliders', 'bi-compass-fill',
+  'bi-laptop', 'bi-phone-fill', 'bi-cloud-fill', 'bi-database-fill', 'bi-lock-fill'
 ]
 
-function isTabVisibleInConfig(tabId) {
-  const hidden = portfolioForm.value.portfolio_layout.tabbed_nav?.hidden_tabs || []
-  return !hidden.includes(tabId)
+const iconPickerTarget = ref(null) // holds menu item or sub-item object
+const iconSearchQuery = ref('')
+const filteredBootstrapIcons = computed(() => {
+  const q = (iconSearchQuery.value || '').trim().toLowerCase()
+  if (!q) return bootstrapIconCatalog
+  return bootstrapIconCatalog.filter(ic => ic.toLowerCase().includes(q))
+})
+
+function openIconPickerFor(targetObj) {
+  if (iconPickerTarget.value === targetObj) {
+    iconPickerTarget.value = null
+  } else {
+    iconPickerTarget.value = targetObj
+    iconSearchQuery.value = ''
+  }
 }
 
-function toggleTabVisibleInConfig(tabId) {
-  if (!Array.isArray(portfolioForm.value.portfolio_layout.tabbed_nav.hidden_tabs)) {
-    portfolioForm.value.portfolio_layout.tabbed_nav.hidden_tabs = []
+function selectBootstrapIcon(iconClass) {
+  if (iconPickerTarget.value) {
+    iconPickerTarget.value.icon = iconClass
+    iconPickerTarget.value = null
   }
-  const list = portfolioForm.value.portfolio_layout.tabbed_nav.hidden_tabs
-  const idx = list.indexOf(tabId)
-  if (idx === -1) {
-    list.push(tabId)
-  } else {
-    list.splice(idx, 1)
+}
+
+const blockModelsCatalog = {
+  hero: [
+    { id: 'classic', name: 'Classique Tech237 (Défaut)' },
+    { id: 'impact_split', name: 'Impact Split + Badges Flottants (Style ONG/Agence)' },
+    { id: 'impact_split_reverse', name: 'Impact Split Inversé (Photo à Gauche)' },
+    { id: 'centered_saas', name: 'SaaS Centré Moderne' },
+    { id: 'editorial_magazine', name: 'Éditorial Magazine' },
+    { id: 'bento_hero', name: 'Bento Hero Multi-Cartes' },
+    { id: 'glass_dark', name: 'Glassmorphism Sombre Studio' },
+    { id: 'minimal_typo', name: 'Minimaliste Typographique' },
+    { id: 'cover_banner', name: 'Bannière Pleine Largeur Dégradée' },
+    { id: 'terminal_dev', name: 'Terminal Développeur (>_ whoami)' },
+    { id: 'floating_card', name: 'Carte Flottante Élévation' },
+    { id: 'spotlight_avatar', name: 'Spotlight Avatar Géant' }
+  ],
+  visual_gallery: [
+    { id: 'grid_3', name: 'Grille 3 Colonnes (Défaut)' },
+    { id: 'grid_2', name: 'Grille 2 Colonnes Large' },
+    { id: 'grid_4', name: 'Grille 4 Colonnes Compacte' },
+    { id: 'fullscreen_showcase', name: 'Plein Écran Immersif' },
+    { id: 'masonry', name: 'Maçonnerie (Masonry)' },
+    { id: 'slideshow', name: 'Diaporama Interactif' },
+    { id: 'horizontal_scroll', name: 'Défilement Horizontal' },
+    { id: 'polaroid', name: 'Cadres Polaroid Studio' },
+    { id: 'bento_mosaic', name: 'Mosaïque Bento' },
+    { id: 'before_after_focus', name: 'Focus Comparateur Avant/Après' }
+  ],
+  video: [
+    { id: 'cinema_16_9', name: 'Cinéma 16:9 Classique (Défaut)' },
+    { id: 'split_text_left', name: 'Split Texte Gauche + Vidéo Droite' },
+    { id: 'split_text_right', name: 'Split Vidéo Gauche + Texte Droite' },
+    { id: 'browser_frame', name: 'Cadre Navigateur macOS' },
+    { id: 'studio_dark', name: 'Théâtre Sombre Studio' },
+    { id: 'neon_glow', name: 'Bordure Néon Lumineuse' },
+    { id: 'floating_card', name: 'Carte Flottante Ombrée' },
+    { id: 'minimal_clean', name: 'Épuré Sans Bordure' },
+    { id: 'banner_wide', name: 'Bannière Ultra-Large' },
+    { id: 'compact_player', name: 'Lecteur Compact Centré' }
+  ],
+  contact: [
+    { id: 'split_left', name: 'Split Infos à Gauche (Défaut)' },
+    { id: 'split_right', name: 'Split Infos à Droite' },
+    { id: 'centered_card', name: 'Carte Centrée Compacte' },
+    { id: 'banner_modern', name: 'Bannière Moderne Dégradée' },
+    { id: 'glass_card', name: 'Glassmorphism Verre Dépoli' },
+    { id: 'dark_studio', name: 'Studio Sombre Contraste' },
+    { id: 'two_col_cards', name: 'Deux Cartes Séparées' },
+    { id: 'minimal_clean', name: 'Épuré Minimaliste' },
+    { id: 'neo_brutal', name: 'Néo-Brutaliste Bordure Noire' },
+    { id: 'compact_pill', name: 'Formulaire Compact Rapide' }
+  ],
+  about: [
+    { id: 'classic', name: 'Classique (Défaut)' },
+    { id: 'bento_ideas', name: 'Grille Bento + Idées Clés' },
+    { id: 'split_photo_left', name: 'Split Photo à Gauche' },
+    { id: 'split_photo_right', name: 'Split Photo à Droite' },
+    { id: 'editorial', name: 'Éditorial Magazine' },
+    { id: 'quote_focus', name: 'Focus Citation & Manifeste' },
+    { id: 'glass_panel', name: 'Panneau Glassmorphism' },
+    { id: 'dark_contrast', name: 'Encadré Sombre Premium' },
+    { id: 'terminal_bio', name: 'Bio Style Terminal README.md' },
+    { id: 'minimal_centered', name: 'Minimaliste Centré' }
+  ],
+  default: [
+    { id: 'classic', name: 'Classique Standard (Défaut)' },
+    { id: 'modern_cards', name: 'Cartes Modernes Surélevées' },
+    { id: 'glass_panel', name: 'Glassmorphism Verre Dépoli' },
+    { id: 'dark_studio', name: 'Studio Sombre Premium' },
+    { id: 'minimal_clean', name: 'Épuré Minimaliste' },
+    { id: 'neo_brutal', name: 'Néo-Brutaliste Contraste' },
+    { id: 'accent_border', name: 'Bordure Latérale Accent' },
+    { id: 'gradient_soft', name: 'Fond Dégradé Doux' }
+  ]
+}
+
+function getModelsForBlock(blockId) {
+  return blockModelsCatalog[blockId] || blockModelsCatalog.default
+}
+
+function getBlockModelValue(blockId) {
+  const map = portfolioForm.value.portfolio_layout.block_models || {}
+  if (map[blockId]) return map[blockId]
+  return getModelsForBlock(blockId)[0].id
+}
+
+function setBlockModelValue(blockId, modelId) {
+  if (!portfolioForm.value.portfolio_layout.block_models) {
+    portfolioForm.value.portfolio_layout.block_models = {}
+  }
+  portfolioForm.value.portfolio_layout.block_models[blockId] = modelId
+  // Sync with legacy section fields for seamless compatibility
+  if (blockId === 'about' && portfolioForm.value.portfolio_layout.about_design) {
+    if (['classic', 'bento_ideas', 'split_photo_left', 'split_photo_right', 'editorial'].includes(modelId)) {
+      portfolioForm.value.portfolio_layout.about_design.layout_style = modelId
+    }
+  }
+  if (blockId === 'contact' && portfolioForm.value.portfolio_layout.contact_form) {
+    const mapContact = { split_left: 'split_left_info', split_right: 'split_right_info', centered_card: 'centered_card', banner_modern: 'banner_modern' }
+    if (mapContact[modelId]) portfolioForm.value.portfolio_layout.contact_form.layout_style = mapContact[modelId]
+  }
+}
+
+function hasMenuForBlock(blockId) {
+  const items = portfolioForm.value.portfolio_layout.website_navbar?.custom_menu_items || []
+  if (items.length === 0) return false
+  return items.some(it => it.target_block === blockId || (Array.isArray(it.children) && it.children.some(c => c.target_block === blockId)))
+}
+
+function ensureBlockEnabled(blockId) {
+  const blk = (portfolioForm.value.portfolio_layout.blocks || []).find(b => b.id === blockId)
+  if (blk) blk.enabled = true
+}
+
+function addNavbarMenuItem(prefillBlockId = 'hero') {
+  const nav = portfolioForm.value.portfolio_layout.website_navbar
+  if (!nav) return
+  if (!Array.isArray(nav.custom_menu_items)) nav.custom_menu_items = []
+  const blk = (portfolioForm.value.portfolio_layout.blocks || []).find(b => b.id === prefillBlockId)
+  nav.custom_menu_items.push({
+    id: 'menu_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    label: blk ? blk.name.split('(')[0].trim() : 'Accueil',
+    target_block: prefillBlockId,
+    icon: prefillBlockId === 'hero' ? 'bi-house-door-fill' : (prefillBlockId === 'video' ? 'bi-play-btn-fill' : 'bi-grid-fill'),
+    is_accordion: false,
+    children: []
+  })
+  ensureBlockEnabled(prefillBlockId)
+}
+
+function removeNavbarMenuItem(idx) {
+  portfolioForm.value.portfolio_layout.website_navbar?.custom_menu_items?.splice(idx, 1)
+}
+
+function addSubMenuItem(parentItem) {
+  parentItem.is_accordion = true
+  if (!Array.isArray(parentItem.children)) parentItem.children = []
+  parentItem.children.push({
+    id: 'sub_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    label: 'Sous-section',
+    target_block: 'about',
+    icon: 'bi-arrow-return-right'
+  })
+  ensureBlockEnabled('about')
+}
+
+function removeSubMenuItem(parentItem, sIdx) {
+  parentItem.children?.splice(sIdx, 1)
+}
+
+function onMenuTargetBlockChange(item) {
+  if (item.target_block) {
+    ensureBlockEnabled(item.target_block)
   }
 }
 
