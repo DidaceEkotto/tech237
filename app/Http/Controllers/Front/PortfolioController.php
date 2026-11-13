@@ -67,11 +67,26 @@ class PortfolioController extends Controller
         // Badges
         $badges = $user->badges()->latest()->get();
 
+        // Optional Tech237 Forms & Heartbeat Monitors for portfolio widgets
+        $publicForms = \App\Models\Form::where('user_id', $user->id)
+            ->where('status', 'published')
+            ->select('id', 'title', 'slug', 'description', 'theme_color')
+            ->latest()
+            ->get();
+
+        $publicMonitors = \App\Models\HeartbeatMonitor::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->select('id', 'name', 'url', 'is_currently_down', 'uptime_percentage', 'last_response_time_ms', 'last_checked_at')
+            ->latest()
+            ->get();
+
         return Inertia::render('Portfolio/Show', [
             'portfolioUser' => $user,
             'projects' => $projects,
             'pocs' => $pocs,
             'badges' => $badges,
+            'publicForms' => $publicForms,
+            'publicMonitors' => $publicMonitors,
             'currentTier' => $currentTier,
             'nextTier' => $nextTier,
             'rankPosition' => $rankPosition,

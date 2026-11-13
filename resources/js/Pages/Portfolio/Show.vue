@@ -10,7 +10,9 @@
       'heading-style-' + designEffects.heading_style,
       'btn-style-' + designEffects.button_style,
       'card-border-' + designEffects.card_border_effect,
-      (customCursorEnabled || designEffects.cursor_effect === 'magnetic_ring' || designEffects.cursor_effect === 'glow_trail') ? 'custom-cursor-active' : ''
+      (customCursorEnabled || designEffects.cursor_effect === 'magnetic_ring' || designEffects.cursor_effect === 'glow_trail') ? 'custom-cursor-active' : '',
+      customColorPalette.enabled ? 'custom-palette-active' : '',
+      printSettingsConfig.density === 'compact' ? 'print-compact' : ''
     ]" 
     :style="cssVars"
     @mousemove="handleMouseMove"
@@ -140,6 +142,49 @@
       </template>
     </div>
 
+    <!-- PRINT-ONLY QR CODE HEADER -->
+    <div v-if="printSettingsConfig.include_qr_header && qrCodeDataUrl" class="d-none d-print-flex align-items-center justify-content-between border-bottom pb-3 mb-3 px-4 pt-3">
+      <div>
+        <h3 class="h5 fw-bold mb-0">{{ portfolioUser.name }}</h3>
+        <div class="small text-muted">{{ portfolioUser.headline || '@' + portfolioUser.username }}</div>
+        <div class="extra-small text-muted">{{ shareUrl }}</div>
+      </div>
+      <img :src="qrCodeDataUrl" alt="QR Portfolio" style="width: 68px; height: 68px;" />
+    </div>
+
+    <!-- TOP ANNOUNCEMENT / PROMO BAR -->
+    <div
+      v-if="announcementBar.enabled && !announcementDismissed && announcementBar.text"
+      class="portfolio-announcement-bar py-2 px-3 d-print-none position-relative z-30"
+      :style="announcementBarStyle"
+    >
+      <div class="container d-flex align-items-center justify-content-center gap-3 position-relative" :style="{ maxWidth: '1320px' }">
+        <div class="overflow-hidden flex-grow-1 text-center">
+          <div :class="announcementBar.scrolling ? 'announcement-marquee' : 'd-inline-flex align-items-center justify-content-center gap-2 flex-wrap'">
+            <i v-if="announcementBar.icon" class="bi" :class="announcementBar.icon"></i>
+            <span class="small fw-semibold">{{ announcementBar.text }}</span>
+            <a
+              v-if="announcementBar.cta_label && announcementBar.cta_url"
+              :href="announcementBar.cta_url"
+              class="btn btn-xs btn-light rounded-pill px-3 py-0 fw-bold text-dark ms-2 shadow-2xs"
+            >
+              {{ announcementBar.cta_label }}
+            </a>
+          </div>
+        </div>
+        <button
+          v-if="announcementBar.dismissible !== false"
+          type="button"
+          @click="announcementDismissed = true"
+          class="btn btn-sm p-0 border-0 opacity-75 hover-opacity-100"
+          :style="{ color: announcementBar.text_color || '#FFFFFF' }"
+          aria-label="Fermer l'annonce"
+        >
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+    </div>
+
     <!-- TOP WEBSITE NAVBAR (Real Personal Website Header + Mobile Menu) -->
     <header 
       v-if="!isBlankCanvasMode || !blankCanvasConfig.hide_default_navbar"
@@ -243,6 +288,18 @@
               <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
               <span class="d-none d-xl-inline">CV</span>
             </a>
+
+            <!-- Command Palette Ctrl+K Trigger -->
+            <button
+              v-if="commandPaletteConfig.enabled && commandPaletteConfig.show_in_navbar !== false"
+              type="button"
+              @click="commandPaletteOpen = true"
+              class="btn btn-sm btn-nav-action rounded-pill px-2 px-md-3 fw-semibold d-inline-flex align-items-center gap-2 border shadow-2xs"
+              title="Recherche rapide (Ctrl+K)"
+            >
+              <i class="bi bi-search"></i>
+              <span v-if="commandPaletteConfig.shortcut_hint !== false" class="d-none d-xl-inline extra-small opacity-75 border rounded px-1">Ctrl+K</span>
+            </button>
 
             <!-- Primary Website CTA Button -->
             <button 
@@ -1662,8 +1719,28 @@
                 <!-- WEBSITE KPI STATS STRIP (Right under Hero) -->
                 <div v-if="kpiStatsConfig.enabled && kpiStatsItems.length" class="row g-3 mt-3 d-print-none">
                   <div v-for="(kpi, kIdx) in kpiStatsItems" :key="kIdx" class="col-6 col-md-3">
-                    <div class="card border-0 shadow-sm rounded-4 p-3 text-center content-card h-100 transition-hover">
-                      <div class="fs-3 fw-black mb-1" :style="{ color: accentColor }">{{ kpi.value }}</div>
+                    <div
+                      class="rounded-4 p-3 text-center h-100 transition-hover"
+                      :class="[
+                        kpiStatsDesign.style === 'minimal' ? 'bg-transparent border' : 'card border-0 shadow-sm content-card',
+                        kpiStatsDesign.style === 'floating_cards' ? 'shadow' : '',
+                        kpiStatsDesign.style === 'neon_circles' ? 'border border-opacity-25' : ''
+                      ]"
+                    >
+                      <div v-if="kpi.icon" class="mb-1">
+                        <span
+                          class="d-inline-flex align-items-center justify-content-center rounded-circle"
+                          :style="{
+                            width: kpiStatsDesign.style === 'neon_circles' ? '44px' : '32px',
+                            height: kpiStatsDesign.style === 'neon_circles' ? '44px' : '32px',
+                            backgroundColor: (kpi.color || accentColor) + '18',
+                            color: kpi.color || accentColor
+                          }"
+                        >
+                          <i class="bi" :class="kpi.icon"></i>
+                        </span>
+                      </div>
+                      <div class="fs-3 fw-black mb-1" :style="{ color: kpi.color || accentColor }">{{ kpi.value }}</div>
                       <div class="extra-small fw-semibold text-muted">{{ kpi.label }}</div>
                     </div>
                   </div>
@@ -2975,6 +3052,313 @@
                 </div>
               </section>
 
+              <!-- 9b. INTERACTIVE QUOTE CALCULATOR BLOCK -->
+              <section
+                v-else-if="block.id === 'quote_calculator' && quoteCalculatorConfig.enabled"
+                id="block-quote_calculator"
+                class="portfolio-block h-100"
+                :class="{ 'd-print-none': isHiddenInPrint('quote_calculator') }"
+              >
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="text-center mb-4">
+                    <div class="section-icon-badge d-inline-flex mb-2" :style="{ color: accentColor }">
+                      <i class="bi bi-calculator-fill fs-2"></i>
+                    </div>
+                    <h2 class="h4 fw-bold mb-1">{{ quoteCalculatorConfig.title || 'Estimez votre Projet' }}</h2>
+                    <p v-if="quoteCalculatorConfig.subtitle" class="text-muted small mb-0">{{ quoteCalculatorConfig.subtitle }}</p>
+                  </div>
+
+                  <div class="row g-4 align-items-start">
+                    <div class="col-lg-7">
+                      <label class="form-label small fw-bold text-uppercase text-muted mb-2">1. Choisissez votre prestation de base</label>
+                      <div class="d-flex flex-column gap-2 mb-4">
+                        <button
+                          v-for="srv in quoteCalculatorConfig.base_services"
+                          :key="srv.id"
+                          type="button"
+                          @click="selectedQuoteServiceId = srv.id"
+                          class="btn text-start p-3 rounded-4 border d-flex align-items-center justify-content-between transition"
+                          :class="selectedQuoteService?.id === srv.id ? 'shadow-sm fw-bold' : 'bg-light'"
+                          :style="selectedQuoteService?.id === srv.id ? { borderColor: accentColor, backgroundColor: accentColor + '12' } : {}"
+                        >
+                          <div>
+                            <div class="text-dark">{{ srv.label }}</div>
+                            <small class="text-muted extra-small">Délai estimé : ~{{ srv.days || 7 }} jours</small>
+                          </div>
+                          <span class="badge rounded-pill px-3 py-2 text-white" :style="{ backgroundColor: accentColor }">
+                            {{ Number(srv.price || 0).toLocaleString('fr-FR') }} {{ quoteCalculatorConfig.currency || 'FCFA' }}
+                          </span>
+                        </button>
+                      </div>
+
+                      <div v-if="quoteCalculatorConfig.addons?.length" class="mb-3">
+                        <label class="form-label small fw-bold text-uppercase text-muted mb-2">2. Options complémentaires</label>
+                        <div class="row g-2">
+                          <div v-for="addon in quoteCalculatorConfig.addons" :key="addon.id" class="col-sm-6">
+                            <button
+                              type="button"
+                              @click="toggleQuoteAddon(addon.id)"
+                              class="btn w-100 text-start p-2 px-3 rounded-3 border d-flex align-items-center justify-content-between small"
+                              :class="selectedQuoteAddonIds.includes(addon.id) ? 'fw-bold shadow-2xs' : 'bg-light'"
+                              :style="selectedQuoteAddonIds.includes(addon.id) ? { borderColor: accentColor, backgroundColor: accentColor + '12' } : {}"
+                            >
+                              <span class="text-truncate me-2">
+                                <i class="bi me-1" :class="selectedQuoteAddonIds.includes(addon.id) ? 'bi-check-square-fill' : 'bi-square'" :style="{ color: accentColor }"></i>
+                                {{ addon.label }}
+                              </span>
+                              <span class="extra-small fw-semibold text-muted text-nowrap">+{{ Number(addon.price || 0).toLocaleString('fr-FR') }}</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="form-check form-switch mt-3 p-3 rounded-3 border bg-light ps-5">
+                        <input class="form-check-input cursor-pointer" type="checkbox" v-model="quoteUrgency" id="publicQuoteUrgency" />
+                        <label class="form-check-label small fw-bold cursor-pointer" for="publicQuoteUrgency">
+                          Livraison prioritaire / Urgente (×{{ quoteCalculatorConfig.urgency_multiplier || 1.35 }})
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="col-lg-5">
+                      <div class="p-4 rounded-4 border text-center bg-light">
+                        <div class="extra-small text-uppercase fw-bold text-muted mb-1">Estimation indicative</div>
+                        <div class="display-6 fw-black mb-1" :style="{ color: accentColor }">
+                          {{ quoteTotalPrice.toLocaleString('fr-FR') }} <span class="fs-6">{{ quoteCalculatorConfig.currency || 'FCFA' }}</span>
+                        </div>
+                        <div class="small text-muted mb-4">
+                          <i class="bi bi-clock me-1"></i> Délai estimé : <strong>{{ quoteTotalDays }} jours</strong>
+                        </div>
+                        <button
+                          type="button"
+                          @click="applyQuoteToContact"
+                          class="btn w-100 rounded-pill py-2 fw-bold text-white shadow-sm"
+                          :style="{ backgroundColor: accentColor }"
+                        >
+                          <i class="bi bi-send-check-fill me-2"></i>
+                          {{ quoteCalculatorConfig.cta_text || 'Demander ce devis' }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9c. VISUAL GALLERY & BEFORE/AFTER COMPARATOR -->
+              <section
+                v-else-if="block.id === 'visual_gallery' && visualGalleryConfig.enabled && visualGalleryConfig.items?.length"
+                id="block-visual_gallery"
+                class="portfolio-block h-100"
+                :class="{ 'd-print-none': isHiddenInPrint('visual_gallery') }"
+              >
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                    <div>
+                      <h2 class="h4 fw-bold mb-1 d-flex align-items-center gap-2">
+                        <i class="bi bi-images" :style="{ color: accentColor }"></i>
+                        <span>{{ visualGalleryConfig.title || 'Galerie & Showroom' }}</span>
+                      </h2>
+                      <p v-if="visualGalleryConfig.subtitle" class="text-muted small mb-0">{{ visualGalleryConfig.subtitle }}</p>
+                    </div>
+                    <div v-if="galleryCategories.length > 2" class="d-flex flex-wrap gap-1">
+                      <button
+                        v-for="cat in galleryCategories"
+                        :key="cat"
+                        type="button"
+                        @click="galleryActiveCategory = cat"
+                        class="btn btn-xs rounded-pill px-3 py-1 extra-small fw-bold"
+                        :class="galleryActiveCategory === cat ? 'text-white shadow-2xs' : 'btn-light border text-dark'"
+                        :style="galleryActiveCategory === cat ? { backgroundColor: accentColor } : {}"
+                      >
+                        {{ cat === 'all' ? 'Tout' : cat }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="row g-3">
+                    <div
+                      v-for="(item, gIdx) in filteredGalleryItems"
+                      :key="item.id || gIdx"
+                      :class="visualGalleryConfig.columns === 2 ? 'col-md-6' : 'col-md-6 col-lg-4'"
+                    >
+                      <div class="rounded-4 border overflow-hidden bg-light h-100 d-flex flex-column shadow-2xs">
+                        <!-- Before/After Slider Mode -->
+                        <div v-if="item.is_before_after && item.before_image_url" class="before-after-wrapper position-relative" style="height: 220px;">
+                          <img :src="formatImageUrl(item.image_url)" :alt="item.title" class="w-100 h-100 object-fit-cover" />
+                          <div
+                            class="position-absolute top-0 start-0 h-100 overflow-hidden"
+                            :style="{ width: getBeforeAfterPos(item.id || gIdx) + '%' }"
+                          >
+                            <img :src="formatImageUrl(item.before_image_url)" alt="Avant" class="h-100 object-fit-cover" style="width: 100%; max-width: none; min-width: 320px;" />
+                          </div>
+                          <span class="badge bg-dark bg-opacity-75 position-absolute top-0 start-0 m-2 extra-small">Avant</span>
+                          <span class="badge bg-success bg-opacity-75 position-absolute top-0 end-0 m-2 extra-small">Après</span>
+                          <input
+                            type="range"
+                            min="5"
+                            max="95"
+                            :value="getBeforeAfterPos(item.id || gIdx)"
+                            @input="e => setBeforeAfterPos(item.id || gIdx, e.target.value)"
+                            class="before-after-range position-absolute bottom-0 start-0 w-100 px-2 mb-1"
+                          />
+                        </div>
+
+                        <!-- Standard Gallery Image with Lightbox -->
+                        <div
+                          v-else
+                          class="position-relative overflow-hidden cursor-pointer"
+                          style="height: 220px;"
+                          @click="visualGalleryConfig.enable_lightbox !== false && (lightboxItem = item)"
+                        >
+                          <img :src="formatImageUrl(item.image_url)" :alt="item.title" class="w-100 h-100 object-fit-cover transition-hover" />
+                          <span v-if="item.category" class="badge bg-dark bg-opacity-75 position-absolute top-0 start-0 m-2 extra-small">{{ item.category }}</span>
+                        </div>
+
+                        <div class="p-3 flex-grow-1 d-flex flex-column justify-content-between">
+                          <div>
+                            <h3 class="h6 fw-bold mb-1">{{ item.title || 'Réalisation' }}</h3>
+                            <p v-if="item.caption" class="extra-small text-muted mb-0">{{ item.caption }}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9d. LANGUAGES, SOFT SKILLS & DAILY TOOLS -->
+              <section
+                v-else-if="block.id === 'languages_and_tools' && languagesAndToolsConfig.enabled"
+                id="block-languages_and_tools"
+                class="portfolio-block h-100"
+                :class="{ 'd-print-none': isHiddenInPrint('languages_and_tools') }"
+              >
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <h2 class="h4 fw-bold mb-4 d-flex align-items-center gap-2">
+                    <i class="bi bi-translate" :style="{ color: accentColor }"></i>
+                    <span>{{ languagesAndToolsConfig.title || 'Langues, Soft Skills & Outils du Quotidien' }}</span>
+                  </h2>
+
+                  <div class="row g-4">
+                    <div v-if="languagesAndToolsConfig.languages?.length" class="col-md-6">
+                      <h3 class="h6 fw-bold text-muted text-uppercase extra-small mb-3">Langues parlées</h3>
+                      <div class="d-flex flex-column gap-3">
+                        <div v-for="(lang, lIdx) in languagesAndToolsConfig.languages" :key="lIdx">
+                          <div class="d-flex justify-content-between small fw-bold mb-1">
+                            <span>{{ lang.flag }} {{ lang.name }}</span>
+                            <span class="text-muted">{{ lang.level }}</span>
+                          </div>
+                          <div class="progress rounded-pill" style="height: 8px;">
+                            <div class="progress-bar rounded-pill" :style="{ width: (lang.percent || 80) + '%', backgroundColor: accentColor }"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-if="languagesAndToolsConfig.soft_skills?.length" class="col-md-6">
+                      <h3 class="h6 fw-bold text-muted text-uppercase extra-small mb-3">Soft Skills (Savoir-être)</h3>
+                      <div class="d-flex flex-wrap gap-2">
+                        <span v-for="(sk, sIdx) in languagesAndToolsConfig.soft_skills" :key="sIdx" class="badge bg-light text-dark border px-3 py-2 rounded-pill fw-semibold">
+                          <i class="bi bi-check2-circle me-1" :style="{ color: accentColor }"></i>{{ sk }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div v-if="languagesAndToolsConfig.daily_tools?.length" class="col-12">
+                      <h3 class="h6 fw-bold text-muted text-uppercase extra-small mb-3">Outils du quotidien</h3>
+                      <div class="d-flex flex-wrap gap-2">
+                        <div v-for="(tool, tIdx) in languagesAndToolsConfig.daily_tools" :key="tIdx" class="px-3 py-2 rounded-3 border bg-light d-inline-flex align-items-center gap-2 small fw-semibold">
+                          <i class="bi" :class="tool.icon || 'bi-tools'" :style="{ color: tool.color || accentColor }"></i>
+                          <span>{{ tool.name }}</span>
+                          <span v-if="tool.category" class="extra-small text-muted">({{ tool.category }})</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9e. AWARDS, HACKATHONS & PRESS -->
+              <section
+                v-else-if="block.id === 'awards_press' && awardsPressConfig.enabled && awardsPressConfig.items?.length"
+                id="block-awards_press"
+                class="portfolio-block h-100"
+                :class="{ 'd-print-none': isHiddenInPrint('awards_press') }"
+              >
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <h2 class="h4 fw-bold mb-4 d-flex align-items-center gap-2">
+                    <i class="bi bi-trophy-fill text-warning"></i>
+                    <span>{{ awardsPressConfig.title || 'Distinctions, Hackathons & Presse' }}</span>
+                  </h2>
+                  <div class="row g-3">
+                    <div v-for="(aw, awIdx) in awardsPressConfig.items" :key="awIdx" class="col-md-6">
+                      <div class="p-3 rounded-4 border bg-light h-100 d-flex flex-column justify-content-between">
+                        <div>
+                          <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                            <span class="badge rounded-pill text-white extra-small" :style="{ backgroundColor: accentColor }">{{ aw.type || 'Prix' }}</span>
+                            <small class="text-muted extra-small">{{ aw.date }}</small>
+                          </div>
+                          <h3 class="h6 fw-bold mb-1">{{ aw.title }}</h3>
+                          <div class="extra-small fw-semibold text-muted mb-2">{{ aw.organization }}</div>
+                          <p v-if="aw.description" class="small text-muted mb-2">{{ aw.description }}</p>
+                        </div>
+                        <a v-if="aw.url" :href="aw.url" target="_blank" rel="noopener" class="extra-small fw-bold text-decoration-none" :style="{ color: accentColor }">
+                          Consulter la source <i class="bi bi-box-arrow-up-right ms-1"></i>
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- 9f. TECH237 WIDGETS (FORMS & HEARTBEAT UPTIME) -->
+              <section
+                v-else-if="block.id === 'tech237_widgets' && tech237WidgetsConfig.enabled"
+                id="block-tech237_widgets"
+                class="portfolio-block h-100"
+                :class="{ 'd-print-none': isHiddenInPrint('tech237_widgets') }"
+              >
+                <div class="card p-4 p-md-5 rounded-4 shadow-sm border-0 content-card h-100">
+                  <div class="row g-4">
+                    <div v-if="selectedPublicForm" :class="tech237WidgetsConfig.show_heartbeat && visiblePublicMonitors.length ? 'col-lg-6' : 'col-12'">
+                      <div class="p-4 rounded-4 border bg-light h-100 d-flex flex-column justify-content-between">
+                        <div>
+                          <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1 extra-small fw-bold mb-2">Formulaire Tech237</span>
+                          <h3 class="h5 fw-bold mb-2">{{ tech237WidgetsConfig.form_title || selectedPublicForm.title }}</h3>
+                          <p v-if="selectedPublicForm.description" class="small text-muted mb-3">{{ selectedPublicForm.description }}</p>
+                        </div>
+                        <div>
+                          <a :href="`/f/${selectedPublicForm.slug}`" target="_blank" class="btn rounded-pill px-4 py-2 fw-bold text-white shadow-sm" :style="{ backgroundColor: accentColor }">
+                            <i class="bi bi-ui-checks me-2"></i> Remplir le formulaire
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div v-if="tech237WidgetsConfig.show_heartbeat && visiblePublicMonitors.length" :class="selectedPublicForm ? 'col-lg-6' : 'col-12'">
+                      <div class="p-4 rounded-4 border bg-light h-100">
+                        <h3 class="h6 fw-bold mb-3 d-flex align-items-center gap-2">
+                          <i class="bi bi-activity text-danger"></i>
+                          <span>{{ tech237WidgetsConfig.heartbeat_title || 'Statut des Services en Direct' }}</span>
+                        </h3>
+                        <div class="d-flex flex-column gap-2">
+                          <div v-for="mon in visiblePublicMonitors" :key="mon.id" class="p-2 px-3 rounded-3 bg-white border d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center gap-2">
+                              <span class="rounded-circle d-inline-block" :class="mon.is_currently_down ? 'bg-danger' : 'bg-success'" style="width: 10px; height: 10px;"></span>
+                              <span class="small fw-bold text-dark">{{ mon.name }}</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 extra-small text-muted">
+                              <span v-if="mon.uptime_percentage != null" class="fw-bold text-success">{{ mon.uptime_percentage }}%</span>
+                              <span v-if="mon.last_response_time_ms != null">{{ mon.last_response_time_ms }} ms</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
               <!-- 10. CONTACT BLOCK WITH INTERACTIVE EMAIL FORM (100% Customizable Layout, Image, Align & Animation) -->
               <section v-else-if="block.id === 'contact'" id="portfolioContactSection" class="portfolio-block h-100">
                 <div 
@@ -3348,6 +3732,71 @@
         </button>
       </transition>
 
+      <!-- COMMAND PALETTE MODAL (Ctrl + K) -->
+      <div
+        v-if="commandPaletteOpen"
+        class="command-palette-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-start justify-content-center pt-5 px-3 d-print-none"
+        @click.self="commandPaletteOpen = false"
+      >
+        <div class="card border-0 shadow-lg rounded-4 w-100 overflow-hidden" style="max-width: 580px; margin-top: 6vh;">
+          <div class="p-3 border-bottom d-flex align-items-center gap-2 bg-white">
+            <i class="bi bi-search text-muted"></i>
+            <input
+              type="text"
+              v-model="commandQuery"
+              autofocus
+              class="form-control border-0 shadow-none"
+              placeholder="Rechercher un projet, une compétence, une expérience ou une action..."
+            />
+            <button type="button" @click="commandPaletteOpen = false" class="btn btn-xs btn-light border rounded-pill px-2 extra-small">Échap</button>
+          </div>
+          <div class="list-group list-group-flush overflow-auto" style="max-height: 360px;">
+            <button
+              v-for="(res, rIdx) in commandResults"
+              :key="rIdx"
+              type="button"
+              @click="executeCommandItem(res)"
+              class="list-group-item list-group-item-action d-flex align-items-center justify-content-between py-2 px-3"
+            >
+              <div class="d-flex align-items-center gap-3">
+                <i class="bi fs-5" :class="res.icon" :style="{ color: accentColor }"></i>
+                <div>
+                  <div class="small fw-bold text-dark">{{ res.label }}</div>
+                  <div v-if="res.sub" class="extra-small text-muted">{{ res.sub }}</div>
+                </div>
+              </div>
+              <span class="badge bg-light text-muted border extra-small">{{ res.type }}</span>
+            </button>
+            <div v-if="!commandResults.length" class="p-4 text-center text-muted small">
+              Aucun résultat pour « {{ commandQuery }} »
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GALLERY LIGHTBOX MODAL -->
+      <div
+        v-if="lightboxItem"
+        class="command-palette-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 d-print-none"
+        @click.self="lightboxItem = null"
+      >
+        <div class="position-relative bg-dark rounded-4 overflow-hidden shadow-lg" style="max-width: 900px; width: 100%;">
+          <button
+            type="button"
+            @click="lightboxItem = null"
+            class="btn btn-light btn-sm rounded-circle position-absolute top-0 end-0 m-3 z-3"
+            style="width: 34px; height: 34px;"
+          >
+            <i class="bi bi-x-lg"></i>
+          </button>
+          <img :src="formatImageUrl(lightboxItem.image_url)" :alt="lightboxItem.title" class="w-100 object-fit-contain" style="max-height: 75vh;" />
+          <div class="p-3 text-white bg-dark bg-opacity-75">
+            <h4 class="h6 fw-bold mb-1">{{ lightboxItem.title }}</h4>
+            <p v-if="lightboxItem.caption" class="extra-small text-white-50 mb-0">{{ lightboxItem.caption }}</p>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -3364,6 +3813,8 @@ const props = defineProps({
   projects: { type: Array, default: () => [] },
   pocs: { type: Array, default: () => [] },
   badges: { type: Array, default: () => [] },
+  publicForms: { type: Array, default: () => [] },
+  publicMonitors: { type: Array, default: () => [] },
   currentTier: { type: Object, default: null },
   nextTier: { type: Object, default: null },
   rankPosition: { type: Number, default: 1 },
@@ -3738,7 +4189,15 @@ function navigateWebsitePage(pageId, anchorId) {
 }
 
 const kpiStatsConfig = computed(() => {
-  return layout.value.kpi_stats || { enabled: true, items: [] }
+  const raw = layout.value.kpi_stats
+  if (Array.isArray(raw)) {
+    return { enabled: true, items: raw }
+  }
+  return raw || { enabled: true, items: [] }
+})
+
+const kpiStatsDesign = computed(() => {
+  return layout.value.kpi_stats_design || { style: 'ribbon', animate_counters: true }
 })
 
 const kpiStatsItems = computed(() => {
@@ -3746,10 +4205,10 @@ const kpiStatsItems = computed(() => {
     return kpiStatsConfig.value.items.filter(k => k && (k.value || k.label))
   }
   return [
-    { value: props.projects?.length ? `+${props.projects.length}` : '+10', label: 'Projets & Réalisations' },
-    { value: yearsOfExperience.value || '100%', label: yearsOfExperience.value ? 'Expérience métier' : 'Engagement & Qualité' },
-    { value: `${props.portfolioUser.xp || 100} XP`, label: props.portfolioUser.rank_title || 'Membre Vérifié Tech237' },
-    { value: '24h', label: 'Réactivité & Écoute' }
+    { value: props.projects?.length ? `+${props.projects.length}` : '+10', label: 'Projets & Réalisations', icon: 'bi-rocket-takeoff-fill', color: accentColor.value },
+    { value: yearsOfExperience.value || '100%', label: yearsOfExperience.value ? 'Expérience métier' : 'Engagement & Qualité', icon: 'bi-award-fill', color: accentColor.value },
+    { value: `${props.portfolioUser.xp || 100} XP`, label: props.portfolioUser.rank_title || 'Membre Vérifié Tech237', icon: 'bi-lightning-charge-fill', color: accentColor.value },
+    { value: '24h', label: 'Réactivité & Écoute', icon: 'bi-clock-history', color: accentColor.value }
   ]
 })
 
@@ -4011,6 +4470,21 @@ const availableTabs = computed(() => {
   if (isBlockEnabled('badges') && props.badges && props.badges.length) {
     tabs.push({ id: 'badges', label: 'Trophées', iconClass: 'bi-trophy-fill', count: props.badges.length })
   }
+  if (isBlockEnabled('quote_calculator') && quoteCalculatorConfig.value.enabled) {
+    tabs.push({ id: 'quote_calculator', label: 'Devis', iconClass: 'bi-calculator-fill' })
+  }
+  if (isBlockEnabled('visual_gallery') && visualGalleryConfig.value.enabled && visualGalleryConfig.value.items?.length) {
+    tabs.push({ id: 'visual_gallery', label: 'Galerie', iconClass: 'bi-images', count: visualGalleryConfig.value.items.length })
+  }
+  if (isBlockEnabled('languages_and_tools') && languagesAndToolsConfig.value.enabled) {
+    tabs.push({ id: 'languages_and_tools', label: 'Langues & Outils', iconClass: 'bi-translate' })
+  }
+  if (isBlockEnabled('awards_press') && awardsPressConfig.value.enabled && awardsPressConfig.value.items?.length) {
+    tabs.push({ id: 'awards_press', label: 'Distinctions', iconClass: 'bi-trophy-fill', count: awardsPressConfig.value.items.length })
+  }
+  if (isBlockEnabled('tech237_widgets') && tech237WidgetsConfig.value.enabled) {
+    tabs.push({ id: 'tech237_widgets', label: 'Widgets', iconClass: 'bi-activity' })
+  }
   if (isBlockEnabled('contact')) {
     tabs.push({ id: 'contact', label: 'Contact', iconClass: 'bi-envelope-fill' })
   }
@@ -4176,10 +4650,29 @@ function getBlockGridClass(block) {
   return block.width === 'half' ? 'col-12 col-lg-6' : 'col-12'
 }
 
+const customColorPalette = computed(() => {
+  return layout.value.custom_color_palette || { enabled: false }
+})
+
 const cssVars = computed(() => {
-  return {
+  const vars = {
     '--accent-color': accentColor.value,
   }
+  const p = customColorPalette.value
+  if (p && p.enabled) {
+    if (p.bg_type === 'gradient') {
+      vars.background = `linear-gradient(${Number(p.bg_angle) || 135}deg, ${p.bg_color_1 || '#F8FAFC'}, ${p.bg_color_2 || '#EEF2FF'})`
+    } else {
+      vars.background = p.bg_color_1 || '#F8FAFC'
+    }
+    vars.color = p.text_primary || '#0F172A'
+    vars['--custom-card-bg'] = p.card_bg || '#FFFFFF'
+    vars['--custom-card-opacity'] = (Number(p.card_opacity ?? 100) / 100).toString()
+    vars['--custom-text-primary'] = p.text_primary || '#0F172A'
+    vars['--custom-text-muted'] = p.text_muted || '#64748B'
+    vars['--accent-secondary'] = p.accent_secondary || '#3B82F6'
+  }
+  return vars
 })
 
 // Dynamic Ordered Blocks
@@ -4190,15 +4683,20 @@ const defaultBlocks = [
   { id: 'now', name: 'En ce moment (Now)', enabled: true, width: 'half' },
   { id: 'github', name: 'Statistiques GitHub Live', enabled: true, width: 'half' },
   { id: 'skills', name: 'Compétences & Stack technique', enabled: true, width: 'half' },
+  { id: 'languages_and_tools', name: 'Langues, Soft Skills & Outils', enabled: true, width: 'half' },
   { id: 'projects', name: 'Projets Tech en vedette', enabled: true, width: 'full' },
+  { id: 'visual_gallery', name: 'Galerie Visuelle & Avant/Après', enabled: true, width: 'full' },
   { id: 'pocs', name: 'Mini-Actus & POCs Tech237', enabled: true, width: 'half' },
   { id: 'experiences', name: 'Expériences professionnelles', enabled: true, width: 'full' },
   { id: 'educations', name: 'Formations & Diplômes', enabled: true, width: 'half' },
   { id: 'certifications', name: 'Certifications & Distinctions', enabled: true, width: 'half' },
+  { id: 'awards_press', name: 'Distinctions, Hackathons & Presse', enabled: true, width: 'full' },
   { id: 'process', name: 'Mon Processus & Méthodologie', enabled: true, width: 'full' },
   { id: 'pricing', name: 'Grille Tarifaire & Packs Services', enabled: true, width: 'full' },
+  { id: 'quote_calculator', name: 'Simulateur de Devis Interactif', enabled: true, width: 'full' },
   { id: 'testimonials', name: 'Témoignages & Recommandations', enabled: true, width: 'full' },
   { id: 'faq', name: 'Questions Fréquentes (FAQ)', enabled: true, width: 'full' },
+  { id: 'tech237_widgets', name: 'Widgets Tech237 (Formulaires & Uptime)', enabled: true, width: 'full' },
   { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, width: 'half' },
   { id: 'custom', name: 'Sections personnalisées libres', enabled: true, width: 'full' },
   { id: 'contact', name: 'Coordonnées & Réseaux', enabled: true, width: 'full' },
@@ -4225,7 +4723,7 @@ const orderedBlocks = computed(() => {
     list.splice(insertIdx, 0, { id: 'video', name: 'Vidéo de Présentation', enabled: true, width: 'full' })
   }
 
-  const extraBlocks = defaultBlocks.filter(db => ['now', 'github', 'certifications', 'process', 'pricing', 'testimonials', 'faq'].includes(db.id))
+  const extraBlocks = defaultBlocks.filter(db => ['now', 'github', 'certifications', 'process', 'pricing', 'testimonials', 'faq', 'quote_calculator', 'visual_gallery', 'languages_and_tools', 'awards_press', 'tech237_widgets'].includes(db.id))
   extraBlocks.forEach(eb => {
     if (!list.some(b => b.id === eb.id)) {
       const contactIdx = list.findIndex(b => b.id === 'contact')
@@ -4257,8 +4755,195 @@ function shouldRenderBlock(id) {
   if (id === 'faq') return Boolean(faqItemsList.value.length)
   if (id === 'badges') return Boolean(props.badges && props.badges.length)
   if (id === 'custom') return Boolean(props.portfolioUser.custom_sections && props.portfolioUser.custom_sections.length)
+  if (id === 'quote_calculator') return Boolean(quoteCalculatorConfig.value.enabled)
+  if (id === 'visual_gallery') return Boolean(visualGalleryConfig.value.enabled && visualGalleryConfig.value.items?.length)
+  if (id === 'languages_and_tools') return Boolean(languagesAndToolsConfig.value.enabled)
+  if (id === 'awards_press') return Boolean(awardsPressConfig.value.enabled && awardsPressConfig.value.items?.length)
+  if (id === 'tech237_widgets') return Boolean(tech237WidgetsConfig.value.enabled)
   return true
 }
+
+// =========================================================================
+// 10 New Portfolio Customization Options (State & Computeds)
+// =========================================================================
+
+// Option 2: Announcement Bar
+const announcementBar = computed(() => {
+  return layout.value.announcement_bar || { enabled: false }
+})
+const announcementDismissed = ref(false)
+const announcementBarStyle = computed(() => {
+  const bar = announcementBar.value
+  let bg = accentColor.value
+  if (bar.bg_style === 'gradient') bg = `linear-gradient(90deg, ${accentColor.value}, #0F172A)`
+  else if (bar.bg_style === 'dark') bg = '#0F172A'
+  else if (bar.bg_style === 'custom') bg = bar.bg_color || '#00A859'
+  return {
+    background: bg,
+    color: bar.text_color || '#FFFFFF'
+  }
+})
+
+// Option 3: Command Palette Ctrl + K
+const commandPaletteConfig = computed(() => {
+  return layout.value.command_palette || { enabled: true, show_in_navbar: true, shortcut_hint: true }
+})
+const commandPaletteOpen = ref(false)
+const commandQuery = ref('')
+const commandResults = computed(() => {
+  const q = (commandQuery.value || '').trim().toLowerCase()
+  const items = []
+
+  // Quick actions
+  items.push({ type: 'Action', icon: 'bi-envelope-fill', label: 'Contacter / Envoyer un message', action: () => navigateWebsitePage('contact', 'portfolioContactSection') })
+  if (props.portfolioUser.cv_url) {
+    items.push({ type: 'Action', icon: 'bi-file-earmark-pdf-fill', label: 'Télécharger le CV (PDF)', href: props.portfolioUser.cv_url })
+  }
+  items.push({ type: 'Action', icon: 'bi-share-fill', label: 'Copier le lien du portfolio', action: () => copyProfileUrl() })
+
+  // Projects
+  ;(props.projects || []).forEach(p => {
+    items.push({ type: 'Projet', icon: 'bi-rocket-takeoff-fill', label: p.title, sub: p.category || p.description?.slice(0, 60), anchor: 'block-projects' })
+  })
+  // Skills
+  ;(props.portfolioUser.skills || []).forEach(s => {
+    const name = typeof s === 'object' ? s.name : s
+    items.push({ type: 'Compétence', icon: 'bi-cpu-fill', label: name, sub: typeof s === 'object' ? s.level : '', anchor: 'block-skills' })
+  })
+  // Experiences
+  ;(props.portfolioUser.experiences || []).forEach(exp => {
+    items.push({ type: 'Expérience', icon: 'bi-briefcase-fill', label: `${exp.role} @ ${exp.company}`, sub: exp.period, anchor: 'block-experiences' })
+  })
+
+  if (!q) return items.slice(0, 12)
+  return items.filter(it => (it.label || '').toLowerCase().includes(q) || (it.sub || '').toLowerCase().includes(q) || (it.type || '').toLowerCase().includes(q)).slice(0, 15)
+})
+
+function executeCommandItem(item) {
+  commandPaletteOpen.value = false
+  commandQuery.value = ''
+  if (typeof item.action === 'function') {
+    item.action()
+  } else if (item.href) {
+    window.open(item.href, '_blank')
+  } else if (item.anchor) {
+    const el = document.getElementById(item.anchor)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
+
+function handleCommandKeydown(e) {
+  if (!commandPaletteConfig.value.enabled) return
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault()
+    commandPaletteOpen.value = !commandPaletteOpen.value
+  } else if (e.key === 'Escape' && commandPaletteOpen.value) {
+    commandPaletteOpen.value = false
+  }
+}
+
+// Option 4: Interactive Quote Calculator
+const quoteCalculatorConfig = computed(() => {
+  return layout.value.quote_calculator || { enabled: false, base_services: [], addons: [] }
+})
+const selectedQuoteServiceId = ref('')
+const selectedQuoteAddonIds = ref([])
+const quoteUrgency = ref(false)
+
+const selectedQuoteService = computed(() => {
+  const list = quoteCalculatorConfig.value.base_services || []
+  return list.find(s => s.id === selectedQuoteServiceId.value) || list[0] || null
+})
+
+const quoteTotalPrice = computed(() => {
+  let total = Number(selectedQuoteService.value?.price || 0)
+  const addons = quoteCalculatorConfig.value.addons || []
+  addons.forEach(a => {
+    if (selectedQuoteAddonIds.value.includes(a.id)) {
+      total += Number(a.price || 0)
+    }
+  })
+  if (quoteUrgency.value) {
+    total = Math.round(total * (Number(quoteCalculatorConfig.value.urgency_multiplier) || 1.35))
+  }
+  return total
+})
+
+const quoteTotalDays = computed(() => {
+  let days = Number(selectedQuoteService.value?.days || 0)
+  if (quoteUrgency.value && days > 2) days = Math.max(2, Math.ceil(days * 0.65))
+  return days
+})
+
+function toggleQuoteAddon(id) {
+  const idx = selectedQuoteAddonIds.value.indexOf(id)
+  if (idx === -1) selectedQuoteAddonIds.value.push(id)
+  else selectedQuoteAddonIds.value.splice(idx, 1)
+}
+
+function applyQuoteToContact() {
+  const srv = selectedQuoteService.value?.label || 'Prestation'
+  const addons = (quoteCalculatorConfig.value.addons || []).filter(a => selectedQuoteAddonIds.value.includes(a.id)).map(a => a.label)
+  const currency = quoteCalculatorConfig.value.currency || 'FCFA'
+  contactForm.value.subject = `Demande de devis : ${srv}`
+  contactForm.value.message = `Bonjour ${props.portfolioUser.name},\n\nJe souhaite demander un devis estimatif basé sur votre simulateur :\n- Prestation : ${srv}\n- Options : ${addons.length ? addons.join(', ') : 'Aucune'}\n- Livraison urgente : ${quoteUrgency.value ? 'Oui' : 'Non'}\n- Estimation indicative : ${quoteTotalPrice.value.toLocaleString('fr-FR')} ${currency} (~${quoteTotalDays.value} jours)\n\nPouvez-vous me recontacter pour en discuter ?`
+  navigateWebsitePage('contact', 'portfolioContactSection')
+}
+
+// Option 5: Visual Gallery & Before/After
+const visualGalleryConfig = computed(() => {
+  return layout.value.visual_gallery || { enabled: false, items: [], columns: 3, enable_lightbox: true }
+})
+const galleryActiveCategory = ref('all')
+const galleryCategories = computed(() => {
+  const cats = new Set()
+  ;(visualGalleryConfig.value.items || []).forEach(it => { if (it.category) cats.add(it.category) })
+  return ['all', ...Array.from(cats)]
+})
+const filteredGalleryItems = computed(() => {
+  const list = (visualGalleryConfig.value.items || []).filter(it => it && it.image_url)
+  if (galleryActiveCategory.value === 'all') return list
+  return list.filter(it => it.category === galleryActiveCategory.value)
+})
+const lightboxItem = ref(null)
+const beforeAfterPositions = ref({})
+function getBeforeAfterPos(id) {
+  return beforeAfterPositions.value[id] ?? 50
+}
+function setBeforeAfterPos(id, val) {
+  beforeAfterPositions.value[id] = Number(val)
+}
+
+// Option 6: Languages, Soft Skills & Daily Tools
+const languagesAndToolsConfig = computed(() => {
+  return layout.value.languages_and_tools || { enabled: false, languages: [], soft_skills: [], daily_tools: [] }
+})
+
+// Option 7: Tech237 Widgets (Forms & Heartbeat)
+const tech237WidgetsConfig = computed(() => {
+  return layout.value.tech237_widgets || { enabled: false, form_slug: '', show_heartbeat: false }
+})
+const selectedPublicForm = computed(() => {
+  const slug = tech237WidgetsConfig.value.form_slug
+  if (!slug) return null
+  return (props.publicForms || []).find(f => f.slug === slug) || null
+})
+const visiblePublicMonitors = computed(() => {
+  return (props.publicMonitors || []).slice(0, 6)
+})
+
+// Option 8: Print Settings
+const printSettingsConfig = computed(() => {
+  return layout.value.print_settings || { include_qr_header: true, density: 'detailed', hidden_print_blocks: [] }
+})
+function isHiddenInPrint(blockId) {
+  return (printSettingsConfig.value.hidden_print_blocks || []).includes(blockId)
+}
+
+// Option 10: Awards, Hackathons & Press
+const awardsPressConfig = computed(() => {
+  return layout.value.awards_press || { enabled: false, title: 'Distinctions, Hackathons & Presse', items: [] }
+})
 
 // 11. 100% Section Design Customizations (About, Skills, Projects, Experiences, Testimonials, Contact)
 const aboutDesign = computed(() => {
@@ -4775,6 +5460,7 @@ let testimonialsInterval = null
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
+  window.addEventListener('keydown', handleCommandKeydown)
   handleScroll()
 
   if (preloaderConfig.value?.enabled) {
@@ -4812,6 +5498,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('keydown', handleCommandKeydown)
   if (slideshowInterval) {
     clearInterval(slideshowInterval)
   }
@@ -5860,5 +6547,44 @@ onUnmounted(() => {
     break-inside: avoid;
     page-break-inside: avoid;
   }
+  .print-compact .p-md-5 {
+    padding: 1rem !important;
+  }
+  .print-compact .mb-4, .print-compact .mb-5 {
+    margin-bottom: 0.75rem !important;
+  }
+}
+
+/* Custom Color Palette Override */
+.custom-palette-active .content-card {
+  background-color: var(--custom-card-bg, #FFFFFF) !important;
+  color: var(--custom-text-primary, #0F172A) !important;
+}
+.custom-palette-active .text-muted {
+  color: var(--custom-text-muted, #64748B) !important;
+}
+
+/* Announcement Bar Marquee */
+.announcement-marquee {
+  display: inline-block;
+  white-space: nowrap;
+  animation: announceScroll 18s linear infinite;
+}
+@keyframes announceScroll {
+  0% { transform: translateX(40%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* Command Palette & Lightbox Backdrop */
+.command-palette-backdrop {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 2050;
+}
+
+/* Before / After Range Slider */
+.before-after-range {
+  accent-color: var(--accent-color, #00A859);
+  cursor: ew-resize;
 }
 </style>

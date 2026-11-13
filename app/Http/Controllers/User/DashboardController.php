@@ -206,6 +206,10 @@ class DashboardController extends Controller
             ->with(['project:id,name', 'recentChecks'])
             ->latest()
             ->get();
+        $userForms = \App\Models\Form::where('user_id', $user->id)
+            ->select('id', 'title', 'slug', 'status', 'description', 'theme_color')
+            ->latest()
+            ->get();
 
         return Inertia::render('User/Dashboard', [
             'user' => $user,
@@ -215,6 +219,7 @@ class DashboardController extends Controller
             'freelanceQuotes' => $freelanceQuotes,
             'freelanceSetting' => $freelanceSetting,
             'heartbeatMonitors' => $heartbeatMonitors,
+            'userForms' => $userForms,
             'collaborativeProjects' => $collaborativeProjects,
             'pendingInvitations' => $pendingInvitations,
             'pendingTimelines' => $pendingTimelines,

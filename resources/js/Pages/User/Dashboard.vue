@@ -4016,6 +4016,291 @@
 
               </div>
 
+              <!-- 1.9 Studio de Couleurs 100% Sur-Mesure & Dégradés -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-palette2 text-primary"></i> Studio de Couleurs « 100 % Sur-Mesure » &amp; Dégradés
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Outrepassez le thème prédéfini pour définir vos propres couleurs de fond (uni ou dégradé), cartes, textes et couleur secondaire.
+                    </p>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input cursor-pointer"
+                      type="checkbox"
+                      v-model="portfolioForm.portfolio_layout.custom_color_palette.enabled"
+                      id="customPaletteToggle"
+                    />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="customPaletteToggle">
+                      {{ portfolioForm.portfolio_layout.custom_color_palette.enabled ? 'Activé' : 'Désactivé' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.custom_color_palette.enabled" class="row g-3 mt-1">
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Type de fond de page</label>
+                    <select v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_type" class="form-select form-select-sm rounded-3">
+                      <option value="solid">Couleur unie</option>
+                      <option value="gradient">Dégradé linéaire</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur de fond 1</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_color_1" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-3" v-if="portfolioForm.portfolio_layout.custom_color_palette.bg_type === 'gradient'">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur de fond 2</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_color_2" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-3" v-if="portfolioForm.portfolio_layout.custom_color_palette.bg_type === 'gradient'">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Angle du dégradé ({{ portfolioForm.portfolio_layout.custom_color_palette.bg_angle }}°)</label>
+                    <input type="range" min="0" max="360" v-model.number="portfolioForm.portfolio_layout.custom_color_palette.bg_angle" class="form-range" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Fond des cartes</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.card_bg" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Opacité des cartes ({{ portfolioForm.portfolio_layout.custom_color_palette.card_opacity }}%)</label>
+                    <input type="range" min="15" max="100" v-model.number="portfolioForm.portfolio_layout.custom_color_palette.card_opacity" class="form-range" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte principal</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.text_primary" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte secondaire</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.text_muted" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Accent secondaire</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.accent_secondary" class="form-control form-control-color w-100" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.10 Barre d'Annonce / Topbar Promo -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-megaphone-fill text-warning"></i> Barre d'Annonce / Topbar Promo
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Affichez un bandeau tout en haut de votre site (disponibilité freelance, offre du moment, lancement de produit).
+                    </p>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input cursor-pointer"
+                      type="checkbox"
+                      v-model="portfolioForm.portfolio_layout.announcement_bar.enabled"
+                      id="announcementBarToggle"
+                    />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="announcementBarToggle">
+                      {{ portfolioForm.portfolio_layout.announcement_bar.enabled ? 'Affichée' : 'Masquée' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.announcement_bar.enabled" class="row g-3 mt-1">
+                  <div class="col-md-8">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Message d'annonce</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.text" class="form-control form-control-sm rounded-3" placeholder="ex: 🚀 Disponible pour de nouvelles missions Q3 2026 !" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Icône Bootstrap</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.icon" class="form-control form-control-sm rounded-3 font-monospace" placeholder="bi-megaphone-fill" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte du bouton (CTA)</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.cta_label" class="form-control form-control-sm rounded-3" placeholder="ex: Me contacter" />
+                  </div>
+                  <div class="col-md-8">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Lien du bouton (#ancre ou URL)</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.cta_url" class="form-control form-control-sm rounded-3" placeholder="#portfolioContactSection ou https://..." />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Style du fond</label>
+                    <select v-model="portfolioForm.portfolio_layout.announcement_bar.bg_style" class="form-select form-select-sm rounded-3">
+                      <option value="accent">Couleur d'accentuation</option>
+                      <option value="gradient">Dégradé dynamique</option>
+                      <option value="dark">Sombre (Slate 900)</option>
+                      <option value="custom">Couleur personnalisée</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2" v-if="portfolioForm.portfolio_layout.announcement_bar.bg_style === 'custom'">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur fond</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.announcement_bar.bg_color" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur texte</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.announcement_bar.text_color" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-5 d-flex align-items-end gap-4 pb-1">
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.announcement_bar.scrolling" id="announceScrollToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="announceScrollToggle">Texte défilant (Marquee)</label>
+                    </div>
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.announcement_bar.dismissible" id="announceDismissToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="announceDismissToggle">Bouton fermer</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.11 Recherche Instantanée & Palette de Commande Ctrl + K -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-command text-info"></i> Recherche Instantanée &amp; Palette de Commande (<code>Ctrl + K</code>)
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Offrez aux recruteurs et clients une barre de recherche rapide façon Notion/Linear pour explorer vos projets, compétences et actions.
+                    </p>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input cursor-pointer"
+                      type="checkbox"
+                      v-model="portfolioForm.portfolio_layout.command_palette.enabled"
+                      id="commandPaletteToggle"
+                    />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="commandPaletteToggle">
+                      {{ portfolioForm.portfolio_layout.command_palette.enabled ? 'Activée' : 'Désactivée' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.command_palette.enabled" class="row g-3 mt-1">
+                  <div class="col-md-4">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.command_palette.show_in_navbar" id="cmdNavbarToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="cmdNavbarToggle">Bouton loupe dans la barre de navigation</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.command_palette.shortcut_hint" id="cmdHintToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="cmdHintToggle">Afficher le badge raccourci <code>Ctrl+K</code></label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.12 Personnalisation Avancée du Bandeau KPI -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-speedometer2 text-success"></i> Personnalisation Avancée du Bandeau KPI
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Modifiez vos chiffres clés, leurs couleurs, icônes et le style visuel du bandeau KPI affiché sous l'en-tête.
+                    </p>
+                  </div>
+                  <button type="button" @click="addKpiStatItem" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold">
+                    + Ajouter un KPI
+                  </button>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Style du bandeau KPI</label>
+                    <select v-model="portfolioForm.portfolio_layout.kpi_stats_design.style" class="form-select form-select-sm rounded-3">
+                      <option value="ribbon">Ruban unifié (Classique)</option>
+                      <option value="floating_cards">Cartes flottantes séparées</option>
+                      <option value="neon_circles">Cercles &amp; badges lumineux</option>
+                      <option value="minimal">Épuré minimaliste</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6 d-flex align-items-end pb-1">
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.kpi_stats_design.animate_counters" id="kpiAnimToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="kpiAnimToggle">Animer les compteurs au chargement</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                  <div v-for="(kpi, kIdx) in portfolioForm.portfolio_layout.kpi_stats" :key="kIdx" class="p-3 rounded-4 border bg-light row g-2 align-items-center mx-0">
+                    <div class="col-md-2">
+                      <label class="form-label extra-small fw-bold mb-1">Valeur</label>
+                      <input type="text" v-model="kpi.value" class="form-control form-control-sm" placeholder="+5 ans" />
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label extra-small fw-bold mb-1">Libellé</label>
+                      <input type="text" v-model="kpi.label" class="form-control form-control-sm" placeholder="Expérience Tech" />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label extra-small fw-bold mb-1">Icône Bootstrap</label>
+                      <input type="text" v-model="kpi.icon" class="form-control form-control-sm font-monospace" placeholder="bi-award-fill" />
+                    </div>
+                    <div class="col-md-2">
+                      <label class="form-label extra-small fw-bold mb-1">Couleur</label>
+                      <input type="color" v-model="kpi.color" class="form-control form-control-color w-100" />
+                    </div>
+                    <div class="col-md-1 text-end pt-3">
+                      <button type="button" @click="removeKpiStatItem(kIdx)" class="btn btn-sm btn-link text-danger" title="Supprimer">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.13 Personnalisation Export PDF / Impression CV A4 -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-printer-fill text-dark"></i> Personnalisation Export PDF / Impression CV A4
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Contrôlez la mise en page lorsque vous ou un recruteur imprimez votre portfolio en PDF (A4).
+                    </p>
+                  </div>
+                </div>
+
+                <div class="row g-3">
+                  <div class="col-md-5">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Densité d'impression</label>
+                    <select v-model="portfolioForm.portfolio_layout.print_settings.density" class="form-select form-select-sm rounded-3">
+                      <option value="detailed">Détaillée (Standard)</option>
+                      <option value="compact">Compacte (Optimisée 1-2 pages)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-7 d-flex align-items-end pb-1">
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.print_settings.include_qr_header" id="printQrToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="printQrToggle">Inclure un en-tête imprimable avec QR Code vers mon portfolio</label>
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label extra-small fw-bold text-dark mb-2">Blocs à masquer automatiquement lors de l'impression PDF :</label>
+                    <div class="d-flex flex-wrap gap-2">
+                      <button
+                        v-for="b in portfolioForm.portfolio_layout.blocks"
+                        :key="'print_' + b.id"
+                        type="button"
+                        @click="togglePrintHiddenBlock(b.id)"
+                        class="btn btn-xs rounded-pill px-3 py-1 extra-small fw-semibold"
+                        :class="(portfolioForm.portfolio_layout.print_settings.hidden_print_blocks || []).includes(b.id) ? 'btn-danger text-white' : 'btn-outline-secondary'"
+                      >
+                        <i class="bi me-1" :class="(portfolioForm.portfolio_layout.print_settings.hidden_print_blocks || []).includes(b.id) ? 'bi-eye-slash-fill' : 'bi-eye'"></i>
+                        {{ b.name }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             <!-- TAB 2: ✍️ CONTENU DU CV & PARCOURS -->
@@ -5729,6 +6014,330 @@
                 </div>
                 <div v-else class="text-center py-3 text-muted extra-small">
                   Aucun bloc libre personnalisé. Vous pouvez en créer pour vous démarquer.
+                </div>
+              </div>
+
+              <!-- 2.7 Simulateur / Calculateur de Devis Interactif -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-calculator-fill text-success"></i> Simulateur de Devis Interactif
+                    </h4>
+                    <small class="text-muted extra-small">Permettez à vos visiteurs d'estimer un budget et d'envoyer le récapitulatif vers votre formulaire de contact.</small>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.quote_calculator.enabled" id="quoteCalcToggle" />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="quoteCalcToggle">
+                      {{ portfolioForm.portfolio_layout.quote_calculator.enabled ? 'Activé' : 'Désactivé' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.quote_calculator.enabled" class="row g-3 mt-1">
+                  <div class="col-md-5">
+                    <label class="form-label extra-small fw-bold mb-1">Titre du bloc</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.quote_calculator.title" class="form-control form-control-sm" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label extra-small fw-bold mb-1">Sous-titre</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.quote_calculator.subtitle" class="form-control form-control-sm" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold mb-1">Devise</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.quote_calculator.currency" class="form-control form-control-sm" placeholder="FCFA" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label extra-small fw-bold mb-1">Multiplicateur urgence (ex: 1.35 = +35%)</label>
+                    <input type="number" step="0.05" min="1" v-model.number="portfolioForm.portfolio_layout.quote_calculator.urgency_multiplier" class="form-control form-control-sm" />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label extra-small fw-bold mb-1">Libellé du bouton CTA</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.quote_calculator.cta_text" class="form-control form-control-sm" />
+                  </div>
+
+                  <div class="col-12 mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <strong class="small text-dark">Prestations de base</strong>
+                      <button type="button" @click="addQuoteBaseService" class="btn btn-xs btn-outline-success rounded-pill px-3 extra-small fw-bold">+ Ajouter une prestation</button>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                      <div v-for="(srv, sIdx) in portfolioForm.portfolio_layout.quote_calculator.base_services" :key="srv.id || sIdx" class="p-2 rounded-3 border bg-light row g-2 align-items-center mx-0">
+                        <div class="col-md-5"><input type="text" v-model="srv.label" class="form-control form-control-sm" placeholder="Nom de la prestation" /></div>
+                        <div class="col-md-3"><input type="number" v-model.number="srv.price" class="form-control form-control-sm" placeholder="Prix" /></div>
+                        <div class="col-md-3"><input type="number" v-model.number="srv.days" class="form-control form-control-sm" placeholder="Jours" /></div>
+                        <div class="col-md-1 text-end"><button type="button" @click="removeQuoteBaseService(sIdx)" class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-12 mt-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <strong class="small text-dark">Options supplémentaires (Add-ons)</strong>
+                      <button type="button" @click="addQuoteAddon" class="btn btn-xs btn-outline-primary rounded-pill px-3 extra-small fw-bold">+ Ajouter une option</button>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                      <div v-for="(addon, aIdx) in portfolioForm.portfolio_layout.quote_calculator.addons" :key="addon.id || aIdx" class="p-2 rounded-3 border bg-light row g-2 align-items-center mx-0">
+                        <div class="col-md-7"><input type="text" v-model="addon.label" class="form-control form-control-sm" placeholder="Option (ex: Paiement Mobile Money)" /></div>
+                        <div class="col-md-4"><input type="number" v-model.number="addon.price" class="form-control form-control-sm" placeholder="Prix" /></div>
+                        <div class="col-md-1 text-end"><button type="button" @click="removeQuoteAddon(aIdx)" class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2.8 Galerie Visuelle / Showroom & Comparateur Avant/Après -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-images text-primary"></i> Galerie Visuelle / Showroom &amp; Comparateur Avant/Après
+                    </h4>
+                    <small class="text-muted extra-small">Exposez vos maquettes, captures d'écran ou refontes UI avec curseur interactif Avant/Après et mode Lightbox.</small>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.visual_gallery.enabled" id="visualGalleryToggle" />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="visualGalleryToggle">
+                      {{ portfolioForm.portfolio_layout.visual_gallery.enabled ? 'Activée' : 'Désactivée' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.visual_gallery.enabled" class="row g-3 mt-1">
+                  <div class="col-md-6">
+                    <label class="form-label extra-small fw-bold mb-1">Titre de la galerie</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.visual_gallery.title" class="form-control form-control-sm" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold mb-1">Colonnes</label>
+                    <select v-model.number="portfolioForm.portfolio_layout.visual_gallery.columns" class="form-select form-select-sm">
+                      <option :value="2">2 colonnes</option>
+                      <option :value="3">3 colonnes</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3 d-flex align-items-end pb-1">
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.visual_gallery.enable_lightbox" id="galLightboxToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="galLightboxToggle">Zoom Lightbox</label>
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <strong class="small text-dark">Éléments de la galerie</strong>
+                      <button type="button" @click="addGalleryItem" class="btn btn-xs btn-outline-primary rounded-pill px-3 extra-small fw-bold">+ Ajouter un visuel</button>
+                    </div>
+                    <div class="d-flex flex-column gap-3">
+                      <div v-for="(item, gIdx) in portfolioForm.portfolio_layout.visual_gallery.items" :key="item.id || gIdx" class="p-3 rounded-4 border bg-light position-relative">
+                        <button type="button" @click="removeGalleryItem(gIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2"><i class="bi bi-trash"></i></button>
+                        <div class="row g-2">
+                          <div class="col-md-6">
+                            <label class="form-label extra-small fw-bold mb-1">Titre</label>
+                            <input type="text" v-model="item.title" class="form-control form-control-sm" placeholder="ex: Refonte Dashboard SaaS" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label extra-small fw-bold mb-1">Catégorie</label>
+                            <input type="text" v-model="item.category" class="form-control form-control-sm" placeholder="Design UI / Web / Mobile" />
+                          </div>
+                          <div class="col-md-6">
+                            <label class="form-label extra-small fw-bold mb-1">Image principale (ou « Après »)</label>
+                            <div class="input-group input-group-sm">
+                              <input type="text" v-model="item.image_url" class="form-control" placeholder="https://..." />
+                              <label class="btn btn-outline-secondary mb-0 cursor-pointer">
+                                <i class="bi bi-upload"></i>
+                                <input type="file" accept="image/*" class="d-none" @change="e => e.target.files[0] && uploadGenericPortfolioAsset(e.target.files[0], url => item.image_url = url)" />
+                              </label>
+                            </div>
+                          </div>
+                          <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch mb-1">
+                              <input class="form-check-input cursor-pointer" type="checkbox" v-model="item.is_before_after" :id="'ba_' + gIdx" />
+                              <label class="form-check-label extra-small fw-bold cursor-pointer" :for="'ba_' + gIdx">Mode Comparateur Avant / Après</label>
+                            </div>
+                          </div>
+                          <div class="col-md-6" v-if="item.is_before_after">
+                            <label class="form-label extra-small fw-bold mb-1">Image « Avant »</label>
+                            <div class="input-group input-group-sm">
+                              <input type="text" v-model="item.before_image_url" class="form-control" placeholder="https://..." />
+                              <label class="btn btn-outline-secondary mb-0 cursor-pointer">
+                                <i class="bi bi-upload"></i>
+                                <input type="file" accept="image/*" class="d-none" @change="e => e.target.files[0] && uploadGenericPortfolioAsset(e.target.files[0], url => item.before_image_url = url)" />
+                              </label>
+                            </div>
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label extra-small fw-bold mb-1">Légende</label>
+                            <input type="text" v-model="item.caption" class="form-control form-control-sm" placeholder="Courte description du résultat..." />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2.9 Langues Parlées, Soft Skills & Outils du Quotidien -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-translate text-info"></i> Langues Parlées, Soft Skills &amp; Outils du Quotidien
+                    </h4>
+                    <small class="text-muted extra-small">Mettez en avant vos langues maîtrisées, qualités humaines et logiciels favoris.</small>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.languages_and_tools.enabled" id="langToolsToggle" />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="langToolsToggle">
+                      {{ portfolioForm.portfolio_layout.languages_and_tools.enabled ? 'Activée' : 'Désactivée' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.languages_and_tools.enabled" class="row g-3 mt-1">
+                  <div class="col-12">
+                    <label class="form-label extra-small fw-bold mb-1">Titre de la section</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.languages_and_tools.title" class="form-control form-control-sm" />
+                  </div>
+
+                  <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <strong class="small text-dark">Langues parlées</strong>
+                      <button type="button" @click="addLanguageItem" class="btn btn-xs btn-outline-info rounded-pill px-3 extra-small fw-bold">+ Ajouter une langue</button>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                      <div v-for="(lang, lIdx) in portfolioForm.portfolio_layout.languages_and_tools.languages" :key="lIdx" class="p-2 rounded-3 border bg-light row g-2 align-items-center mx-0">
+                        <div class="col-md-2"><input type="text" v-model="lang.flag" class="form-control form-control-sm text-center" placeholder="🇨🇲" /></div>
+                        <div class="col-md-4"><input type="text" v-model="lang.name" class="form-control form-control-sm" placeholder="Français" /></div>
+                        <div class="col-md-3"><input type="text" v-model="lang.level" class="form-control form-control-sm" placeholder="Natif / C2" /></div>
+                        <div class="col-md-2"><input type="number" min="10" max="100" v-model.number="lang.percent" class="form-control form-control-sm" placeholder="100%" /></div>
+                        <div class="col-md-1 text-end"><button type="button" @click="removeLanguageItem(lIdx)" class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <strong class="small text-dark d-block mb-2">Soft Skills (Savoir-être)</strong>
+                    <div class="input-group input-group-sm mb-2">
+                      <input type="text" v-model="newSoftSkillInput" @keydown.enter.prevent="addSoftSkill" class="form-control" placeholder="ex: Leadership technique, Communication agile..." />
+                      <button type="button" @click="addSoftSkill" class="btn btn-outline-secondary">Ajouter</button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <span v-for="(sk, sIdx) in portfolioForm.portfolio_layout.languages_and_tools.soft_skills" :key="sIdx" class="badge bg-light text-dark border px-3 py-2 rounded-pill d-inline-flex align-items-center gap-2">
+                        {{ sk }}
+                        <i class="bi bi-x-circle-fill text-danger cursor-pointer" @click="removeSoftSkill(sIdx)"></i>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <strong class="small text-dark">Outils du quotidien</strong>
+                      <button type="button" @click="addDailyTool" class="btn btn-xs btn-outline-dark rounded-pill px-3 extra-small fw-bold">+ Ajouter un outil</button>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                      <div v-for="(tool, tIdx) in portfolioForm.portfolio_layout.languages_and_tools.daily_tools" :key="tIdx" class="p-2 rounded-3 border bg-light row g-2 align-items-center mx-0">
+                        <div class="col-md-4"><input type="text" v-model="tool.name" class="form-control form-control-sm" placeholder="Figma / VS Code / Docker" /></div>
+                        <div class="col-md-3"><input type="text" v-model="tool.icon" class="form-control form-control-sm font-monospace" placeholder="bi-code-slash" /></div>
+                        <div class="col-md-2"><input type="text" v-model="tool.category" class="form-control form-control-sm" placeholder="Dev" /></div>
+                        <div class="col-md-2"><input type="color" v-model="tool.color" class="form-control form-control-color w-100" /></div>
+                        <div class="col-md-1 text-end"><button type="button" @click="removeDailyTool(tIdx)" class="btn btn-sm btn-link text-danger"><i class="bi bi-trash"></i></button></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2.10 Widgets Tech237 : Formulaires & Heartbeat Uptime -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-activity text-danger"></i> Widgets Tech237 (Formulaires &amp; Heartbeat Uptime)
+                    </h4>
+                    <small class="text-muted extra-small">Intégrez l'un de vos formulaires Tech237 et affichez le statut en direct de vos services surveillés.</small>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.tech237_widgets.enabled" id="tech237WidgetsToggle" />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="tech237WidgetsToggle">
+                      {{ portfolioForm.portfolio_layout.tech237_widgets.enabled ? 'Activé' : 'Désactivé' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.tech237_widgets.enabled" class="row g-3 mt-1">
+                  <div class="col-md-6">
+                    <label class="form-label extra-small fw-bold mb-1">Formulaire Tech237 à embarquer</label>
+                    <select v-model="portfolioForm.portfolio_layout.tech237_widgets.form_slug" class="form-select form-select-sm">
+                      <option value="">-- Aucun formulaire --</option>
+                      <option v-for="frm in userForms" :key="frm.id" :value="frm.slug">
+                        {{ frm.title }} ({{ frm.status === 'published' ? 'Publié' : 'Brouillon' }})
+                      </option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label extra-small fw-bold mb-1">Titre du bloc formulaire</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.tech237_widgets.form_title" class="form-control form-control-sm" />
+                  </div>
+                  <div class="col-md-6 d-flex align-items-end pb-1">
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.tech237_widgets.show_heartbeat" id="widgetHeartbeatToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="widgetHeartbeatToggle">Afficher mes badges de disponibilité Heartbeat</label>
+                    </div>
+                  </div>
+                  <div class="col-md-6" v-if="portfolioForm.portfolio_layout.tech237_widgets.show_heartbeat">
+                    <label class="form-label extra-small fw-bold mb-1">Titre du statut Heartbeat</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.tech237_widgets.heartbeat_title" class="form-control form-control-sm" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2.11 Distinctions, Hackathons & Presse -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-trophy-fill text-warning"></i> Distinctions, Hackathons &amp; Presse
+                    </h4>
+                    <small class="text-muted extra-small">Listez vos prix de hackathons, passages presse, conférences ou distinctions académiques.</small>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.awards_press.enabled" id="awardsPressToggle" />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="awardsPressToggle">
+                      {{ portfolioForm.portfolio_layout.awards_press.enabled ? 'Activée' : 'Désactivée' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.awards_press.enabled" class="row g-3 mt-1">
+                  <div class="col-md-8">
+                    <label class="form-label extra-small fw-bold mb-1">Titre de la section</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.awards_press.title" class="form-control form-control-sm" />
+                  </div>
+                  <div class="col-md-4 d-flex align-items-end justify-content-end">
+                    <button type="button" @click="addAwardPressItem" class="btn btn-sm btn-outline-warning text-dark rounded-pill px-3 fw-bold">
+                      + Ajouter une distinction
+                    </button>
+                  </div>
+                  <div class="col-12 d-flex flex-column gap-3">
+                    <div v-for="(aw, awIdx) in portfolioForm.portfolio_layout.awards_press.items" :key="awIdx" class="p-3 rounded-4 border bg-light position-relative">
+                      <button type="button" @click="removeAwardPressItem(awIdx)" class="btn btn-sm btn-link text-danger position-absolute top-0 end-0 mt-2 me-2"><i class="bi bi-trash"></i></button>
+                      <div class="row g-2">
+                        <div class="col-md-5"><input type="text" v-model="aw.title" class="form-control form-control-sm" placeholder="Titre (ex: 1er Prix Hackathon MTN)" /></div>
+                        <div class="col-md-4"><input type="text" v-model="aw.organization" class="form-control form-control-sm" placeholder="Organisation / Média" /></div>
+                        <div class="col-md-3">
+                          <select v-model="aw.type" class="form-select form-select-sm">
+                            <option value="Hackathon">Hackathon</option>
+                            <option value="Presse">Presse / Média</option>
+                            <option value="Conférence">Conférence / Talk</option>
+                            <option value="Prix">Prix / Distinction</option>
+                          </select>
+                        </div>
+                        <div class="col-md-4"><input type="text" v-model="aw.date" class="form-control form-control-sm" placeholder="Date (ex: Oct 2025)" /></div>
+                        <div class="col-md-8"><input type="url" v-model="aw.url" class="form-control form-control-sm" placeholder="Lien justificatif ou article (https://...)" /></div>
+                        <div class="col-12"><textarea v-model="aw.description" class="form-control form-control-sm" rows="2" placeholder="Courte description..."></textarea></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -8360,6 +8969,7 @@ const props = defineProps({
   freelanceQuotes: { type: Array, default: () => [] },
   freelanceSetting: { type: Object, default: () => null },
   heartbeatMonitors: { type: Array, default: () => [] },
+  userForms: { type: Array, default: () => [] },
 })
 
 // Bookmarks Logic
@@ -9503,6 +10113,11 @@ const defaultBlocksList = [
   { id: 'certifications', name: 'Certifications & Distinctions', enabled: true, width: 'half', icon: 'bi-patch-check text-info', desc: 'Certifications officielles vérifiables, hackathons et prix' },
   { id: 'process', name: 'Mon Processus & Méthodologie (4 étapes)', enabled: true, width: 'full', icon: 'bi-diagram-3 text-primary', desc: 'Étapes clés de votre méthode de travail façon site d\'agence' },
   { id: 'pricing', name: 'Grille Tarifaire & Packs Services', enabled: true, width: 'full', icon: 'bi-tags text-success', desc: 'Forfaits freelance, TJM et offres de services prêts à commander' },
+  { id: 'quote_calculator', name: 'Simulateur de Devis Interactif', enabled: true, width: 'full', icon: 'bi-calculator text-primary', desc: 'Permet à vos clients d\'estimer leur budget en direct' },
+  { id: 'visual_gallery', name: 'Galerie Visuelle & Avant/Après', enabled: true, width: 'full', icon: 'bi-images text-info', desc: 'Showroom d\'images avec Lightbox et comparateur Avant/Après' },
+  { id: 'languages_and_tools', name: 'Langues, Soft Skills & Outils', enabled: true, width: 'half', icon: 'bi-translate text-success', desc: 'Langues parlées, qualités humaines et outils quotidiens' },
+  { id: 'awards_press', name: 'Distinctions, Hackathons & Presse', enabled: true, width: 'half', icon: 'bi-award text-warning', desc: 'Prix remportés, conférences et parutions médias' },
+  { id: 'tech237_widgets', name: 'Widgets Tech237 (Forms & Uptime)', enabled: true, width: 'full', icon: 'bi-heart-pulse text-danger', desc: 'Intégrez un formulaire Tech237 et votre statut Uptime Heartbeat' },
   { id: 'testimonials', name: 'Témoignages & Recommandations', enabled: true, width: 'full', icon: 'bi-chat-quote text-warning', desc: 'Avis clients, recommandations de collègues et notes 5 étoiles' },
   { id: 'faq', name: 'Questions Fréquentes (FAQ Accordéon)', enabled: true, width: 'full', icon: 'bi-question-circle text-info', desc: 'Accordéon interactif de réponses aux questions clients/recruteurs' },
   { id: 'badges', name: 'Trophées & Badges Tech237', enabled: true, width: 'half', icon: 'bi-trophy', desc: 'Niveau XP et distinctions officielles gagnées sur Tech237' },
@@ -9834,19 +10449,210 @@ const portfolioForm = ref({
       items: Array.isArray(initialUserLayout.kpi_stats.items) && initialUserLayout.kpi_stats.items.length
         ? JSON.parse(JSON.stringify(initialUserLayout.kpi_stats.items))
         : [
-            { value: '+10', label: 'Projets & Réalisations', icon: 'bi-rocket-takeoff-fill' },
-            { value: '100%', label: 'Engagement & Qualité', icon: 'bi-patch-check-fill' },
-            { value: '24h', label: 'Réactivité & Écoute', icon: 'bi-lightning-charge-fill' },
-            { value: '5/5', label: 'Satisfaction Client', icon: 'bi-star-fill' }
+            { value: '+10', label: 'Projets & Réalisations', icon: 'bi-rocket-takeoff-fill', color: '' },
+            { value: '100%', label: 'Engagement & Qualité', icon: 'bi-patch-check-fill', color: '' },
+            { value: '24h', label: 'Réactivité & Écoute', icon: 'bi-lightning-charge-fill', color: '' },
+            { value: '5/5', label: 'Satisfaction Client', icon: 'bi-star-fill', color: '' }
           ]
     } : {
       enabled: true,
       items: [
-        { value: '+10', label: 'Projets & Réalisations', icon: 'bi-rocket-takeoff-fill' },
-        { value: '100%', label: 'Engagement & Qualité', icon: 'bi-patch-check-fill' },
-        { value: '24h', label: 'Réactivité & Écoute', icon: 'bi-lightning-charge-fill' },
-        { value: '5/5', label: 'Satisfaction Client', icon: 'bi-star-fill' }
+        { value: '+10', label: 'Projets & Réalisations', icon: 'bi-rocket-takeoff-fill', color: '' },
+        { value: '100%', label: 'Engagement & Qualité', icon: 'bi-patch-check-fill', color: '' },
+        { value: '24h', label: 'Réactivité & Écoute', icon: 'bi-lightning-charge-fill', color: '' },
+        { value: '5/5', label: 'Satisfaction Client', icon: 'bi-star-fill', color: '' }
       ]
+    },
+    kpi_stats_design: initialUserLayout.kpi_stats_design ? {
+      style: initialUserLayout.kpi_stats_design.style || 'ribbon',
+      animate_counters: initialUserLayout.kpi_stats_design.animate_counters !== false,
+    } : {
+      style: 'ribbon',
+      animate_counters: true,
+    },
+    custom_color_palette: initialUserLayout.custom_color_palette ? {
+      enabled: Boolean(initialUserLayout.custom_color_palette.enabled),
+      page_bg_type: initialUserLayout.custom_color_palette.page_bg_type || 'solid',
+      page_bg_color: initialUserLayout.custom_color_palette.page_bg_color || '#F8FAFC',
+      page_bg_color_2: initialUserLayout.custom_color_palette.page_bg_color_2 || '#E0F2FE',
+      page_bg_angle: Number(initialUserLayout.custom_color_palette.page_bg_angle ?? 135),
+      card_bg_color: initialUserLayout.custom_color_palette.card_bg_color || '#FFFFFF',
+      card_bg_opacity: Number(initialUserLayout.custom_color_palette.card_bg_opacity ?? 100),
+      text_primary_color: initialUserLayout.custom_color_palette.text_primary_color || '#0F172A',
+      text_muted_color: initialUserLayout.custom_color_palette.text_muted_color || '#64748B',
+      secondary_accent_color: initialUserLayout.custom_color_palette.secondary_accent_color || '#2563EB',
+    } : {
+      enabled: false,
+      page_bg_type: 'solid',
+      page_bg_color: '#F8FAFC',
+      page_bg_color_2: '#E0F2FE',
+      page_bg_angle: 135,
+      card_bg_color: '#FFFFFF',
+      card_bg_opacity: 100,
+      text_primary_color: '#0F172A',
+      text_muted_color: '#64748B',
+      secondary_accent_color: '#2563EB',
+    },
+    announcement_bar: initialUserLayout.announcement_bar ? {
+      enabled: Boolean(initialUserLayout.announcement_bar.enabled),
+      text: initialUserLayout.announcement_bar.text || 'Disponible pour de nouvelles missions Freelance ou un poste CDI — Discutons de votre projet !',
+      icon: initialUserLayout.announcement_bar.icon || 'bi-megaphone-fill',
+      cta_text: initialUserLayout.announcement_bar.cta_text || 'Me contacter',
+      cta_url: initialUserLayout.announcement_bar.cta_url || '#portfolioContactSection',
+      bg_type: initialUserLayout.announcement_bar.bg_type || 'gradient',
+      bg_color: initialUserLayout.announcement_bar.bg_color || '#00A859',
+      bg_color_2: initialUserLayout.announcement_bar.bg_color_2 || '#0B2559',
+      text_color: initialUserLayout.announcement_bar.text_color || '#FFFFFF',
+      scrolling: Boolean(initialUserLayout.announcement_bar.scrolling),
+      dismissible: initialUserLayout.announcement_bar.dismissible !== false,
+    } : {
+      enabled: false,
+      text: 'Disponible pour de nouvelles missions Freelance ou un poste CDI — Discutons de votre projet !',
+      icon: 'bi-megaphone-fill',
+      cta_text: 'Me contacter',
+      cta_url: '#portfolioContactSection',
+      bg_type: 'gradient',
+      bg_color: '#00A859',
+      bg_color_2: '#0B2559',
+      text_color: '#FFFFFF',
+      scrolling: false,
+      dismissible: true,
+    },
+    command_palette: initialUserLayout.command_palette ? {
+      enabled: initialUserLayout.command_palette.enabled !== false,
+      show_in_navbar: initialUserLayout.command_palette.show_in_navbar !== false,
+      placeholder: initialUserLayout.command_palette.placeholder || 'Rechercher une compétence, un projet, une action... (Ctrl+K)',
+    } : {
+      enabled: true,
+      show_in_navbar: true,
+      placeholder: 'Rechercher une compétence, un projet, une action... (Ctrl+K)',
+    },
+    quote_calculator: initialUserLayout.quote_calculator ? {
+      enabled: Boolean(initialUserLayout.quote_calculator.enabled),
+      title: initialUserLayout.quote_calculator.title || 'Simulateur de Devis Instantané',
+      subtitle: initialUserLayout.quote_calculator.subtitle || 'Estimez le budget de votre projet en quelques clics et envoyez-moi votre brief.',
+      icon: initialUserLayout.quote_calculator.icon || 'bi-calculator-fill',
+      currency: initialUserLayout.quote_calculator.currency || 'FCFA',
+      base_services: Array.isArray(initialUserLayout.quote_calculator.base_services) ? JSON.parse(JSON.stringify(initialUserLayout.quote_calculator.base_services)) : [],
+      addons: Array.isArray(initialUserLayout.quote_calculator.addons) ? JSON.parse(JSON.stringify(initialUserLayout.quote_calculator.addons)) : [],
+    } : {
+      enabled: false,
+      title: 'Simulateur de Devis Instantané',
+      subtitle: 'Estimez le budget de votre projet en quelques clics et envoyez-moi votre brief.',
+      icon: 'bi-calculator-fill',
+      currency: 'FCFA',
+      base_services: [
+        { label: 'Site Vitrine / Landing Page Pro', price: 250000, icon: 'bi-window' },
+        { label: 'Application Web / SaaS Sur-Mesure', price: 750000, icon: 'bi-layers-fill' },
+        { label: 'Application Mobile (iOS & Android)', price: 1200000, icon: 'bi-phone-fill' },
+        { label: 'Audit Technique & Optimisation API', price: 150000, icon: 'bi-speedometer2' },
+      ],
+      addons: [
+        { label: 'Design UI/UX Figma complet', price: 150000 },
+        { label: 'Intégration Paiement Mobile Money (OM/MOMO)', price: 100000 },
+        { label: 'Dashboard Admin & Statistiques', price: 200000 },
+        { label: 'Déploiement Cloud, SSL & SEO', price: 75000 },
+      ],
+    },
+    visual_gallery: initialUserLayout.visual_gallery ? {
+      enabled: Boolean(initialUserLayout.visual_gallery.enabled),
+      title: initialUserLayout.visual_gallery.title || 'Galerie Visuelle & Showroom',
+      subtitle: initialUserLayout.visual_gallery.subtitle || 'Maquettes UI/UX, architectures techniques et réalisations en images.',
+      icon: initialUserLayout.visual_gallery.icon || 'bi-images',
+      layout_style: initialUserLayout.visual_gallery.layout_style || 'grid',
+      items: Array.isArray(initialUserLayout.visual_gallery.items) ? JSON.parse(JSON.stringify(initialUserLayout.visual_gallery.items)) : [],
+      before_after: initialUserLayout.visual_gallery.before_after ? {
+        enabled: Boolean(initialUserLayout.visual_gallery.before_after.enabled),
+        title: initialUserLayout.visual_gallery.before_after.title || 'Comparateur Avant / Après',
+        before_label: initialUserLayout.visual_gallery.before_after.before_label || 'Avant',
+        after_label: initialUserLayout.visual_gallery.before_after.after_label || 'Après',
+        before_image: initialUserLayout.visual_gallery.before_after.before_image || '',
+        after_image: initialUserLayout.visual_gallery.before_after.after_image || '',
+      } : {
+        enabled: false,
+        title: 'Comparateur Avant / Après',
+        before_label: 'Avant',
+        after_label: 'Après',
+        before_image: '',
+        after_image: '',
+      },
+    } : {
+      enabled: false,
+      title: 'Galerie Visuelle & Showroom',
+      subtitle: 'Maquettes UI/UX, architectures techniques et réalisations en images.',
+      icon: 'bi-images',
+      layout_style: 'grid',
+      items: [],
+      before_after: {
+        enabled: false,
+        title: 'Comparateur Avant / Après',
+        before_label: 'Avant',
+        after_label: 'Après',
+        before_image: '',
+        after_image: '',
+      },
+    },
+    languages_and_tools: initialUserLayout.languages_and_tools ? {
+      enabled: Boolean(initialUserLayout.languages_and_tools.enabled),
+      title: initialUserLayout.languages_and_tools.title || 'Langues, Soft Skills & Outils du Quotidien',
+      subtitle: initialUserLayout.languages_and_tools.subtitle || 'Ma façon de communiquer, collaborer et travailler chaque jour.',
+      icon: initialUserLayout.languages_and_tools.icon || 'bi-translate',
+      languages: Array.isArray(initialUserLayout.languages_and_tools.languages) ? JSON.parse(JSON.stringify(initialUserLayout.languages_and_tools.languages)) : [],
+      soft_skills: Array.isArray(initialUserLayout.languages_and_tools.soft_skills) ? [...initialUserLayout.languages_and_tools.soft_skills] : [],
+      daily_tools: Array.isArray(initialUserLayout.languages_and_tools.daily_tools) ? JSON.parse(JSON.stringify(initialUserLayout.languages_and_tools.daily_tools)) : [],
+    } : {
+      enabled: false,
+      title: 'Langues, Soft Skills & Outils du Quotidien',
+      subtitle: 'Ma façon de communiquer, collaborer et travailler chaque jour.',
+      icon: 'bi-translate',
+      languages: [
+        { name: 'Français', level: 'Langue maternelle / C2', percent: 100, flag: '🇫🇷' },
+        { name: 'Anglais', level: 'Professionnel / B2', percent: 80, flag: '🇬🇧' },
+      ],
+      soft_skills: ['Leadership technique', 'Communication claire', 'Résolution de problèmes', 'Esprit d\'équipe'],
+      daily_tools: [
+        { name: 'VS Code', icon: 'bi-code-square' },
+        { name: 'Docker', icon: 'bi-box-seam' },
+        { name: 'Git & GitHub', icon: 'bi-git' },
+        { name: 'Figma', icon: 'bi-vector-pen' },
+      ],
+    },
+    tech237_widgets: initialUserLayout.tech237_widgets ? {
+      enabled: Boolean(initialUserLayout.tech237_widgets.enabled),
+      show_heartbeat_uptime: initialUserLayout.tech237_widgets.show_heartbeat_uptime !== false,
+      heartbeat_title: initialUserLayout.tech237_widgets.heartbeat_title || 'Statut de mes Services & APIs en Production (Live)',
+      selected_form_slug: initialUserLayout.tech237_widgets.selected_form_slug || '',
+      form_widget_title: initialUserLayout.tech237_widgets.form_widget_title || 'Questionnaire / Brief Client Rapide',
+      form_widget_subtitle: initialUserLayout.tech237_widgets.form_widget_subtitle || 'Répondez à ce formulaire interactif pour démarrer notre collaboration.',
+    } : {
+      enabled: false,
+      show_heartbeat_uptime: true,
+      heartbeat_title: 'Statut de mes Services & APIs en Production (Live)',
+      selected_form_slug: '',
+      form_widget_title: 'Questionnaire / Brief Client Rapide',
+      form_widget_subtitle: 'Répondez à ce formulaire interactif pour démarrer notre collaboration.',
+    },
+    print_settings: initialUserLayout.print_settings ? {
+      show_qr_header: initialUserLayout.print_settings.show_qr_header !== false,
+      density: initialUserLayout.print_settings.density || 'detailed',
+      hidden_print_blocks: Array.isArray(initialUserLayout.print_settings.hidden_print_blocks) ? [...initialUserLayout.print_settings.hidden_print_blocks] : [],
+    } : {
+      show_qr_header: true,
+      density: 'detailed',
+      hidden_print_blocks: [],
+    },
+    awards_press: initialUserLayout.awards_press ? {
+      enabled: Boolean(initialUserLayout.awards_press.enabled),
+      title: initialUserLayout.awards_press.title || 'Distinctions, Hackathons & Presse',
+      subtitle: initialUserLayout.awards_press.subtitle || 'Prix remportés, conférences animées et parutions médias.',
+      icon: initialUserLayout.awards_press.icon || 'bi-award-fill',
+      items: Array.isArray(initialUserLayout.awards_press.items) ? JSON.parse(JSON.stringify(initialUserLayout.awards_press.items)) : [],
+    } : {
+      enabled: false,
+      title: 'Distinctions, Hackathons & Presse',
+      subtitle: 'Prix remportés, conférences animées et parutions médias.',
+      icon: 'bi-award-fill',
+      items: [],
     },
     tech_marquee_enabled: initialUserLayout.tech_marquee_enabled !== false,
     work_process: initialUserLayout.work_process ? {
@@ -9981,7 +10787,7 @@ const portfolioForm = ref({
         const insertIdx = aboutIdx !== -1 ? aboutIdx + 1 : 1
         list.splice(insertIdx, 0, { id: 'video', name: 'Vidéo de Présentation (YouTube)', enabled: true, width: 'full', icon: 'bi-youtube text-danger', desc: 'Lecteur vidéo immersif 16:9 de pitch ou démo' })
       }
-      const extraDefaultBlocks = defaultBlocksList.filter(db => ['now', 'github', 'certifications', 'process', 'pricing', 'testimonials', 'faq'].includes(db.id))
+      const extraDefaultBlocks = defaultBlocksList.filter(db => ['now', 'github', 'certifications', 'process', 'pricing', 'testimonials', 'faq', 'quote_calculator', 'visual_gallery', 'languages_and_tools', 'awards_press', 'tech237_widgets'].includes(db.id))
       extraDefaultBlocks.forEach(eb => {
         if (!list.some(b => b.id === eb.id)) {
           const contactIdx = list.findIndex(b => b.id === 'contact')
@@ -11912,6 +12718,135 @@ function getLatencyBadgeClass(ms) {
   if (ms < 300) return 'bg-success text-white'
   if (ms < 800) return 'bg-warning text-dark'
   return 'bg-danger text-white'
+}
+
+// =========================================================================
+// Helpers for 10 New Portfolio Customization Options
+// =========================================================================
+
+// Option 9: KPI Stats
+function addKpiStatItem() {
+  if (!Array.isArray(portfolioForm.value.portfolio_layout.kpi_stats)) {
+    portfolioForm.value.portfolio_layout.kpi_stats = []
+  }
+  portfolioForm.value.portfolio_layout.kpi_stats.push({
+    value: '+10',
+    label: 'Nouvel indicateur',
+    icon: 'bi-star-fill',
+    color: portfolioForm.value.portfolio_layout.accent_color || '#00A859'
+  })
+}
+function removeKpiStatItem(idx) {
+  portfolioForm.value.portfolio_layout.kpi_stats?.splice(idx, 1)
+}
+
+// Option 4: Quote Calculator
+function addQuoteBaseService() {
+  const qc = portfolioForm.value.portfolio_layout.quote_calculator
+  if (!qc) return
+  if (!Array.isArray(qc.base_services)) qc.base_services = []
+  qc.base_services.push({
+    id: 'srv_' + Date.now(),
+    label: 'Nouvelle prestation',
+    price: 200000,
+    days: 7
+  })
+}
+function removeQuoteBaseService(idx) {
+  portfolioForm.value.portfolio_layout.quote_calculator?.base_services?.splice(idx, 1)
+}
+function addQuoteAddon() {
+  const qc = portfolioForm.value.portfolio_layout.quote_calculator
+  if (!qc) return
+  if (!Array.isArray(qc.addons)) qc.addons = []
+  qc.addons.push({
+    id: 'add_' + Date.now(),
+    label: 'Option supplémentaire',
+    price: 50000
+  })
+}
+function removeQuoteAddon(idx) {
+  portfolioForm.value.portfolio_layout.quote_calculator?.addons?.splice(idx, 1)
+}
+
+// Option 5: Visual Gallery & Before/After
+function addGalleryItem() {
+  const vg = portfolioForm.value.portfolio_layout.visual_gallery
+  if (!vg) return
+  if (!Array.isArray(vg.items)) vg.items = []
+  vg.items.push({
+    id: 'gal_' + Date.now(),
+    title: '',
+    category: 'Design UI',
+    image_url: '',
+    before_image_url: '',
+    is_before_after: false,
+    caption: ''
+  })
+}
+function removeGalleryItem(idx) {
+  portfolioForm.value.portfolio_layout.visual_gallery?.items?.splice(idx, 1)
+}
+
+// Option 6: Languages, Soft Skills & Daily Tools
+function addLanguageItem() {
+  const lt = portfolioForm.value.portfolio_layout.languages_and_tools
+  if (!lt) return
+  if (!Array.isArray(lt.languages)) lt.languages = []
+  lt.languages.push({ name: 'Français', level: 'Natif / C2', flag: '🇨🇲', percent: 100 })
+}
+function removeLanguageItem(idx) {
+  portfolioForm.value.portfolio_layout.languages_and_tools?.languages?.splice(idx, 1)
+}
+const newSoftSkillInput = ref('')
+function addSoftSkill() {
+  const val = (newSoftSkillInput.value || '').trim()
+  if (!val) return
+  const lt = portfolioForm.value.portfolio_layout.languages_and_tools
+  if (!lt) return
+  if (!Array.isArray(lt.soft_skills)) lt.soft_skills = []
+  if (!lt.soft_skills.includes(val)) lt.soft_skills.push(val)
+  newSoftSkillInput.value = ''
+}
+function removeSoftSkill(idx) {
+  portfolioForm.value.portfolio_layout.languages_and_tools?.soft_skills?.splice(idx, 1)
+}
+function addDailyTool() {
+  const lt = portfolioForm.value.portfolio_layout.languages_and_tools
+  if (!lt) return
+  if (!Array.isArray(lt.daily_tools)) lt.daily_tools = []
+  lt.daily_tools.push({ name: 'VS Code', icon: 'bi-code-slash', category: 'Dev', color: '#007ACC' })
+}
+function removeDailyTool(idx) {
+  portfolioForm.value.portfolio_layout.languages_and_tools?.daily_tools?.splice(idx, 1)
+}
+
+// Option 10: Awards, Hackathons & Press
+function addAwardPressItem() {
+  const ap = portfolioForm.value.portfolio_layout.awards_press
+  if (!ap) return
+  if (!Array.isArray(ap.items)) ap.items = []
+  ap.items.push({
+    title: '',
+    organization: '',
+    date: '',
+    type: 'Hackathon',
+    url: '',
+    description: ''
+  })
+}
+function removeAwardPressItem(idx) {
+  portfolioForm.value.portfolio_layout.awards_press?.items?.splice(idx, 1)
+}
+
+// Option 8: Print hidden blocks toggle
+function togglePrintHiddenBlock(blockId) {
+  const ps = portfolioForm.value.portfolio_layout.print_settings
+  if (!ps) return
+  if (!Array.isArray(ps.hidden_print_blocks)) ps.hidden_print_blocks = []
+  const idx = ps.hidden_print_blocks.indexOf(blockId)
+  if (idx === -1) ps.hidden_print_blocks.push(blockId)
+  else ps.hidden_print_blocks.splice(idx, 1)
 }
 </script>
 
