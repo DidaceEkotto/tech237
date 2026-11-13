@@ -1305,8 +1305,8 @@
                     <div class="col-lg-6">
                       <div class="position-relative p-2">
                         <img
-                          v-if="portfolioUser.avatar"
-                          :src="formatImageUrl(portfolioUser.avatar)"
+                          v-if="heroDisplayImage"
+                          :src="formatImageUrl(heroDisplayImage)"
                           :alt="portfolioUser.name"
                           class="w-100 rounded-4 shadow-lg object-fit-cover"
                           style="height: 360px;"
@@ -4390,6 +4390,9 @@ function getBlockModel(blockId) {
   return 'classic'
 }
 
+const heroDesign = computed(() => layout.value.hero_design || { image_url: '' })
+const heroDisplayImage = computed(() => heroDesign.value.image_url || props.portfolioUser.avatar || '')
+
 const websiteNavItems = computed(() => {
   const custom = websiteNavbar.value.custom_menu_items
   if (Array.isArray(custom) && custom.length > 0) {
@@ -4751,32 +4754,7 @@ const availableTabs = computed(() => {
 })
 
 function isBlockActiveInTab(blockId) {
-  if (!isBlockEnabled(blockId)) return false
-  if (isTabbedMode.value) {
-    if (activeTab.value === 'all') return true
-    if (activeTab.value === blockId) return true
-    if (activeTab.value === 'about' && blockId === 'hero') return true
-    return false
-  }
-  if (websiteNavbar.value.enabled && websiteNavbar.value.navigation_mode === 'multi_page') {
-    const page = currentWebsitePage.value
-    if (page === 'home') {
-      return ['hero', 'about', 'projects', 'process', 'pricing', 'testimonials', 'faq', 'contact'].includes(blockId)
-    }
-    if (page === 'about') {
-      return ['about', 'video', 'now', 'skills', 'experiences', 'educations', 'certifications', 'badges'].includes(blockId)
-    }
-    if (page === 'projects') {
-      return ['projects', 'pocs', 'github', 'skills'].includes(blockId)
-    }
-    if (page === 'services') {
-      return ['process', 'pricing', 'custom', 'testimonials', 'faq', 'contact'].includes(blockId)
-    }
-    if (page === 'contact') {
-      return ['contact', 'faq'].includes(blockId)
-    }
-  }
-  return true
+  return isBlockEnabled(blockId)
 }
 
 // Project multi-columns class

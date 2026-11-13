@@ -2051,25 +2051,7 @@
                   </div>
 
                   <div v-if="portfolioForm.portfolio_layout.website_navbar.enabled" class="row g-3 pt-2 border-top">
-                    <div class="col-md-4">
-                      <label class="form-label extra-small fw-bold text-dark mb-1">Mode de Navigation du Site</label>
-                      <select v-model="portfolioForm.portfolio_layout.website_navbar.navigation_mode" class="form-select form-select-sm rounded-3">
-                        <option value="multi_page">🗂️ Vrai Site Multi-Pages (Accueil, Projets, Services, Parcours, Contact)</option>
-                        <option value="one_page_scroll">📜 Site Vitrine One-Page (Défilement fluide par ancres)</option>
-                      </select>
-                    </div>
-
-                    <div class="col-md-4">
-                      <label class="form-label extra-small fw-bold text-dark mb-1">Style Visuel de la Navbar</label>
-                      <select v-model="portfolioForm.portfolio_layout.website_navbar.style" class="form-select form-select-sm rounded-3">
-                        <option value="floating_pill">💊 Pilule Flottante Glassmorphism (Style Apple / Linear)</option>
-                        <option value="full_sticky">🏢 Header Pleine Largeur Sticky (Style Agence Web)</option>
-                        <option value="sidebar_left">📐 Sidebar Latérale Gauche Fixe (Style App / Dashboard)</option>
-                        <option value="transparent">✨ Header Épuré Transparent</option>
-                      </select>
-                    </div>
-
-                    <div class="col-md-4">
+                    <div class="col-md-12">
                       <label class="form-label extra-small fw-bold text-dark mb-1">Texte du Bouton d'Action (CTA)</label>
                       <input 
                         type="text" 
@@ -2077,42 +2059,6 @@
                         class="form-control form-control-sm rounded-3" 
                         placeholder="ex: Demander un devis / Me recruter" 
                       />
-                    </div>
-
-                    <!-- NOUVEAU : Options Menu Hamburger & Ouverture Latérale (Gauche / Droite / Plein écran) -->
-                    <div class="col-md-4">
-                      <label class="form-label extra-small fw-bold text-dark mb-1">
-                        <i class="bi bi-list text-success me-1"></i> Type d'Affichage du Menu &amp; Hamburger
-                      </label>
-                      <select v-model="portfolioForm.portfolio_layout.website_navbar.menu_type" class="form-select form-select-sm rounded-3">
-                        <option value="desktop_links_mobile_drawer">💻 Liens Horizontaux (PC) + Hamburger (Mobile)</option>
-                        <option value="always_hamburger_drawer">🍔 Menu Hamburger Toujours Actif (PC &amp; Mobile)</option>
-                        <option value="links_plus_hamburger">✨ Liens Horizontaux + Bouton Tiroir Latéral</option>
-                      </select>
-                    </div>
-
-                    <div class="col-md-4">
-                      <label class="form-label extra-small fw-bold text-dark mb-1">
-                        <i class="bi bi-layout-sidebar-inset text-primary me-1"></i> Ouverture du Menu Hamburger (Latéral)
-                      </label>
-                      <select v-model="portfolioForm.portfolio_layout.website_navbar.drawer_side" class="form-select form-select-sm rounded-3">
-                        <option value="left">⬅️ Ouverture Latérale à GAUCHE (Offcanvas Left)</option>
-                        <option value="right">➡️ Ouverture Latérale à DROITE (Offcanvas Right)</option>
-                        <option value="fullscreen">🖥️ Menu Plein Écran Immersif (Style Studio Créatif)</option>
-                        <option value="top_dropdown">⬇️ Menu Déroulant sous la Barre (Dropdown)</option>
-                      </select>
-                    </div>
-
-                    <div class="col-md-4">
-                      <label class="form-label extra-small fw-bold text-dark mb-1">
-                        <i class="bi bi-grid-3x3-gap text-warning me-1"></i> Style du Bouton Hamburger
-                      </label>
-                      <select v-model="portfolioForm.portfolio_layout.website_navbar.hamburger_style" class="form-select form-select-sm rounded-3">
-                        <option value="classic">☰ 3 Barres Classiques</option>
-                        <option value="modern_stagger">≣ Barres Asymétriques Design</option>
-                        <option value="grid_dots">⠿ Grille de Points (Bento Icon)</option>
-                        <option value="pill_with_label">💊 Pilule avec texte « ☰ Menu »</option>
-                      </select>
                     </div>
 
                     <div class="col-md-6">
@@ -2398,6 +2344,117 @@
               </div>
 
 
+              <!-- 1.10 Barre d'Annonce / Topbar Promo -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-megaphone-fill text-warning"></i> Barre d'Annonce / Topbar Promo
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Affichez un bandeau tout en haut de votre site (disponibilité freelance, offre du moment, lancement de produit).
+                    </p>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input cursor-pointer"
+                      type="checkbox"
+                      v-model="portfolioForm.portfolio_layout.announcement_bar.enabled"
+                      id="announcementBarToggle"
+                    />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="announcementBarToggle">
+                      {{ portfolioForm.portfolio_layout.announcement_bar.enabled ? 'Affichée' : 'Masquée' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.announcement_bar.enabled" class="row g-3 mt-1">
+                  <div class="col-md-8">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Message d'annonce</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.text" class="form-control form-control-sm rounded-3" placeholder="ex: 🚀 Disponible pour de nouvelles missions Q3 2026 !" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Icône Bootstrap</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.icon" class="form-control form-control-sm rounded-3 font-monospace" placeholder="bi-megaphone-fill" />
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte du bouton (CTA)</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.cta_label" class="form-control form-control-sm rounded-3" placeholder="ex: Me contacter" />
+                  </div>
+                  <div class="col-md-8">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Lien du bouton (#ancre ou URL)</label>
+                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.cta_url" class="form-control form-control-sm rounded-3" placeholder="#portfolioContactSection ou https://..." />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Style du fond</label>
+                    <select v-model="portfolioForm.portfolio_layout.announcement_bar.bg_style" class="form-select form-select-sm rounded-3">
+                      <option value="accent">Couleur d'accentuation</option>
+                      <option value="gradient">Dégradé dynamique</option>
+                      <option value="dark">Sombre (Slate 900)</option>
+                      <option value="custom">Couleur personnalisée</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2" v-if="portfolioForm.portfolio_layout.announcement_bar.bg_style === 'custom'">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur fond</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.announcement_bar.bg_color" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur texte</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.announcement_bar.text_color" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-5 d-flex align-items-end gap-4 pb-1">
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.announcement_bar.scrolling" id="announceScrollToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="announceScrollToggle">Texte défilant (Marquee)</label>
+                    </div>
+                    <div class="form-check form-switch mb-0">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.announcement_bar.dismissible" id="announceDismissToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="announceDismissToggle">Bouton fermer</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.11 Recherche Instantanée & Palette de Commande Ctrl + K -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-command text-info"></i> Recherche Instantanée &amp; Palette de Commande (<code>Ctrl + K</code>)
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Offrez aux recruteurs et clients une barre de recherche rapide façon Notion/Linear pour explorer vos projets, compétences et actions.
+                    </p>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input cursor-pointer"
+                      type="checkbox"
+                      v-model="portfolioForm.portfolio_layout.command_palette.enabled"
+                      id="commandPaletteToggle"
+                    />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="commandPaletteToggle">
+                      {{ portfolioForm.portfolio_layout.command_palette.enabled ? 'Activée' : 'Désactivée' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.command_palette.enabled" class="row g-3 mt-1">
+                  <div class="col-md-4">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.command_palette.show_in_navbar" id="cmdNavbarToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="cmdNavbarToggle">Bouton loupe dans la barre de navigation</label>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.command_palette.shortcut_hint" id="cmdHintToggle" />
+                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="cmdHintToggle">Afficher le badge raccourci <code>Ctrl+K</code></label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- 1.1 Thèmes & Palettes Visuelles (9 Thèmes) -->
               <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
                 <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
@@ -2655,7 +2712,74 @@
                   </div>
                 </div>
 
-                <!-- 1.1.B Forme & Cadre de l'Avatar + Effet Machine à Écrire (Typewriter) + Spotlight / Curseur -->
+                <!-- 1.9 Studio de Couleurs 100% Sur-Mesure & Dégradés -->
+              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                  <div>
+                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-palette2 text-primary"></i> Studio de Couleurs « 100 % Sur-Mesure » &amp; Dégradés
+                    </h4>
+                    <p class="text-muted small mb-0">
+                      Outrepassez le thème prédéfini pour définir vos propres couleurs de fond (uni ou dégradé), cartes, textes et couleur secondaire.
+                    </p>
+                  </div>
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input cursor-pointer"
+                      type="checkbox"
+                      v-model="portfolioForm.portfolio_layout.custom_color_palette.enabled"
+                      id="customPaletteToggle"
+                    />
+                    <label class="form-check-label small fw-bold cursor-pointer" for="customPaletteToggle">
+                      {{ portfolioForm.portfolio_layout.custom_color_palette.enabled ? 'Activé' : 'Désactivé' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div v-if="portfolioForm.portfolio_layout.custom_color_palette.enabled" class="row g-3 mt-1">
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Type de fond de page</label>
+                    <select v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_type" class="form-select form-select-sm rounded-3">
+                      <option value="solid">Couleur unie</option>
+                      <option value="gradient">Dégradé linéaire</option>
+                    </select>
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur de fond 1</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_color_1" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-3" v-if="portfolioForm.portfolio_layout.custom_color_palette.bg_type === 'gradient'">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur de fond 2</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_color_2" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-3" v-if="portfolioForm.portfolio_layout.custom_color_palette.bg_type === 'gradient'">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Angle du dégradé ({{ portfolioForm.portfolio_layout.custom_color_palette.bg_angle }}°)</label>
+                    <input type="range" min="0" max="360" v-model.number="portfolioForm.portfolio_layout.custom_color_palette.bg_angle" class="form-range" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Fond des cartes</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.card_bg" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Opacité des cartes ({{ portfolioForm.portfolio_layout.custom_color_palette.card_opacity }}%)</label>
+                    <input type="range" min="15" max="100" v-model.number="portfolioForm.portfolio_layout.custom_color_palette.card_opacity" class="form-range" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte principal</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.text_primary" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte secondaire</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.text_muted" class="form-control form-control-color w-100" />
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label extra-small fw-bold text-dark mb-1">Accent secondaire</label>
+                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.accent_secondary" class="form-control form-control-color w-100" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1.1.B Forme & Cadre de l'Avatar + Effet Machine à Écrire (Typewriter) + Spotlight / Curseur -->
                 <div class="row g-4 pt-4 mt-2 border-top">
                   <div class="col-md-4">
                     <label class="form-label small fw-bold text-dark mb-1">
@@ -3543,6 +3667,33 @@
                       >
                         🔒 + Créer le menu pour choisir un modèle
                       </button>
+
+                      <!-- Direct Image Upload (replaces initials) on Hero / About / Contact blocks -->
+                      <label
+                        v-if="blk.id === 'hero'"
+                        class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 extra-small fw-semibold mb-0 cursor-pointer"
+                        title="Téléverser une image de présentation à la place des initiales"
+                      >
+                        <i class="bi bi-image me-1"></i>
+                        {{ portfolioForm.portfolio_layout.hero_design.image_url ? 'Changer l\'image' : 'Image (remplace initiales)' }}
+                        <input type="file" accept="image/*" class="d-none" @change="e => e.target.files[0] && uploadGenericPortfolioAsset(e.target.files[0], url => portfolioForm.portfolio_layout.hero_design.image_url = url)" />
+                      </label>
+                      <label
+                        v-else-if="blk.id === 'about'"
+                        class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 extra-small fw-semibold mb-0 cursor-pointer"
+                        title="Téléverser une image pour À propos"
+                      >
+                        <i class="bi bi-image me-1"></i> Image À propos
+                        <input type="file" accept="image/*" class="d-none" @change="e => e.target.files[0] && uploadGenericPortfolioAsset(e.target.files[0], url => portfolioForm.portfolio_layout.about_design.image_url = url)" />
+                      </label>
+                      <label
+                        v-else-if="blk.id === 'contact'"
+                        class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 extra-small fw-semibold mb-0 cursor-pointer"
+                        title="Téléverser une image pour Contact"
+                      >
+                        <i class="bi bi-image me-1"></i> Image Contact
+                        <input type="file" accept="image/*" class="d-none" @change="e => e.target.files[0] && uploadGenericPortfolioAsset(e.target.files[0], url => portfolioForm.portfolio_layout.contact_form.image_url = url)" />
+                      </label>
                       
                       <!-- Width Badge in Bento mode -->
                       <button 
@@ -3625,245 +3776,6 @@
                   </div>
                 </div>
 
-              </div>
-
-              <!-- 1.9 Studio de Couleurs 100% Sur-Mesure & Dégradés -->
-              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                  <div>
-                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                      <i class="bi bi-palette2 text-primary"></i> Studio de Couleurs « 100 % Sur-Mesure » &amp; Dégradés
-                    </h4>
-                    <p class="text-muted small mb-0">
-                      Outrepassez le thème prédéfini pour définir vos propres couleurs de fond (uni ou dégradé), cartes, textes et couleur secondaire.
-                    </p>
-                  </div>
-                  <div class="form-check form-switch mb-0">
-                    <input
-                      class="form-check-input cursor-pointer"
-                      type="checkbox"
-                      v-model="portfolioForm.portfolio_layout.custom_color_palette.enabled"
-                      id="customPaletteToggle"
-                    />
-                    <label class="form-check-label small fw-bold cursor-pointer" for="customPaletteToggle">
-                      {{ portfolioForm.portfolio_layout.custom_color_palette.enabled ? 'Activé' : 'Désactivé' }}
-                    </label>
-                  </div>
-                </div>
-
-                <div v-if="portfolioForm.portfolio_layout.custom_color_palette.enabled" class="row g-3 mt-1">
-                  <div class="col-md-3">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Type de fond de page</label>
-                    <select v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_type" class="form-select form-select-sm rounded-3">
-                      <option value="solid">Couleur unie</option>
-                      <option value="gradient">Dégradé linéaire</option>
-                    </select>
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur de fond 1</label>
-                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_color_1" class="form-control form-control-color w-100" />
-                  </div>
-                  <div class="col-md-3" v-if="portfolioForm.portfolio_layout.custom_color_palette.bg_type === 'gradient'">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur de fond 2</label>
-                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.bg_color_2" class="form-control form-control-color w-100" />
-                  </div>
-                  <div class="col-md-3" v-if="portfolioForm.portfolio_layout.custom_color_palette.bg_type === 'gradient'">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Angle du dégradé ({{ portfolioForm.portfolio_layout.custom_color_palette.bg_angle }}°)</label>
-                    <input type="range" min="0" max="360" v-model.number="portfolioForm.portfolio_layout.custom_color_palette.bg_angle" class="form-range" />
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Fond des cartes</label>
-                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.card_bg" class="form-control form-control-color w-100" />
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Opacité des cartes ({{ portfolioForm.portfolio_layout.custom_color_palette.card_opacity }}%)</label>
-                    <input type="range" min="15" max="100" v-model.number="portfolioForm.portfolio_layout.custom_color_palette.card_opacity" class="form-range" />
-                  </div>
-                  <div class="col-md-2">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte principal</label>
-                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.text_primary" class="form-control form-control-color w-100" />
-                  </div>
-                  <div class="col-md-2">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte secondaire</label>
-                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.text_muted" class="form-control form-control-color w-100" />
-                  </div>
-                  <div class="col-md-2">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Accent secondaire</label>
-                    <input type="color" v-model="portfolioForm.portfolio_layout.custom_color_palette.accent_secondary" class="form-control form-control-color w-100" />
-                  </div>
-                </div>
-              </div>
-
-              <!-- 1.10 Barre d'Annonce / Topbar Promo -->
-              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                  <div>
-                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                      <i class="bi bi-megaphone-fill text-warning"></i> Barre d'Annonce / Topbar Promo
-                    </h4>
-                    <p class="text-muted small mb-0">
-                      Affichez un bandeau tout en haut de votre site (disponibilité freelance, offre du moment, lancement de produit).
-                    </p>
-                  </div>
-                  <div class="form-check form-switch mb-0">
-                    <input
-                      class="form-check-input cursor-pointer"
-                      type="checkbox"
-                      v-model="portfolioForm.portfolio_layout.announcement_bar.enabled"
-                      id="announcementBarToggle"
-                    />
-                    <label class="form-check-label small fw-bold cursor-pointer" for="announcementBarToggle">
-                      {{ portfolioForm.portfolio_layout.announcement_bar.enabled ? 'Affichée' : 'Masquée' }}
-                    </label>
-                  </div>
-                </div>
-
-                <div v-if="portfolioForm.portfolio_layout.announcement_bar.enabled" class="row g-3 mt-1">
-                  <div class="col-md-8">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Message d'annonce</label>
-                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.text" class="form-control form-control-sm rounded-3" placeholder="ex: 🚀 Disponible pour de nouvelles missions Q3 2026 !" />
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Icône Bootstrap</label>
-                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.icon" class="form-control form-control-sm rounded-3 font-monospace" placeholder="bi-megaphone-fill" />
-                  </div>
-                  <div class="col-md-4">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Texte du bouton (CTA)</label>
-                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.cta_label" class="form-control form-control-sm rounded-3" placeholder="ex: Me contacter" />
-                  </div>
-                  <div class="col-md-8">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Lien du bouton (#ancre ou URL)</label>
-                    <input type="text" v-model="portfolioForm.portfolio_layout.announcement_bar.cta_url" class="form-control form-control-sm rounded-3" placeholder="#portfolioContactSection ou https://..." />
-                  </div>
-                  <div class="col-md-3">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Style du fond</label>
-                    <select v-model="portfolioForm.portfolio_layout.announcement_bar.bg_style" class="form-select form-select-sm rounded-3">
-                      <option value="accent">Couleur d'accentuation</option>
-                      <option value="gradient">Dégradé dynamique</option>
-                      <option value="dark">Sombre (Slate 900)</option>
-                      <option value="custom">Couleur personnalisée</option>
-                    </select>
-                  </div>
-                  <div class="col-md-2" v-if="portfolioForm.portfolio_layout.announcement_bar.bg_style === 'custom'">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur fond</label>
-                    <input type="color" v-model="portfolioForm.portfolio_layout.announcement_bar.bg_color" class="form-control form-control-color w-100" />
-                  </div>
-                  <div class="col-md-2">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Couleur texte</label>
-                    <input type="color" v-model="portfolioForm.portfolio_layout.announcement_bar.text_color" class="form-control form-control-color w-100" />
-                  </div>
-                  <div class="col-md-5 d-flex align-items-end gap-4 pb-1">
-                    <div class="form-check form-switch mb-0">
-                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.announcement_bar.scrolling" id="announceScrollToggle" />
-                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="announceScrollToggle">Texte défilant (Marquee)</label>
-                    </div>
-                    <div class="form-check form-switch mb-0">
-                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.announcement_bar.dismissible" id="announceDismissToggle" />
-                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="announceDismissToggle">Bouton fermer</label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 1.11 Recherche Instantanée & Palette de Commande Ctrl + K -->
-              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                  <div>
-                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                      <i class="bi bi-command text-info"></i> Recherche Instantanée &amp; Palette de Commande (<code>Ctrl + K</code>)
-                    </h4>
-                    <p class="text-muted small mb-0">
-                      Offrez aux recruteurs et clients une barre de recherche rapide façon Notion/Linear pour explorer vos projets, compétences et actions.
-                    </p>
-                  </div>
-                  <div class="form-check form-switch mb-0">
-                    <input
-                      class="form-check-input cursor-pointer"
-                      type="checkbox"
-                      v-model="portfolioForm.portfolio_layout.command_palette.enabled"
-                      id="commandPaletteToggle"
-                    />
-                    <label class="form-check-label small fw-bold cursor-pointer" for="commandPaletteToggle">
-                      {{ portfolioForm.portfolio_layout.command_palette.enabled ? 'Activée' : 'Désactivée' }}
-                    </label>
-                  </div>
-                </div>
-
-                <div v-if="portfolioForm.portfolio_layout.command_palette.enabled" class="row g-3 mt-1">
-                  <div class="col-md-4">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.command_palette.show_in_navbar" id="cmdNavbarToggle" />
-                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="cmdNavbarToggle">Bouton loupe dans la barre de navigation</label>
-                    </div>
-                  </div>
-                  <div class="col-md-4">
-                    <div class="form-check form-switch">
-                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.command_palette.shortcut_hint" id="cmdHintToggle" />
-                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="cmdHintToggle">Afficher le badge raccourci <code>Ctrl+K</code></label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 1.12 Personnalisation Avancée du Bandeau KPI -->
-              <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
-                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                  <div>
-                    <h4 class="h6 fw-bold text-dark mb-1 d-flex align-items-center gap-2">
-                      <i class="bi bi-speedometer2 text-success"></i> Personnalisation Avancée du Bandeau KPI
-                    </h4>
-                    <p class="text-muted small mb-0">
-                      Modifiez vos chiffres clés, leurs couleurs, icônes et le style visuel du bandeau KPI affiché sous l'en-tête.
-                    </p>
-                  </div>
-                  <button type="button" @click="addKpiStatItem" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold">
-                    + Ajouter un KPI
-                  </button>
-                </div>
-
-                <div class="row g-3 mb-3">
-                  <div class="col-md-6">
-                    <label class="form-label extra-small fw-bold text-dark mb-1">Style du bandeau KPI</label>
-                    <select v-model="portfolioForm.portfolio_layout.kpi_stats_design.style" class="form-select form-select-sm rounded-3">
-                      <option value="ribbon">Ruban unifié (Classique)</option>
-                      <option value="floating_cards">Cartes flottantes séparées</option>
-                      <option value="neon_circles">Cercles &amp; badges lumineux</option>
-                      <option value="minimal">Épuré minimaliste</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6 d-flex align-items-end pb-1">
-                    <div class="form-check form-switch mb-0">
-                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.kpi_stats_design.animate_counters" id="kpiAnimToggle" />
-                      <label class="form-check-label extra-small fw-bold cursor-pointer" for="kpiAnimToggle">Animer les compteurs au chargement</label>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="d-flex flex-column gap-2">
-                  <div v-for="(kpi, kIdx) in portfolioForm.portfolio_layout.kpi_stats" :key="kIdx" class="p-3 rounded-4 border bg-light row g-2 align-items-center mx-0">
-                    <div class="col-md-2">
-                      <label class="form-label extra-small fw-bold mb-1">Valeur</label>
-                      <input type="text" v-model="kpi.value" class="form-control form-control-sm" placeholder="+5 ans" />
-                    </div>
-                    <div class="col-md-4">
-                      <label class="form-label extra-small fw-bold mb-1">Libellé</label>
-                      <input type="text" v-model="kpi.label" class="form-control form-control-sm" placeholder="Expérience Tech" />
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label extra-small fw-bold mb-1">Icône Bootstrap</label>
-                      <input type="text" v-model="kpi.icon" class="form-control form-control-sm font-monospace" placeholder="bi-award-fill" />
-                    </div>
-                    <div class="col-md-2">
-                      <label class="form-label extra-small fw-bold mb-1">Couleur</label>
-                      <input type="color" v-model="kpi.color" class="form-control form-control-color w-100" />
-                    </div>
-                    <div class="col-md-1 text-end pt-3">
-                      <button type="button" @click="removeKpiStatItem(kIdx)" class="btn btn-sm btn-link text-danger" title="Supprimer">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <!-- 1.13 Personnalisation Export PDF / Impression CV A4 -->
@@ -5420,20 +5332,60 @@
                   </div>
                 </div>
 
-                <!-- KPIs Editor -->
+                <!-- KPIs Editor (Regroupé : Design + Contenu au même endroit) -->
                 <div class="p-3 rounded-4 border bg-light mb-4">
-                  <div class="d-flex align-items-center justify-content-between mb-2">
-                    <strong class="small text-dark"><i class="bi bi-bar-chart-line-fill text-success me-1"></i> Bandeau des 4 Chiffres Clés (KPIs sous le Hero)</strong>
-                    <div class="form-check form-switch mb-0">
-                      <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.kpi_stats.enabled" id="kpiContentToggle" />
+                  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <strong class="small text-dark"><i class="bi bi-bar-chart-line-fill text-success me-1"></i> Bandeau des Chiffres Clés (KPIs — Style &amp; Contenu)</strong>
+                    <div class="d-flex align-items-center gap-2">
+                      <button type="button" @click="addKpiStatItem" class="btn btn-xs btn-outline-success rounded-pill px-3 fw-bold extra-small">
+                        + Ajouter un KPI
+                      </button>
+                      <div class="form-check form-switch mb-0">
+                        <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.kpi_stats.enabled" id="kpiContentToggle" />
+                      </div>
                     </div>
                   </div>
-                  <div v-if="portfolioForm.portfolio_layout.kpi_stats.enabled" class="row g-2">
-                    <div v-for="(kpi, kIdx) in portfolioForm.portfolio_layout.kpi_stats.items" :key="kIdx" class="col-6 col-md-3">
-                      <div class="p-2 rounded-3 bg-white border">
-                        <label class="form-label extra-small fw-bold text-muted mb-1">Chiffre #{{ kIdx + 1 }}</label>
-                        <input type="text" v-model="kpi.value" class="form-control form-control-sm fw-bold mb-1" placeholder="ex: +25 ou 100%" />
-                        <input type="text" v-model="kpi.label" class="form-control form-control-sm extra-small" placeholder="ex: Projets livrés" />
+                  <div v-if="portfolioForm.portfolio_layout.kpi_stats.enabled">
+                    <div class="row g-2 mb-3 p-2 rounded-3 bg-white border mx-0">
+                      <div class="col-md-6">
+                        <label class="form-label extra-small fw-bold text-dark mb-1">Style du bandeau KPI</label>
+                        <select v-model="portfolioForm.portfolio_layout.kpi_stats_design.style" class="form-select form-select-sm rounded-3">
+                          <option value="ribbon">Ruban unifié (Classique)</option>
+                          <option value="floating_cards">Cartes flottantes séparées</option>
+                          <option value="neon_circles">Cercles &amp; badges lumineux</option>
+                          <option value="minimal">Épuré minimaliste</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6 d-flex align-items-end pb-1">
+                        <div class="form-check form-switch mb-0">
+                          <input class="form-check-input cursor-pointer" type="checkbox" v-model="portfolioForm.portfolio_layout.kpi_stats_design.animate_counters" id="kpiAnimToggle" />
+                          <label class="form-check-label extra-small fw-bold cursor-pointer" for="kpiAnimToggle">Animer les compteurs au chargement</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="d-flex flex-column gap-2">
+                      <div v-for="(kpi, kIdx) in portfolioForm.portfolio_layout.kpi_stats.items" :key="kIdx" class="p-2 rounded-3 bg-white border row g-2 align-items-center mx-0">
+                        <div class="col-md-2">
+                          <label class="form-label extra-small fw-bold mb-1">Valeur</label>
+                          <input type="text" v-model="kpi.value" class="form-control form-control-sm fw-bold" placeholder="+25" />
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label extra-small fw-bold mb-1">Libellé</label>
+                          <input type="text" v-model="kpi.label" class="form-control form-control-sm" placeholder="Projets livrés" />
+                        </div>
+                        <div class="col-md-3">
+                          <label class="form-label extra-small fw-bold mb-1">Icône Bootstrap</label>
+                          <input type="text" v-model="kpi.icon" class="form-control form-control-sm font-monospace" placeholder="bi-award-fill" />
+                        </div>
+                        <div class="col-md-2">
+                          <label class="form-label extra-small fw-bold mb-1">Couleur</label>
+                          <input type="color" v-model="kpi.color" class="form-control form-control-color w-100" />
+                        </div>
+                        <div class="col-md-1 text-end pt-3">
+                          <button type="button" @click="removeKpiStatItem(kIdx)" class="btn btn-sm btn-link text-danger" title="Supprimer">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -9915,6 +9867,11 @@ const portfolioForm = ref({
       cta_text: 'Me contacter'
     },
     block_models: initialUserLayout.block_models ? JSON.parse(JSON.stringify(initialUserLayout.block_models)) : {},
+    hero_design: initialUserLayout.hero_design ? {
+      image_url: initialUserLayout.hero_design.image_url || ''
+    } : {
+      image_url: ''
+    },
     about_design: initialUserLayout.about_design ? {
       title: initialUserLayout.about_design.title || 'À propos de moi',
       subtitle: initialUserLayout.about_design.subtitle || '',
@@ -12164,12 +12121,15 @@ function getLatencyBadgeClass(ms) {
 // Helpers for 10 New Portfolio Customization Options
 // =========================================================================
 
-// Option 9: KPI Stats
+// Option 9: KPI Stats (Unified with kpi_stats.items)
 function addKpiStatItem() {
-  if (!Array.isArray(portfolioForm.value.portfolio_layout.kpi_stats)) {
-    portfolioForm.value.portfolio_layout.kpi_stats = []
+  if (!portfolioForm.value.portfolio_layout.kpi_stats || Array.isArray(portfolioForm.value.portfolio_layout.kpi_stats)) {
+    portfolioForm.value.portfolio_layout.kpi_stats = { enabled: true, items: [] }
   }
-  portfolioForm.value.portfolio_layout.kpi_stats.push({
+  if (!Array.isArray(portfolioForm.value.portfolio_layout.kpi_stats.items)) {
+    portfolioForm.value.portfolio_layout.kpi_stats.items = []
+  }
+  portfolioForm.value.portfolio_layout.kpi_stats.items.push({
     value: '+10',
     label: 'Nouvel indicateur',
     icon: 'bi-star-fill',
@@ -12177,7 +12137,7 @@ function addKpiStatItem() {
   })
 }
 function removeKpiStatItem(idx) {
-  portfolioForm.value.portfolio_layout.kpi_stats?.splice(idx, 1)
+  portfolioForm.value.portfolio_layout.kpi_stats?.items?.splice(idx, 1)
 }
 
 // Option 4: Quote Calculator
