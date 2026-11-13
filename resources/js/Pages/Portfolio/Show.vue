@@ -4576,9 +4576,7 @@ const blankCanvasConfig = computed(() => {
   }
 })
 
-const isBlankCanvasMode = computed(() => {
-  return currentStructure.value === 'blank_canvas' || Boolean(blankCanvasConfig.value.enabled)
-})
+const isBlankCanvasMode = computed(() => false)
 
 const blankCanvasWidgets = computed(() => {
   const list = blankCanvasConfig.value.widgets
