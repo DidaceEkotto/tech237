@@ -5,6 +5,7 @@ import SpacingControl from '../Controls/SpacingControl.vue';
 import ColorGradientControl from '../Controls/ColorGradientControl.vue';
 import TypographyControl from '../Controls/TypographyControl.vue';
 import EmojiPickerControl from '../Controls/EmojiPickerControl.vue';
+import ModuleExtraInspector from './ModuleExtraInspector.vue';
 import {
     HERO_TEMPLATES,
     NAVBAR_TEMPLATES,
@@ -16,6 +17,10 @@ import {
     PRICING_TEMPLATES,
     VIMEO_TEMPLATES,
     CV_TEMPLATES,
+    COUNTER_TEMPLATES,
+    TESTIMONIAL_TEMPLATES,
+    PARALLAX_TEMPLATES,
+    FAQ_TEMPLATES,
     uid,
 } from '@/Composables/PortfolioBuilder/moduleRegistry';
 import { TEXT_ANIMATIONS, IMAGE_ANIMATIONS } from '@/Composables/PortfolioBuilder/fontsAndAnimations';
@@ -47,6 +52,10 @@ const templateOptions = computed(() => {
     if (t === 'pricing') return PRICING_TEMPLATES;
     if (t === 'vimeo') return VIMEO_TEMPLATES;
     if (t === 'cv_builder') return CV_TEMPLATES;
+    if (t === 'counter_kpi') return COUNTER_TEMPLATES;
+    if (t === 'testimonials') return TESTIMONIAL_TEMPLATES;
+    if (t === 'parallax') return PARALLAX_TEMPLATES;
+    if (t === 'faq_accordion') return FAQ_TEMPLATES;
     return [];
 });
 
@@ -312,15 +321,39 @@ function importTech237ProjectsToCv() {
                             </div>
                         </template>
 
-                        <!-- PRICING -->
+                        <!-- PRICING (Unlimited plans & options) -->
                         <template v-else-if="selectedNodeData.node.type === 'pricing'">
                             <label class="form-label small fw-semibold">Titre</label>
                             <input v-model="selectedNodeData.node.content.title" type="text" class="form-control form-control-sm mb-2" @input="notify" />
-                            <div v-for="p in selectedNodeData.node.content.plans" :key="p.id" class="p-2 border rounded-3 mb-2 bg-light">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="small fw-bold">Offres ({{ (selectedNodeData.node.content.plans || []).length }})</span>
+                                <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-0" style="font-size:11px;" @click="selectedNodeData.node.content.plans.push({ id: uid('plan'), name: 'Nouvelle Offre', price: '250 000 FCFA', period: '/ projet', features: ['Option 1', 'Option 2'], highlighted: false, badgeText: '', badgeColor: '#4f46e5', ctaLabel: 'Choisir', ctaUrl: '#contact' }); notify();">+ Offre</button>
+                            </div>
+                            <div v-for="(p, pi) in selectedNodeData.node.content.plans" :key="p.id" class="p-2 border rounded-3 mb-2 bg-light">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <strong class="small">Offre #{{ pi + 1 }}</strong>
+                                    <button type="button" class="btn btn-link btn-sm text-danger p-0" @click="selectedNodeData.node.content.plans.splice(pi, 1); notify();"><i class="bi bi-trash"></i></button>
+                                </div>
                                 <input v-model="p.name" type="text" class="form-control form-control-sm mb-1" placeholder="Nom offre" @input="notify" />
-                                <input v-model="p.price" type="text" class="form-control form-control-sm mb-1" placeholder="Prix" @input="notify" />
+                                <div class="row g-1 mb-1">
+                                    <div class="col-7"><input v-model="p.price" type="text" class="form-control form-control-sm" placeholder="Prix" @input="notify" /></div>
+                                    <div class="col-5"><input v-model="p.period" type="text" class="form-control form-control-sm" placeholder="/ mois" @input="notify" /></div>
+                                </div>
                                 <input v-model="p.badgeText" type="text" class="form-control form-control-sm mb-1" placeholder="Badge (ex: Offre Principale)" @input="notify" />
                                 <ColorGradientControl v-model="p.badgeColor" label="Couleur badge" :allow-gradient="false" @update:modelValue="notify" />
+                                <label class="d-block small mb-1"><input v-model="p.highlighted" type="checkbox" class="form-check-input me-1" @change="notify" /> Mettre en avant</label>
+                                <div class="row g-1 mb-2">
+                                    <div class="col-6"><input v-model="p.ctaLabel" type="text" class="form-control form-control-sm" placeholder="Texte CTA" @input="notify" /></div>
+                                    <div class="col-6"><input v-model="p.ctaUrl" type="text" class="form-control form-control-sm" placeholder="Lien CTA" @input="notify" /></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small fw-semibold">Options incluses</span>
+                                    <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" style="font-size:10px;" @click="if(!p.features) p.features = []; p.features.push('Nouvelle option'); notify();">+ Option</button>
+                                </div>
+                                <div v-for="(feat, fi) in (p.features || [])" :key="fi" class="d-flex gap-1 mb-1">
+                                    <input v-model="p.features[fi]" type="text" class="form-control form-control-sm" @input="notify" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @click="p.features.splice(fi, 1); notify();"><i class="bi bi-x"></i></button>
+                                </div>
                             </div>
                         </template>
 
@@ -415,15 +448,20 @@ function importTech237ProjectsToCv() {
 
                         <!-- PAGE LOADER -->
                         <template v-else-if="selectedNodeData.node.type === 'page_loader'">
+                            <label class="form-label small fw-semibold">Texte affiché à l'écran</label>
+                            <input v-model="selectedNodeData.node.content.text" type="text" class="form-control form-control-sm mb-2" placeholder="Chargement en cours..." @input="notify" />
                             <label class="form-label small fw-semibold">Animation</label>
                             <select v-model="selectedNodeData.node.content.animation" class="form-select form-select-sm mb-2" @change="notify">
                                 <option value="spinner">Spinner Rotatif</option>
                                 <option value="pulse">Logo Pulsant</option>
                                 <option value="progress_bar">Barre de progression</option>
                                 <option value="dots">Points rebondissants</option>
+                                <option value="curtain">Rideau élégant</option>
                             </select>
                             <label class="form-label small fw-semibold">Durée (ms)</label>
                             <input v-model.number="selectedNodeData.node.content.durationMs" type="number" min="300" max="5000" step="100" class="form-control form-control-sm mb-2" @input="notify" />
+                            <ColorGradientControl v-model="selectedNodeData.node.content.bgColor" label="Fond écran" :allow-gradient="false" @update:modelValue="notify" />
+                            <ColorGradientControl v-model="selectedNodeData.node.content.textColor" label="Couleur texte" :allow-gradient="false" @update:modelValue="notify" />
                             <label class="form-label small fw-semibold">Logo</label>
                             <div class="input-group input-group-sm">
                                 <input v-model="selectedNodeData.node.content.logoUrl" type="text" class="form-control" @input="notify" />
@@ -481,28 +519,85 @@ function importTech237ProjectsToCv() {
                             </div>
                         </template>
 
-                        <!-- HEADING / TEXT / IMAGE / BUTTON / OTHERS -->
+                        <!-- HEADING (H1-H6 + Directional Arrows) -->
                         <template v-else-if="selectedNodeData.node.type === 'heading'">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label small fw-semibold mb-0">Texte</label>
                                 <EmojiPickerControl @pick="(e) => appendEmoji(selectedNodeData.node.content, 'text', e)" />
                             </div>
                             <input v-model="selectedNodeData.node.content.text" type="text" class="form-control form-control-sm mb-2" @input="notify" />
-                            <select v-model="selectedNodeData.node.content.tag" class="form-select form-select-sm" @change="notify">
-                                <option value="h1">H1</option>
-                                <option value="h2">H2</option>
-                                <option value="h3">H3</option>
-                            </select>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-semibold">Niveau</label>
+                                    <select v-model="selectedNodeData.node.content.tag" class="form-select form-select-sm" @change="notify">
+                                        <option value="h1">H1</option>
+                                        <option value="h2">H2</option>
+                                        <option value="h3">H3</option>
+                                        <option value="h4">H4</option>
+                                        <option value="h5">H5</option>
+                                        <option value="h6">H6</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-semibold">Alignement</label>
+                                    <select v-model="selectedNodeData.node.content.align" class="form-select form-select-sm" @change="notify">
+                                        <option value="left">Gauche</option>
+                                        <option value="center">Centré</option>
+                                        <option value="right">Droite</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="p-2 border rounded-3 bg-light text-center">
+                                <div class="small fw-semibold mb-1">Déplacer le titre ({{ selectedNodeData.node.content.offsetX || 0 }}px, {{ selectedNodeData.node.content.offsetY || 0 }}px)</div>
+                                <div class="d-flex justify-content-center gap-1 mb-1">
+                                    <button type="button" class="btn btn-xs btn-outline-dark" title="Haut" @click="selectedNodeData.node.content.offsetY = (selectedNodeData.node.content.offsetY || 0) - 8; notify();"><i class="bi bi-arrow-up"></i></button>
+                                </div>
+                                <div class="d-flex justify-content-center gap-1 mb-1">
+                                    <button type="button" class="btn btn-xs btn-outline-dark" title="Gauche" @click="selectedNodeData.node.content.offsetX = (selectedNodeData.node.content.offsetX || 0) - 8; notify();"><i class="bi bi-arrow-left"></i></button>
+                                    <button type="button" class="btn btn-xs btn-outline-secondary" title="Réinitialiser" @click="selectedNodeData.node.content.offsetX = 0; selectedNodeData.node.content.offsetY = 0; notify();"><i class="bi bi-bullseye"></i></button>
+                                    <button type="button" class="btn btn-xs btn-outline-dark" title="Droite" @click="selectedNodeData.node.content.offsetX = (selectedNodeData.node.content.offsetX || 0) + 8; notify();"><i class="bi bi-arrow-right"></i></button>
+                                </div>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <button type="button" class="btn btn-xs btn-outline-dark" title="Bas" @click="selectedNodeData.node.content.offsetY = (selectedNodeData.node.content.offsetY || 0) + 8; notify();"><i class="bi bi-arrow-down"></i></button>
+                                </div>
+                            </div>
                         </template>
 
+                        <!-- TEXT (Positioning & Alignment) -->
                         <template v-else-if="selectedNodeData.node.type === 'text'">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label small fw-semibold mb-0">Paragraphe</label>
                                 <EmojiPickerControl @pick="(e) => appendEmoji(selectedNodeData.node.content, 'text', e)" />
                             </div>
-                            <textarea v-model="selectedNodeData.node.content.text" rows="5" class="form-control form-control-sm" @input="notify"></textarea>
+                            <textarea v-model="selectedNodeData.node.content.text" rows="4" class="form-control form-control-sm mb-2" @input="notify"></textarea>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small fw-semibold">Alignement</label>
+                                    <select v-model="selectedNodeData.node.content.align" class="form-select form-select-sm" @change="notify">
+                                        <option value="left">Gauche</option>
+                                        <option value="center">Centré</option>
+                                        <option value="right">Droite</option>
+                                        <option value="justify">Justifié</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-semibold">Largeur max</label>
+                                    <input v-model="selectedNodeData.node.content.maxWidth" type="text" class="form-control form-control-sm" placeholder="ex: 600px" @input="notify" />
+                                </div>
+                            </div>
+                            <div class="row g-1">
+                                <div class="col-6">
+                                    <label class="form-label small fw-semibold">Décalage X (px)</label>
+                                    <input v-model.number="selectedNodeData.node.content.offsetX" type="number" step="4" class="form-control form-control-sm" @input="notify" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-semibold">Décalage Y (px)</label>
+                                    <input v-model.number="selectedNodeData.node.content.offsetY" type="number" step="4" class="form-control form-control-sm" @input="notify" />
+                                </div>
+                            </div>
                         </template>
 
+                        <!-- IMAGE (Gradient, Filters, Millimeter Overlays) -->
                         <template v-else-if="selectedNodeData.node.type === 'image'">
                             <label class="form-label small fw-semibold">Image</label>
                             <div class="input-group input-group-sm mb-2">
@@ -510,14 +605,64 @@ function importTech237ProjectsToCv() {
                                 <button type="button" class="btn btn-outline-primary" @click="emit('pick-media', (url) => { selectedNodeData.node.content.url = url; notify(); })"><i class="bi bi-images"></i></button>
                             </div>
                             <label class="form-label small fw-semibold">Position / Cadrage</label>
-                            <select v-model="selectedNodeData.node.content.imagePosition" class="form-select form-select-sm" @change="notify">
+                            <select v-model="selectedNodeData.node.content.imagePosition" class="form-select form-select-sm mb-2" @change="notify">
                                 <option value="center center">Centre</option>
                                 <option value="top center">Haut</option>
                                 <option value="bottom center">Bas</option>
                                 <option value="left center">Gauche</option>
                                 <option value="right center">Droite</option>
                             </select>
+
+                            <div class="border rounded-3 p-2 mb-2 bg-light">
+                                <label class="d-block small fw-bold mb-1">
+                                    <input v-model="selectedNodeData.node.content.gradientEnabled" type="checkbox" class="form-check-input me-1" @change="notify" />
+                                    Voile Dégradé sur l'image
+                                </label>
+                                <template v-if="selectedNodeData.node.content.gradientEnabled">
+                                    <div class="row g-1 mb-1">
+                                        <div class="col-6"><input v-model="selectedNodeData.node.content.gradientColor1" type="color" class="form-control form-control-color form-control-sm w-100" @input="notify" /></div>
+                                        <div class="col-6"><input v-model="selectedNodeData.node.content.gradientColor2" type="color" class="form-control form-control-color form-control-sm w-100" @input="notify" /></div>
+                                    </div>
+                                    <select v-model="selectedNodeData.node.content.gradientDirection" class="form-select form-select-sm mb-1" @change="notify">
+                                        <option value="135deg">Diagonal 135°</option>
+                                        <option value="to right">Gauche → Droite</option>
+                                        <option value="to bottom">Haut → Bas</option>
+                                        <option value="45deg">Diagonal 45°</option>
+                                        <option value="to top">Bas → Haut</option>
+                                    </select>
+                                    <label class="small">Opacité : {{ Math.round((selectedNodeData.node.content.gradientOpacity ?? 0.45) * 100) }}%</label>
+                                    <input v-model.number="selectedNodeData.node.content.gradientOpacity" type="range" min="0" max="1" step="0.05" class="form-range" @input="notify" />
+                                </template>
+                            </div>
+
+                            <div class="border rounded-3 p-2 mb-2 bg-light">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small fw-bold">Textes superposés (mm près)</span>
+                                    <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-0" style="font-size:10px;" @click="if(!selectedNodeData.node.content.overlays) selectedNodeData.node.content.overlays = []; selectedNodeData.node.content.overlays.push({ id: uid('ov'), text: 'Texte sur image', x: 50, y: 50, color: '#ffffff', bgColor: 'rgba(15,23,42,0.55)', fontSize: 18, borderRadius: 8 }); notify();">+ Texte</button>
+                                </div>
+                                <div v-for="(ov, ovi) in (selectedNodeData.node.content.overlays || [])" :key="ov.id" class="p-1 border-top mt-1 small">
+                                    <input v-model="ov.text" type="text" class="form-control form-control-sm mb-1" @input="notify" />
+                                    <div class="row g-1 mb-1">
+                                        <div class="col-4"><input v-model.number="ov.x" type="number" min="0" max="100" step="1" class="form-control form-control-sm" title="X (%)" @input="notify" /></div>
+                                        <div class="col-4"><input v-model.number="ov.y" type="number" min="0" max="100" step="1" class="form-control form-control-sm" title="Y (%)" @input="notify" /></div>
+                                        <div class="col-4"><input v-model.number="ov.fontSize" type="number" min="10" max="60" class="form-control form-control-sm" title="Taille" @input="notify" /></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <input v-model="ov.color" type="color" class="form-control form-control-color form-control-sm" @input="notify" />
+                                        <button type="button" class="btn btn-link btn-sm text-danger p-0" @click="selectedNodeData.node.content.overlays.splice(ovi, 1); notify();">Supprimer</button>
+                                    </div>
+                                </div>
+                            </div>
                         </template>
+
+                        <!-- EXTRA & CREATIVE MODULES INSPECTOR -->
+                        <ModuleExtraInspector
+                            v-else-if="['about', 'button', 'video', 'vimeo', 'counter_kpi', 'faq_accordion', 'testimonials', 'back_to_top', 'parallax', 'map_embed', 'nested_section', 'bento_grid', 'before_after', 'countdown', 'progress_bars', 'marquee_ticker', 'tabs_content'].includes(selectedNodeData.node.type)"
+                            :node="selectedNodeData.node"
+                            :section-targets="sectionTargets"
+                            @change="notify"
+                            @pick-media="(cb) => emit('pick-media', cb)"
+                        />
 
                         <template v-else>
                             <div class="small text-muted">Personnalisez les styles, polices, animations et CSS dans les onglets <strong>Design</strong> et <strong>Avancé</strong>.</div>

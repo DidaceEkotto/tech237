@@ -5467,7 +5467,7 @@ const shareUrl = computed(() => {
   if (typeof window !== 'undefined') {
     return window.location.origin + '/@' + props.portfolioUser.username
   }
-  return 'https://tech237.net/@' + props.portfolioUser.username
+  return 'https://tech237.com/@' + props.portfolioUser.username
 })
 
 const seoTitle = computed(() => {

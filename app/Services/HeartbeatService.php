@@ -44,7 +44,7 @@ class HeartbeatService
         try {
             $response = Http::timeout($timeout)
                 ->withHeaders([
-                    'User-Agent' => 'Tech237-Heartbeat-Bot/1.0 (+https://tech237.net/heartbeat)',
+                    'User-Agent' => 'Tech237-Heartbeat-Bot/1.0 (+https://tech237.com/heartbeat)',
                     'Accept' => '*/*',
                 ])
                 ->withoutVerifying() // Avoid failing on dev self-signed SSL certificates

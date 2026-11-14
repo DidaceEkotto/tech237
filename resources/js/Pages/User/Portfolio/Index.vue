@@ -241,7 +241,6 @@ async function deleteSite(site) {
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item small" :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/export?format=html`">HTML / CSS / JS + Images</a></li>
                                         <li><a class="dropdown-item small" :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/export?format=php`">PHP + SQLite + Mini Admin</a></li>
-                                        <li><a class="dropdown-item small" :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/export?format=laravel`">Laravel + SQLite Starter</a></li>
                                     </ul>
                                 </div>
                                 <div class="d-flex gap-1">

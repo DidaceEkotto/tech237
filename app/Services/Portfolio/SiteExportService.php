@@ -36,7 +36,7 @@ class SiteExportService
                 $filename = $page->is_homepage ? 'html/index.html' : 'html/' . Str::slug($page->slug) . '.html';
                 $zip->addFromString($filename, $this->buildHtmlPage($site, $page, '../'));
             }
-        } elseif ($format === 'php') {
+        } else {
             $zip->addFromString('public/css/style.css', $css);
             $zip->addFromString('public/js/app.js', $js);
             foreach ($images as $name => $absPath) {
@@ -49,21 +49,6 @@ class SiteExportService
             $zip->addFromString('public/index.php', $this->buildPhpEntry($site));
             $zip->addFromString('admin/index.php', $this->buildPhpAdmin($site));
             $zip->addFromString('README.md', "# {$site->name} (Export PHP + SQLite)\n\nLancez `php -S localhost:8000 -t public` pour démarrer.");
-        } else {
-            // Laravel + SQLite starter
-            $zip->addFromString('public/css/style.css', $css);
-            $zip->addFromString('public/js/app.js', $js);
-            foreach ($images as $name => $absPath) {
-                $zip->addFile($absPath, 'public/images/' . $name);
-            }
-            $sqlitePath = $this->buildSqliteDb($site, $tmpDir);
-            if ($sqlitePath && file_exists($sqlitePath)) {
-                $zip->addFile($sqlitePath, 'database/database.sqlite');
-            }
-            $zip->addFromString('routes/web.php', "<?php\n\nuse Illuminate\\Support\\Facades\\Route;\nuse App\\Http\\Controllers\\SiteController;\n\nRoute::get('/', [SiteController::class, 'home']);\nRoute::get('/admin', [SiteController::class, 'admin']);\nRoute::get('/{slug}', [SiteController::class, 'page']);\n");
-            $zip->addFromString('app/Http/Controllers/SiteController.php', $this->buildLaravelController());
-            $zip->addFromString('resources/views/site.blade.php', $this->buildHtmlPage($site, $site->pages->first(), '/'));
-            $zip->addFromString('README.md', "# {$site->name} (Export Laravel + SQLite)\n\nCopiez ces fichiers dans un projet Laravel 11/12/13 avec `DB_CONNECTION=sqlite`.");
         }
 
         if (!$zip->close() || !file_exists($zipPath)) {
@@ -261,38 +246,6 @@ PHP;
 <h5>Messages reçus (<?= count(\$messages) ?>)</h5>
 <ul class="list-group"><?php foreach (\$messages as \$m): ?><li class="list-group-item"><strong><?= htmlspecialchars(\$m['name']) ?></strong>: <?= htmlspecialchars(\$m['message']) ?></li><?php endforeach; ?></ul>
 </div></body></html>
-PHP;
-    }
-
-    private function buildLaravelController(): string
-    {
-        return <<<'PHP'
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Support\Facades\DB;
-
-class SiteController extends Controller
-{
-    public function home()
-    {
-        $page = DB::table('pages')->first();
-        return response($page?->html ?? '<h1>Accueil</h1>');
-    }
-
-    public function page(string $slug)
-    {
-        $page = DB::table('pages')->where('slug', $slug)->firstOrFail();
-        return response($page->html);
-    }
-
-    public function admin()
-    {
-        $pages = DB::table('pages')->select('id', 'slug', 'title')->get();
-        return response()->json(['pages' => $pages]);
-    }
-}
 PHP;
     }
 }

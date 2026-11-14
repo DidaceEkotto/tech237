@@ -1567,7 +1567,7 @@ class DashboardController extends Controller
         if ($isSupport) {
             // Send notification to admin team
             try {
-                $adminEmail = config('mail.from.address') ?: 'admin@tech237.net';
+                $adminEmail = config('mail.from.address') ?: 'admin@tech237.com';
                 Mail::send('emails.new_message_notification', [
                     'recipient' => (object)['name' => 'Support & Administration Tech237'],
                     'sender' => $sender,

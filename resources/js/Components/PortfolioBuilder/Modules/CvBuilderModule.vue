@@ -14,7 +14,7 @@ const exporting = ref(false);
 
 const shareUrl = computed(() => {
     const uname = props.portfolioUser?.username || 'profil';
-    return `tech237.net/@${uname}`;
+    return `tech237.com/@${uname}`;
 });
 
 const groupedSkills = computed(() => {

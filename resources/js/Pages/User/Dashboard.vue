@@ -6711,7 +6711,7 @@ const portfolioShareUrl = computed(() => {
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/@${pseudo}`
   }
-  return `https://tech237.net/@${pseudo}`
+  return `https://tech237.com/@${pseudo}`
 })
 
 const whatsappPortfolioShareUrl = computed(() => {
@@ -7405,7 +7405,7 @@ const activeBadgeMonitor = ref(null)
 const historyModalOpen = ref(false)
 const activeHistoryMonitor = ref(null)
 const isTestingAlertId = ref(null)
-const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tech237.net'
+const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://tech237.com'
 
 const monitorForm = ref({
   id: null,

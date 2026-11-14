@@ -52,20 +52,30 @@ export function useBuilderState(initialTree) {
         selected.value = null;
     }
 
+    function searchRows(rows, kind, id, section) {
+        for (const row of rows || []) {
+            if (kind === 'row' && row.id === id) return { kind, node: row, section };
+            for (const col of row.columns || []) {
+                if (kind === 'column' && col.id === id) return { kind, node: col, row, section };
+                for (const mod of col.modules || []) {
+                    if (kind === 'module' && mod.id === id) return { kind, node: mod, column: col, row, section };
+                    if (mod.type === 'nested_section' && Array.isArray(mod.content?.rows)) {
+                        const nested = searchRows(mod.content.rows, kind, id, section);
+                        if (nested) return nested;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     const selectedNodeData = computed(() => {
         if (!selected.value) return null;
         const { kind, id } = selected.value;
         for (const sec of tree.value.sections) {
             if (kind === 'section' && sec.id === id) return { kind, node: sec };
-            for (const row of sec.rows || []) {
-                if (kind === 'row' && row.id === id) return { kind, node: row, section: sec };
-                for (const col of row.columns || []) {
-                    if (kind === 'column' && col.id === id) return { kind, node: col, row, section: sec };
-                    for (const mod of col.modules || []) {
-                        if (kind === 'module' && mod.id === id) return { kind, node: mod, column: col, row, section: sec };
-                    }
-                }
-            }
+            const found = searchRows(sec.rows, kind, id, sec);
+            if (found) return found;
         }
         return null;
     });
@@ -128,92 +138,112 @@ export function useBuilderState(initialTree) {
         commitChange();
     }
 
-    function addModuleToColumn(columnId, moduleType, atIndex = null) {
-        const mod = createModule(moduleType);
-        for (const sec of tree.value.sections) {
-            for (const row of sec.rows || []) {
-                for (const col of row.columns || []) {
-                    if (col.id === columnId) {
-                        if (atIndex === null) {
-                            col.modules.push(mod);
-                        } else {
-                            col.modules.splice(atIndex, 0, mod);
-                        }
-                        selectNode('module', mod.id);
-                        commitChange();
-                        return mod;
+    function walkColumns(rows, cb) {
+        for (const row of rows || []) {
+            for (const col of row.columns || []) {
+                if (cb(col, row) === true) return true;
+                for (const mod of col.modules || []) {
+                    if (mod.type === 'nested_section' && Array.isArray(mod.content?.rows)) {
+                        if (walkColumns(mod.content.rows, cb) === true) return true;
                     }
                 }
             }
+        }
+        return false;
+    }
+
+    function addModuleToColumn(columnId, moduleType, atIndex = null) {
+        const mod = createModule(moduleType);
+        let added = null;
+        for (const sec of tree.value.sections) {
+            walkColumns(sec.rows, (col) => {
+                if (col.id === columnId) {
+                    if (atIndex === null) {
+                        col.modules.push(mod);
+                    } else {
+                        col.modules.splice(atIndex, 0, mod);
+                    }
+                    selectNode('module', mod.id);
+                    commitChange();
+                    added = mod;
+                    return true;
+                }
+                return false;
+            });
+            if (added) return added;
         }
         return null;
     }
 
     function duplicateModule(moduleId) {
         for (const sec of tree.value.sections) {
-            for (const row of sec.rows || []) {
-                for (const col of row.columns || []) {
-                    const idx = col.modules.findIndex((m) => m.id === moduleId);
-                    if (idx !== -1) {
-                        const copy = cloneWithNewIds(col.modules[idx]);
-                        col.modules.splice(idx + 1, 0, copy);
-                        selectNode('module', copy.id);
-                        commitChange();
-                        return;
-                    }
+            let done = false;
+            walkColumns(sec.rows, (col) => {
+                const idx = col.modules.findIndex((m) => m.id === moduleId);
+                if (idx !== -1) {
+                    const copy = cloneWithNewIds(col.modules[idx]);
+                    col.modules.splice(idx + 1, 0, copy);
+                    selectNode('module', copy.id);
+                    commitChange();
+                    done = true;
+                    return true;
                 }
-            }
+                return false;
+            });
+            if (done) return;
         }
     }
 
     function deleteModule(moduleId) {
         for (const sec of tree.value.sections) {
-            for (const row of sec.rows || []) {
-                for (const col of row.columns || []) {
-                    const before = col.modules.length;
-                    col.modules = col.modules.filter((m) => m.id !== moduleId);
-                    if (col.modules.length !== before) {
-                        if (selected.value?.id === moduleId) selected.value = null;
-                        commitChange();
-                        return;
-                    }
+            let done = false;
+            walkColumns(sec.rows, (col) => {
+                const before = col.modules.length;
+                col.modules = col.modules.filter((m) => m.id !== moduleId);
+                if (col.modules.length !== before) {
+                    if (selected.value?.id === moduleId) selected.value = null;
+                    commitChange();
+                    done = true;
+                    return true;
                 }
-            }
+                return false;
+            });
+            if (done) return;
         }
     }
 
     function moveModule(moduleId, targetColumnId, targetIndex = null) {
         let extracted = null;
         for (const sec of tree.value.sections) {
-            for (const row of sec.rows || []) {
-                for (const col of row.columns || []) {
-                    const idx = col.modules.findIndex((m) => m.id === moduleId);
-                    if (idx !== -1) {
-                        [extracted] = col.modules.splice(idx, 1);
-                        break;
-                    }
+            walkColumns(sec.rows, (col) => {
+                const idx = col.modules.findIndex((m) => m.id === moduleId);
+                if (idx !== -1) {
+                    [extracted] = col.modules.splice(idx, 1);
+                    return true;
                 }
-                if (extracted) break;
-            }
+                return false;
+            });
             if (extracted) break;
         }
         if (!extracted) return;
 
         for (const sec of tree.value.sections) {
-            for (const row of sec.rows || []) {
-                for (const col of row.columns || []) {
-                    if (col.id === targetColumnId) {
-                        if (targetIndex === null || targetIndex > col.modules.length) {
-                            col.modules.push(extracted);
-                        } else {
-                            col.modules.splice(Math.max(0, targetIndex), 0, extracted);
-                        }
-                        selectNode('module', extracted.id);
-                        commitChange();
-                        return;
+            let placed = false;
+            walkColumns(sec.rows, (col) => {
+                if (col.id === targetColumnId) {
+                    if (targetIndex === null || targetIndex > col.modules.length) {
+                        col.modules.push(extracted);
+                    } else {
+                        col.modules.splice(Math.max(0, targetIndex), 0, extracted);
                     }
+                    selectNode('module', extracted.id);
+                    commitChange();
+                    placed = true;
+                    return true;
                 }
-            }
+                return false;
+            });
+            if (placed) return;
         }
     }
 

@@ -289,7 +289,7 @@ function addModuleFromPrompt(moduleType) {
 
         <div class="d-flex flex-grow-1 overflow-hidden">
             <LeftSidebar
-                v-show="showLeftSidebar"
+                v-if="showLeftSidebar"
                 :tree="builder.tree.value"
                 :pages="localPages"
                 :active-page="currentPage"
@@ -332,7 +332,7 @@ function addModuleFromPrompt(moduleType) {
             />
 
             <RightInspector
-                v-show="showRightInspector"
+                v-if="showRightInspector"
                 :selected-node-data="builder.selectedNodeData.value"
                 :viewport="viewport"
                 :tree="builder.tree.value"

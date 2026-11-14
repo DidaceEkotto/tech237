@@ -210,7 +210,7 @@ class PortfolioSiteController extends Controller
     {
         Gate::authorize('view', $site);
 
-        $format = in_array($request->query('format'), ['html', 'php', 'laravel'], true)
+        $format = in_array($request->query('format'), ['html', 'php'], true)
             ? $request->query('format')
             : 'html';
 

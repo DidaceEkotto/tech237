@@ -26,7 +26,7 @@ const initials = computed(() => {
         :class="isDark ? 'bg-dark text-white border-secondary' : 'bg-white text-dark'"
     >
         <div class="row align-items-center g-4">
-            <div class="col-md-5 text-center" v-if="tpl !== 'quote_editorial'">
+            <div class="col-md-5 text-center" v-if="content.showImage !== false">
                 <img
                     v-if="content.imageUrl"
                     :src="content.imageUrl"
@@ -44,16 +44,25 @@ const initials = computed(() => {
                 </div>
             </div>
 
-            <div :class="tpl === 'quote_editorial' ? 'col-12 text-center' : 'col-md-7'">
-                <div v-if="content.eyebrow" class="text-uppercase fw-bold small text-primary mb-2">
+            <div :class="content.showImage === false ? 'col-12' : 'col-md-7'">
+                <div v-if="content.showEyebrow !== false && content.eyebrow" class="text-uppercase fw-bold small text-primary mb-2">
                     {{ content.eyebrow }}
                 </div>
-                <h2 class="fw-bold mb-3">{{ content.title }}</h2>
-                <p class="mb-4" :class="isDark ? 'text-light opacity-75' : 'text-secondary'">
+                <h2 v-if="content.showTitle !== false && content.title" class="fw-bold mb-3">{{ content.title }}</h2>
+                <p v-if="content.showBio !== false && content.bio" class="mb-4" :class="isDark ? 'text-light opacity-75' : 'text-secondary'">
                     {{ content.bio }}
                 </p>
 
-                <div v-if="content.highlights && content.highlights.length" class="d-flex flex-wrap gap-2" :class="{ 'justify-content-center': tpl === 'quote_editorial' }">
+                <div v-if="tpl === 'stats_bio' && content.stats?.length" class="row g-2 mb-4">
+                    <div v-for="st in content.stats" :key="st.id" class="col-4">
+                        <div class="p-2 rounded-3 text-center" :class="isDark ? 'bg-secondary bg-opacity-25' : 'bg-light'">
+                            <div class="fw-bold fs-5 text-primary">{{ st.value }}</div>
+                            <div class="small" :class="isDark ? 'text-light opacity-75' : 'text-muted'">{{ st.label }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="content.showHighlights !== false && content.highlights && content.highlights.length" class="d-flex flex-wrap gap-2 mb-3">
                     <span
                         v-for="(item, idx) in content.highlights"
                         :key="idx"
@@ -62,6 +71,17 @@ const initials = computed(() => {
                     >
                         <i class="bi bi-check-circle-fill text-success me-1"></i>{{ item }}
                     </span>
+                </div>
+
+                <div v-if="content.showCta && content.ctaLabel" class="mt-3">
+                    <a
+                        :href="content.ctaUrl || '#contact'"
+                        :target="/^https?:\/\//i.test(content.ctaUrl || '') ? '_blank' : undefined"
+                        :rel="/^https?:\/\//i.test(content.ctaUrl || '') ? 'noopener noreferrer' : undefined"
+                        class="btn btn-primary rounded-pill px-4 fw-semibold"
+                    >
+                        {{ content.ctaLabel }}
+                    </a>
                 </div>
             </div>
         </div>

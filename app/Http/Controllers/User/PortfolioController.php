@@ -348,7 +348,7 @@ class PortfolioController extends Controller
                     "Message :\n{$body}\n\n" .
                     "--------------------------------------------------\n" .
                     "Vous pouvez répondre directement en écrivant à {$senderEmail}.\n" .
-                    "L'équipe Tech237 - https://tech237.net",
+                    "L'équipe Tech237 - https://tech237.com",
                     function ($m) use ($portfolioOwner, $senderEmail, $senderFullName, $subject) {
                         $m->to($portfolioOwner->email, $portfolioOwner->name)
                           ->replyTo($senderEmail, $senderFullName)
@@ -371,7 +371,7 @@ class PortfolioController extends Controller
                 "{$portfolioOwner->name} prendra contact avec vous à l'adresse {$senderEmail}.\n\n" .
                 "Cordialement,\n" .
                 "L'équipe Tech237 • Là où les idées deviennent des projets au Cameroun\n" .
-                "https://tech237.net",
+                "https://tech237.com",
                 function ($m) use ($senderEmail, $senderFullName, $portfolioOwner) {
                     $m->to($senderEmail, $senderFullName)
                       ->subject("Accusé de réception : Votre message à {$portfolioOwner->name} a été envoyé • Tech237");

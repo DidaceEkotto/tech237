@@ -34,11 +34,17 @@ const emit = defineEmits([
 ]);
 
 const sectionStyle = computed(() => resolveResponsiveStyles(props.section.styles, props.viewport));
+const scopedCustomCss = computed(() => {
+    const raw = (props.section.advanced?.customCss || '').trim();
+    if (!raw) return '';
+    const targetId = props.section.advanced?.customId || `pb-sec-${props.section.id}`;
+    return `#${targetId} { ${raw} }`;
+});
 </script>
 
 <template>
     <section
-        :id="section.advanced?.customId || undefined"
+        :id="section.advanced?.customId || `pb-sec-${section.id}`"
         class="position-relative"
         :class="[
             section.advanced?.cssClass || '',
@@ -47,15 +53,10 @@ const sectionStyle = computed(() => resolveResponsiveStyles(props.section.styles
                 'pb-selected-section': isEditor && selectedId === section.id,
             }
         ]"
-        :style="{
-            backgroundColor: sectionStyle.backgroundColor,
-            paddingTop: sectionStyle.paddingTop,
-            paddingBottom: sectionStyle.paddingBottom,
-            paddingLeft: sectionStyle.paddingLeft,
-            paddingRight: sectionStyle.paddingRight,
-        }"
+        :style="sectionStyle"
         @click.stop="isEditor && emit('select', 'section', section.id)"
     >
+        <component v-if="scopedCustomCss" :is="'style'">{{ scopedCustomCss }}</component>
         <!-- Section Toolbar -->
         <div
             v-if="isEditor"

@@ -102,7 +102,7 @@
         <tr>
             <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 20px; text-align: center; font-size: 12px; color: #64748b;">
                 Tech237 &bull; Plateforme de valorisation des créateurs de technologies au Cameroun<br>
-                <a href="{{ url('/') }}" style="color: #00A859; text-decoration: none; font-weight: 600;">tech237.net</a>
+                <a href="{{ url('/') }}" style="color: #00A859; text-decoration: none; font-weight: 600;">tech237.com</a>
             </td>
         </tr>
     </table>

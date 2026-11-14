@@ -1,11 +1,14 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { onMediaPlayOther } from '@/Composables/PortfolioBuilder/useMediaPlaybackBus';
 
 const props = defineProps({
     content: { type: Object, required: true },
 });
 
+const rootEl = ref(null);
 const activeIndex = ref(0);
+const instanceId = `yt_${Math.random().toString(36).slice(2, 9)}`;
 const tpl = computed(() => props.content.template || 'theater_wide');
 const videos = computed(() => props.content.videos || []);
 
@@ -23,15 +26,44 @@ function toEmbedUrl(rawUrl) {
         } else if (u.pathname.includes('/shorts/')) {
             videoId = u.pathname.split('/shorts/')[1]?.split('/')[0] || '';
         }
-        return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
+        return videoId ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0` : '';
     } catch {
         return '';
     }
 }
+
+function onIframeLoad(e) {
+    try {
+        e.target.contentWindow?.postMessage(JSON.stringify({ event: 'listening', id: e.target.getAttribute('data-pb-media-id') }), '*');
+    } catch {
+        // ignore cross-origin restrictions
+    }
+}
+
+let stopListen = null;
+onMounted(() => {
+    stopListen = onMediaPlayOther((playingMediaId) => {
+        if (!rootEl.value) return;
+        const frames = rootEl.value.querySelectorAll('iframe[data-pb-media-id]');
+        frames.forEach((frame) => {
+            if (frame.getAttribute('data-pb-media-id') !== playingMediaId) {
+                try {
+                    frame.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+                } catch {
+                    // ignore
+                }
+            }
+        });
+    });
+});
+onUnmounted(() => {
+    if (stopListen) stopListen();
+});
 </script>
 
 <template>
     <div
+        ref="rootEl"
         class="pb-video rounded-4 p-3"
         :class="{ 'bg-dark text-white p-4': tpl === 'dark_cinema' }"
     >
@@ -49,8 +81,10 @@ function toEmbedUrl(rawUrl) {
                     <iframe
                         v-if="toEmbedUrl(videos[activeIndex]?.youtubeUrl)"
                         :src="toEmbedUrl(videos[activeIndex]?.youtubeUrl)"
+                        :data-pb-media-id="`${instanceId}_main`"
                         allowfullscreen
                         class="border-0"
+                        @load="onIframeLoad"
                     ></iframe>
                 </div>
             </div>
@@ -80,7 +114,14 @@ function toEmbedUrl(rawUrl) {
             >
                 <div class="rounded-4 overflow-hidden border bg-white text-dark shadow-sm">
                     <div :class="tpl === 'reel_vertical' ? 'ratio ratio-9x16' : 'ratio ratio-16x9'">
-                        <iframe v-if="toEmbedUrl(v.youtubeUrl)" :src="toEmbedUrl(v.youtubeUrl)" allowfullscreen class="border-0"></iframe>
+                        <iframe
+                            v-if="toEmbedUrl(v.youtubeUrl)"
+                            :src="toEmbedUrl(v.youtubeUrl)"
+                            :data-pb-media-id="`${instanceId}_${v.id}`"
+                            allowfullscreen
+                            class="border-0"
+                            @load="onIframeLoad"
+                        ></iframe>
                     </div>
                     <div class="p-2 px-3 fw-semibold small">{{ v.title }}</div>
                 </div>
@@ -93,8 +134,10 @@ function toEmbedUrl(rawUrl) {
                 <iframe
                     v-if="toEmbedUrl(videos[0]?.youtubeUrl)"
                     :src="toEmbedUrl(videos[0]?.youtubeUrl)"
+                    :data-pb-media-id="`${instanceId}_single`"
                     allowfullscreen
                     class="border-0"
+                    @load="onIframeLoad"
                 ></iframe>
             </div>
         </div>

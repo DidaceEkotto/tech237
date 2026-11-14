@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import apiClient from '@/Composables/PortfolioBuilder/apiClient';
+import { onMediaPlayOther } from '@/Composables/PortfolioBuilder/useMediaPlaybackBus';
 
 const props = defineProps({
     module: { type: Object, required: true },
@@ -8,9 +9,32 @@ const props = defineProps({
     siteStats: { type: Object, default: () => ({ views_count: 0, unique_visitors_count: 0 }) },
 });
 
+const rootEl = ref(null);
+const instanceId = `vm_${Math.random().toString(36).slice(2, 9)}`;
 const c = computed(() => props.module.content || {});
 const githubRepos = ref([]);
 const loadingGithub = ref(false);
+
+let stopMediaBus = null;
+onMounted(() => {
+    loadGithub();
+    stopMediaBus = onMediaPlayOther((playingMediaId) => {
+        if (!rootEl.value) return;
+        const frames = rootEl.value.querySelectorAll('iframe[data-pb-media-id]');
+        frames.forEach((frame) => {
+            if (frame.getAttribute('data-pb-media-id') !== playingMediaId) {
+                try {
+                    frame.contentWindow?.postMessage(JSON.stringify({ method: 'pause' }), '*');
+                } catch {
+                    // ignore
+                }
+            }
+        });
+    });
+});
+onUnmounted(() => {
+    if (stopMediaBus) stopMediaBus();
+});
 
 async function loadGithub() {
     if (props.module.type !== 'github_projects' || !c.value.username) return;
@@ -25,13 +49,24 @@ async function loadGithub() {
     }
 }
 
-onMounted(loadGithub);
 watch(() => [c.value.username, c.value.maxItems], loadGithub);
 
-function toVimeoEmbed(url) {
-    if (!url) return '';
-    const m = url.match(/vimeo\.com\/(\d+)/);
-    return m ? `https://player.vimeo.com/video/${m[1]}` : '';
+function toVimeoEmbed(urlOrId) {
+    if (!urlOrId) return '';
+    const trimmed = String(urlOrId).trim();
+    if (/^\d+$/.test(trimmed)) {
+        return `https://player.vimeo.com/video/${trimmed}?api=1`;
+    }
+    const m = trimmed.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    return m ? `https://player.vimeo.com/video/${m[1]}?api=1` : '';
+}
+
+function onVimeoLoad(e) {
+    try {
+        e.target.contentWindow?.postMessage(JSON.stringify({ method: 'addEventListener', value: 'play' }), '*');
+    } catch {
+        // ignore
+    }
 }
 
 function whatsappHref() {
@@ -101,12 +136,19 @@ function shareUrl(platform) {
     </div>
 
     <!-- Vimeo -->
-    <div v-else-if="module.type === 'vimeo'" class="rounded-4 p-3" :class="{ 'bg-dark text-white p-4': c.template === 'dark_cinema' }">
+    <div v-else-if="module.type === 'vimeo'" ref="rootEl" class="rounded-4 p-3" :class="{ 'bg-dark text-white p-4': c.template === 'dark_cinema' }">
         <h3 v-if="c.title" class="fw-bold mb-3">{{ c.title }}</h3>
         <div class="row g-3">
             <div v-for="v in (c.videos || [])" :key="v.id" :class="c.template === 'grid_2_col' ? 'col-md-6' : 'col-12'">
                 <div class="ratio ratio-16x9 rounded-4 overflow-hidden shadow">
-                    <iframe v-if="toVimeoEmbed(v.vimeoUrl)" :src="toVimeoEmbed(v.vimeoUrl)" allowfullscreen class="border-0"></iframe>
+                    <iframe
+                        v-if="toVimeoEmbed(v.vimeoUrl)"
+                        :src="toVimeoEmbed(v.vimeoUrl)"
+                        :data-pb-media-id="`${instanceId}_${v.id}`"
+                        allowfullscreen
+                        class="border-0"
+                        @load="onVimeoLoad"
+                    ></iframe>
                 </div>
                 <div class="fw-semibold small mt-2">{{ v.title }}</div>
             </div>
@@ -155,12 +197,28 @@ function shareUrl(platform) {
     <div v-else-if="module.type === 'back_to_top'">
         <button
             type="button"
-            class="btn rounded-pill px-3 py-2 shadow fw-semibold border-0"
-            :class="{ 'position-fixed bottom-0 end-0 m-4': c.floating && !isEditor }"
-            :style="{ backgroundColor: c.bgColor || '#4f46e5', color: c.textColor || '#ffffff', zIndex: 1040 }"
+            class="btn fw-semibold border-0 d-inline-flex align-items-center justify-content-center gap-1"
+            :class="[
+                c.shape === 'circle' ? 'rounded-circle' : (c.shape === 'square' ? 'rounded-3' : 'rounded-pill'),
+                c.size === 'sm' ? 'btn-sm px-2 py-1' : (c.size === 'lg' ? 'btn-lg px-4 py-3' : 'px-3 py-2'),
+                c.shadow !== false ? 'shadow' : '',
+                c.pulseAnimation ? 'pb-btt-pulse' : '',
+                c.floating && !isEditor ? (
+                    c.position === 'bottom-left' ? 'position-fixed bottom-0 start-0 m-4' :
+                    (c.position === 'bottom-center' ? 'position-fixed bottom-0 start-50 translate-middle-x mb-4' : 'position-fixed bottom-0 end-0 m-4')
+                ) : '',
+            ]"
+            :style="{
+                backgroundColor: c.bgColor || '#4f46e5',
+                color: c.textColor || '#ffffff',
+                width: c.shape === 'circle' && !c.showLabel ? (c.size === 'lg' ? '52px' : (c.size === 'sm' ? '36px' : '44px')) : undefined,
+                height: c.shape === 'circle' && !c.showLabel ? (c.size === 'lg' ? '52px' : (c.size === 'sm' ? '36px' : '44px')) : undefined,
+                zIndex: 1040,
+            }"
             @click="scrollToTop"
         >
-            <i class="bi me-1" :class="c.icon || 'bi-arrow-up'"></i>{{ c.label || 'Haut' }}
+            <i class="bi" :class="c.icon || 'bi-arrow-up'"></i>
+            <span v-if="c.showLabel !== false && c.label">{{ c.label }}</span>
         </button>
     </div>
 
@@ -202,24 +260,56 @@ function shareUrl(platform) {
     </footer>
 
     <!-- Parallax -->
-    <div
+    <component
+        :is="(!isEditor && c.redirectUrl) ? 'a' : 'div'"
         v-else-if="module.type === 'parallax'"
-        class="position-relative rounded-4 overflow-hidden d-flex align-items-center justify-content-center text-center text-white p-4"
+        :href="(!isEditor && c.redirectUrl) ? c.redirectUrl : undefined"
+        :target="(!isEditor && c.redirectUrl && c.openInNewTab) ? '_blank' : undefined"
+        :rel="(!isEditor && c.redirectUrl && c.openInNewTab) ? 'noopener noreferrer' : undefined"
+        class="position-relative rounded-4 overflow-hidden d-flex align-items-center text-white p-4 text-decoration-none"
+        :class="c.template === 'split_card' ? 'justify-content-start' : 'justify-content-center text-center'"
         :style="{
             minHeight: (c.minHeightPx || 360) + 'px',
             backgroundImage: `url(${c.imageUrl})`,
-            backgroundAttachment: isEditor ? 'scroll' : 'fixed',
+            backgroundAttachment: (isEditor || c.fixedBg === false) ? 'scroll' : 'fixed',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
         }"
     >
-        <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark" :style="{ opacity: c.overlayOpacity ?? 0.55 }"></div>
-        <div class="position-relative" style="z-index: 2; max-width: 680px;">
-            <h2 class="display-6 fw-bold mb-2">{{ c.title }}</h2>
-            <p class="lead opacity-75 mb-3">{{ c.subtitle }}</p>
-            <a v-if="c.ctaLabel" :href="isEditor ? 'javascript:void(0)' : c.ctaUrl" class="btn btn-light rounded-pill px-4 fw-semibold">
+        <div
+            class="position-absolute top-0 start-0 w-100 h-100"
+            :style="{ backgroundColor: c.overlayColor || '#0f172a', opacity: c.overlayOpacity ?? 0.55 }"
+        ></div>
+        <div
+            v-if="c.showText !== false"
+            class="position-relative"
+            :class="{
+                'p-4 rounded-4 bg-white bg-opacity-10 border border-white border-opacity-25': c.template === 'glass_center',
+                'p-4 rounded-4 bg-dark bg-opacity-75': c.template === 'split_card',
+            }"
+            style="z-index: 2; max-width: 680px; backdrop-filter: blur(6px);"
+        >
+            <h2 v-if="c.title" class="display-6 fw-bold mb-2">{{ c.title }}</h2>
+            <p v-if="c.subtitle" class="lead opacity-75 mb-3">{{ c.subtitle }}</p>
+            <a
+                v-if="c.showCta !== false && c.ctaLabel && !c.redirectUrl"
+                :href="isEditor ? 'javascript:void(0)' : (c.ctaUrl || '#contact')"
+                :target="(!isEditor && /^https?:\/\//i.test(c.ctaUrl || '')) ? '_blank' : undefined"
+                :rel="(!isEditor && /^https?:\/\//i.test(c.ctaUrl || '')) ? 'noopener noreferrer' : undefined"
+                class="btn btn-light rounded-pill px-4 fw-semibold"
+            >
                 {{ c.ctaLabel }}
             </a>
         </div>
-    </div>
+    </component>
 </template>
+
+<style scoped>
+.pb-btt-pulse {
+    animation: pbBttPulse 2s infinite;
+}
+@keyframes pbBttPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
+}
+</style>

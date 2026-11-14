@@ -81,12 +81,19 @@ function onDrop(e) {
                 :module="mod"
                 :viewport="viewport"
                 :is-editor="isEditor"
+                :selected-id="selectedId"
                 :portfolio-user="portfolioUser"
                 :pages="pages"
                 :active-page-slug="activePageSlug"
                 :site-type="siteType"
                 :site-stats="siteStats"
                 :hydrated-data="hydratedData"
+                @select="(k, id) => emit('select', k, id)"
+                @add-module-prompt="(colId) => emit('add-module-prompt', colId)"
+                @duplicate-module="(id) => emit('duplicate-module', id)"
+                @delete-module="(id) => emit('delete-module', id)"
+                @drop-module="(payload) => emit('drop-module', payload)"
+                @drag-start-module="(id) => emit('drag-start-module', id)"
             />
         </div>
 
