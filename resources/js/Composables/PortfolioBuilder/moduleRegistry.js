@@ -158,6 +158,36 @@ export const TECH237_DYNAMIC_TEMPLATES = [
     { id: 'glass_cards', label: 'Glassmorphism', icon: 'bi-layers' },
 ];
 
+export const SOCIAL_SHARE_TEMPLATES = [
+    { id: 'pill_modern', label: 'Pilules Modernes' },
+    { id: 'circle_brand', label: 'Cercles Couleurs Marque' },
+    { id: 'square_minimal', label: 'Carrés Minimalistes' },
+    { id: 'glass_floating', label: 'Verre Flottant' },
+    { id: 'dark_bar', label: 'Barre Sombre Premium' },
+    { id: 'outline_clean', label: 'Contours Épurés' },
+];
+
+export const DEFAULT_SOCIAL_SHARE_PLATFORMS = [
+    { id: 'sp_wa', key: 'whatsapp', label: 'WhatsApp', icon: 'bi-whatsapp', color: '#16a34a', enabled: true },
+    { id: 'sp_li', key: 'linkedin', label: 'LinkedIn', icon: 'bi-linkedin', color: '#0a66c2', enabled: true },
+    { id: 'sp_tw', key: 'twitter', label: 'X / Twitter', icon: 'bi-twitter-x', color: '#0f172a', enabled: true },
+    { id: 'sp_fb', key: 'facebook', label: 'Facebook', icon: 'bi-facebook', color: '#1877f2', enabled: true },
+    { id: 'sp_tg', key: 'telegram', label: 'Telegram', icon: 'bi-telegram', color: '#0088cc', enabled: false },
+    { id: 'sp_em', key: 'email', label: 'Email', icon: 'bi-envelope-fill', color: '#ea580c', enabled: false },
+    { id: 'sp_cp', key: 'copy', label: 'Copier le lien', icon: 'bi-link-45deg', color: '#64748b', enabled: true },
+];
+
+export function normalizeSocialSharePlatforms(platforms) {
+    if (!Array.isArray(platforms) || !platforms.length) {
+        return DEFAULT_SOCIAL_SHARE_PLATFORMS.map((p) => ({ ...p }));
+    }
+    if (typeof platforms[0] === 'string') {
+        const enabledSet = new Set(platforms);
+        return DEFAULT_SOCIAL_SHARE_PLATFORMS.map((p) => ({ ...p, enabled: enabledSet.has(p.key) }));
+    }
+    return platforms;
+}
+
 export const MODULE_CATALOG = [
     {
         type: 'navbar_accordion',
@@ -688,11 +718,20 @@ export const MODULE_CATALOG = [
         label: 'Partage Réseaux',
         category: 'interactif',
         icon: 'bi-share-fill',
-        description: 'Boutons de partage placés en ligne ou en barre flottante (haut/gauche/droite).',
+        description: 'Boutons de partage personnalisables (modèles, couleurs, icônes, textes) en ligne ou barre flottante.',
         defaultContent: {
-            position: 'inline', // inline | top | left | right
+            template: 'pill_modern',
+            position: 'inline', // inline | left | right
             title: 'Partager cette page',
-            platforms: ['whatsapp', 'linkedin', 'twitter', 'facebook', 'copy'],
+            showTitle: true,
+            showLabels: false,
+            bgColor: '#ffffff',
+            textColor: '#0f172a',
+            accentColor: '#4f46e5',
+            borderRadius: '16px',
+            buttonSize: 'md', // sm | md | lg
+            useBrandColors: true,
+            platforms: DEFAULT_SOCIAL_SHARE_PLATFORMS.map((p) => ({ ...p })),
         },
         defaultStyles: { desktop: { paddingTop: '12px', paddingBottom: '12px' }, tablet: {}, mobile: {} },
     },

@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import apiClient from '@/Composables/PortfolioBuilder/apiClient';
 import { onMediaPlayOther } from '@/Composables/PortfolioBuilder/useMediaPlaybackBus';
+import { normalizeSocialSharePlatforms } from '@/Composables/PortfolioBuilder/moduleRegistry';
 
 const props = defineProps({
     module: { type: Object, required: true },
@@ -89,6 +90,38 @@ function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+const copiedShare = ref(false);
+
+const activeSocialPlatforms = computed(() =>
+    normalizeSocialSharePlatforms(c.value.platforms).filter((p) => p.enabled !== false)
+);
+
+const shareContainerStyle = computed(() => {
+    const tpl = c.value.template || 'pill_modern';
+    const isDark = tpl === 'dark_bar';
+    const isGlass = tpl === 'glass_floating';
+    return {
+        backgroundColor: isDark ? '#0f172a' : (isGlass ? 'rgba(255,255,255,0.75)' : (c.value.bgColor || '#ffffff')),
+        color: isDark ? '#f8fafc' : (c.value.textColor || '#0f172a'),
+        borderRadius: c.value.borderRadius || '16px',
+        backdropFilter: isGlass ? 'blur(12px)' : undefined,
+        zIndex: 1035,
+    };
+});
+
+function shareBtnStyle(platform) {
+    const tpl = c.value.template || 'pill_modern';
+    const color = c.value.useBrandColors !== false ? (platform.color || '#4f46e5') : (c.value.accentColor || '#4f46e5');
+    const isOutline = tpl === 'outline_clean';
+    const radius = tpl === 'circle_brand' ? '9999px' : (tpl === 'square_minimal' ? '6px' : '9999px');
+    return {
+        backgroundColor: isOutline ? 'transparent' : color,
+        color: isOutline ? color : '#ffffff',
+        border: isOutline ? `1.5px solid ${color}` : '1px solid transparent',
+        borderRadius: radius,
+    };
+}
+
 function shareUrl(platform) {
     const url = encodeURIComponent(window.location.href);
     const text = encodeURIComponent(document.title);
@@ -96,7 +129,13 @@ function shareUrl(platform) {
     if (platform === 'linkedin') window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
     if (platform === 'twitter') window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
     if (platform === 'facebook') window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank');
-    if (platform === 'copy') navigator.clipboard?.writeText(window.location.href);
+    if (platform === 'telegram') window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+    if (platform === 'email') window.location.href = `mailto:?subject=${text}&body=${url}`;
+    if (platform === 'copy') {
+        navigator.clipboard?.writeText(window.location.href);
+        copiedShare.value = true;
+        setTimeout(() => { copiedShare.value = false; }, 1800);
+    }
 }
 </script>
 
@@ -225,18 +264,31 @@ function shareUrl(platform) {
     <!-- Social Share -->
     <div
         v-else-if="module.type === 'social_share'"
-        class="p-2 rounded-4 border bg-white shadow-sm d-inline-flex align-items-center gap-2 flex-wrap"
+        class="p-2 px-3 border shadow-sm d-inline-flex align-items-center gap-2 flex-wrap"
         :class="{
             'position-fixed top-50 start-0 translate-middle-y ms-2 flex-column': c.position === 'left' && !isEditor,
             'position-fixed top-50 end-0 translate-middle-y me-2 flex-column': c.position === 'right' && !isEditor,
         }"
-        style="z-index: 1035;"
+        :style="shareContainerStyle"
     >
-        <span v-if="c.position === 'inline' && c.title" class="small fw-semibold me-1">{{ c.title }}</span>
-        <button type="button" class="btn btn-sm btn-success rounded-circle" title="WhatsApp" @click="shareUrl('whatsapp')"><i class="bi bi-whatsapp"></i></button>
-        <button type="button" class="btn btn-sm btn-primary rounded-circle" title="LinkedIn" @click="shareUrl('linkedin')"><i class="bi bi-linkedin"></i></button>
-        <button type="button" class="btn btn-sm btn-dark rounded-circle" title="X" @click="shareUrl('twitter')"><i class="bi bi-twitter-x"></i></button>
-        <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" title="Copier le lien" @click="shareUrl('copy')"><i class="bi bi-link-45deg"></i></button>
+        <span v-if="c.position === 'inline' && c.showTitle !== false && c.title" class="small fw-semibold me-1">
+            {{ c.title }}
+        </span>
+        <button
+            v-for="p in activeSocialPlatforms"
+            :key="p.id || p.key"
+            type="button"
+            class="btn fw-semibold d-inline-flex align-items-center justify-content-center gap-1"
+            :class="[
+                c.buttonSize === 'lg' ? 'btn-md px-3 py-2' : (c.buttonSize === 'sm' ? 'btn-xs px-2 py-1' : 'btn-sm px-2 py-1'),
+            ]"
+            :style="shareBtnStyle(p)"
+            :title="p.label"
+            @click="shareUrl(p.key)"
+        >
+            <i class="bi" :class="p.key === 'copy' && copiedShare ? 'bi-check2' : (p.icon || 'bi-share-fill')"></i>
+            <span v-if="c.showLabels" class="small">{{ p.key === 'copy' && copiedShare ? 'Copié !' : p.label }}</span>
+        </button>
     </div>
 
     <!-- Footer Pro -->

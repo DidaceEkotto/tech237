@@ -122,6 +122,12 @@ class PortfolioSiteController extends Controller
             return response()->json(['site' => $site->load('pages'), 'message' => 'Le site est déjà dans ce mode.']);
         }
 
+        if ($site->site_type === 'multipage' && $targetType === 'onepage') {
+            return response()->json([
+                'message' => 'Un site Multi-Pages ne peut pas être migré vers One-Page. Seule la migration One-Page vers Multi-Pages est autorisée.',
+            ], 422);
+        }
+
         $pages = $site->pages()->orderBy('sort_order')->get();
         $home = $pages->firstWhere('is_homepage', true) ?? $pages->first();
 

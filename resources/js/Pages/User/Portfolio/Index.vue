@@ -81,14 +81,17 @@ async function renameSite(site, newName) {
 }
 
 async function migrateType(site) {
-    const targetType = site.site_type === 'onepage' ? 'multipage' : 'onepage';
+    if (site.site_type !== 'onepage') {
+        showToast('Un site Multi-Pages ne peut pas être migré vers One-Page.');
+        return;
+    }
     try {
-        const res = await apiClient.post(`/espace-utilisateur/portfolio-builder/sites/${site.id}/migrate-type`, { target_type: targetType });
+        const res = await apiClient.post(`/espace-utilisateur/portfolio-builder/sites/${site.id}/migrate-type`, { target_type: 'multipage' });
         const idx = sites.value.findIndex((s) => s.id === site.id);
         if (idx !== -1) sites.value[idx] = res.data.site;
         showToast(res.data.message);
-    } catch {
-        showToast('Erreur lors de la migration.');
+    } catch (e) {
+        showToast(e.response?.data?.message || 'Erreur lors de la migration.');
     }
 }
 
@@ -267,8 +270,14 @@ async function deleteSite(site) {
                             <button type="button" class="btn btn-sm rounded-pill px-3" :class="site.is_published ? 'btn-outline-warning' : 'btn-outline-success'" @click="togglePublish(site)">
                                 {{ site.is_published ? 'Dépublier' : 'Publier' }}
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-info rounded-pill" title="Basculer One-Page / Multi-Pages en 1 clic" @click="migrateType(site)">
-                                <i class="bi bi-arrow-left-right me-1"></i>{{ site.site_type === 'onepage' ? '-> Multi' : '-> 1 Page' }}
+                            <button
+                                v-if="site.site_type === 'onepage'"
+                                type="button"
+                                class="btn btn-sm btn-outline-info rounded-pill"
+                                title="Migrer vers un site Multi-Pages en 1 clic"
+                                @click="migrateType(site)"
+                            >
+                                <i class="bi bi-arrow-right-circle me-1"></i>Migrer -> Multi-Pages
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-dark rounded-pill" title="Statistiques" @click="openStats(site)">
                                 <i class="bi bi-bar-chart-fill"></i>

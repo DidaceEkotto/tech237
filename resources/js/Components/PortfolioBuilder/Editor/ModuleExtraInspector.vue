@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import BootstrapIconPicker from '../Controls/BootstrapIconPicker.vue';
 import ColorGradientControl from '../Controls/ColorGradientControl.vue';
 import EmojiPickerControl from '../Controls/EmojiPickerControl.vue';
-import { uid, createRow } from '@/Composables/PortfolioBuilder/moduleRegistry';
+import { uid, createRow, normalizeSocialSharePlatforms } from '@/Composables/PortfolioBuilder/moduleRegistry';
 
 const props = defineProps({
     node: { type: Object, required: true },
@@ -533,6 +533,93 @@ function applyMapResult(r) {
             <label class="d-block"><input v-model="node.content.showImage" type="checkbox" class="form-check-input me-1" @change="notify" /> Afficher image / logo</label>
             <label class="d-block"><input v-model="node.content.showDescription" type="checkbox" class="form-check-input me-1" @change="notify" /> Afficher description</label>
             <label class="d-block"><input v-model="node.content.showBadge" type="checkbox" class="form-check-input me-1" @change="notify" /> Afficher badge</label>
+        </div>
+    </template>
+
+    <!-- SOCIAL SHARE -->
+    <template v-else-if="node.type === 'social_share'">
+        <label class="form-label small fw-semibold">Positionnement</label>
+        <select v-model="node.content.position" class="form-select form-select-sm mb-2" @change="notify">
+            <option value="inline">En ligne (dans la page)</option>
+            <option value="left">Barre flottante à gauche</option>
+            <option value="right">Barre flottante à droite</option>
+        </select>
+
+        <div class="border rounded-3 p-2 mb-2 bg-light small">
+            <label class="d-block mb-1"><input v-model="node.content.showTitle" type="checkbox" class="form-check-input me-1" @change="notify" /> Afficher le titre</label>
+            <label class="d-block mb-1"><input v-model="node.content.showLabels" type="checkbox" class="form-check-input me-1" @change="notify" /> Afficher les noms des réseaux</label>
+            <label class="d-block"><input v-model="node.content.useBrandColors" type="checkbox" class="form-check-input me-1" @change="notify" /> Utiliser les couleurs par réseau</label>
+        </div>
+
+        <label v-if="node.content.showTitle !== false" class="form-label small fw-semibold">Texte d'accroche</label>
+        <input v-if="node.content.showTitle !== false" v-model="node.content.title" type="text" class="form-control form-control-sm mb-2" placeholder="Partager cette page" @input="notify" />
+
+        <div class="row g-2 mb-2">
+            <div class="col-6">
+                <label class="form-label small fw-semibold">Taille boutons</label>
+                <select v-model="node.content.buttonSize" class="form-select form-select-sm" @change="notify">
+                    <option value="sm">Petit</option>
+                    <option value="md">Moyen</option>
+                    <option value="lg">Grand</option>
+                </select>
+            </div>
+            <div class="col-6">
+                <label class="form-label small fw-semibold">Arrondi</label>
+                <input v-model="node.content.borderRadius" type="text" class="form-control form-control-sm" placeholder="16px" @input="notify" />
+            </div>
+        </div>
+
+        <ColorGradientControl v-model="node.content.bgColor" label="Fond du conteneur" :allow-gradient="false" @update:modelValue="notify" />
+        <ColorGradientControl v-model="node.content.textColor" label="Couleur du texte" :allow-gradient="false" @update:modelValue="notify" />
+        <ColorGradientControl v-model="node.content.accentColor" label="Couleur d'accent (si uniforme)" :allow-gradient="false" @update:modelValue="notify" />
+
+        <div class="d-flex justify-content-between align-items-center mt-2 mb-1">
+            <span class="small fw-bold">Réseaux, Icônes &amp; Textes</span>
+            <button
+                v-if="!Array.isArray(node.content.platforms) || typeof node.content.platforms[0] === 'string'"
+                type="button"
+                class="btn btn-xs btn-primary rounded-pill px-2 py-0"
+                style="font-size: 11px;"
+                @click="node.content.platforms = normalizeSocialSharePlatforms(node.content.platforms); notify();"
+            >
+                Personnaliser
+            </button>
+        </div>
+
+        <div
+            v-for="p in (Array.isArray(node.content.platforms) && typeof node.content.platforms[0] === 'object' ? node.content.platforms : normalizeSocialSharePlatforms(node.content.platforms))"
+            :key="p.id || p.key"
+            class="p-2 border rounded-3 mb-2 bg-light"
+        >
+            <div class="d-flex align-items-center justify-content-between mb-1">
+                <label class="small fw-semibold mb-0">
+                    <input
+                        v-model="p.enabled"
+                        type="checkbox"
+                        class="form-check-input me-1"
+                        @change="if (typeof node.content.platforms?.[0] !== 'object') { node.content.platforms = normalizeSocialSharePlatforms(node.content.platforms); } notify();"
+                    />
+                    <i class="bi me-1" :class="p.icon"></i>{{ p.key }}
+                </label>
+                <input
+                    v-model="p.color"
+                    type="color"
+                    class="form-control form-control-color form-control-sm"
+                    title="Couleur du bouton"
+                    @input="if (typeof node.content.platforms?.[0] !== 'object') { node.content.platforms = normalizeSocialSharePlatforms(node.content.platforms); } notify();"
+                />
+            </div>
+            <input
+                v-model="p.label"
+                type="text"
+                class="form-control form-control-sm mb-1"
+                placeholder="Texte du bouton..."
+                @input="if (typeof node.content.platforms?.[0] !== 'object') { node.content.platforms = normalizeSocialSharePlatforms(node.content.platforms); } notify();"
+            />
+            <BootstrapIconPicker
+                v-model="p.icon"
+                @update:modelValue="if (typeof node.content.platforms?.[0] !== 'object') { node.content.platforms = normalizeSocialSharePlatforms(node.content.platforms); } notify();"
+            />
         </div>
     </template>
 </template>

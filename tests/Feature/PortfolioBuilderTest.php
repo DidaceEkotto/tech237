@@ -152,11 +152,23 @@ class PortfolioBuilderTest extends TestCase
             ->patchJson("/espace-utilisateur/portfolio-builder/sites/{$siteId}", ['name' => 'Agence 237 Pro'])
             ->assertOk();
 
-        // 1-click migrate to onepage
+        // Migrating multipage -> onepage must be blocked (422)
         $this->actingAs($user)
             ->postJson("/espace-utilisateur/portfolio-builder/sites/{$siteId}/migrate-type", ['target_type' => 'onepage'])
+            ->assertStatus(422);
+
+        // Creating a onepage site and migrating it to multipage succeeds (200)
+        $onePageResp = $this->actingAs($user)->postJson('/espace-utilisateur/portfolio-builder/sites', [
+            'name' => 'Landing 237',
+            'site_type' => 'onepage',
+        ]);
+        $onePageResp->assertCreated();
+        $onePageId = $onePageResp->json('site.id');
+
+        $this->actingAs($user)
+            ->postJson("/espace-utilisateur/portfolio-builder/sites/{$onePageId}/migrate-type", ['target_type' => 'multipage'])
             ->assertOk()
-            ->assertJsonPath('site.site_type', 'onepage');
+            ->assertJsonPath('site.site_type', 'multipage');
 
         // Publish -> name becomes locked
         $this->actingAs($user)->postJson("/espace-utilisateur/portfolio-builder/sites/{$siteId}/publish")->assertOk();

@@ -22,6 +22,7 @@ import {
     PARALLAX_TEMPLATES,
     FAQ_TEMPLATES,
     TECH237_DYNAMIC_TEMPLATES,
+    SOCIAL_SHARE_TEMPLATES,
     uid,
 } from '@/Composables/PortfolioBuilder/moduleRegistry';
 import { TEXT_ANIMATIONS, IMAGE_ANIMATIONS } from '@/Composables/PortfolioBuilder/fontsAndAnimations';
@@ -58,6 +59,7 @@ const templateOptions = computed(() => {
     if (t === 'parallax') return PARALLAX_TEMPLATES;
     if (t === 'faq_accordion') return FAQ_TEMPLATES;
     if (t === 'tech237_dynamic') return TECH237_DYNAMIC_TEMPLATES;
+    if (t === 'social_share') return SOCIAL_SHARE_TEMPLATES;
     return [];
 });
 
@@ -727,7 +729,7 @@ function importTech237ProjectsToCv() {
 
                         <!-- EXTRA & CREATIVE MODULES INSPECTOR -->
                         <ModuleExtraInspector
-                            v-else-if="['about', 'button', 'video', 'vimeo', 'counter_kpi', 'faq_accordion', 'testimonials', 'back_to_top', 'parallax', 'map_embed', 'nested_section', 'bento_grid', 'before_after', 'countdown', 'progress_bars', 'marquee_ticker', 'tabs_content', 'tech237_dynamic'].includes(selectedNodeData.node.type)"
+                            v-else-if="['about', 'button', 'video', 'vimeo', 'counter_kpi', 'faq_accordion', 'testimonials', 'back_to_top', 'parallax', 'map_embed', 'nested_section', 'bento_grid', 'before_after', 'countdown', 'progress_bars', 'marquee_ticker', 'tabs_content', 'tech237_dynamic', 'social_share'].includes(selectedNodeData.node.type)"
                             :node="selectedNodeData.node"
                             :section-targets="sectionTargets"
                             @change="notify"

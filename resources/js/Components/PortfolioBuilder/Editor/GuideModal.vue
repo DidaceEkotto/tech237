@@ -23,7 +23,7 @@ const emit = defineEmits(['close']);
                     <div class="p-3 rounded-3 bg-light border h-100">
                         <h6 class="fw-bold text-primary"><i class="bi bi-diagram-3 me-1"></i>1. One-Page vs Multi-Pages &amp; Migration</h6>
                         <p class="mb-0 text-secondary">
-                            Lors de la création d'un site, choisissez <strong>One-Page</strong> (tout sur une seule page avec ancres <code>#section</code>) ou <strong>Multi-Pages</strong> (plusieurs pages indépendantes). Vous pouvez basculer entre les deux modes en <strong>1 clic</strong> depuis votre tableau de bord.
+                            Lors de la création d'un site, choisissez <strong>One-Page</strong> (tout sur une seule page avec ancres <code>#section</code>) ou <strong>Multi-Pages</strong> (plusieurs pages indépendantes). Vous pouvez migrer un site <strong>One-Page vers Multi-Pages</strong> en 1 clic depuis votre tableau de bord (un site Multi-Pages reste en Multi-Pages).
                         </p>
                     </div>
                 </div>
@@ -45,25 +45,25 @@ const emit = defineEmits(['close']);
                 </div>
                 <div class="col-md-6">
                     <div class="p-3 rounded-3 bg-light border h-100">
-                        <h6 class="fw-bold text-primary"><i class="bi bi-file-earmark-person me-1"></i>4. CV Pro, Export PDF &amp; Carte LinkedIn</h6>
+                        <h6 class="fw-bold text-primary"><i class="bi bi-file-earmark-person me-1"></i>4. CV Pro, Export PDF &amp; Données Tech237</h6>
                         <p class="mb-0 text-secondary">
-                            Le module <strong>CV Pro</strong> propose 10 modèles, formations, projets, compétences catégorisées (Backend, Frontend, DevOps...) avec pourcentage, loisirs, un <strong>export PDF</strong> serveur et l'aperçu de la carte de partage WhatsApp/LinkedIn.
+                            Le module <strong>CV Pro</strong> propose 10 modèles, formations, travaux, compétences catégorisées, loisirs et un <strong>export PDF</strong> serveur. Le module <strong>Données Tech237 (Live)</strong> affiche en direct vos <strong>Projets</strong>, <strong>POCs</strong> ou <strong>Startups</strong> selon 6 modèles personnalisables.
                         </p>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="p-3 rounded-3 bg-light border h-100">
-                        <h6 class="fw-bold text-primary"><i class="bi bi-images me-1"></i>5. Médiathèque &amp; Retouche d'Image</h6>
+                        <h6 class="fw-bold text-primary"><i class="bi bi-share-fill me-1"></i>5. Partage Réseaux &amp; Médiathèque</h6>
                         <p class="mb-0 text-secondary">
-                            Cliquez sur l'icône <strong>sliders</strong> dans la médiathèque pour renommer, rogner (1:1, 16:9, 4:3), et appliquer des filtres (luminosité, contraste, noir &amp; blanc, sépia) directement sur vos images.
+                            Le module <strong>Partage Réseaux</strong> est 100% personnalisable : 6 modèles visuels, couleurs, icônes Bootstrap, textes, taille, position (en ligne ou barre flottante). Dans la médiathèque, cliquez sur l'icône <strong>sliders</strong> pour renommer, rogner et appliquer des filtres à vos images.
                         </p>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="p-3 rounded-3 bg-light border h-100">
-                        <h6 class="fw-bold text-primary"><i class="bi bi-file-zip me-1"></i>6. Export ZIP, Multi-Tenancy &amp; Stats</h6>
+                        <h6 class="fw-bold text-primary"><i class="bi bi-file-zip me-1"></i>6. Export ZIP, Sous-Domaine Multi-Tenant &amp; Stats</h6>
                         <p class="mb-0 text-secondary">
-                            Exportez votre site en <strong>HTML/CSS/JS</strong>, <strong>PHP + SQLite</strong> ou <strong>Laravel + SQLite</strong>. Une fois publié en mode multi-tenant (<code>/@username</code> ou <code>/site/slug</code>), le nom est verrouillé tant que le site reste en ligne, et vous disposez de statistiques détaillées de visites.
+                            Exportez votre site en <strong>HTML/CSS/JS</strong>, <strong>PHP + SQLite</strong> ou <strong>Laravel + SQLite</strong>. Une fois publié, votre site est accessible sur son sous-domaine dédié (ex. <code>mon-site.tech237.com</code> et <code>mon-site.tech237.com/page</code>) avec navigation fluide sans rechargement et statistiques de visites.
                         </p>
                     </div>
                 </div>
