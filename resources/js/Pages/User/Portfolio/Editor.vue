@@ -122,7 +122,11 @@ async function handlePublish() {
         localSite.value.is_published = true;
         showToast(res.data.message || 'Site publié en ligne !');
         if (localSite.value.slug && typeof window !== 'undefined') {
-            window.open(`/site/${localSite.value.slug}`, '_blank', 'noopener');
+            const { protocol, hostname, port } = window.location;
+            const url = (hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname))
+                ? `/site/${localSite.value.slug}`
+                : `${protocol}//${localSite.value.slug}.${hostname.replace(/^www\./, '')}${port ? ':' + port : ''}`;
+            window.open(url, '_blank', 'noopener');
         }
     } catch (e) {
         showToast(e.response?.data?.message || 'Erreur lors de la publication.');

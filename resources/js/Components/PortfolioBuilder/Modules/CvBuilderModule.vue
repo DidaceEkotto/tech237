@@ -12,11 +12,6 @@ const tpl = computed(() => props.content.template || 'modern_sidebar');
 const isDark = computed(() => tpl.value === 'tech_dark');
 const exporting = ref(false);
 
-const shareUrl = computed(() => {
-    const uname = props.portfolioUser?.username || 'profil';
-    return `tech237.com/@${uname}`;
-});
-
 const groupedSkills = computed(() => {
     const groups = {};
     (props.content.skills || []).forEach((s) => {
@@ -182,35 +177,6 @@ async function exportPdf() {
                         <span v-for="h in (content.hobbies || [])" :key="h.id" class="badge rounded-pill px-3 py-2 bg-light text-dark border">
                             <i v-if="h.icon" class="bi me-1 text-primary" :class="h.icon"></i>{{ h.label }}
                         </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- LinkedIn / WhatsApp Share Card Preview (matches user screenshot) -->
-            <div class="mt-4 pt-3 border-top">
-                <span class="badge bg-light text-secondary border rounded-pill px-3 py-1 mb-2">
-                    Aperçu de la carte WhatsApp / LinkedIn :
-                </span>
-                <div class="p-3 rounded-4 border bg-white text-dark d-flex align-items-center gap-3 shadow-sm">
-                    <img
-                        v-if="content.photoUrl"
-                        :src="content.photoUrl"
-                        alt="Avatar"
-                        class="rounded-circle object-fit-cover border"
-                        style="width: 52px; height: 52px;"
-                    />
-                    <span
-                        v-else
-                        class="rounded-circle d-inline-flex align-items-center justify-content-center fw-bold text-white"
-                        style="width: 52px; height: 52px;"
-                        :style="{ backgroundColor: content.accentColor || '#4f46e5' }"
-                    >
-                        {{ (content.fullName || 'P').slice(0, 2).toUpperCase() }}
-                    </span>
-                    <div class="lh-sm">
-                        <div class="fw-bold">{{ content.fullName }} • Portfolio Tech237</div>
-                        <div class="small text-secondary">{{ content.jobTitle }}</div>
-                        <div class="small fw-semibold text-success">{{ shareUrl }}</div>
                     </div>
                 </div>
             </div>

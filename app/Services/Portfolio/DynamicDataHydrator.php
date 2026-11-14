@@ -4,6 +4,8 @@ namespace App\Services\Portfolio;
 
 use App\Models\Form;
 use App\Models\HeartbeatMonitor;
+use App\Models\Poc;
+use App\Models\Startup;
 use App\Models\User;
 
 class DynamicDataHydrator
@@ -15,10 +17,14 @@ class DynamicDataHydrator
             ->latest()
             ->get();
 
-        $pocs = $user->forumTopics()
-            ->with('rubrique')
+        $pocs = Poc::where('user_id', $user->id)
+            ->where('status', 'published')
+            ->latest('published_at')
+            ->get();
+
+        $startups = Startup::where('user_id', $user->id)
+            ->where('status', '!=', 'rejected')
             ->latest()
-            ->take(12)
             ->get();
 
         $badges = $user->badges()
@@ -40,6 +46,7 @@ class DynamicDataHydrator
         return [
             'projects' => $projects,
             'pocs' => $pocs,
+            'startups' => $startups,
             'badges' => $badges,
             'publicForms' => $publicForms,
             'publicMonitors' => $publicMonitors,

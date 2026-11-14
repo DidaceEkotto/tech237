@@ -2,6 +2,18 @@
 
 use Illuminate\Support\Facades\Route;
 
+// Subdomain Multi-Tenant Sites ({slug}.tech237.com/{pageSlug?})
+$tenantBaseHost = strtolower(preg_replace('/^www\./', '', (string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'tech237.com')));
+if ($tenantBaseHost && !in_array($tenantBaseHost, ['127.0.0.1'], true)) {
+    Route::domain('{siteSlug}.' . $tenantBaseHost)
+        ->where(['siteSlug' => '(?!www$|admin$|api$)[a-zA-Z0-9_\-]+'])
+        ->group(function () {
+            Route::get('/{pageSlug?}', [App\Http\Controllers\Front\PortfolioController::class, 'showTenant'])
+                ->where(['pageSlug' => '[a-zA-Z0-9_\-]+'])
+                ->name('portfolio.tenant.subdomain');
+        });
+}
+
 // Front Controllers
 use App\Http\Controllers\Front\HomeController;
 use App\Http\Controllers\Front\ArticleController;

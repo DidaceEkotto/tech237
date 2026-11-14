@@ -150,11 +150,18 @@ const dynamicItems = computed(() => {
     const max = Number(props.module.content?.maxItems || 6);
     if (src === 'projects') return (props.hydratedData?.projects || []).slice(0, max);
     if (src === 'pocs') return (props.hydratedData?.pocs || []).slice(0, max);
+    if (src === 'startups') return (props.hydratedData?.startups || []).slice(0, max);
     if (src === 'badges') return (props.hydratedData?.badges || []).slice(0, max);
     if (src === 'forms') return (props.hydratedData?.publicForms || []).slice(0, max);
     if (src === 'monitors') return (props.hydratedData?.publicMonitors || []).slice(0, max);
     return [];
 });
+
+function dynamicItemImage(item) {
+    const raw = item.cover_image || item.logo || item.image_url || item.banner || '';
+    if (!raw) return '';
+    return raw.startsWith('http') || raw.startsWith('/') ? raw : `/storage/${raw}`;
+}
 
 const EXTRA_TYPES = [
     'whatsapp', 'paypal', 'vimeo', 'github_projects', 'map_embed',
@@ -560,15 +567,53 @@ const CREATIVE_TYPES = [
             </div>
         </div>
 
-        <!-- Tech237 Live Data -->
-        <div v-else-if="module.type === 'tech237_dynamic'">
+        <!-- Tech237 Live Data (6 templates + customizable) -->
+        <div
+            v-else-if="module.type === 'tech237_dynamic'"
+            :class="{ 'bg-dark text-white p-4 rounded-4': module.content?.template === 'dark_spotlight' }"
+        >
             <h3 v-if="module.content?.title" class="fw-bold mb-3">{{ module.content.title }}</h3>
             <div v-if="dynamicItems.length" class="row g-3">
-                <div v-for="item in dynamicItems" :key="item.id" class="col-md-4">
-                    <div class="p-3 rounded-4 border bg-white shadow-sm h-100">
+                <div
+                    v-for="(item, di) in dynamicItems"
+                    :key="item.id"
+                    :class="
+                        module.content?.template === 'list_timeline' ? 'col-12' :
+                        (module.content?.template === 'bento_showcase' && di === 0 ? 'col-md-8' :
+                        (module.content?.columns === 2 ? 'col-md-6' : (module.content?.columns === 4 ? 'col-md-3' : 'col-md-4')))
+                    "
+                >
+                    <div
+                        class="p-3 rounded-4 h-100 d-flex flex-column"
+                        :class="[
+                            module.content?.template === 'dark_spotlight' ? 'bg-secondary bg-opacity-10 border border-secondary text-white' :
+                            (module.content?.template === 'grid_minimal' ? 'border-0 border-bottom rounded-0 bg-transparent' :
+                            (module.content?.template === 'glass_cards' ? 'border bg-white bg-opacity-75 shadow-sm' : 'border shadow-sm')),
+                        ]"
+                        :style="module.content?.template !== 'dark_spotlight' && module.content?.template !== 'grid_minimal' ? { backgroundColor: module.content?.bgColor || '#ffffff', color: module.content?.textColor || '#0f172a' } : undefined"
+                    >
+                        <img
+                            v-if="module.content?.showImage !== false && dynamicItemImage(item)"
+                            :src="dynamicItemImage(item)"
+                            :alt="item.name || item.title"
+                            class="rounded-3 object-fit-cover w-100 mb-2"
+                            style="height: 140px;"
+                        />
                         <div class="fw-bold mb-1">{{ item.name || item.title || item.slug }}</div>
-                        <p class="small text-muted mb-2 text-truncate">{{ item.description || item.url || item.status }}</p>
-                        <span class="badge bg-primary bg-opacity-10 text-primary">Tech237 Live</span>
+                        <p v-if="module.content?.showDescription !== false" class="small opacity-75 mb-2 flex-grow-1">
+                            {{ item.summary || item.description || item.url || item.status }}
+                        </p>
+                        <div v-if="module.content?.showBadge !== false">
+                            <span
+                                class="badge rounded-pill"
+                                :style="{
+                                    backgroundColor: `${module.content?.accentColor || '#4f46e5'}20`,
+                                    color: module.content?.accentColor || '#4f46e5',
+                                }"
+                            >
+                                {{ module.content?.badgeLabel || 'Tech237 Live' }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

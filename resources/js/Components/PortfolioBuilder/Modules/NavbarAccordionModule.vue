@@ -109,12 +109,24 @@ function toggleAccordion(id) {
 function resolveHref(target) {
     if (!target) return '#';
     let href = String(target).trim();
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/site/')) {
-        const siteMatch = window.location.pathname.match(/^\/site\/([^/]+)/);
-        const siteSlug = siteMatch ? siteMatch[1] : null;
-        if (siteSlug && href.startsWith('/@')) {
-            const parts = href.replace(/^\/@[^/]+/, '').replace(/^\/+/, '');
-            href = parts ? `/site/${siteSlug}/${parts}` : `/site/${siteSlug}`;
+    if (typeof window !== 'undefined') {
+        const { pathname, hostname } = window.location;
+        const isSubdomain = hostname.endsWith('.tech237.com') || (hostname.endsWith('.localhost') && hostname !== 'localhost');
+        if (isSubdomain) {
+            if (href.startsWith('/@')) {
+                const parts = href.replace(/^\/@[^/]+/, '').replace(/^\/+/, '');
+                href = parts ? `/${parts}` : '/';
+            } else if (href.startsWith('/site/')) {
+                const parts = href.replace(/^\/site\/[^/]+/, '').replace(/^\/+/, '');
+                href = parts ? `/${parts}` : '/';
+            }
+        } else if (pathname.startsWith('/site/')) {
+            const siteMatch = pathname.match(/^\/site\/([^/]+)/);
+            const siteSlug = siteMatch ? siteMatch[1] : null;
+            if (siteSlug && href.startsWith('/@')) {
+                const parts = href.replace(/^\/@[^/]+/, '').replace(/^\/+/, '');
+                href = parts ? `/site/${siteSlug}/${parts}` : `/site/${siteSlug}`;
+            }
         }
     }
     if (href.startsWith('#') || href.startsWith('http') || href.startsWith('/')) return href;

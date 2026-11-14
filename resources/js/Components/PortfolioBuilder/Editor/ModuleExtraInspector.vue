@@ -497,4 +497,42 @@ function applyMapResult(r) {
             <button type="button" class="btn btn-link btn-sm text-danger p-0" style="font-size:11px;" @click="node.content.tabs.splice(tbi, 1); notify();">Supprimer</button>
         </div>
     </template>
+
+    <!-- TECH237 LIVE DATA -->
+    <template v-else-if="node.type === 'tech237_dynamic'">
+        <label class="form-label small fw-semibold">Source de données Tech237</label>
+        <select v-model="node.content.source" class="form-select form-select-sm mb-2" @change="notify">
+            <option value="projects">Projets publiés</option>
+            <option value="pocs">POCs publiés</option>
+            <option value="startups">Startups</option>
+            <option value="badges">Badges obtenus</option>
+            <option value="forms">Formulaires publiés</option>
+            <option value="monitors">Uptime Monitors</option>
+        </select>
+        <label class="form-label small fw-semibold">Titre de la section</label>
+        <input v-model="node.content.title" type="text" class="form-control form-control-sm mb-2" @input="notify" />
+        <div class="row g-2 mb-2">
+            <div class="col-6">
+                <label class="form-label small fw-semibold">Max éléments</label>
+                <input v-model.number="node.content.maxItems" type="number" min="1" max="24" class="form-control form-control-sm" @input="notify" />
+            </div>
+            <div class="col-6">
+                <label class="form-label small fw-semibold">Colonnes</label>
+                <select v-model.number="node.content.columns" class="form-select form-select-sm" @change="notify">
+                    <option :value="2">2 colonnes</option>
+                    <option :value="3">3 colonnes</option>
+                    <option :value="4">4 colonnes</option>
+                </select>
+            </div>
+        </div>
+        <label class="form-label small fw-semibold">Libellé du badge</label>
+        <input v-model="node.content.badgeLabel" type="text" class="form-control form-control-sm mb-2" placeholder="Tech237 Live" @input="notify" />
+        <ColorGradientControl v-model="node.content.accentColor" label="Couleur d'accent" :allow-gradient="false" @update:modelValue="notify" />
+        <ColorGradientControl v-model="node.content.bgColor" label="Fond des cartes" :allow-gradient="false" @update:modelValue="notify" />
+        <div class="border rounded-3 p-2 bg-light small mt-2">
+            <label class="d-block"><input v-model="node.content.showImage" type="checkbox" class="form-check-input me-1" @change="notify" /> Afficher image / logo</label>
+            <label class="d-block"><input v-model="node.content.showDescription" type="checkbox" class="form-check-input me-1" @change="notify" /> Afficher description</label>
+            <label class="d-block"><input v-model="node.content.showBadge" type="checkbox" class="form-check-input me-1" @change="notify" /> Afficher badge</label>
+        </div>
+    </template>
 </template>

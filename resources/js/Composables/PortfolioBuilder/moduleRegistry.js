@@ -149,6 +149,15 @@ export const FAQ_TEMPLATES = [
     { id: 'dark_modern', label: 'Sombre Moderne', icon: 'bi-moon' },
 ];
 
+export const TECH237_DYNAMIC_TEMPLATES = [
+    { id: 'cards_modern', label: 'Cartes Modernes', icon: 'bi-grid-3x2' },
+    { id: 'grid_minimal', label: 'Grille Minimaliste', icon: 'bi-grid' },
+    { id: 'dark_spotlight', label: 'Sombre Spotlight', icon: 'bi-moon-stars' },
+    { id: 'list_timeline', label: 'Liste Verticale', icon: 'bi-list-ul' },
+    { id: 'bento_showcase', label: 'Bento Showcase', icon: 'bi-grid-1x2' },
+    { id: 'glass_cards', label: 'Glassmorphism', icon: 'bi-layers' },
+];
+
 export const MODULE_CATALOG = [
     {
         type: 'navbar_accordion',
@@ -517,11 +526,20 @@ export const MODULE_CATALOG = [
         label: 'Données Tech237 (Live)',
         category: 'tech237',
         icon: 'bi-lightning-charge-fill',
-        description: 'Projets, POCs, Badges, Formulaires ou Uptime Heartbeat synchronisés.',
+        description: 'Projets, POCs, Startups, Badges, Formulaires ou Uptime synchronisés avec 6 modèles.',
         defaultContent: {
-            source: 'projects', // projects | pocs | badges | forms | monitors
+            template: 'cards_modern',
+            source: 'projects', // projects | pocs | startups | badges | forms | monitors
             title: 'Mes Projets Publiés',
             maxItems: 6,
+            columns: 3,
+            showImage: true,
+            showDescription: true,
+            showBadge: true,
+            badgeLabel: 'Tech237 Live',
+            accentColor: '#4f46e5',
+            bgColor: '#ffffff',
+            textColor: '#0f172a',
         },
         defaultStyles: {
             desktop: { paddingTop: '24px', paddingBottom: '24px' },
