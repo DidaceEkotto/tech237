@@ -21,17 +21,31 @@ const statsData = ref(null);
 const loadingStats = ref(false);
 const viewMode = ref('list'); // list | grid
 
+const useSubdomainTenancy = import.meta.env.VITE_PORTFOLIO_SUBDOMAIN_TENANCY === 'true';
+
 function tenantUrl(site) {
     if (typeof window === 'undefined') {
-        return `https://${site.slug}.tech237.com`;
+        return useSubdomainTenancy
+            ? `https://${site.slug}.tech237.com`
+            : `https://tech237.com/site/${site.slug}`;
     }
-    const { protocol, hostname, port } = window.location;
-    if (hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
-        return `${window.location.origin}/site/${site.slug}`;
+    const { protocol, hostname, port, origin } = window.location;
+    if (!useSubdomainTenancy || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+        return `${origin}/site/${site.slug}`;
     }
     const baseHost = hostname.replace(/^www\./, '');
     const portPart = port ? `:${port}` : '';
     return `${protocol}//${site.slug}.${baseHost}${portPart}`;
+}
+
+function tenantDisplayLabel(site) {
+    if (useSubdomainTenancy) {
+        return `${site.slug}.tech237.com`;
+    }
+    if (typeof window !== 'undefined') {
+        return `${window.location.host}/site/${site.slug}`;
+    }
+    return `tech237.com/site/${site.slug}`;
 }
 
 async function copyTenantLink(site) {
@@ -253,7 +267,7 @@ async function deleteSite(site) {
                             <div class="d-flex align-items-center gap-2 flex-wrap small text-muted">
                                 <span>Lien tenant :</span>
                                 <a :href="tenantUrl(site)" target="_blank" rel="noopener" class="text-decoration-none fw-semibold">
-                                    <code>{{ site.slug }}.tech237.com</code>
+                                    <code>{{ tenantDisplayLabel(site) }}</code>
                                     <i class="bi bi-box-arrow-up-right ms-1"></i>
                                 </a>
                                 <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0" style="font-size: 11px;" @click="copyTenantLink(site)">
