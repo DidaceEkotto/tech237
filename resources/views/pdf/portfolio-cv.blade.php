@@ -25,6 +25,13 @@
         <p class="name">{{ $cv['fullName'] ?? 'Nom Prénom' }}</p>
         <p class="role">{{ $cv['jobTitle'] ?? 'Développeur Fullstack' }} @if(!empty($cv['experienceYears'])) • {{ $cv['experienceYears'] }} ans d'expérience @endif</p>
         <p class="meta">{{ $cv['email'] ?? '' }} @if(!empty($cv['phone'])) | {{ $cv['phone'] }} @endif @if(!empty($cv['location'])) | {{ $cv['location'] }} @endif</p>
+        @if(!empty($cv['socials']))
+            <p class="meta">
+                @foreach($cv['socials'] as $sc)
+                    {{ $sc['label'] ?? 'Lien' }}: {{ $sc['url'] ?? '' }} @if(!$loop->last) • @endif
+                @endforeach
+            </p>
+        @endif
     </div>
 
     @if(!empty($cv['summary']))

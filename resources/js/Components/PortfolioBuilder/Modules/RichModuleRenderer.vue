@@ -102,7 +102,22 @@ function isExternalLink(url) {
 }
 
 const hidden = computed(() => isNodeHidden(props.module.advanced, props.viewport));
-const computedStyle = computed(() => resolveResponsiveStyles(props.module.styles, props.viewport));
+const computedStyle = computed(() => {
+    const base = { ...resolveResponsiveStyles(props.module.styles, props.viewport) };
+    const align = base.blockAlign;
+    if (align === 'center') {
+        base.marginLeft = 'auto';
+        base.marginRight = 'auto';
+    } else if (align === 'right') {
+        base.marginLeft = 'auto';
+        base.marginRight = '0';
+    } else if (align === 'left') {
+        base.marginLeft = '0';
+        base.marginRight = 'auto';
+    }
+    delete base.blockAlign;
+    return base;
+});
 
 onMounted(() => {
     if (computedStyle.value?.fontFamily) ensureFontLoaded(computedStyle.value.fontFamily);

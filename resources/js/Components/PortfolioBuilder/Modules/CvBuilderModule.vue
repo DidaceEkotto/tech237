@@ -89,6 +89,19 @@ async function exportPdf() {
                     <div class="small opacity-75 mt-1">
                         {{ content.email }} <span v-if="content.phone">• {{ content.phone }}</span> <span v-if="content.location">• {{ content.location }}</span>
                     </div>
+                    <div v-if="(content.socials || []).length" class="d-flex flex-wrap gap-1 mt-2">
+                        <a
+                            v-for="sc in content.socials"
+                            :key="sc.id"
+                            :href="isEditor ? 'javascript:void(0)' : sc.url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0 text-decoration-none"
+                            style="font-size: 11px;"
+                        >
+                            <i v-if="sc.icon" class="bi me-1" :class="sc.icon"></i>{{ sc.label || 'Réseau' }}
+                        </a>
+                    </div>
                 </div>
             </div>
 
@@ -122,14 +135,23 @@ async function exportPdf() {
                     </h6>
                     <div class="row g-2">
                         <div v-for="p in (content.projects || [])" :key="p.id" class="col-12">
-                            <div class="p-3 rounded-3 border" :class="isDark ? 'border-secondary bg-secondary bg-opacity-10' : 'bg-light'">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="fw-bold">{{ p.name }}</div>
-                                    <a v-if="p.url" :href="isEditor ? 'javascript:void(0)' : p.url" target="_blank" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0" style="font-size:11px;">
-                                        Voir <i class="bi bi-box-arrow-up-right"></i>
-                                    </a>
+                            <div class="p-3 rounded-3 border d-flex gap-3 align-items-start" :class="isDark ? 'border-secondary bg-secondary bg-opacity-10' : 'bg-light'">
+                                <img
+                                    v-if="p.imageUrl"
+                                    :src="p.imageUrl"
+                                    :alt="p.name"
+                                    class="rounded-3 object-fit-cover border flex-shrink-0"
+                                    style="width: 64px; height: 64px;"
+                                />
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="fw-bold">{{ p.name }}</div>
+                                        <a v-if="p.url" :href="isEditor ? 'javascript:void(0)' : p.url" target="_blank" rel="noopener noreferrer" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0" style="font-size:11px;">
+                                            Voir <i class="bi bi-box-arrow-up-right"></i>
+                                        </a>
+                                    </div>
+                                    <p class="small mb-0 opacity-75 mt-1">{{ p.description }}</p>
                                 </div>
-                                <p class="small mb-0 opacity-75 mt-1">{{ p.description }}</p>
                             </div>
                         </div>
                     </div>

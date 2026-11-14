@@ -121,6 +121,9 @@ async function handlePublish() {
         const res = await apiClient.post(`/espace-utilisateur/portfolio-builder/sites/${localSite.value.id}/publish`);
         localSite.value.is_published = true;
         showToast(res.data.message || 'Site publié en ligne !');
+        if (localSite.value.slug && typeof window !== 'undefined') {
+            window.open(`/site/${localSite.value.slug}`, '_blank', 'noopener');
+        }
     } catch (e) {
         showToast(e.response?.data?.message || 'Erreur lors de la publication.');
     } finally {

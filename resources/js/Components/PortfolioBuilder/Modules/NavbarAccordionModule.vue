@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { Link } from '@inertiajs/vue3';
 
 const props = defineProps({
     content: { type: Object, required: true },
@@ -107,8 +108,23 @@ function toggleAccordion(id) {
 
 function resolveHref(target) {
     if (!target) return '#';
-    if (target.startsWith('#') || target.startsWith('http') || target.startsWith('/')) return target;
-    return `#${target}`;
+    let href = String(target).trim();
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/site/')) {
+        const siteMatch = window.location.pathname.match(/^\/site\/([^/]+)/);
+        const siteSlug = siteMatch ? siteMatch[1] : null;
+        if (siteSlug && href.startsWith('/@')) {
+            const parts = href.replace(/^\/@[^/]+/, '').replace(/^\/+/, '');
+            href = parts ? `/site/${siteSlug}/${parts}` : `/site/${siteSlug}`;
+        }
+    }
+    if (href.startsWith('#') || href.startsWith('http') || href.startsWith('/')) return href;
+    return `#${href}`;
+}
+
+function isSpaRoute(target) {
+    if (props.isEditor) return false;
+    const h = resolveHref(target);
+    return h.startsWith('/') && !h.startsWith('//');
 }
 
 onMounted(() => {
@@ -167,14 +183,15 @@ onBeforeUnmount(() => {
 
                 <div class="d-flex flex-column gap-1">
                     <div v-for="item in (content.items || [])" :key="item.id">
-                        <a
+                        <component
+                            :is="isSpaRoute(item.target) ? Link : 'a'"
                             :href="isEditor ? 'javascript:void(0)' : resolveHref(item.target)"
                             class="btn btn-sm border-0 d-flex align-items-center gap-2 fw-medium px-3 py-2 rounded-3 text-decoration-none w-100 text-start"
                             :style="itemActiveStyle(item)"
                         >
                             <i v-if="item.icon" class="bi" :class="item.icon"></i>
                             <span v-show="!collapsedSidebar">{{ item.label }}</span>
-                        </a>
+                        </component>
                     </div>
                 </div>
             </div>
@@ -232,7 +249,8 @@ onBeforeUnmount(() => {
                                 :style="{ transform: openDropdown === item.id ? 'rotate(180deg)' : 'rotate(0deg)' }"
                             ></i>
                         </button>
-                        <a
+                        <component
+                            :is="isSpaRoute(item.target) ? Link : 'a'"
                             v-else
                             :href="isEditor ? 'javascript:void(0)' : resolveHref(item.target)"
                             class="btn btn-sm border-0 d-inline-flex align-items-center gap-1 fw-medium px-3 py-1 rounded-pill text-decoration-none"
@@ -240,7 +258,7 @@ onBeforeUnmount(() => {
                         >
                             <i v-if="item.icon" class="bi" :class="item.icon"></i>
                             <span>{{ item.label }}</span>
-                        </a>
+                        </component>
 
                         <transition name="pb-accordion">
                             <div
@@ -248,7 +266,8 @@ onBeforeUnmount(() => {
                                 class="position-absolute start-0 mt-2 p-2 bg-white text-dark rounded-4 shadow-lg border"
                                 style="min-width: 210px; z-index: 1050;"
                             >
-                                <a
+                                <component
+                                    :is="isSpaRoute(sub.target) ? Link : 'a'"
                                     v-for="sub in item.children"
                                     :key="sub.id"
                                     :href="isEditor ? 'javascript:void(0)' : resolveHref(sub.target)"
@@ -257,7 +276,7 @@ onBeforeUnmount(() => {
                                 >
                                     <i v-if="sub.icon" class="bi text-primary" :class="sub.icon"></i>
                                     <span>{{ sub.label }}</span>
-                                </a>
+                                </component>
                             </div>
                         </transition>
                     </div>
@@ -289,7 +308,8 @@ onBeforeUnmount(() => {
                 <div v-if="mobileOpen" class="d-md-none mt-3 pt-2 border-top">
                     <div v-for="item in (content.items || [])" :key="item.id" class="mb-1">
                         <div class="d-flex align-items-center justify-content-between">
-                            <a
+                            <component
+                                :is="isSpaRoute(item.target) ? Link : 'a'"
                                 :href="isEditor ? 'javascript:void(0)' : resolveHref(item.target)"
                                 class="d-flex align-items-center gap-2 py-2 px-2 text-decoration-none fw-medium flex-grow-1 rounded-3"
                                 :style="itemActiveStyle(item)"
@@ -297,7 +317,7 @@ onBeforeUnmount(() => {
                             >
                                 <i v-if="item.icon" class="bi" :class="item.icon"></i>
                                 <span>{{ item.label }}</span>
-                            </a>
+                            </component>
                             <button
                                 v-if="item.children && item.children.length"
                                 type="button"
@@ -309,7 +329,8 @@ onBeforeUnmount(() => {
                             </button>
                         </div>
                         <div v-if="item.children && item.children.length && openDropdown === item.id" class="ps-4 pb-2">
-                            <a
+                            <component
+                                :is="isSpaRoute(sub.target) ? Link : 'a'"
                                 v-for="sub in item.children"
                                 :key="sub.id"
                                 :href="isEditor ? 'javascript:void(0)' : resolveHref(sub.target)"
@@ -319,7 +340,7 @@ onBeforeUnmount(() => {
                             >
                                 <i v-if="sub.icon" class="bi" :class="sub.icon"></i>
                                 <span>{{ sub.label }}</span>
-                            </a>
+                            </component>
                         </div>
                     </div>
                 </div>

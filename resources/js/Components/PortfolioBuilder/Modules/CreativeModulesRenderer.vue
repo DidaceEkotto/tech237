@@ -115,23 +115,44 @@ const countdownParts = computed(() => {
         </div>
     </div>
 
-    <!-- Countdown Timer -->
+    <!-- Countdown Timer (with Background Image, Filters & Gradient) -->
     <div
         v-else-if="module.type === 'countdown'"
-        class="p-4 p-md-5 rounded-4 text-center shadow-sm"
+        class="position-relative p-4 p-md-5 rounded-4 text-center shadow-sm overflow-hidden"
         :style="{ backgroundColor: c.bgColor || '#0f172a', color: c.textColor || '#ffffff' }"
     >
-        <h3 v-if="c.title" class="fw-bold mb-1">{{ c.title }}</h3>
-        <p v-if="c.subtitle" class="small opacity-75 mb-4">{{ c.subtitle }}</p>
-        <div class="d-flex justify-content-center gap-2 gap-md-3 flex-wrap">
-            <div
-                v-for="part in countdownParts"
-                :key="part.label"
-                class="px-3 py-2 rounded-4 border border-white border-opacity-25"
-                style="min-width: 84px; background: rgba(255,255,255,0.08);"
-            >
-                <div class="fs-2 fw-bolder" :style="{ color: c.accentColor || '#818cf8' }">{{ part.val }}</div>
-                <div class="small opacity-75">{{ part.label }}</div>
+        <img
+            v-if="c.bgImage"
+            :src="c.bgImage"
+            alt="Fond"
+            class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
+            :style="{
+                filter: `brightness(${c.brightness ?? 100}%) contrast(${c.contrast ?? 100}%) grayscale(${c.grayscale ?? 0}%) blur(${c.blur ?? 0}px)`,
+                zIndex: 0,
+            }"
+        />
+        <div
+            v-if="c.gradientEnabled"
+            class="position-absolute top-0 start-0 w-100 h-100"
+            :style="{
+                background: `linear-gradient(${c.gradientDirection || '135deg'}, ${c.gradientColor1 || '#4f46e5'}, ${c.gradientColor2 || '#06b6d4'})`,
+                opacity: c.gradientOpacity ?? 0.55,
+                zIndex: 1,
+            }"
+        ></div>
+        <div class="position-relative" style="z-index: 2;">
+            <h3 v-if="c.title" class="fw-bold mb-1">{{ c.title }}</h3>
+            <p v-if="c.subtitle" class="small opacity-75 mb-4">{{ c.subtitle }}</p>
+            <div class="d-flex justify-content-center gap-2 gap-md-3 flex-wrap">
+                <div
+                    v-for="part in countdownParts"
+                    :key="part.label"
+                    class="px-3 py-2 rounded-4 border border-white border-opacity-25"
+                    style="min-width: 84px; background: rgba(255,255,255,0.08); backdrop-filter: blur(4px);"
+                >
+                    <div class="fs-2 fw-bolder" :style="{ color: c.accentColor || '#818cf8' }">{{ part.val }}</div>
+                    <div class="small opacity-75">{{ part.label }}</div>
+                </div>
             </div>
         </div>
     </div>

@@ -415,18 +415,73 @@ function importTech237ProjectsToCv() {
                             <label class="form-label small fw-semibold">Poste / Titre</label>
                             <input v-model="selectedNodeData.node.content.jobTitle" type="text" class="form-control form-control-sm mb-2" @input="notify" />
                             <div class="row g-2 mb-2">
+                                <div class="col-6"><input v-model="selectedNodeData.node.content.email" type="email" class="form-control form-control-sm" placeholder="Email" @input="notify" /></div>
+                                <div class="col-6"><input v-model="selectedNodeData.node.content.phone" type="text" class="form-control form-control-sm" placeholder="Téléphone" @input="notify" /></div>
+                            </div>
+                            <div class="row g-2 mb-2">
                                 <div class="col-6"><input v-model="selectedNodeData.node.content.experienceYears" type="text" class="form-control form-control-sm" placeholder="Années exp." @input="notify" /></div>
                                 <div class="col-6"><input v-model="selectedNodeData.node.content.location" type="text" class="form-control form-control-sm" placeholder="Ville" @input="notify" /></div>
                             </div>
+                            <textarea v-model="selectedNodeData.node.content.summary" rows="2" class="form-control form-control-sm mb-2" placeholder="Résumé / Accroche..." @input="notify"></textarea>
                             <label class="form-label small fw-semibold">Photo (optionnelle)</label>
                             <div class="input-group input-group-sm mb-2">
                                 <input v-model="selectedNodeData.node.content.photoUrl" type="text" class="form-control" @input="notify" />
                                 <button type="button" class="btn btn-outline-primary" @click="emit('pick-media', (url) => { selectedNodeData.node.content.photoUrl = url; notify(); })"><i class="bi bi-images"></i></button>
                             </div>
+
+                            <!-- Réseaux sociaux -->
+                            <div class="d-flex justify-content-between align-items-center mb-1 mt-2">
+                                <span class="small fw-bold">Réseaux sociaux</span>
+                                <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-0" style="font-size:11px;" @click="if(!selectedNodeData.node.content.socials) selectedNodeData.node.content.socials = []; selectedNodeData.node.content.socials.push({ id: uid('sc'), label: 'Facebook', icon: 'bi-facebook', url: 'https://facebook.com' }); notify();">+ Réseau</button>
+                            </div>
+                            <div v-for="(sc, sci) in (selectedNodeData.node.content.socials || [])" :key="sc.id" class="p-2 border rounded-3 mb-1 bg-light">
+                                <div class="d-flex gap-1 mb-1">
+                                    <input v-model="sc.label" type="text" class="form-control form-control-sm" placeholder="Nom (Facebook, X, TikTok...)" @input="notify" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @click="selectedNodeData.node.content.socials.splice(sci, 1); notify();"><i class="bi bi-x"></i></button>
+                                </div>
+                                <input v-model="sc.url" type="text" class="form-control form-control-sm mb-1" placeholder="https://..." @input="notify" />
+                                <BootstrapIconPicker v-model="sc.icon" label="" @update:modelValue="notify" />
+                            </div>
+
+                            <!-- Formations -->
+                            <div class="d-flex justify-content-between align-items-center mb-1 mt-2">
+                                <span class="small fw-bold">Formations</span>
+                                <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-0" style="font-size:11px;" @click="if(!selectedNodeData.node.content.formations) selectedNodeData.node.content.formations = []; selectedNodeData.node.content.formations.push({ id: uid('fm'), title: 'Diplôme / Formation', school: 'École / Université', period: '2022 - 2024' }); notify();">+ Formation</button>
+                            </div>
+                            <div v-for="(fm, fmi) in (selectedNodeData.node.content.formations || [])" :key="fm.id" class="p-2 border rounded-3 mb-1 bg-light">
+                                <div class="d-flex gap-1 mb-1">
+                                    <input v-model="fm.title" type="text" class="form-control form-control-sm" placeholder="Titre formation" @input="notify" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @click="selectedNodeData.node.content.formations.splice(fmi, 1); notify();"><i class="bi bi-x"></i></button>
+                                </div>
+                                <div class="row g-1">
+                                    <div class="col-7"><input v-model="fm.school" type="text" class="form-control form-control-sm" placeholder="Établissement" @input="notify" /></div>
+                                    <div class="col-5"><input v-model="fm.period" type="text" class="form-control form-control-sm" placeholder="Période" @input="notify" /></div>
+                                </div>
+                            </div>
+
+                            <!-- Travaux & Projets -->
+                            <div class="d-flex justify-content-between align-items-center mb-1 mt-2">
+                                <span class="small fw-bold">Travaux &amp; Projets</span>
+                                <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-0" style="font-size:11px;" @click="if(!selectedNodeData.node.content.projects) selectedNodeData.node.content.projects = []; selectedNodeData.node.content.projects.push({ id: uid('cp'), name: 'Nouveau projet', description: 'Description...', url: '', imageUrl: '' }); notify();">+ Projet</button>
+                            </div>
                             <button type="button" class="btn btn-sm btn-outline-success w-100 mb-2" @click="importTech237ProjectsToCv">
                                 <i class="bi bi-cloud-download me-1"></i>Importer mes projets Tech237
                             </button>
-                            <div class="d-flex justify-content-between align-items-center mb-1">
+                            <div v-for="(cp, cpi) in (selectedNodeData.node.content.projects || [])" :key="cp.id" class="p-2 border rounded-3 mb-1 bg-light">
+                                <div class="d-flex gap-1 mb-1">
+                                    <input v-model="cp.name" type="text" class="form-control form-control-sm" placeholder="Titre projet" @input="notify" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @click="selectedNodeData.node.content.projects.splice(cpi, 1); notify();"><i class="bi bi-x"></i></button>
+                                </div>
+                                <textarea v-model="cp.description" rows="2" class="form-control form-control-sm mb-1" placeholder="Description" @input="notify"></textarea>
+                                <input v-model="cp.url" type="text" class="form-control form-control-sm mb-1" placeholder="Lien projet (optionnel)" @input="notify" />
+                                <div class="input-group input-group-sm">
+                                    <input v-model="cp.imageUrl" type="text" class="form-control" placeholder="Image projet" @input="notify" />
+                                    <button type="button" class="btn btn-outline-primary" @click="emit('pick-media', (url) => { cp.imageUrl = url; notify(); })"><i class="bi bi-images"></i></button>
+                                </div>
+                            </div>
+
+                            <!-- Compétences -->
+                            <div class="d-flex justify-content-between align-items-center mb-1 mt-2">
                                 <span class="small fw-bold">Compétences</span>
                                 <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-0" style="font-size:11px;" @click="selectedNodeData.node.content.skills.push({ id: uid('sk'), name: 'Nouvelle', category: 'Backend', level: 80 }); notify();">+ Comp.</button>
                             </div>
@@ -443,6 +498,19 @@ function importTech237ProjectsToCv() {
                                     <option value="IT Solution">IT Solution</option>
                                     <option value="Design">Design</option>
                                 </select>
+                            </div>
+
+                            <!-- Centres d'intérêt / Loisirs -->
+                            <div class="d-flex justify-content-between align-items-center mb-1 mt-2">
+                                <span class="small fw-bold">Centres d'intérêt / Loisirs</span>
+                                <button type="button" class="btn btn-xs btn-primary rounded-pill px-2 py-0" style="font-size:11px;" @click="if(!selectedNodeData.node.content.hobbies) selectedNodeData.node.content.hobbies = []; selectedNodeData.node.content.hobbies.push({ id: uid('hb'), label: 'Sport', icon: 'bi-heart-fill' }); notify();">+ Loisir</button>
+                            </div>
+                            <div v-for="(hb, hbi) in (selectedNodeData.node.content.hobbies || [])" :key="hb.id" class="p-2 border rounded-3 mb-1 bg-light">
+                                <div class="d-flex gap-1 mb-1">
+                                    <input v-model="hb.label" type="text" class="form-control form-control-sm" placeholder="Loisir" @input="notify" />
+                                    <button type="button" class="btn btn-sm btn-outline-danger" @click="selectedNodeData.node.content.hobbies.splice(hbi, 1); notify();"><i class="bi bi-x"></i></button>
+                                </div>
+                                <BootstrapIconPicker v-model="hb.icon" label="" @update:modelValue="notify" />
                             </div>
                         </template>
 
@@ -672,6 +740,47 @@ function importTech237ProjectsToCv() {
 
                 <!-- TAB 2: DESIGN -->
                 <div v-else-if="tab === 'design'">
+                    <div v-if="selectedNodeData.node.styles" class="p-2 border rounded-3 bg-light mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold mb-0">Largeur &amp; Centrage</label>
+                            <span class="badge bg-secondary">{{ selectedNodeData.node.styles[viewport]?.width || selectedNodeData.node.styles.desktop?.width || '100%' }}</span>
+                        </div>
+                        <div class="btn-group btn-group-sm w-100 mb-2">
+                            <button type="button" class="btn btn-outline-dark" @click="if(!selectedNodeData.node.styles[viewport]) selectedNodeData.node.styles[viewport]={}; selectedNodeData.node.styles[viewport].width='100%'; notify();">100%</button>
+                            <button type="button" class="btn btn-outline-dark" @click="if(!selectedNodeData.node.styles[viewport]) selectedNodeData.node.styles[viewport]={}; selectedNodeData.node.styles[viewport].width='80%'; notify();">80%</button>
+                            <button type="button" class="btn btn-outline-dark" @click="if(!selectedNodeData.node.styles[viewport]) selectedNodeData.node.styles[viewport]={}; selectedNodeData.node.styles[viewport].width='60%'; notify();">60%</button>
+                            <button type="button" class="btn btn-outline-dark" @click="if(!selectedNodeData.node.styles[viewport]) selectedNodeData.node.styles[viewport]={}; selectedNodeData.node.styles[viewport].width='45%'; notify();">45%</button>
+                        </div>
+                        <input
+                            type="range"
+                            min="15"
+                            max="100"
+                            step="5"
+                            class="form-range mb-2"
+                            :value="parseInt(selectedNodeData.node.styles[viewport]?.width || selectedNodeData.node.styles.desktop?.width || '100', 10)"
+                            @input="if(!selectedNodeData.node.styles[viewport]) selectedNodeData.node.styles[viewport]={}; selectedNodeData.node.styles[viewport].width = $event.target.value + '%'; notify();"
+                        />
+                        <div class="btn-group btn-group-sm w-100">
+                            <button
+                                type="button"
+                                class="btn"
+                                :class="(selectedNodeData.node.styles[viewport]?.blockAlign || 'left') === 'left' ? 'btn-primary' : 'btn-outline-secondary'"
+                                @click="if(!selectedNodeData.node.styles[viewport]) selectedNodeData.node.styles[viewport]={}; selectedNodeData.node.styles[viewport].blockAlign='left'; notify();"
+                            ><i class="bi bi-align-start me-1"></i>Gauche</button>
+                            <button
+                                type="button"
+                                class="btn"
+                                :class="selectedNodeData.node.styles[viewport]?.blockAlign === 'center' ? 'btn-primary' : 'btn-outline-secondary'"
+                                @click="if(!selectedNodeData.node.styles[viewport]) selectedNodeData.node.styles[viewport]={}; selectedNodeData.node.styles[viewport].blockAlign='center'; notify();"
+                            ><i class="bi bi-align-center me-1"></i>Centré</button>
+                            <button
+                                type="button"
+                                class="btn"
+                                :class="selectedNodeData.node.styles[viewport]?.blockAlign === 'right' ? 'btn-primary' : 'btn-outline-secondary'"
+                                @click="if(!selectedNodeData.node.styles[viewport]) selectedNodeData.node.styles[viewport]={}; selectedNodeData.node.styles[viewport].blockAlign='right'; notify();"
+                            ><i class="bi bi-align-end me-1"></i>Droite</button>
+                        </div>
+                    </div>
                     <SpacingControl v-if="selectedNodeData.node.styles" :styles="selectedNodeData.node.styles" :viewport="viewport" @change="notify" />
                     <hr />
                     <TypographyControl v-if="selectedNodeData.node.styles" :styles="selectedNodeData.node.styles" :viewport="viewport" @change="notify" />

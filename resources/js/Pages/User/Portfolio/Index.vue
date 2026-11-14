@@ -19,6 +19,24 @@ const guideOpen = ref(false);
 const statsModalSite = ref(null);
 const statsData = ref(null);
 const loadingStats = ref(false);
+const viewMode = ref('list'); // list | grid
+
+function tenantUrl(site) {
+    if (typeof window !== 'undefined') {
+        return `${window.location.origin}/site/${site.slug}`;
+    }
+    return `/site/${site.slug}`;
+}
+
+async function copyTenantLink(site) {
+    const url = tenantUrl(site);
+    try {
+        await navigator.clipboard.writeText(url);
+        showToast(`Lien copié : ${url}`);
+    } catch {
+        showToast(url);
+    }
+}
 
 function showToast(msg) {
     toast.value = msg;
@@ -89,14 +107,18 @@ async function setPrimary(site) {
 }
 
 async function togglePublish(site) {
+    const wasPublished = !!site.is_published;
     try {
-        const endpoint = site.is_published
+        const endpoint = wasPublished
             ? `/espace-utilisateur/portfolio-builder/sites/${site.id}/unpublish`
             : `/espace-utilisateur/portfolio-builder/sites/${site.id}/publish`;
         const res = await apiClient.post(endpoint);
         const idx = sites.value.findIndex((s) => s.id === site.id);
         if (idx !== -1) sites.value[idx] = { ...sites.value[idx], ...res.data.site };
         showToast(res.data.message);
+        if (!wasPublished && site.slug && typeof window !== 'undefined') {
+            window.open(`/site/${site.slug}`, '_blank', 'noopener');
+        }
     } catch {
         showToast('Erreur lors du changement de statut.');
     }
@@ -138,7 +160,7 @@ async function deleteSite(site) {
                     </span>
                     <h3 class="fw-bold mb-1 text-dark">Constructeur Visuel de Sites &amp; Portfolios</h3>
                     <p class="text-muted small mb-0">
-                        Créez des sites <strong>One-Page</strong> ou <strong>Multi-Pages</strong>, migrez en 1 clic, exportez en ZIP (HTML, PHP/SQLite, Laravel) et suivez vos statistiques.
+                        Créez des sites <strong>One-Page</strong> ou <strong>Multi-Pages</strong>, migrez en 1 clic, exportez en ZIP (HTML, PHP/SQLite) et suivez vos statistiques.
                     </p>
                 </div>
                 <div class="d-flex gap-2 align-items-center flex-wrap">
@@ -175,16 +197,24 @@ async function deleteSite(site) {
                     <span v-if="creating" class="spinner-border spinner-border-sm me-1"></span>
                     <i v-else class="bi bi-plus-lg me-1"></i>Créer un site
                 </button>
+                <div class="btn-group btn-group-sm ms-auto">
+                    <button type="button" class="btn" :class="viewMode === 'list' ? 'btn-dark' : 'btn-outline-secondary'" title="Affichage ligne par ligne" @click="viewMode = 'list'">
+                        <i class="bi bi-list-ul me-1"></i>Lignes
+                    </button>
+                    <button type="button" class="btn" :class="viewMode === 'grid' ? 'btn-dark' : 'btn-outline-secondary'" title="Affichage grille" @click="viewMode = 'grid'">
+                        <i class="bi bi-grid-3x3-gap me-1"></i>Grille
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Sites Grid -->
-        <div class="row g-4">
-            <div v-for="site in sites" :key="site.id" class="col-md-6 col-xl-4">
+        <!-- Sites List (Ligne par ligne) or Grid -->
+        <div class="row g-3">
+            <div v-for="site in sites" :key="site.id" :class="viewMode === 'list' ? 'col-12' : 'col-md-6 col-xl-4'">
                 <div class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="mb-2">
-                            <div class="input-group input-group-sm mb-2">
+                    <div class="card-body p-3 p-md-4 d-flex" :class="viewMode === 'list' ? 'flex-column flex-lg-row align-items-lg-center justify-content-between gap-3' : 'flex-column'">
+                        <div :class="viewMode === 'list' ? 'flex-grow-1' : 'mb-2'">
+                            <div class="input-group input-group-sm mb-2" :style="viewMode === 'list' ? 'max-width: 340px;' : ''">
                                 <input
                                     type="text"
                                     class="form-control fw-bold"
@@ -198,7 +228,7 @@ async function deleteSite(site) {
                                 </span>
                             </div>
 
-                            <div class="d-flex flex-wrap gap-1">
+                            <div class="d-flex flex-wrap gap-1 mb-2">
                                 <span v-if="site.is_primary" class="badge bg-primary rounded-pill">Principal</span>
                                 <span class="badge rounded-pill" :class="site.is_published ? 'bg-success' : 'bg-secondary'">
                                     {{ site.is_published ? 'Publié' : 'Brouillon' }}
@@ -210,45 +240,47 @@ async function deleteSite(site) {
                                     {{ site.views_count || 0 }} vues
                                 </span>
                             </div>
+
+                            <div class="d-flex align-items-center gap-2 flex-wrap small text-muted">
+                                <span>Lien tenant :</span>
+                                <a :href="`/site/${site.slug}`" target="_blank" rel="noopener" class="text-decoration-none fw-semibold">
+                                    <code>/site/{{ site.slug }}</code>
+                                    <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                </a>
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0" style="font-size: 11px;" @click="copyTenantLink(site)">
+                                    <i class="bi bi-clipboard me-1"></i>Copier
+                                </button>
+                            </div>
                         </div>
 
-                        <p class="small text-muted mb-3 flex-grow-1">
-                            Lien tenant : <code>/site/{{ site.slug }}</code>
-                        </p>
-
-                        <div class="d-grid gap-2">
-                            <a :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/editor`" class="btn btn-dark rounded-pill fw-semibold">
-                                <i class="bi bi-brush me-2"></i>Ouvrir l'Éditeur Visuel
+                        <div class="d-flex gap-2" :class="viewMode === 'list' ? 'flex-wrap align-items-center' : 'flex-column mt-auto'">
+                            <a :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/editor`" class="btn btn-dark rounded-pill fw-semibold btn-sm px-3">
+                                <i class="bi bi-brush me-1"></i>Éditeur Visuel
                             </a>
 
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm flex-grow-1 rounded-pill" :class="site.is_published ? 'btn-outline-warning' : 'btn-outline-success'" @click="togglePublish(site)">
-                                    {{ site.is_published ? 'Dépublier' : 'Publier' }}
+                            <button type="button" class="btn btn-sm rounded-pill px-3" :class="site.is_published ? 'btn-outline-warning' : 'btn-outline-success'" @click="togglePublish(site)">
+                                {{ site.is_published ? 'Dépublier' : 'Publier' }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-info rounded-pill" title="Basculer One-Page / Multi-Pages en 1 clic" @click="migrateType(site)">
+                                <i class="bi bi-arrow-left-right me-1"></i>{{ site.site_type === 'onepage' ? '-> Multi' : '-> 1 Page' }}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-dark rounded-pill" title="Statistiques" @click="openStats(site)">
+                                <i class="bi bi-bar-chart-fill"></i>
+                            </button>
+
+                            <div class="dropdown">
+                                <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill dropdown-toggle px-2" data-bs-toggle="dropdown" style="font-size:11px;">
+                                    <i class="bi bi-file-zip me-1"></i>ZIP
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill" title="Basculer One-Page / Multi-Pages en 1 clic" @click="migrateType(site)">
-                                    <i class="bi bi-arrow-left-right me-1"></i>{{ site.site_type === 'onepage' ? '-> Multi' : '-> 1 Page' }}
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-dark rounded-pill" title="Statistiques" @click="openStats(site)">
-                                    <i class="bi bi-bar-chart-fill"></i>
-                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item small" :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/export?format=html`">HTML / CSS / JS + Images</a></li>
+                                    <li><a class="dropdown-item small" :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/export?format=php`">PHP + SQLite + Mini Admin</a></li>
+                                </ul>
                             </div>
 
-                            <div class="d-flex gap-1 justify-content-between pt-2 border-top">
-                                <div class="dropdown">
-                                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill dropdown-toggle px-2 py-1" data-bs-toggle="dropdown" style="font-size:11px;">
-                                        <i class="bi bi-file-zip me-1"></i>Exporter ZIP
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item small" :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/export?format=html`">HTML / CSS / JS + Images</a></li>
-                                        <li><a class="dropdown-item small" :href="`/espace-utilisateur/portfolio-builder/sites/${site.id}/export?format=php`">PHP + SQLite + Mini Admin</a></li>
-                                    </ul>
-                                </div>
-                                <div class="d-flex gap-1">
-                                    <button v-if="!site.is_primary" type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1" style="font-size:11px;" @click="setPrimary(site)">Principal</button>
-                                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1" style="font-size:11px;" @click="duplicateSite(site)"><i class="bi bi-copy"></i></button>
-                                    <button v-if="sites.length > 1" type="button" class="btn btn-xs btn-outline-danger rounded-pill px-2 py-1" style="font-size:11px;" @click="deleteSite(site)"><i class="bi bi-trash"></i></button>
-                                </div>
-                            </div>
+                            <button v-if="!site.is_primary" type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2" style="font-size:11px;" @click="setPrimary(site)">Principal</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:11px;" @click="duplicateSite(site)"><i class="bi bi-copy"></i></button>
+                            <button v-if="sites.length > 1" type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2" style="font-size:11px;" @click="deleteSite(site)"><i class="bi bi-trash"></i></button>
                         </div>
                     </div>
                 </div>

@@ -420,8 +420,45 @@ function applyMapResult(r) {
         <input v-model="node.content.subtitle" type="text" class="form-control form-control-sm mb-2" @input="notify" />
         <label class="form-label small fw-semibold">Date cible</label>
         <input v-model="node.content.targetDate" type="datetime-local" class="form-control form-control-sm mb-2" @input="notify" />
-        <ColorGradientControl v-model="node.content.bgColor" label="Fond" :allow-gradient="false" @update:modelValue="notify" />
+        <ColorGradientControl v-model="node.content.bgColor" label="Couleur de fond" :allow-gradient="false" @update:modelValue="notify" />
         <ColorGradientControl v-model="node.content.accentColor" label="Couleur chiffres" :allow-gradient="false" @update:modelValue="notify" />
+
+        <label class="form-label small fw-semibold">Image de fond (optionnelle)</label>
+        <div class="input-group input-group-sm mb-2">
+            <input v-model="node.content.bgImage" type="text" class="form-control" placeholder="URL image..." @input="notify" />
+            <button type="button" class="btn btn-outline-primary" @click="emit('pick-media', (url) => { node.content.bgImage = url; notify(); })"><i class="bi bi-images"></i></button>
+        </div>
+        <div v-if="node.content.bgImage" class="border rounded-3 p-2 mb-2 bg-light small">
+            <div class="fw-bold mb-1">Filtres image</div>
+            <label>Luminosité ({{ node.content.brightness ?? 100 }}%)</label>
+            <input v-model.number="node.content.brightness" type="range" min="30" max="170" class="form-range" @input="notify" />
+            <label>Contraste ({{ node.content.contrast ?? 100 }}%)</label>
+            <input v-model.number="node.content.contrast" type="range" min="50" max="180" class="form-range" @input="notify" />
+            <label>Noir &amp; Blanc ({{ node.content.grayscale ?? 0 }}%)</label>
+            <input v-model.number="node.content.grayscale" type="range" min="0" max="100" class="form-range" @input="notify" />
+            <label>Flou ({{ node.content.blur ?? 0 }}px)</label>
+            <input v-model.number="node.content.blur" type="range" min="0" max="12" class="form-range" @input="notify" />
+        </div>
+        <div class="border rounded-3 p-2 bg-light small">
+            <label class="d-block fw-bold mb-1">
+                <input v-model="node.content.gradientEnabled" type="checkbox" class="form-check-input me-1" @change="notify" />
+                Voile Dégradé
+            </label>
+            <template v-if="node.content.gradientEnabled">
+                <div class="row g-1 mb-1">
+                    <div class="col-6"><input v-model="node.content.gradientColor1" type="color" class="form-control form-control-color form-control-sm w-100" @input="notify" /></div>
+                    <div class="col-6"><input v-model="node.content.gradientColor2" type="color" class="form-control form-control-color form-control-sm w-100" @input="notify" /></div>
+                </div>
+                <select v-model="node.content.gradientDirection" class="form-select form-select-sm mb-1" @change="notify">
+                    <option value="135deg">Diagonal 135°</option>
+                    <option value="to right">Gauche → Droite</option>
+                    <option value="to bottom">Haut → Bas</option>
+                    <option value="45deg">Diagonal 45°</option>
+                </select>
+                <label>Opacité ({{ Math.round((node.content.gradientOpacity ?? 0.55) * 100) }}%)</label>
+                <input v-model.number="node.content.gradientOpacity" type="range" min="0" max="1" step="0.05" class="form-range" @input="notify" />
+            </template>
+        </div>
     </template>
 
     <template v-else-if="node.type === 'progress_bars'">
