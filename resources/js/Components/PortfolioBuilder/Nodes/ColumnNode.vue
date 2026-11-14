@@ -10,6 +10,9 @@ const props = defineProps({
     selectedId: { type: String, default: null },
     portfolioUser: { type: Object, default: () => ({}) },
     pages: { type: Array, default: () => [] },
+    activePageSlug: { type: String, default: '' },
+    siteType: { type: String, default: 'onepage' },
+    siteStats: { type: Object, default: () => ({ views_count: 0, unique_visitors_count: 0 }) },
     hydratedData: { type: Object, default: () => ({}) },
     dragState: { type: Object, default: null },
 });
@@ -80,6 +83,9 @@ function onDrop(e) {
                 :is-editor="isEditor"
                 :portfolio-user="portfolioUser"
                 :pages="pages"
+                :active-page-slug="activePageSlug"
+                :site-type="siteType"
+                :site-stats="siteStats"
                 :hydrated-data="hydratedData"
             />
         </div>

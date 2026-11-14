@@ -130,4 +130,56 @@ class PortfolioBuilderTest extends TestCase
 
         $this->get('/@legacyuser')->assertOk();
     }
+
+    public function test_site_type_migration_name_lock_stats_and_zip_export(): void
+    {
+        $user = User::factory()->create([
+            'username' => 'probuilder',
+            'portfolio_published' => true,
+        ]);
+
+        // Create multipage site
+        $createResp = $this->actingAs($user)->postJson('/espace-utilisateur/portfolio-builder/sites', [
+            'name' => 'Agence 237',
+            'site_type' => 'multipage',
+        ]);
+        $createResp->assertCreated();
+        $siteId = $createResp->json('site.id');
+        $slug = $createResp->json('site.slug');
+
+        // Can rename while draft
+        $this->actingAs($user)
+            ->patchJson("/espace-utilisateur/portfolio-builder/sites/{$siteId}", ['name' => 'Agence 237 Pro'])
+            ->assertOk();
+
+        // 1-click migrate to onepage
+        $this->actingAs($user)
+            ->postJson("/espace-utilisateur/portfolio-builder/sites/{$siteId}/migrate-type", ['target_type' => 'onepage'])
+            ->assertOk()
+            ->assertJsonPath('site.site_type', 'onepage');
+
+        // Publish -> name becomes locked
+        $this->actingAs($user)->postJson("/espace-utilisateur/portfolio-builder/sites/{$siteId}/publish")->assertOk();
+
+        $this->actingAs($user)
+            ->patchJson("/espace-utilisateur/portfolio-builder/sites/{$siteId}", ['name' => 'Autre Nom'])
+            ->assertStatus(422);
+
+        // Tenant route renders & tracks visit when visited anonymously
+        auth()->logout();
+        $this->get("/site/{$slug}")->assertOk();
+        $this->assertEquals(1, PortfolioSite::find($siteId)->views_count);
+
+        // Export HTML ZIP
+        $zipResp = $this->actingAs($user)->get("/espace-utilisateur/portfolio-builder/sites/{$siteId}/export?format=html");
+        $zipResp->assertOk();
+
+        // Export CV PDF
+        $pdfResp = $this->actingAs($user)->post('/espace-utilisateur/portfolio-builder/cv/export-pdf', [
+            'fullName' => 'Jean Dupont',
+            'jobTitle' => 'Architecte Laravel',
+            'skills' => [['name' => 'Laravel', 'category' => 'Backend', 'level' => 95]],
+        ]);
+        $pdfResp->assertOk();
+    }
 }

@@ -11,12 +11,19 @@ const props = defineProps({
 const tpl = computed(() => props.content.template || 'split_info_form');
 const isDark = computed(() => tpl.value === 'dark_neon');
 
-const form = ref({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
+const fields = computed(() => {
+    if (Array.isArray(props.content.fields) && props.content.fields.length) {
+        return props.content.fields;
+    }
+    return [
+        { id: 'cf_name', name: 'name', label: 'Votre nom', type: 'text', required: true },
+        { id: 'cf_email', name: 'email', label: 'Votre email', type: 'email', required: true },
+        { id: 'cf_subject', name: 'subject', label: 'Sujet du message', type: 'text', required: false },
+        { id: 'cf_message', name: 'message', label: 'Décrivez votre besoin...', type: 'textarea', required: true },
+    ];
 });
+
+const formValues = ref({});
 const sending = ref(false);
 const feedback = ref('');
 const errorMsg = ref('');
@@ -31,9 +38,14 @@ async function submitContact() {
     feedback.value = '';
     errorMsg.value = '';
     try {
-        await apiClient.post(`/portfolio/${props.portfolioUser.username}/contact`, form.value);
+        await apiClient.post(`/portfolio/${props.portfolioUser.username}/contact`, {
+            name: formValues.value.name || 'Visiteur',
+            email: formValues.value.email || '',
+            subject: formValues.value.subject || '',
+            message: formValues.value.message || JSON.stringify(formValues.value),
+        });
         feedback.value = 'Message envoyé avec succès !';
-        form.value = { name: '', email: '', subject: '', message: '' };
+        formValues.value = {};
     } catch (e) {
         errorMsg.value = e.response?.data?.message || 'Erreur lors de l’envoi du message.';
     } finally {
@@ -64,17 +76,23 @@ async function submitContact() {
 
             <div :class="tpl === 'centered_card' ? 'col-12 col-md-8 mx-auto' : 'col-lg-7'">
                 <form class="row g-3" @submit.prevent="submitContact">
-                    <div class="col-md-6">
-                        <input v-model="form.name" type="text" required class="form-control rounded-3" placeholder="Votre nom" />
-                    </div>
-                    <div class="col-md-6">
-                        <input v-model="form.email" type="email" required class="form-control rounded-3" placeholder="Votre email" />
-                    </div>
-                    <div class="col-12">
-                        <input v-model="form.subject" type="text" class="form-control rounded-3" placeholder="Sujet du message" />
-                    </div>
-                    <div class="col-12">
-                        <textarea v-model="form.message" rows="3" required class="form-control rounded-3" placeholder="Décrivez votre besoin..."></textarea>
+                    <div v-for="f in fields" :key="f.id" :class="f.type === 'textarea' ? 'col-12' : 'col-md-6'">
+                        <textarea
+                            v-if="f.type === 'textarea'"
+                            v-model="formValues[f.name]"
+                            rows="3"
+                            :required="f.required"
+                            class="form-control rounded-3"
+                            :placeholder="f.label"
+                        ></textarea>
+                        <input
+                            v-else
+                            v-model="formValues[f.name]"
+                            :type="f.type || 'text'"
+                            :required="f.required"
+                            class="form-control rounded-3"
+                            :placeholder="f.label"
+                        />
                     </div>
                     <div class="col-12">
                         <button type="submit" class="btn btn-primary rounded-pill px-4 fw-semibold" :disabled="sending">

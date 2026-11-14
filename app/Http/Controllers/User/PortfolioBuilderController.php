@@ -12,8 +12,11 @@ use App\Models\PortfolioThemePart;
 use App\Services\Portfolio\DynamicDataHydrator;
 use App\Services\Portfolio\PageTreeValidator;
 use App\Services\Portfolio\SitePublisherService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Http;
 use Inertia\Inertia;
 
 class PortfolioBuilderController extends Controller
@@ -185,5 +188,63 @@ class PortfolioBuilderController extends Controller
             'themePart' => $part,
             'message' => ucfirst($validated['type']) . ' global enregistré.',
         ]);
+    }
+
+    public function exportCvPdf(Request $request)
+    {
+        $cv = $request->validate([
+            'fullName' => ['nullable', 'string', 'max:120'],
+            'jobTitle' => ['nullable', 'string', 'max:120'],
+            'experienceYears' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'string', 'max:120'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'location' => ['nullable', 'string', 'max:120'],
+            'summary' => ['nullable', 'string', 'max:2000'],
+            'accentColor' => ['nullable', 'string', 'max:20'],
+            'formations' => ['nullable', 'array'],
+            'projects' => ['nullable', 'array'],
+            'skills' => ['nullable', 'array'],
+            'hobbies' => ['nullable', 'array'],
+        ]);
+
+        $pdf = Pdf::loadView('pdf.portfolio-cv', ['cv' => $cv])->setPaper('a4', 'portrait');
+
+        return $pdf->download('cv-portfolio.pdf');
+    }
+
+    public function fetchGithubRepos(Request $request)
+    {
+        $validated = $request->validate([
+            'username' => ['required', 'string', 'regex:/^[a-zA-Z0-9\-]{1,39}$/'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:20'],
+        ]);
+
+        $username = $validated['username'];
+        $limit = (int) ($validated['limit'] ?? 6);
+
+        $repos = Cache::remember("pb_github_repos_{$username}", 900, function () use ($username) {
+            $resp = Http::timeout(6)
+                ->withHeaders(['Accept' => 'application/vnd.github+json', 'User-Agent' => 'Tech237PortfolioBuilder'])
+                ->get("https://api.github.com/users/{$username}/repos", [
+                    'sort' => 'updated',
+                    'per_page' => 20,
+                ]);
+
+            if (!$resp->successful()) {
+                return [];
+            }
+
+            return collect($resp->json())->map(fn ($r) => [
+                'id' => $r['id'] ?? null,
+                'name' => $r['name'] ?? '',
+                'description' => $r['description'] ?? '',
+                'html_url' => $r['html_url'] ?? '',
+                'language' => $r['language'] ?? '',
+                'stargazers_count' => $r['stargazers_count'] ?? 0,
+                'forks_count' => $r['forks_count'] ?? 0,
+            ])->values()->all();
+        });
+
+        return response()->json(['repos' => array_slice($repos, 0, $limit)]);
     }
 }

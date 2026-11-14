@@ -5,8 +5,10 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\PortfolioPage;
 use App\Models\PortfolioSite;
+use App\Services\Portfolio\SiteExportService;
 use App\Services\Portfolio\SitePublisherService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
@@ -31,6 +33,7 @@ class PortfolioSiteController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string', 'max:500'],
+            'site_type' => ['nullable', 'in:onepage,multipage'],
             'starter_preset' => ['nullable', 'string', 'max:60'],
         ]);
 
@@ -44,6 +47,7 @@ class PortfolioSiteController extends Controller
             'user_id' => $user->id,
             'name' => $validated['name'],
             'slug' => $slug,
+            'site_type' => $validated['site_type'] ?? 'onepage',
             'description' => $validated['description'] ?? null,
             'is_primary' => $isFirst,
             'is_published' => false,
@@ -85,6 +89,12 @@ class PortfolioSiteController extends Controller
             'is_primary' => ['sometimes', 'boolean'],
         ]);
 
+        if ($site->is_published && isset($validated['name']) && $validated['name'] !== $site->name) {
+            return response()->json([
+                'message' => 'Le nom d’un site déjà publié en ligne est verrouillé. Dépubliez-le d’abord pour le modifier.',
+            ], 422);
+        }
+
         if (!empty($validated['is_primary'])) {
             PortfolioSite::where('user_id', $site->user_id)
                 ->where('id', '!=', $site->id)
@@ -96,6 +106,126 @@ class PortfolioSiteController extends Controller
         return response()->json([
             'site' => $site->fresh('pages'),
             'message' => 'Site mis à jour.',
+        ]);
+    }
+
+    public function migrateType(PortfolioSite $site, Request $request)
+    {
+        Gate::authorize('update', $site);
+
+        $validated = $request->validate([
+            'target_type' => ['required', 'in:onepage,multipage'],
+        ]);
+
+        $targetType = $validated['target_type'];
+        if ($site->site_type === $targetType) {
+            return response()->json(['site' => $site->load('pages'), 'message' => 'Le site est déjà dans ce mode.']);
+        }
+
+        $pages = $site->pages()->orderBy('sort_order')->get();
+        $home = $pages->firstWhere('is_homepage', true) ?? $pages->first();
+
+        if ($targetType === 'onepage' && $home) {
+            $mergedSections = $home->draft_tree['sections'] ?? [];
+            foreach ($pages as $p) {
+                if ($p->id === $home->id) {
+                    continue;
+                }
+                foreach (($p->draft_tree['sections'] ?? []) as $sec) {
+                    if (empty($sec['advanced']['customId'])) {
+                        $sec['advanced']['customId'] = $p->slug;
+                    }
+                    $mergedSections[] = $sec;
+                }
+            }
+            $home->update([
+                'draft_tree' => ['schema_version' => 1, 'sections' => $mergedSections],
+            ]);
+            $site->pages()->where('id', '!=', $home->id)->delete();
+        } elseif ($targetType === 'multipage' && $home) {
+            $sections = $home->draft_tree['sections'] ?? [];
+            if (count($sections) > 1) {
+                $firstSection = array_shift($sections);
+                $home->update([
+                    'draft_tree' => ['schema_version' => 1, 'sections' => [$firstSection]],
+                ]);
+                $order = 1;
+                foreach ($sections as $idx => $sec) {
+                    $title = $sec['label'] ?: ('Page ' . ($idx + 2));
+                    $baseSlug = Str::slug($sec['advanced']['customId'] ?? $title) ?: ('page-' . ($idx + 2));
+                    $slug = $baseSlug;
+                    $c = 1;
+                    while ($site->pages()->where('slug', $slug)->exists()) {
+                        $slug = $baseSlug . '-' . $c++;
+                    }
+                    $site->pages()->create([
+                        'title' => $title,
+                        'slug' => $slug,
+                        'is_homepage' => false,
+                        'sort_order' => $order++,
+                        'status' => 'draft',
+                        'draft_tree' => ['schema_version' => 1, 'sections' => [$sec]],
+                    ]);
+                }
+            }
+        }
+
+        $site->update(['site_type' => $targetType]);
+
+        return response()->json([
+            'site' => $site->fresh('pages'),
+            'message' => $targetType === 'onepage'
+                ? 'Site migré en mode One-Page avec succès.'
+                : 'Site migré en mode Multi-Pages avec succès.',
+        ]);
+    }
+
+    public function stats(PortfolioSite $site)
+    {
+        Gate::authorize('view', $site);
+
+        $daily = $site->visits()
+            ->select('visited_date', DB::raw('COUNT(*) as views'), DB::raw('COUNT(DISTINCT visitor_hash) as uniques'))
+            ->groupBy('visited_date')
+            ->orderByDesc('visited_date')
+            ->limit(14)
+            ->get();
+
+        $topPages = $site->visits()
+            ->select('page_slug', DB::raw('COUNT(*) as views'))
+            ->groupBy('page_slug')
+            ->orderByDesc('views')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'views_count' => $site->views_count,
+            'unique_visitors_count' => $site->unique_visitors_count,
+            'daily' => $daily,
+            'top_pages' => $topPages,
+        ]);
+    }
+
+    public function exportZip(PortfolioSite $site, Request $request, SiteExportService $exporter)
+    {
+        Gate::authorize('view', $site);
+
+        $format = in_array($request->query('format'), ['html', 'php', 'laravel'], true)
+            ? $request->query('format')
+            : 'html';
+
+        $zipPath = $exporter->export($site, $format);
+        $content = file_get_contents($zipPath);
+        @unlink($zipPath);
+
+        if ($content === false) {
+            abort(500, 'Impossible de lire l’archive ZIP générée.');
+        }
+
+        return response($content, 200, [
+            'Content-Type' => 'application/zip',
+            'Content-Disposition' => "attachment; filename=\"{$site->slug}-{$format}.zip\"",
+            'Content-Length' => (string) strlen($content),
         ]);
     }
 

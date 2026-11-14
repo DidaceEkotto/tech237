@@ -165,9 +165,10 @@ Route::post('/communaute/profil/{id}/contact', [App\Http\Controllers\Front\Commu
 // Public Developer Portfolio & CV (@username and /portfolio/{username})
 Route::get('/@{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->where('username', '[a-zA-Z0-9_\-\.]+')->name('user.portfolio.short');
 Route::get('/@{username}/{pageSlug}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->where(['username' => '[a-zA-Z0-9_\-\.]+', 'pageSlug' => '[a-zA-Z0-9_\-]+'])->name('user.portfolio.page');
+Route::get('/site/{siteSlug}/{pageSlug?}', [App\Http\Controllers\Front\PortfolioController::class, 'showTenant'])->where(['siteSlug' => '[a-zA-Z0-9_\-]+', 'pageSlug' => '[a-zA-Z0-9_\-]+'])->name('portfolio.tenant');
 Route::get('/portfolio/{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->name('user.portfolio');
 Route::get('/cv/{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->name('user.cv');
-Route::post('/portfolio/{username}/contact', [App\Http\Controllers\User\PortfolioController::class, 'submitContact'])->name('portfolio.contact.submit');
+Route::post('/portfolio/{username}/contact', [App\Http\Controllers\User\PortfolioController::class, 'submitContact'])->middleware('throttle:15,1')->name('portfolio.contact.submit');
 
 // Comments Submission
 Route::post('/api/comments', [CommentController::class, 'store'])->name('api.comments.store')->middleware('auth:web');
@@ -351,6 +352,9 @@ Route::middleware('auth:web')->group(function () {
         Route::post('/sites', [App\Http\Controllers\User\PortfolioSiteController::class, 'store'])->name('sites.store');
         Route::patch('/sites/{site}', [App\Http\Controllers\User\PortfolioSiteController::class, 'update'])->name('sites.update');
         Route::post('/sites/{site}/duplicate', [App\Http\Controllers\User\PortfolioSiteController::class, 'duplicate'])->name('sites.duplicate');
+        Route::post('/sites/{site}/migrate-type', [App\Http\Controllers\User\PortfolioSiteController::class, 'migrateType'])->name('sites.migrate_type');
+        Route::get('/sites/{site}/stats', [App\Http\Controllers\User\PortfolioSiteController::class, 'stats'])->name('sites.stats');
+        Route::get('/sites/{site}/export', [App\Http\Controllers\User\PortfolioSiteController::class, 'exportZip'])->name('sites.export');
         Route::delete('/sites/{site}', [App\Http\Controllers\User\PortfolioSiteController::class, 'destroy'])->name('sites.destroy');
 
         Route::get('/sites/{site}/editor', [App\Http\Controllers\User\PortfolioBuilderController::class, 'editor'])->name('editor');
@@ -368,7 +372,11 @@ Route::middleware('auth:web')->group(function () {
 
         Route::get('/media', [App\Http\Controllers\User\PortfolioMediaController::class, 'index'])->name('media.index');
         Route::post('/media', [App\Http\Controllers\User\PortfolioMediaController::class, 'store'])->name('media.store');
+        Route::post('/media/{media}/update', [App\Http\Controllers\User\PortfolioMediaController::class, 'update'])->name('media.update');
         Route::delete('/media/{media}', [App\Http\Controllers\User\PortfolioMediaController::class, 'destroy'])->name('media.destroy');
+
+        Route::post('/cv/export-pdf', [App\Http\Controllers\User\PortfolioBuilderController::class, 'exportCvPdf'])->name('cv.export_pdf');
+        Route::get('/github-repos', [App\Http\Controllers\User\PortfolioBuilderController::class, 'fetchGithubRepos'])->middleware('throttle:30,1')->name('github.repos');
 
         Route::get('/templates', [App\Http\Controllers\User\PortfolioTemplateController::class, 'index'])->name('templates.index');
         Route::post('/templates', [App\Http\Controllers\User\PortfolioTemplateController::class, 'store'])->name('templates.store');
@@ -453,6 +461,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Authenticated Admin Section
     Route::middleware(['admin.auth', 'admin.log'])->group(function () {
         Route::get('/', AdminDashboard::class)->name('dashboard');
+        Route::get('/portfolio-sites', App\Livewire\Admin\PortfolioSites\Index::class)->name('portfolio-sites.index');
 
         // Toggle Snowfall Effect
         Route::post('/toggle-snow', function () {

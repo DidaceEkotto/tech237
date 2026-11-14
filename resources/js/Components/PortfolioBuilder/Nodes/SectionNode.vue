@@ -12,6 +12,9 @@ const props = defineProps({
     selectedId: { type: String, default: null },
     portfolioUser: { type: Object, default: () => ({}) },
     pages: { type: Array, default: () => [] },
+    activePageSlug: { type: String, default: '' },
+    siteType: { type: String, default: 'onepage' },
+    siteStats: { type: Object, default: () => ({ views_count: 0, unique_visitors_count: 0 }) },
     hydratedData: { type: Object, default: () => ({}) },
 });
 
@@ -92,6 +95,9 @@ const sectionStyle = computed(() => resolveResponsiveStyles(props.section.styles
                 :selected-id="selectedId"
                 :portfolio-user="portfolioUser"
                 :pages="pages"
+                :active-page-slug="activePageSlug"
+                :site-type="siteType"
+                :site-stats="siteStats"
                 :hydrated-data="hydratedData"
                 @select="(k, id) => emit('select', k, id)"
                 @delete-row="(sid, rid) => emit('delete-row', sid, rid)"

@@ -2,18 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Spatie\Multitenancy\Models\Tenant;
 
-class PortfolioSite extends Model
+class PortfolioSite extends Tenant
 {
     protected $fillable = [
         'user_id',
         'name',
         'slug',
+        'site_type',
+        'domain',
         'is_primary',
         'is_published',
+        'views_count',
+        'unique_visitors_count',
         'global_settings',
         'published_at',
     ];
@@ -23,6 +27,8 @@ class PortfolioSite extends Model
         return [
             'is_primary' => 'boolean',
             'is_published' => 'boolean',
+            'views_count' => 'integer',
+            'unique_visitors_count' => 'integer',
             'global_settings' => 'array',
             'published_at' => 'datetime',
         ];
@@ -46,5 +52,10 @@ class PortfolioSite extends Model
     public function media(): HasMany
     {
         return $this->hasMany(PortfolioMedia::class);
+    }
+
+    public function visits(): HasMany
+    {
+        return $this->hasMany(PortfolioSiteVisit::class, 'portfolio_site_id');
     }
 }

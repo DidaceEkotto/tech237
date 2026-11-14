@@ -8,6 +8,8 @@ const props = defineProps({
     selectedId: { type: String, default: null },
     portfolioUser: { type: Object, default: () => ({}) },
     pages: { type: Array, default: () => [] },
+    activePageSlug: { type: String, default: '' },
+    siteType: { type: String, default: 'onepage' },
     hydratedData: { type: Object, default: () => ({}) },
 });
 
@@ -52,6 +54,8 @@ const frameWidth = computed(() => {
                 :selected-id="selectedId"
                 :portfolio-user="portfolioUser"
                 :pages="pages"
+                :active-page-slug="activePageSlug"
+                :site-type="siteType"
                 :hydrated-data="hydratedData"
                 @select="(k, id) => emit('select', k, id)"
                 @move-section="(id, dir) => emit('move-section', id, dir)"

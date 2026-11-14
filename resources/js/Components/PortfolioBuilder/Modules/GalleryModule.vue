@@ -7,10 +7,15 @@ const props = defineProps({
 
 const activeSlide = ref(0);
 const beforeRatio = ref(50);
-const lightboxItem = ref(null);
+const lightboxIndex = ref(-1);
 
 const items = computed(() => props.content.items || []);
 const tpl = computed(() => props.content.template || 'grid_3');
+
+function openLightbox(idx) {
+    if (props.content.lightbox === false) return;
+    lightboxIndex.value = idx;
+}
 
 function prevSlide() {
     if (!items.value.length) return;
@@ -19,6 +24,15 @@ function prevSlide() {
 function nextSlide() {
     if (!items.value.length) return;
     activeSlide.value = (activeSlide.value + 1) % items.value.length;
+}
+
+function prevLightbox() {
+    if (!items.value.length) return;
+    lightboxIndex.value = (lightboxIndex.value - 1 + items.value.length) % items.value.length;
+}
+function nextLightbox() {
+    if (!items.value.length) return;
+    lightboxIndex.value = (lightboxIndex.value + 1) % items.value.length;
 }
 </script>
 
@@ -34,8 +48,9 @@ function nextSlide() {
             <img
                 :src="items[activeSlide]?.url"
                 :alt="items[activeSlide]?.title"
-                class="w-100 object-fit-cover"
+                class="w-100 object-fit-cover cursor-pointer"
                 :style="{ height: tpl === 'fullscreen_showcase' ? '440px' : '320px' }"
+                @click.stop="openLightbox(activeSlide)"
             />
             <div class="position-absolute bottom-0 start-0 end-0 p-3 bg-dark bg-opacity-50 text-white d-flex justify-content-between align-items-center">
                 <div>
@@ -68,10 +83,11 @@ function nextSlide() {
         <!-- Horizontal Scroll -->
         <div v-else-if="tpl === 'horizontal_scroll'" class="d-flex gap-3 overflow-auto pb-2">
             <div
-                v-for="item in items"
+                v-for="(item, idx) in items"
                 :key="item.id"
-                class="flex-shrink-0 rounded-4 overflow-hidden border bg-white shadow-sm"
+                class="flex-shrink-0 rounded-4 overflow-hidden border bg-white shadow-sm cursor-pointer"
                 style="width: 280px;"
+                @click.stop="openLightbox(idx)"
             >
                 <img :src="item.url" :alt="item.title" class="w-100 object-fit-cover" style="height: 190px;" />
                 <div class="p-3">
@@ -91,7 +107,7 @@ function nextSlide() {
                 <div
                     class="rounded-4 overflow-hidden border bg-white shadow-sm h-100 cursor-pointer"
                     :class="{ 'p-2 pb-3': tpl === 'polaroid_stack' }"
-                    @click.stop="lightboxItem = item"
+                    @click.stop="openLightbox(idx)"
                 >
                     <img :src="item.url" :alt="item.title" class="w-100 object-fit-cover rounded-3" style="height: 200px;" />
                     <div class="p-2 px-3">
@@ -102,21 +118,45 @@ function nextSlide() {
             </div>
         </div>
 
-        <!-- Lightbox Modal -->
+        <!-- Lightbox Modal with Counter & Round Close Button -->
         <div
-            v-if="lightboxItem"
-            class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex align-items-center justify-content-center p-3"
-            style="z-index: 2000;"
-            @click="lightboxItem = null"
+            v-if="lightboxIndex >= 0 && items[lightboxIndex]"
+            class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-85 d-flex align-items-center justify-content-center p-3"
+            style="z-index: 2500;"
+            @click="lightboxIndex = -1"
         >
-            <div class="bg-white rounded-4 overflow-hidden shadow-lg" style="max-width: 720px; width: 100%;" @click.stop>
-                <img :src="lightboxItem.url" :alt="lightboxItem.title" class="w-100 object-fit-cover" style="max-height: 70vh;" />
+            <div class="position-relative bg-white rounded-4 overflow-hidden shadow-lg" style="max-width: 780px; width: 100%;" @click.stop>
+                <!-- Counter Badge -->
+                <span class="position-absolute top-0 start-0 m-3 badge bg-dark bg-opacity-75 text-white rounded-pill px-3 py-2" style="z-index: 5;">
+                    {{ lightboxIndex + 1 }} / {{ items.length }}
+                </span>
+
+                <!-- Round Close Button (X) -->
+                <button
+                    type="button"
+                    class="position-absolute top-0 end-0 m-3 btn btn-light rounded-circle shadow d-flex align-items-center justify-content-center"
+                    style="width: 38px; height: 38px; z-index: 5;"
+                    title="Fermer"
+                    @click="lightboxIndex = -1"
+                >
+                    <i class="bi bi-x-lg"></i>
+                </button>
+
+                <img :src="items[lightboxIndex].url" :alt="items[lightboxIndex].title" class="w-100 object-fit-cover" style="max-height: 70vh;" />
+
                 <div class="p-3 d-flex justify-content-between align-items-center">
                     <div>
-                        <div class="fw-bold">{{ lightboxItem.title }}</div>
-                        <small class="text-muted">{{ lightboxItem.category }}</small>
+                        <div class="fw-bold">{{ items[lightboxIndex].title }}</div>
+                        <small class="text-muted">{{ items[lightboxIndex].category }}</small>
                     </div>
-                    <button type="button" class="btn btn-sm btn-dark rounded-pill" @click="lightboxItem = null">Fermer</button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-dark rounded-circle" @click="prevLightbox">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-dark rounded-circle" @click="nextLightbox">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

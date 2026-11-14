@@ -52,6 +52,7 @@ class PageTreeValidator
         return [
             'id' => $this->safeId($section['id'] ?? null, 'sec'),
             'label' => $this->safeText($section['label'] ?? 'Section', 80),
+            'styles' => is_array($section['styles'] ?? null) ? $this->sanitizeScalarMap($section['styles']) : ['desktop' => [], 'tablet' => [], 'mobile' => []],
             'design' => is_array($section['design'] ?? null) ? $this->sanitizeScalarMap($section['design']) : [],
             'advanced' => is_array($section['advanced'] ?? null) ? $this->sanitizeAdvanced($section['advanced']) : [],
             'rows' => $rows,
@@ -71,6 +72,7 @@ class PageTreeValidator
         return [
             'id' => $this->safeId($row['id'] ?? null, 'row'),
             'layout' => $this->safeText($row['layout'] ?? '1', 32),
+            'styles' => is_array($row['styles'] ?? null) ? $this->sanitizeScalarMap($row['styles']) : ['desktop' => [], 'tablet' => [], 'mobile' => []],
             'design' => is_array($row['design'] ?? null) ? $this->sanitizeScalarMap($row['design']) : [],
             'advanced' => is_array($row['advanced'] ?? null) ? $this->sanitizeAdvanced($row['advanced']) : [],
             'columns' => $columns,
@@ -89,7 +91,8 @@ class PageTreeValidator
 
         return [
             'id' => $this->safeId($col['id'] ?? null, 'col'),
-            'width' => $this->safeText($col['width'] ?? '12', 16),
+            'width' => is_numeric($col['width'] ?? null) ? (int) $col['width'] : $this->safeText($col['width'] ?? '12', 16),
+            'styles' => is_array($col['styles'] ?? null) ? $this->sanitizeScalarMap($col['styles']) : ['desktop' => [], 'tablet' => [], 'mobile' => []],
             'design' => is_array($col['design'] ?? null) ? $this->sanitizeScalarMap($col['design']) : [],
             'advanced' => is_array($col['advanced'] ?? null) ? $this->sanitizeAdvanced($col['advanced']) : [],
             'modules' => $modules,
@@ -103,6 +106,7 @@ class PageTreeValidator
             'type' => preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($mod['type'] ?? 'text')),
             'template_variant' => preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($mod['template_variant'] ?? 'classic')),
             'content' => is_array($mod['content'] ?? null) ? $this->sanitizeContentMap($mod['content']) : [],
+            'styles' => is_array($mod['styles'] ?? null) ? $this->sanitizeScalarMap($mod['styles']) : ['desktop' => [], 'tablet' => [], 'mobile' => []],
             'design' => is_array($mod['design'] ?? null) ? $this->sanitizeScalarMap($mod['design']) : [],
             'advanced' => is_array($mod['advanced'] ?? null) ? $this->sanitizeAdvanced($mod['advanced']) : [],
         ];
@@ -110,13 +114,20 @@ class PageTreeValidator
 
     private function sanitizeAdvanced(array $adv): array
     {
+        $rawCss = (string) ($adv['customCss'] ?? '');
+        $safeCss = preg_replace('/<\/?style[^>]*>|<\/?script[^>]*>|javascript:|expression\s*\(/i', '', $rawCss);
+
         return [
-            'html_id' => preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($adv['html_id'] ?? '')),
-            'css_class' => preg_replace('/[^a-zA-Z0-9_\-\s]/', '', (string) ($adv['css_class'] ?? '')),
+            'customId' => preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($adv['customId'] ?? $adv['html_id'] ?? '')),
+            'cssClass' => preg_replace('/[^a-zA-Z0-9_\-\s]/', '', (string) ($adv['cssClass'] ?? $adv['css_class'] ?? '')),
+            'fullWidth' => (bool) ($adv['fullWidth'] ?? false),
             'animation' => preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($adv['animation'] ?? 'none')),
-            'hide_desktop' => (bool) ($adv['hide_desktop'] ?? false),
-            'hide_tablet' => (bool) ($adv['hide_tablet'] ?? false),
-            'hide_mobile' => (bool) ($adv['hide_mobile'] ?? false),
+            'textAnimation' => preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($adv['textAnimation'] ?? 'none')),
+            'imageAnimation' => preg_replace('/[^a-zA-Z0-9_\-]/', '', (string) ($adv['imageAnimation'] ?? 'none')),
+            'hideOnDesktop' => (bool) ($adv['hideOnDesktop'] ?? $adv['hide_desktop'] ?? false),
+            'hideOnTablet' => (bool) ($adv['hideOnTablet'] ?? $adv['hide_tablet'] ?? false),
+            'hideOnMobile' => (bool) ($adv['hideOnMobile'] ?? $adv['hide_mobile'] ?? false),
+            'customCss' => mb_substr(trim((string) $safeCss), 0, 4000),
         ];
     }
 

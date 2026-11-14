@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
 use App\Models\PortfolioSite;
+use App\Models\PortfolioSiteVisit;
 use App\Models\User;
 use App\Models\Project;
 use App\Models\Poc;
@@ -110,13 +111,17 @@ class PortfolioController extends Controller
                     : $activePage->published_tree;
 
                 if (!empty($tree) && !empty($tree['sections'])) {
+                    if (!$isOwner && $previewSiteId === 0) {
+                        $this->recordSiteVisit($request, $builderSite, $activePage->slug);
+                    }
+                    $builderSite->makeCurrent();
                     $hydratorInstance = $hydrator ?? app(DynamicDataHydrator::class);
                     $themeParts = $builderSite->themeParts->where('is_active', true)->keyBy('type');
 
                     return Inertia::render('Portfolio/PublicSite', [
                         'portfolioUser' => $user,
-                        'site' => $builderSite,
-                        'pages' => $builderSite->pages->where('show_in_menu', true)->values(),
+                        'site' => $builderSite->fresh(),
+                        'pages' => $builderSite->pages->values(),
                         'activePage' => $activePage,
                         'tree' => $tree,
                         'headerPart' => $themeParts->get('header'),
@@ -144,5 +149,66 @@ class PortfolioController extends Controller
             'rankPosition' => $rankPosition,
             'isOwner' => $isOwner,
         ]);
+    }
+
+    public function showTenant(Request $request, string $siteSlug, ?string $pageSlug = null, ?DynamicDataHydrator $hydrator = null)
+    {
+        $site = PortfolioSite::where('slug', $siteSlug)
+            ->where('is_published', true)
+            ->with(['user', 'pages' => fn ($q) => $q->orderBy('sort_order'), 'themeParts'])
+            ->firstOrFail();
+
+        $site->makeCurrent();
+        $user = $site->user;
+        $isOwner = Auth::guard('web')->check() && Auth::guard('web')->id() === $user->id;
+
+        $activePage = $pageSlug
+            ? $site->pages->firstWhere('slug', $pageSlug)
+            : ($site->pages->firstWhere('is_homepage', true) ?? $site->pages->first());
+
+        if (!$activePage || empty($activePage->published_tree)) {
+            abort(404);
+        }
+
+        if (!$isOwner) {
+            $this->recordSiteVisit($request, $site, $activePage->slug);
+        }
+
+        $hydratorInstance = $hydrator ?? app(DynamicDataHydrator::class);
+        $themeParts = $site->themeParts->where('is_active', true)->keyBy('type');
+
+        return Inertia::render('Portfolio/PublicSite', [
+            'portfolioUser' => $user,
+            'site' => $site->fresh(),
+            'pages' => $site->pages->values(),
+            'activePage' => $activePage,
+            'tree' => $activePage->published_tree,
+            'headerPart' => $themeParts->get('header'),
+            'footerPart' => $themeParts->get('footer'),
+            'hydratedData' => $hydratorInstance->hydrateForUser($user),
+            'isOwner' => $isOwner,
+            'isPreview' => false,
+        ]);
+    }
+
+    private function recordSiteVisit(Request $request, PortfolioSite $site, string $pageSlug): void
+    {
+        $visitorHash = hash('sha256', ($request->ip() ?? '0.0.0.0') . '|' . substr((string) $request->userAgent(), 0, 120));
+        $alreadyVisited = PortfolioSiteVisit::where('portfolio_site_id', $site->id)
+            ->where('visitor_hash', $visitorHash)
+            ->exists();
+
+        PortfolioSiteVisit::create([
+            'portfolio_site_id' => $site->id,
+            'page_slug' => $pageSlug,
+            'visitor_hash' => $visitorHash,
+            'referer' => mb_substr((string) $request->headers->get('referer', ''), 0, 250),
+            'visited_date' => now()->toDateString(),
+        ]);
+
+        $site->increment('views_count');
+        if (!$alreadyVisited) {
+            $site->increment('unique_visitors_count');
+        }
     }
 }

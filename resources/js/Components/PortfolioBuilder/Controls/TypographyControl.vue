@@ -1,4 +1,7 @@
 <script setup>
+import FontPickerControl from './FontPickerControl.vue';
+import ColorGradientControl from './ColorGradientControl.vue';
+
 const props = defineProps({
     styles: { type: Object, required: true },
     viewport: { type: String, default: 'desktop' },
@@ -22,9 +25,15 @@ function setVal(key, val) {
 <template>
     <div class="pb-typography-control">
         <div class="small fw-semibold text-secondary mb-2">
-            Typographie ({{ viewport }})
+            Typographie &amp; Couleurs ({{ viewport }})
         </div>
-        <div class="row g-2">
+
+        <FontPickerControl
+            :model-value="getVal('fontFamily')"
+            @update:modelValue="(v) => setVal('fontFamily', v)"
+        />
+
+        <div class="row g-2 mb-2">
             <div class="col-6">
                 <label class="form-label xsmall text-muted mb-0">Taille (px)</label>
                 <input type="text" class="form-control form-control-sm" :value="getVal('fontSize')" placeholder="16px" @change="setVal('fontSize', $event.target.value)" />
@@ -40,14 +49,20 @@ function setVal(key, val) {
                     <option value="800">Extra-Bold (800)</option>
                 </select>
             </div>
-            <div class="col-6">
-                <label class="form-label xsmall text-muted mb-0">Couleur texte</label>
-                <input type="color" class="form-control form-control-color w-100" :value="getVal('color') || '#0f172a'" @input="setVal('color', $event.target.value)" />
-            </div>
-            <div class="col-6">
-                <label class="form-label xsmall text-muted mb-0">Fond</label>
-                <input type="color" class="form-control form-control-color w-100" :value="getVal('backgroundColor')?.startsWith('#') ? getVal('backgroundColor') : '#ffffff'" @input="setVal('backgroundColor', $event.target.value)" />
-            </div>
         </div>
+
+        <ColorGradientControl
+            :model-value="getVal('color') || '#0f172a'"
+            label="Couleur du texte"
+            :allow-gradient="false"
+            @update:modelValue="(v) => setVal('color', v)"
+        />
+
+        <ColorGradientControl
+            :model-value="getVal('background') || getVal('backgroundColor') || ''"
+            label="Arrière-plan (Couleur ou Dégradé)"
+            :allow-gradient="true"
+            @update:modelValue="(v) => setVal('background', v)"
+        />
     </div>
 </template>
