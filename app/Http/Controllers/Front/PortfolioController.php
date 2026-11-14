@@ -3,17 +3,19 @@
 namespace App\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
+use App\Models\PortfolioSite;
 use App\Models\User;
 use App\Models\Project;
 use App\Models\Poc;
 use App\Models\XpLevel;
+use App\Services\Portfolio\DynamicDataHydrator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 
 class PortfolioController extends Controller
 {
-    public function show(Request $request, string $username)
+    public function show(Request $request, string $username, ?string $pageSlug = null, ?DynamicDataHydrator $hydrator = null)
     {
         $cleanUsername = ltrim(trim($username), '@');
 
@@ -79,6 +81,56 @@ class PortfolioController extends Controller
             ->select('id', 'name', 'url', 'is_currently_down', 'uptime_percentage', 'last_response_time_ms', 'last_checked_at')
             ->latest()
             ->get();
+
+        // Check if user has a published PortfolioSite (or owner is previewing a builder site)
+        $previewSiteId = $isOwner ? (int) $request->query('preview_site', 0) : 0;
+        $builderSite = null;
+
+        if ($previewSiteId > 0) {
+            $builderSite = PortfolioSite::where('user_id', $user->id)
+                ->where('id', $previewSiteId)
+                ->with(['pages' => fn ($q) => $q->orderBy('sort_order'), 'themeParts'])
+                ->first();
+        } else {
+            $builderSite = PortfolioSite::where('user_id', $user->id)
+                ->where('is_published', true)
+                ->with(['pages' => fn ($q) => $q->orderBy('sort_order'), 'themeParts'])
+                ->orderByDesc('is_primary')
+                ->first();
+        }
+
+        if ($builderSite && $builderSite->pages->isNotEmpty()) {
+            $activePage = $pageSlug
+                ? $builderSite->pages->firstWhere('slug', $pageSlug)
+                : ($builderSite->pages->firstWhere('is_homepage', true) ?? $builderSite->pages->first());
+
+            if ($activePage) {
+                $tree = $previewSiteId > 0
+                    ? ($activePage->draft_tree ?? $activePage->published_tree)
+                    : $activePage->published_tree;
+
+                if (!empty($tree) && !empty($tree['sections'])) {
+                    $hydratorInstance = $hydrator ?? app(DynamicDataHydrator::class);
+                    $themeParts = $builderSite->themeParts->where('is_active', true)->keyBy('type');
+
+                    return Inertia::render('Portfolio/PublicSite', [
+                        'portfolioUser' => $user,
+                        'site' => $builderSite,
+                        'pages' => $builderSite->pages->where('show_in_menu', true)->values(),
+                        'activePage' => $activePage,
+                        'tree' => $tree,
+                        'headerPart' => $themeParts->get('header'),
+                        'footerPart' => $themeParts->get('footer'),
+                        'hydratedData' => $hydratorInstance->hydrateForUser($user),
+                        'currentTier' => $currentTier,
+                        'nextTier' => $nextTier,
+                        'rankPosition' => $rankPosition,
+                        'isOwner' => $isOwner,
+                        'isPreview' => $previewSiteId > 0,
+                    ]);
+                }
+            }
+        }
 
         return Inertia::render('Portfolio/Show', [
             'portfolioUser' => $user,

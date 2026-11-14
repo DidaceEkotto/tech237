@@ -114,6 +114,16 @@ class User extends Authenticatable
         return $this->hasMany(Project::class);
     }
 
+    public function portfolioSites(): HasMany
+    {
+        return $this->hasMany(PortfolioSite::class);
+    }
+
+    public function primaryPortfolioSite(): HasMany
+    {
+        return $this->hasMany(PortfolioSite::class)->where('is_primary', true);
+    }
+
     public function forumTopics(): HasMany
     {
         return $this->hasMany(ForumTopic::class);

@@ -211,6 +211,21 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
+        $sitePublisher = app(\App\Services\Portfolio\SitePublisherService::class);
+        $sitePublisher->ensurePrimarySiteForUser($user);
+        $portfolioSites = \App\Models\PortfolioSite::where('user_id', $user->id)
+            ->with(['pages' => fn ($q) => $q->orderBy('sort_order')])
+            ->orderByDesc('is_primary')
+            ->latest()
+            ->get();
+        $portfolioMedia = \App\Models\PortfolioMedia::where('user_id', $user->id)
+            ->latest()
+            ->limit(30)
+            ->get();
+        $portfolioTemplates = \App\Models\PortfolioTemplate::where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)->orWhere('is_public', true);
+        })->latest()->get();
+
         return Inertia::render('User/Dashboard', [
             'user' => $user,
             'startups' => $startups,
@@ -220,6 +235,9 @@ class DashboardController extends Controller
             'freelanceSetting' => $freelanceSetting,
             'heartbeatMonitors' => $heartbeatMonitors,
             'userForms' => $userForms,
+            'portfolioSites' => $portfolioSites,
+            'portfolioMedia' => $portfolioMedia,
+            'portfolioTemplates' => $portfolioTemplates,
             'collaborativeProjects' => $collaborativeProjects,
             'pendingInvitations' => $pendingInvitations,
             'pendingTimelines' => $pendingTimelines,

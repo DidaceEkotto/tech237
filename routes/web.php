@@ -164,6 +164,7 @@ Route::post('/communaute/profil/{id}/contact', [App\Http\Controllers\Front\Commu
 
 // Public Developer Portfolio & CV (@username and /portfolio/{username})
 Route::get('/@{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->where('username', '[a-zA-Z0-9_\-\.]+')->name('user.portfolio.short');
+Route::get('/@{username}/{pageSlug}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->where(['username' => '[a-zA-Z0-9_\-\.]+', 'pageSlug' => '[a-zA-Z0-9_\-]+'])->name('user.portfolio.page');
 Route::get('/portfolio/{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->name('user.portfolio');
 Route::get('/cv/{username}', [App\Http\Controllers\Front\PortfolioController::class, 'show'])->name('user.cv');
 Route::post('/portfolio/{username}/contact', [App\Http\Controllers\User\PortfolioController::class, 'submitContact'])->name('portfolio.contact.submit');
@@ -343,6 +344,36 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/espace-utilisateur/portfolio/upload-cv', [App\Http\Controllers\User\PortfolioController::class, 'uploadCv'])->name('user.portfolio.upload-cv');
     Route::post('/espace-utilisateur/portfolio/upload-slide', [App\Http\Controllers\User\PortfolioController::class, 'uploadSlide'])->name('user.portfolio.upload-slide');
     Route::post('/espace-utilisateur/portfolio/upload-preloader-image', [App\Http\Controllers\User\PortfolioController::class, 'uploadPreloaderImage'])->name('user.portfolio.upload-preloader-image');
+
+    // Portfolio Website Builder Studio
+    Route::prefix('/espace-utilisateur/portfolio-builder')->name('user.portfolio_builder.')->group(function () {
+        Route::get('/sites', [App\Http\Controllers\User\PortfolioSiteController::class, 'index'])->name('sites.index');
+        Route::post('/sites', [App\Http\Controllers\User\PortfolioSiteController::class, 'store'])->name('sites.store');
+        Route::patch('/sites/{site}', [App\Http\Controllers\User\PortfolioSiteController::class, 'update'])->name('sites.update');
+        Route::post('/sites/{site}/duplicate', [App\Http\Controllers\User\PortfolioSiteController::class, 'duplicate'])->name('sites.duplicate');
+        Route::delete('/sites/{site}', [App\Http\Controllers\User\PortfolioSiteController::class, 'destroy'])->name('sites.destroy');
+
+        Route::get('/sites/{site}/editor', [App\Http\Controllers\User\PortfolioBuilderController::class, 'editor'])->name('editor');
+        Route::post('/sites/{site}/publish', [App\Http\Controllers\User\PortfolioBuilderController::class, 'publish'])->name('sites.publish');
+        Route::post('/sites/{site}/unpublish', [App\Http\Controllers\User\PortfolioBuilderController::class, 'unpublish'])->name('sites.unpublish');
+        Route::post('/sites/{site}/settings', [App\Http\Controllers\User\PortfolioBuilderController::class, 'saveGlobalSettings'])->name('sites.settings');
+        Route::post('/sites/{site}/theme-parts', [App\Http\Controllers\User\PortfolioBuilderController::class, 'saveThemePart'])->name('sites.theme_parts');
+
+        Route::post('/sites/{site}/pages', [App\Http\Controllers\User\PortfolioPageController::class, 'store'])->name('pages.store');
+        Route::post('/sites/{site}/pages/reorder', [App\Http\Controllers\User\PortfolioPageController::class, 'reorder'])->name('pages.reorder');
+        Route::patch('/pages/{page}', [App\Http\Controllers\User\PortfolioPageController::class, 'update'])->name('pages.update');
+        Route::delete('/pages/{page}', [App\Http\Controllers\User\PortfolioPageController::class, 'destroy'])->name('pages.destroy');
+        Route::post('/pages/{page}/save', [App\Http\Controllers\User\PortfolioBuilderController::class, 'savePage'])->name('pages.save');
+        Route::post('/pages/{page}/revisions/{revision}/restore', [App\Http\Controllers\User\PortfolioBuilderController::class, 'restoreRevision'])->name('pages.restore_revision');
+
+        Route::get('/media', [App\Http\Controllers\User\PortfolioMediaController::class, 'index'])->name('media.index');
+        Route::post('/media', [App\Http\Controllers\User\PortfolioMediaController::class, 'store'])->name('media.store');
+        Route::delete('/media/{media}', [App\Http\Controllers\User\PortfolioMediaController::class, 'destroy'])->name('media.destroy');
+
+        Route::get('/templates', [App\Http\Controllers\User\PortfolioTemplateController::class, 'index'])->name('templates.index');
+        Route::post('/templates', [App\Http\Controllers\User\PortfolioTemplateController::class, 'store'])->name('templates.store');
+        Route::delete('/templates/{template}', [App\Http\Controllers\User\PortfolioTemplateController::class, 'destroy'])->name('templates.destroy');
+    });
 
     // Freelance Calculator & Devis FCFA
     Route::post('/espace-utilisateur/freelance/settings', [App\Http\Controllers\User\FreelanceQuoteController::class, 'saveSettings'])->name('user.freelance.settings.save');
