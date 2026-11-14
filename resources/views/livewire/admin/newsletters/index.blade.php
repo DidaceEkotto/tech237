@@ -108,7 +108,7 @@
                 <i class="bi bi-envelope-paper-fill text-danger me-2"></i>Rédiger et Expédier une Newsletter
             </div>
             <div class="card-body p-4">
-                <form wire:submit.prevent="sendNewsletter">
+                <form id="nl_compose_form" onsubmit="event.preventDefault(); window.submitNewsletterForm && window.submitNewsletterForm();">
                     <div class="row g-4">
                         <div class="col-lg-6">
                             <div class="p-3 border rounded-3 bg-light">
@@ -208,10 +208,27 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
+    (function () {
+        function readEditorValue(elId) {
+            var el = document.querySelector(elId);
+            if (!el) return '';
+            var val = '';
+            if (window.jQuery && jQuery.fn && typeof jQuery.fn.summernote === 'function' && jQuery(el).next('.note-editor').length) {
+                val = jQuery(el).summernote('code') || '';
+            } else {
+                val = el.value || '';
+            }
+            var stripped = val.replace(/<p><br><\/p>/gi, '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, '').trim();
+            return stripped === '' ? '' : val;
+        }
+
         function initNlSummernote(elId, wireProp) {
-            if ($(elId).length) {
-                $(elId).summernote({
+            var el = document.querySelector(elId);
+            if (!el) return;
+
+            if (window.jQuery && jQuery.fn && typeof jQuery.fn.summernote === 'function') {
+                if (jQuery(el).next('.note-editor').length) return;
+                jQuery(el).summernote({
                     placeholder: 'Rédigez la newsletter à envoyer aux abonnés...',
                     tabsize: 2,
                     height: 280,
@@ -224,15 +241,45 @@
                     ],
                     callbacks: {
                         onChange: function(contents) {
-                            @this.set(wireProp, contents);
+                            @this.set(wireProp, contents, false);
+                        },
+                        onBlur: function() {
+                            @this.set(wireProp, jQuery(el).summernote('code'), false);
                         }
                     }
+                });
+            } else if (!el.dataset.nlBound) {
+                el.dataset.nlBound = '1';
+                el.addEventListener('input', function () {
+                    @this.set(wireProp, el.value, false);
                 });
             }
         }
 
-        initNlSummernote('#nl_editor_fr', 'content_fr');
-        initNlSummernote('#nl_editor_en', 'content_en');
-    });
+        function initAllNlEditors() {
+            initNlSummernote('#nl_editor_fr', 'content_fr');
+            initNlSummernote('#nl_editor_en', 'content_en');
+        }
+
+        window.submitNewsletterForm = async function () {
+            var frVal = readEditorValue('#nl_editor_fr');
+            var enVal = readEditorValue('#nl_editor_en');
+            await @this.set('content_fr', frVal, false);
+            await @this.set('content_en', enVal, false);
+            @this.call('sendNewsletter');
+        };
+
+        document.addEventListener('DOMContentLoaded', initAllNlEditors);
+        document.addEventListener('livewire:navigated', initAllNlEditors);
+        document.addEventListener('livewire:init', function () {
+            if (window.Livewire && typeof Livewire.hook === 'function') {
+                Livewire.hook('commit', function ({ succeed }) {
+                    succeed(function () {
+                        setTimeout(initAllNlEditors, 50);
+                    });
+                });
+            }
+        });
+    })();
 </script>
 @endpush

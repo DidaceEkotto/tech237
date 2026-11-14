@@ -128,6 +128,10 @@ class Form extends Component
             $imagePath = ImageService::saveImage($this->featured_image, 'article');
         }
 
+        $existingArticle = $this->articleId ? Article::findOrFail($this->articleId) : null;
+        $publishedAt = $existingArticle?->published_at
+            ?: ($this->status === 'published' ? now() : null);
+
         $data = [
             'rubrique_id' => $this->rubrique_id ? (int)$this->rubrique_id : null,
             'category_id' => $this->category_id ? (int)$this->category_id : null,
@@ -143,15 +147,14 @@ class Form extends Component
             'status' => $this->status,
             'is_featured' => $this->is_featured,
             'is_trending' => $this->is_trending,
-            'published_at' => $this->status === 'published' ? now() : null,
+            'published_at' => $publishedAt,
         ];
 
-        if ($this->articleId) {
-            $article = Article::findOrFail($this->articleId);
-            $article->update($data);
-            $article->tags()->sync($this->selectedTags);
+        if ($existingArticle) {
+            $existingArticle->update($data);
+            $existingArticle->tags()->sync($this->selectedTags);
 
-            AdminLog::record('article_updated', "Mise à jour de l'article '{$article->title_fr}' (Statut: {$this->status})");
+            AdminLog::record('article_updated', "Mise à jour de l'article '{$existingArticle->title_fr}' (Statut: {$this->status})");
             session()->flash('success', "L'article a été mis à jour avec succès.");
         } else {
             $data['admin_id'] = $currentAdmin->id;

@@ -46,7 +46,7 @@ class Index extends Component
         $article = Article::findOrFail($id);
         $article->update([
             'status' => 'published',
-            'published_at' => now(),
+            'published_at' => $article->published_at ?? now(),
             'reviewed_by' => $currentAdmin->id,
         ]);
 
