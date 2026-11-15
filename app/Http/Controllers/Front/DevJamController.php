@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Front;
 use App\Http\Controllers\Controller;
 use App\Models\DevJam;
 use App\Models\DevJamMessage;
+use App\Models\DevJamPoll;
+use App\Models\DevJamPollOption;
+use App\Models\DevJamPollVote;
 use App\Models\DevJamSubmission;
 use App\Models\DevJamVote;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -131,6 +135,7 @@ class DevJamController extends Controller
             ->values();
 
         $presence = $this->touchPresenceAndSnapshot($jam, $request);
+        $collab = $this->collaborationSnapshot($jam, $user?->id, false);
 
         return Inertia::render('DevJams/Show', [
             'jam' => $jam,
@@ -140,6 +145,9 @@ class DevJamController extends Controller
             'isJamCreator' => $user && $jam->creator_user_id === $user->id,
             'initialOnlineCount' => $presence['online_count'],
             'initialOnlineUsers' => $presence['online_users'],
+            'initialPolls' => $this->formatPolls($jam, $user?->id),
+            'initialCollaborators' => $collab['collaborators'],
+            'initialLiveCode' => $collab['live_code'],
         ]);
     }
 
@@ -239,12 +247,19 @@ class DevJamController extends Controller
             ->get();
 
         $presence = $this->touchPresenceAndSnapshot($jam, $request);
+        $userId = Auth::guard('web')->id();
+        $collab = $this->collaborationSnapshot($jam, $userId, true);
 
         return response()->json([
             'messages' => $messages,
             'online_count' => $presence['online_count'],
             'online_users' => $presence['online_users'],
             'typing_users' => $presence['typing_users'],
+            'polls' => $this->formatPolls($jam, $userId),
+            'collaborators' => $collab['collaborators'],
+            'pending_invites_for_me' => $collab['pending_invites_for_me'],
+            'collab_notifications_for_me' => $collab['collab_notifications_for_me'],
+            'live_code' => $collab['live_code'],
         ]);
     }
 
@@ -397,6 +412,363 @@ class DevJamController extends Controller
             'online_count' => count($online),
             'online_users' => $onlineUsers,
             'typing_users' => $typingUsers,
+        ];
+    }
+
+    public function createPoll(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+
+        if ($jam->creator_user_id !== $user->id) {
+            return response()->json(['message' => 'Seul le créateur de la Jam peut créer un sondage.'], 403);
+        }
+
+        $validated = $request->validate([
+            'question' => ['required', 'string', 'min:3', 'max:280'],
+            'options' => ['required', 'array', 'min:2', 'max:6'],
+            'options.*' => ['required', 'string', 'min:1', 'max:120'],
+        ]);
+
+        $poll = DevJamPoll::create([
+            'dev_jam_id' => $jam->id,
+            'creator_user_id' => $user->id,
+            'question' => trim($validated['question']),
+            'is_closed' => false,
+        ]);
+
+        foreach ($validated['options'] as $label) {
+            DevJamPollOption::create([
+                'poll_id' => $poll->id,
+                'label' => trim($label),
+                'votes_count' => 0,
+            ]);
+        }
+
+        return response()->json([
+            'polls' => $this->formatPolls($jam, $user->id),
+            'message' => 'Sondage publié !',
+        ]);
+    }
+
+    public function votePoll(Request $request, string $slug, DevJamPoll $poll)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        if ($poll->dev_jam_id !== $jam->id) {
+            abort(404);
+        }
+
+        if ($poll->is_closed) {
+            return response()->json(['message' => 'Ce sondage est clôturé.'], 422);
+        }
+
+        $validated = $request->validate([
+            'option_id' => ['required', 'integer'],
+        ]);
+
+        $option = DevJamPollOption::where('id', $validated['option_id'])
+            ->where('poll_id', $poll->id)
+            ->firstOrFail();
+
+        $user = Auth::guard('web')->user();
+
+        $alreadyVoted = DevJamPollVote::where('poll_id', $poll->id)
+            ->where('user_id', $user->id)
+            ->exists();
+
+        if ($alreadyVoted) {
+            return response()->json([
+                'message' => 'Vous avez déjà voté à ce sondage (1 seul vote autorisé par personne).',
+                'polls' => $this->formatPolls($jam, $user->id),
+            ], 422);
+        }
+
+        DevJamPollVote::create([
+            'poll_id' => $poll->id,
+            'option_id' => $option->id,
+            'user_id' => $user->id,
+        ]);
+
+        $option->update([
+            'votes_count' => DevJamPollVote::where('option_id', $option->id)->count(),
+        ]);
+
+        return response()->json([
+            'polls' => $this->formatPolls($jam, $user->id),
+            'message' => 'Vote enregistré !',
+        ]);
+    }
+
+    public function toggleClosePoll(string $slug, DevJamPoll $poll)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        if ($poll->dev_jam_id !== $jam->id) {
+            abort(404);
+        }
+
+        $user = Auth::guard('web')->user();
+        if ($jam->creator_user_id !== $user->id) {
+            abort(403);
+        }
+
+        $poll->update(['is_closed' => !$poll->is_closed]);
+
+        return response()->json([
+            'polls' => $this->formatPolls($jam, $user->id),
+        ]);
+    }
+
+    public function inviteCollaborator(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+
+        if ($jam->creator_user_id !== $user->id) {
+            return response()->json(['message' => 'Seul le créateur de la Jam peut inviter un co-éditeur.'], 403);
+        }
+
+        $validated = $request->validate([
+            'target_user_id' => ['required', 'integer', 'exists:users,id'],
+        ]);
+
+        $target = User::findOrFail($validated['target_user_id']);
+        if ($target->id === $user->id) {
+            return response()->json(['message' => 'Vous êtes déjà le créateur de cette Jam.'], 422);
+        }
+
+        $collabKey = "dev_jam:{$jam->id}:collab";
+        $state = Cache::get($collabKey, [
+            'collaborators' => [],
+            'invites' => [],
+            'notifications' => [],
+        ]);
+
+        if (isset($state['collaborators'][$target->id])) {
+            return response()->json(['message' => "{$target->name} collabore déjà sur votre code."], 422);
+        }
+
+        $inviteId = Str::uuid()->toString();
+        $state['invites'][$target->id] = [
+            'id' => $inviteId,
+            'from_user_id' => $user->id,
+            'from_user_name' => $user->name,
+            'to_user_id' => $target->id,
+            'to_user_name' => $target->name,
+            'created_at' => time(),
+        ];
+
+        Cache::put($collabKey, $state, now()->addHours(12));
+
+        return response()->json([
+            'message' => "Invitation envoyée à {$target->name} !",
+        ]);
+    }
+
+    public function respondCollaborationInvite(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+
+        $validated = $request->validate([
+            'accept' => ['required', 'boolean'],
+        ]);
+
+        $collabKey = "dev_jam:{$jam->id}:collab";
+        $state = Cache::get($collabKey, [
+            'collaborators' => [],
+            'invites' => [],
+            'notifications' => [],
+        ]);
+
+        $invite = $state['invites'][$user->id] ?? null;
+        if (!$invite) {
+            return response()->json(['message' => 'Invitation expirée ou introuvable.'], 404);
+        }
+
+        unset($state['invites'][$user->id]);
+
+        $accept = (bool) $validated['accept'];
+        $inviterId = (int) $invite['from_user_id'];
+
+        if ($accept) {
+            $state['collaborators'][$user->id] = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'joined_at' => time(),
+            ];
+            $state['notifications'][$inviterId][] = [
+                'id' => Str::uuid()->toString(),
+                'type' => 'accepted',
+                'text' => "{$user->name} a accepté votre invitation et peut maintenant manipuler le code !",
+            ];
+        } else {
+            $state['notifications'][$inviterId][] = [
+                'id' => Str::uuid()->toString(),
+                'type' => 'declined',
+                'text' => "{$user->name} a refusé votre invitation à coder.",
+            ];
+        }
+
+        Cache::put($collabKey, $state, now()->addHours(12));
+        $collab = $this->collaborationSnapshot($jam, $user->id, false);
+
+        return response()->json([
+            'accepted' => $accept,
+            'collaborators' => $collab['collaborators'],
+            'live_code' => $collab['live_code'],
+            'message' => $accept
+                ? 'Invitation acceptée ! Vous pouvez maintenant éditer le code ensemble.'
+                : 'Invitation refusée.',
+        ]);
+    }
+
+    public function revokeCollaborator(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+
+        if ($jam->creator_user_id !== $user->id) {
+            abort(403);
+        }
+
+        $targetUserId = $request->input('user_id');
+        $collabKey = "dev_jam:{$jam->id}:collab";
+        $state = Cache::get($collabKey, [
+            'collaborators' => [],
+            'invites' => [],
+            'notifications' => [],
+        ]);
+
+        if ($targetUserId) {
+            $uid = (int) $targetUserId;
+            if (isset($state['collaborators'][$uid])) {
+                unset($state['collaborators'][$uid]);
+                $state['notifications'][$uid][] = [
+                    'id' => Str::uuid()->toString(),
+                    'type' => 'revoked',
+                    'text' => 'Le créateur a révoqué votre accès co-éditeur sur cette Jam.',
+                ];
+            }
+            unset($state['invites'][$uid]);
+        } else {
+            foreach (array_keys($state['collaborators']) as $uid) {
+                $state['notifications'][$uid][] = [
+                    'id' => Str::uuid()->toString(),
+                    'type' => 'revoked',
+                    'text' => 'Le créateur a révoqué votre accès co-éditeur sur cette Jam.',
+                ];
+            }
+            $state['collaborators'] = [];
+            $state['invites'] = [];
+        }
+
+        Cache::put($collabKey, $state, now()->addHours(12));
+
+        return response()->json([
+            'collaborators' => array_values($state['collaborators']),
+            'message' => 'Accès co-éditeur révoqué.',
+        ]);
+    }
+
+    public function syncLiveCode(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+
+        $collabKey = "dev_jam:{$jam->id}:collab";
+        $state = Cache::get($collabKey, ['collaborators' => []]);
+        $isCreator = $jam->creator_user_id === $user->id;
+        $isCollaborator = isset($state['collaborators'][$user->id]);
+
+        if (!$isCreator && !$isCollaborator) {
+            return response()->json(['message' => 'Non autorisé à modifier le code partagé.'], 403);
+        }
+
+        $validated = $request->validate([
+            'html_code' => ['nullable', 'string', 'max:200000'],
+            'css_code' => ['nullable', 'string', 'max:200000'],
+            'js_code' => ['nullable', 'string', 'max:200000'],
+        ]);
+
+        $liveCode = [
+            'html_code' => $validated['html_code'] ?? '',
+            'css_code' => $validated['css_code'] ?? '',
+            'js_code' => $validated['js_code'] ?? '',
+            'updated_by' => $user->id,
+            'updated_by_name' => $user->name,
+            'updated_at' => microtime(true),
+        ];
+
+        Cache::put("dev_jam:{$jam->id}:live_code", $liveCode, now()->addHours(12));
+
+        return response()->json(['ok' => true, 'live_code' => $liveCode]);
+    }
+
+    private function formatPolls(DevJam $jam, ?int $userId): array
+    {
+        $polls = DevJamPoll::with('options')
+            ->where('dev_jam_id', $jam->id)
+            ->latest('id')
+            ->get();
+
+        $userVotes = $userId
+            ? DevJamPollVote::whereIn('poll_id', $polls->pluck('id'))
+                ->where('user_id', $userId)
+                ->pluck('option_id', 'poll_id')
+            : collect([]);
+
+        return $polls->map(function (DevJamPoll $poll) use ($userVotes) {
+            $totalVotes = (int) $poll->options->sum('votes_count');
+            return [
+                'id' => $poll->id,
+                'question' => $poll->question,
+                'is_closed' => (bool) $poll->is_closed,
+                'total_votes' => $totalVotes,
+                'user_voted_option_id' => $userVotes->get($poll->id),
+                'options' => $poll->options->map(function (DevJamPollOption $opt) use ($totalVotes) {
+                    $pct = $totalVotes > 0 ? (int) round(($opt->votes_count / $totalVotes) * 100) : 0;
+                    return [
+                        'id' => $opt->id,
+                        'label' => $opt->label,
+                        'votes_count' => (int) $opt->votes_count,
+                        'percentage' => $pct,
+                    ];
+                })->values()->all(),
+            ];
+        })->values()->all();
+    }
+
+    private function collaborationSnapshot(DevJam $jam, ?int $userId, bool $consumeNotifications): array
+    {
+        $collabKey = "dev_jam:{$jam->id}:collab";
+        $state = Cache::get($collabKey, [
+            'collaborators' => [],
+            'invites' => [],
+            'notifications' => [],
+        ]);
+
+        $pendingInvitesForMe = [];
+        $notificationsForMe = [];
+
+        if ($userId) {
+            if (isset($state['invites'][$userId])) {
+                $pendingInvitesForMe[] = $state['invites'][$userId];
+            }
+            if (!empty($state['notifications'][$userId])) {
+                $notificationsForMe = $state['notifications'][$userId];
+                if ($consumeNotifications) {
+                    unset($state['notifications'][$userId]);
+                    Cache::put($collabKey, $state, now()->addHours(12));
+                }
+            }
+        }
+
+        return [
+            'collaborators' => array_values($state['collaborators'] ?? []),
+            'pending_invites_for_me' => $pendingInvitesForMe,
+            'collab_notifications_for_me' => $notificationsForMe,
+            'live_code' => Cache::get("dev_jam:{$jam->id}:live_code"),
         ];
     }
 }

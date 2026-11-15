@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import apiClient from '@/Composables/PortfolioBuilder/apiClient';
 
@@ -11,6 +11,9 @@ const props = defineProps({
     isJamCreator: { type: Boolean, default: false },
     initialOnlineCount: { type: Number, default: 1 },
     initialOnlineUsers: { type: Array, default: () => [] },
+    initialPolls: { type: Array, default: () => [] },
+    initialCollaborators: { type: Array, default: () => [] },
+    initialLiveCode: { type: Object, default: null },
 });
 
 const page = usePage();
@@ -72,6 +75,30 @@ const onlineUsers = ref([...(props.initialOnlineUsers || [])]);
 const typingUsers = ref([]);
 let typingStopTimer = null;
 let lastTypingSentAt = 0;
+
+// Polls State (1 vote per person, creator-only creation)
+const polls = ref([...(props.initialPolls || [])]);
+const pollQuestion = ref('');
+const pollOptions = ref(['', '']);
+const creatingPoll = ref(false);
+const votingPollId = ref(null);
+const openPollsCount = computed(() => polls.value.filter((p) => !p.is_closed).length);
+
+// Live Co-Editing / Collaboration State
+const collaborators = ref([...(props.initialCollaborators || [])]);
+const pendingInvite = ref(null);
+const bottomLeftPopup = ref(null); // { kind: 'invite' | 'message', title, text, invite?, senderName? }
+let bottomPopupTimer = null;
+let liveCodeSyncTimer = null;
+let isApplyingRemoteCode = false;
+let lastAppliedCodeAt = props.initialLiveCode?.updated_at || 0;
+const isCollaborator = computed(() =>
+    Boolean(authUser.value && collaborators.value.some((c) => Number(c.id) === Number(authUser.value.id)))
+);
+const canCoEditSharedCode = computed(() => canRearrangePreview.value || isCollaborator.value);
+
+// Social Share Menu State
+const showShareMenu = ref(false);
 
 const chatPosStorageKey = `dj_chat_pos_${props.jam.slug}`;
 const chatPos = ref({ x: null, y: null });
@@ -524,23 +551,234 @@ function replyToMessage(msg) {
     nextTick(() => chatInputEl.value?.focus());
 }
 
-function splitMentions(text) {
+function parseChatTokens(text) {
     const str = String(text || '');
-    const regex = /(@[A-Za-z0-9_.\-À-ÿ]+)/g;
+    const regex = /(https?:\/\/[^\s<]+|@[A-Za-z0-9_.\-À-ÿ]+)/g;
     const parts = [];
     let lastIndex = 0;
     let match;
     while ((match = regex.exec(str)) !== null) {
         if (match.index > lastIndex) {
-            parts.push({ text: str.slice(lastIndex, match.index), isMention: false });
+            parts.push({ text: str.slice(lastIndex, match.index), kind: 'text' });
         }
-        parts.push({ text: match[0], isMention: true });
+        const token = match[0];
+        parts.push({
+            text: token,
+            kind: token.startsWith('http://') || token.startsWith('https://') ? 'url' : 'mention',
+        });
         lastIndex = regex.lastIndex;
     }
     if (lastIndex < str.length) {
-        parts.push({ text: str.slice(lastIndex), isMention: false });
+        parts.push({ text: str.slice(lastIndex), kind: 'text' });
     }
-    return parts.length ? parts : [{ text: str, isMention: false }];
+    return parts.length ? parts : [{ text: str, kind: 'text' }];
+}
+
+function showBottomPopup(payload, autoHideMs = 7000) {
+    clearTimeout(bottomPopupTimer);
+    bottomLeftPopup.value = payload;
+    if (autoHideMs > 0) {
+        bottomPopupTimer = setTimeout(() => {
+            if (bottomLeftPopup.value?.kind === payload.kind) {
+                bottomLeftPopup.value = null;
+            }
+        }, autoHideMs);
+    }
+}
+
+// Polls Actions
+function addPollOption() {
+    if (pollOptions.value.length < 6) {
+        pollOptions.value.push('');
+    }
+}
+
+function removePollOption(index) {
+    if (pollOptions.value.length > 2) {
+        pollOptions.value.splice(index, 1);
+    }
+}
+
+async function createPoll() {
+    if (!canRearrangePreview.value) return;
+    const cleanOptions = pollOptions.value.map((o) => o.trim()).filter(Boolean);
+    if (!pollQuestion.value.trim() || cleanOptions.length < 2) {
+        showToast('Ajoutez une question et au moins 2 choix de réponse.');
+        return;
+    }
+    creatingPoll.value = true;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/polls`, {
+            question: pollQuestion.value.trim(),
+            options: cleanOptions,
+        });
+        polls.value = res.data.polls || [];
+        pollQuestion.value = '';
+        pollOptions.value = ['', ''];
+        showToast(res.data.message || 'Sondage créé !');
+    } catch (e) {
+        showToast(e.response?.data?.message || 'Impossible de créer le sondage.');
+    } finally {
+        creatingPoll.value = false;
+    }
+}
+
+async function votePoll(poll, optionId) {
+    if (!authUser.value) {
+        showToast('Connectez-vous pour voter au sondage.');
+        return;
+    }
+    if (poll.user_voted_option_id || poll.is_closed) return;
+    votingPollId.value = poll.id;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/polls/${poll.id}/vote`, {
+            option_id: optionId,
+        });
+        polls.value = res.data.polls || [];
+        showToast(res.data.message || 'Vote enregistré !');
+    } catch (e) {
+        showToast(e.response?.data?.message || 'Vote refusé.');
+    } finally {
+        votingPollId.value = null;
+    }
+}
+
+async function toggleClosePoll(poll) {
+    if (!canRearrangePreview.value) return;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/polls/${poll.id}/toggle-close`);
+        polls.value = res.data.polls || [];
+    } catch {
+        showToast('Action impossible.');
+    }
+}
+
+// Collaboration / Help Invitations
+async function inviteToCode(targetUserId) {
+    if (!canRearrangePreview.value || !targetUserId) return;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/collaborations/invite`, {
+            target_user_id: targetUserId,
+        });
+        showToast(res.data.message || 'Invitation envoyée !');
+    } catch (e) {
+        showToast(e.response?.data?.message || 'Invitation impossible.');
+    }
+}
+
+async function respondInvite(accept) {
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/collaborations/respond`, { accept });
+        pendingInvite.value = null;
+        bottomLeftPopup.value = null;
+        if (Array.isArray(res.data.collaborators)) collaborators.value = res.data.collaborators;
+        if (accept && res.data.live_code) {
+            applyRemoteLiveCode(res.data.live_code);
+        }
+        showToast(res.data.message);
+    } catch (e) {
+        pendingInvite.value = null;
+        bottomLeftPopup.value = null;
+        showToast(e.response?.data?.message || 'Invitation expirée.');
+    }
+}
+
+async function revokeCollaborator(userId = null) {
+    if (!canRearrangePreview.value) return;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/collaborations/revoke`, {
+            user_id: userId,
+        });
+        collaborators.value = res.data.collaborators || [];
+        showToast(res.data.message || 'Accès co-éditeur révoqué.');
+    } catch {
+        showToast('Impossible de révoquer.');
+    }
+}
+
+function applyRemoteLiveCode(liveCode) {
+    if (!liveCode || !liveCode.updated_at) return;
+    if (authUser.value && Number(liveCode.updated_by) === Number(authUser.value.id)) return;
+    if (liveCode.updated_at <= lastAppliedCodeAt) return;
+    lastAppliedCodeAt = liveCode.updated_at;
+    isApplyingRemoteCode = true;
+    htmlCode.value = liveCode.html_code ?? htmlCode.value;
+    cssCode.value = liveCode.css_code ?? cssCode.value;
+    jsCode.value = liveCode.js_code ?? jsCode.value;
+    nextTick(() => {
+        isApplyingRemoteCode = false;
+    });
+}
+
+watch([htmlCode, cssCode, jsCode], () => {
+    if (isApplyingRemoteCode || !canCoEditSharedCode.value) return;
+    if (!collaborators.value.length && !isCollaborator.value) return;
+    clearTimeout(liveCodeSyncTimer);
+    liveCodeSyncTimer = setTimeout(async () => {
+        try {
+            const res = await apiClient.post(`/dev-jams/${props.jam.slug}/live-code`, {
+                html_code: htmlCode.value,
+                css_code: cssCode.value,
+                js_code: jsCode.value,
+            });
+            if (res.data?.live_code?.updated_at) {
+                lastAppliedCodeAt = res.data.live_code.updated_at;
+            }
+        } catch {
+            // silent sync failure
+        }
+    }, 550);
+});
+
+// Social Share Actions
+function getJamShareUrl() {
+    if (typeof window === 'undefined') return '';
+    return window.location.href;
+}
+
+function shareSocial(platform) {
+    const url = getJamShareUrl();
+    const text = `Rejoins la Dev Jam "${props.jam.title}" sur Tech237 !`;
+    const encUrl = encodeURIComponent(url);
+    const encText = encodeURIComponent(text);
+    showShareMenu.value = false;
+
+    if (platform === 'facebook') {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encUrl}`, '_blank', 'noopener');
+    } else if (platform === 'twitter') {
+        window.open(`https://twitter.com/intent/tweet?url=${encUrl}&text=${encText}`, '_blank', 'noopener');
+    } else if (platform === 'whatsapp') {
+        window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank', 'noopener');
+    } else if (platform === 'tiktok') {
+        navigator.clipboard?.writeText(`${text} ${url}`).catch(() => {});
+        showToast('Lien copié ! Collez-le sur TikTok.');
+        window.open('https://www.tiktok.com/', '_blank', 'noopener');
+    } else if (platform === 'copy') {
+        navigator.clipboard?.writeText(url).catch(() => {});
+        showToast('Lien de la Jam copié !');
+    }
+}
+
+async function shareJamLinkInChat() {
+    if (!canRearrangePreview.value) return;
+    showShareMenu.value = false;
+    const url = getJamShareUrl();
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/messages`, {
+            message: `🔗 Rejoignez & partagez cette Dev Jam : ${url}`,
+            submission_id: null,
+        });
+        const newMsg = res.data.message;
+        if (!messages.value.some((m) => m.id === newMsg.id)) {
+            lastSentId.value = newMsg.id;
+            messages.value.push(newMsg);
+        }
+        playIphoneSendSound();
+        openChat();
+        showToast('Lien de la Jam partagé dans le chat !');
+    } catch {
+        showToast('Impossible de partager le lien dans le chat.');
+    }
 }
 
 async function notifyTyping(isTyping) {
@@ -622,18 +860,57 @@ async function pollMessages() {
         if (typeof res.data.online_count === 'number') onlineCount.value = res.data.online_count;
         if (Array.isArray(res.data.online_users)) onlineUsers.value = res.data.online_users;
         if (Array.isArray(res.data.typing_users)) typingUsers.value = res.data.typing_users;
+        if (Array.isArray(res.data.polls)) polls.value = res.data.polls;
+
+        if (Array.isArray(res.data.collaborators)) {
+            collaborators.value = res.data.collaborators;
+        }
+
+        const invites = res.data.pending_invites_for_me || [];
+        if (invites.length) {
+            pendingInvite.value = invites[0];
+            showBottomPopup(
+                {
+                    kind: 'invite',
+                    title: 'Invitation à co-éditer',
+                    text: `${invites[0].from_user_name} vous invite à l'aider sur le code de cette Jam !`,
+                    invite: invites[0],
+                },
+                0
+            );
+        }
+
+        const notes = res.data.collab_notifications_for_me || [];
+        if (notes.length) {
+            notes.forEach((n) => showToast(n.text));
+        }
+
+        if (res.data.live_code && canCoEditSharedCode.value) {
+            applyRemoteLiveCode(res.data.live_code);
+        }
 
         const incoming = res.data.messages || [];
         if (incoming.length) {
             let added = 0;
+            let lastIncomingOther = null;
             incoming.forEach((m) => {
                 if (!messages.value.some((x) => x.id === m.id)) {
                     messages.value.push(m);
                     added += 1;
+                    if (!authUser.value || Number(m.user_id) !== Number(authUser.value.id)) {
+                        lastIncomingOther = m;
+                    }
                 }
             });
             if (added > 0 && !chatOpen.value) {
                 unreadCount.value += added;
+            }
+            if (lastIncomingOther && !pendingInvite.value) {
+                showBottomPopup({
+                    kind: 'message',
+                    title: lastIncomingOther.user?.name || 'Nouveau message',
+                    text: lastIncomingOther.message,
+                });
             }
             nextTick(scrollChatBottom);
         }
@@ -746,12 +1023,66 @@ onUnmounted(() => {
             </div>
 
             <div class="d-flex align-items-center gap-2">
+                <!-- Active Co-Editors & Creator Revoke -->
+                <div v-if="collaborators.length" class="d-none d-lg-flex align-items-center gap-1 px-2 py-1 rounded-pill bg-info bg-opacity-10 border border-info border-opacity-25">
+                    <span class="small text-info fw-semibold" style="font-size: 11px;">
+                        <i class="bi bi-people me-1"></i>{{ collaborators.length }} co-éditeur(s)
+                    </span>
+                    <button
+                        v-if="canRearrangePreview"
+                        type="button"
+                        class="btn btn-xs btn-outline-danger rounded-pill py-0 px-2 ms-1"
+                        style="font-size: 10px;"
+                        title="Révoquer tous les co-éditeurs pour rester seul à manipuler le code"
+                        @click="revokeCollaborator(null)"
+                    >
+                        Révoquer
+                    </button>
+                </div>
+
                 <span class="badge bg-success bg-opacity-25 border border-success border-opacity-50 text-success rounded-pill px-2 py-1 d-none d-sm-inline" style="font-size: 11px;" title="Participants connectés à cette Jam uniquement">
                     <i class="bi bi-people-fill me-1"></i>{{ onlineCount }} en ligne
                 </span>
                 <span class="badge bg-black bg-opacity-50 border border-secondary border-opacity-50 text-warning rounded-pill px-2 py-1 d-none d-md-inline" style="font-size: 11px;">
                     <i class="bi bi-clock me-1"></i>{{ countdownText }}
                 </span>
+
+                <!-- Social Share Dropdown -->
+                <div class="position-relative">
+                    <button
+                        type="button"
+                        class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1"
+                        title="Partager la Jam sur les réseaux sociaux"
+                        @click="showShareMenu = !showShareMenu"
+                    >
+                        <i class="bi bi-share-fill text-info me-1"></i><span class="d-none d-md-inline">Partager</span>
+                    </button>
+                    <div v-if="showShareMenu" class="dj-share-menu shadow-lg rounded-4 p-2 d-flex flex-column gap-1">
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('facebook')">
+                            <i class="bi bi-facebook text-primary me-2"></i>Facebook
+                        </button>
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('twitter')">
+                            <i class="bi bi-twitter-x text-light me-2"></i>Twitter / X
+                        </button>
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('whatsapp')">
+                            <i class="bi bi-whatsapp text-success me-2"></i>WhatsApp
+                        </button>
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('tiktok')">
+                            <i class="bi bi-tiktok text-danger me-2"></i>TikTok
+                        </button>
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('copy')">
+                            <i class="bi bi-link-45deg text-info me-2"></i>Copier le lien
+                        </button>
+                        <button
+                            v-if="canRearrangePreview"
+                            type="button"
+                            class="btn btn-sm btn-outline-info rounded-3 text-start mt-1"
+                            @click="shareJamLinkInChat"
+                        >
+                            <i class="bi bi-chat-quote-fill me-2"></i>Poster le lien dans le chat
+                        </button>
+                    </div>
+                </div>
 
                 <button
                     type="button"
@@ -802,6 +1133,16 @@ onUnmounted(() => {
                 >
                     <i class="bi bi-grid-1x2 fs-5"></i>
                     <span class="dj-mini-badge">{{ submissions.length }}</span>
+                </button>
+                <button
+                    type="button"
+                    class="dj-activity-btn"
+                    :class="{ active: activeSection === 'polls' }"
+                    title="Sondages en direct"
+                    @click="activeSection = 'polls'"
+                >
+                    <i class="bi bi-bar-chart-fill fs-5"></i>
+                    <span v-if="openPollsCount > 0" class="dj-mini-badge bg-info text-dark">{{ openPollsCount }}</span>
                 </button>
                 <button
                     type="button"
@@ -1069,6 +1410,90 @@ onUnmounted(() => {
                     </div>
                 </div>
 
+                <!-- SECTION 2B: LIVE POLLS (Creator creates, 1 vote per person, live progress) -->
+                <div v-else-if="activeSection === 'polls'" class="p-3 p-md-4 overflow-auto flex-grow-1">
+                    <div class="mx-auto" style="max-width: 780px;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-info"></i>Sondages en direct</h5>
+                            <button type="button" class="btn btn-sm btn-outline-light rounded-pill" @click="activeSection = 'editor'">
+                                <i class="bi bi-code-slash me-1"></i>Retour à l'éditeur
+                            </button>
+                        </div>
+
+                        <!-- Creator-only Poll Builder -->
+                        <div v-if="canRearrangePreview" class="dj-glass-box rounded-4 p-4 mb-4">
+                            <h6 class="fw-bold text-white mb-3"><i class="bi bi-plus-circle me-2 text-info"></i>Créer un nouveau sondage</h6>
+                            <div class="mb-3">
+                                <label class="form-label small text-white-50">Question du sondage</label>
+                                <input v-model="pollQuestion" type="text" class="form-control dj-dark-input" placeholder="Ex : Quel framework préférez-vous pour ce défi ?" maxlength="280" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-white-50">Choix de réponses (2 à 6)</label>
+                                <div v-for="(opt, idx) in pollOptions" :key="idx" class="d-flex gap-2 mb-2">
+                                    <input v-model="pollOptions[idx]" type="text" class="form-control form-control-sm dj-dark-input" :placeholder="`Option ${idx + 1}`" maxlength="120" />
+                                    <button v-if="pollOptions.length > 2" type="button" class="btn btn-sm btn-outline-danger" @click="removePollOption(idx)">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                                <button v-if="pollOptions.length < 6" type="button" class="btn btn-xs dj-btn-ghost rounded-pill px-3 py-1" @click="addPollOption">
+                                    <i class="bi bi-plus me-1"></i>Ajouter un choix
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-sm dj-save-btn rounded-pill px-4 fw-semibold" :disabled="creatingPoll" @click="createPoll">
+                                <span v-if="creatingPoll" class="spinner-border spinner-border-sm me-1"></span>
+                                Publier le sondage
+                            </button>
+                        </div>
+
+                        <!-- Polls List -->
+                        <div v-if="polls.length" class="d-flex flex-column gap-3">
+                            <div v-for="poll in polls" :key="poll.id" class="dj-glass-box rounded-4 p-4">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                                    <div>
+                                        <h6 class="fw-bold text-white mb-1">{{ poll.question }}</h6>
+                                        <span class="small text-white-50">{{ poll.total_votes }} vote(s) • 1 vote par personne</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge rounded-pill" :class="poll.is_closed ? 'bg-secondary' : 'bg-success bg-opacity-25 text-success'">
+                                            {{ poll.is_closed ? 'Clôturé' : 'En cours' }}
+                                        </span>
+                                        <button v-if="canRearrangePreview" type="button" class="btn btn-xs dj-btn-ghost rounded-pill px-2 py-1" @click="toggleClosePoll(poll)">
+                                            {{ poll.is_closed ? 'Rouvrir' : 'Clôturer' }}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex flex-column gap-2">
+                                    <button
+                                        v-for="opt in poll.options"
+                                        :key="opt.id"
+                                        type="button"
+                                        class="dj-poll-option text-start position-relative overflow-hidden"
+                                        :class="{
+                                            'is-selected': poll.user_voted_option_id === opt.id,
+                                            'is-locked': Boolean(poll.user_voted_option_id) || poll.is_closed,
+                                        }"
+                                        :disabled="Boolean(poll.user_voted_option_id) || poll.is_closed || votingPollId === poll.id"
+                                        @click="votePoll(poll, opt.id)"
+                                    >
+                                        <div class="dj-poll-progress" :style="{ width: `${opt.percentage}%` }"></div>
+                                        <div class="position-relative d-flex justify-content-between align-items-center px-3 py-2">
+                                            <span class="fw-semibold small text-white">
+                                                <i v-if="poll.user_voted_option_id === opt.id" class="bi bi-check-circle-fill text-info me-2"></i>
+                                                {{ opt.label }}
+                                            </span>
+                                            <span class="small fw-bold text-info">{{ opt.percentage }}% ({{ opt.votes_count }})</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="text-center py-5 text-white-50">
+                            Aucun sondage n'a encore été lancé pour cette Jam.
+                        </div>
+                    </div>
+                </div>
+
                 <!-- SECTION 3: JAM INFO & RULES -->
                 <div v-else class="p-3 p-md-4 overflow-auto flex-grow-1">
                     <div class="mx-auto dj-glass-box rounded-4 p-4" style="max-width: 760px;">
@@ -1190,6 +1615,16 @@ onUnmounted(() => {
                             <div class="d-flex align-items-center gap-1 flex-shrink-0">
                                 <span class="opacity-75" style="font-size: 10px;">{{ formatMsgTime(m.created_at) }}</span>
                                 <button
+                                    v-if="canRearrangePreview && !isMyMessage(m) && m.user_id"
+                                    type="button"
+                                    class="btn btn-link p-0 text-warning opacity-75"
+                                    style="font-size: 11px;"
+                                    title="Inviter à manipuler le même code (co-éditeur)"
+                                    @click="inviteToCode(m.user_id)"
+                                >
+                                    <i class="bi bi-person-plus-fill"></i>
+                                </button>
+                                <button
                                     v-if="authUser && !isMyMessage(m)"
                                     type="button"
                                     class="btn btn-link p-0 text-info opacity-75"
@@ -1212,8 +1647,15 @@ onUnmounted(() => {
                             </div>
                         </div>
                         <div class="small" style="white-space: pre-wrap; word-break: break-word;">
-                            <template v-for="(part, idx) in splitMentions(m.message)" :key="idx">
-                                <span v-if="part.isMention" class="dj-mention-tag">{{ part.text }}</span>
+                            <template v-for="(part, idx) in parseChatTokens(m.message)" :key="idx">
+                                <a
+                                    v-if="part.kind === 'url'"
+                                    :href="part.text"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="dj-chat-link"
+                                >{{ part.text }}</a>
+                                <span v-else-if="part.kind === 'mention'" class="dj-mention-tag">{{ part.text }}</span>
                                 <template v-else>{{ part.text }}</template>
                             </template>
                         </div>
@@ -1302,6 +1744,31 @@ onUnmounted(() => {
             <span>Live Chat ({{ filteredMessages.length }})</span>
             <span v-if="unreadCount > 0" class="badge bg-danger rounded-pill">+{{ unreadCount }}</span>
         </button>
+
+        <!-- Bottom-Left Notification / Collaboration Invite Popup -->
+        <div v-if="bottomLeftPopup" class="dj-bottom-left-popup shadow-lg rounded-4 p-3">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                <span class="fw-bold small text-info">
+                    <i class="bi me-1" :class="bottomLeftPopup.kind === 'invite' ? 'bi-people-fill' : 'bi-chat-dots-fill'"></i>
+                    {{ bottomLeftPopup.title }}
+                </span>
+                <button type="button" class="btn-close btn-close-white" style="font-size: 9px;" @click="bottomLeftPopup = null"></button>
+            </div>
+            <p class="small text-light mb-2 text-truncate-2" style="word-break: break-word;">{{ bottomLeftPopup.text }}</p>
+            <div v-if="bottomLeftPopup.kind === 'invite'" class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-success rounded-pill px-3 fw-semibold" @click="respondInvite(true)">
+                    <i class="bi bi-check-lg me-1"></i>Accepter
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" @click="respondInvite(false)">
+                    Refuser
+                </button>
+            </div>
+            <div v-else class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" @click="openChat(); bottomLeftPopup = null;">
+                    Voir le chat
+                </button>
+            </div>
+        </div>
 
         <!-- Floating Social Hearts Layer -->
         <div class="dj-hearts-overlay" aria-hidden="true">
@@ -1760,6 +2227,69 @@ onUnmounted(() => {
 }
 .dj-mention-item:hover {
     background: rgba(99, 102, 241, 0.22);
+}
+.dj-share-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    min-width: 215px;
+    background: linear-gradient(160deg, rgba(16, 20, 32, 0.98), rgba(8, 10, 16, 0.99));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 2500;
+}
+.dj-share-item {
+    color: #e2e8f0;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+}
+.dj-share-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+.dj-poll-option {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.65);
+    padding: 0;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.dj-poll-option:hover:not(:disabled) {
+    border-color: #38bdf8;
+    transform: translateY(-1px);
+}
+.dj-poll-option.is-selected {
+    border-color: #22d3ee;
+    box-shadow: 0 0 14px rgba(34, 211, 238, 0.2);
+}
+.dj-poll-progress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.35), rgba(6, 182, 212, 0.3));
+    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dj-chat-link {
+    color: #38bdf8;
+    text-decoration: underline;
+    word-break: break-all;
+}
+.dj-bubble-me .dj-chat-link {
+    color: #e0f2fe;
+}
+.dj-bottom-left-popup {
+    position: fixed;
+    left: 18px;
+    bottom: 42px;
+    width: 320px;
+    max-width: calc(100vw - 36px);
+    background: linear-gradient(155deg, rgba(16, 21, 34, 0.97), rgba(9, 12, 19, 0.99));
+    border: 1px solid rgba(56, 189, 248, 0.38);
+    backdrop-filter: blur(14px);
+    z-index: 2560;
+    animation: msgPopIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @media (min-width: 992px) {
     .w-lg-50 {

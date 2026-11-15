@@ -149,6 +149,13 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'postMessage'])->name('devjams.messages.post')->middleware('throttle:20,1');
     Route::post('/dev-jams/{slug}/typing', [App\Http\Controllers\Front\DevJamController::class, 'updateTyping'])->name('devjams.typing');
     Route::delete('/dev-jams/{slug}/messages/{message}', [App\Http\Controllers\Front\DevJamController::class, 'deleteMessage'])->name('devjams.messages.delete');
+    Route::post('/dev-jams/{slug}/polls', [App\Http\Controllers\Front\DevJamController::class, 'createPoll'])->name('devjams.polls.create');
+    Route::post('/dev-jams/{slug}/polls/{poll}/vote', [App\Http\Controllers\Front\DevJamController::class, 'votePoll'])->name('devjams.polls.vote');
+    Route::post('/dev-jams/{slug}/polls/{poll}/toggle-close', [App\Http\Controllers\Front\DevJamController::class, 'toggleClosePoll'])->name('devjams.polls.toggle');
+    Route::post('/dev-jams/{slug}/collaborations/invite', [App\Http\Controllers\Front\DevJamController::class, 'inviteCollaborator'])->name('devjams.collab.invite');
+    Route::post('/dev-jams/{slug}/collaborations/respond', [App\Http\Controllers\Front\DevJamController::class, 'respondCollaborationInvite'])->name('devjams.collab.respond');
+    Route::post('/dev-jams/{slug}/collaborations/revoke', [App\Http\Controllers\Front\DevJamController::class, 'revokeCollaborator'])->name('devjams.collab.revoke');
+    Route::post('/dev-jams/{slug}/live-code', [App\Http\Controllers\Front\DevJamController::class, 'syncLiveCode'])->name('devjams.livecode.sync');
 });
 Route::get('/dev-jams/{slug}', [App\Http\Controllers\Front\DevJamController::class, 'show'])->name('devjams.show');
 Route::get('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'fetchMessages'])->name('devjams.messages.fetch');
