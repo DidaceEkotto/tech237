@@ -943,6 +943,20 @@ function onPreviewDragEnd() {
 const highlightPreEl = ref(null);
 const gutterEl = ref(null);
 const emmetHint = ref('');
+const editorTextStyle = {
+    fontFamily: "'Consolas', 'Courier New', monospace",
+    fontSize: '14px',
+    fontWeight: '400',
+    fontStyle: 'normal',
+    lineHeight: '22px',
+    letterSpacing: '0px',
+    wordSpacing: '0px',
+    tabSize: '4',
+    padding: '16px',
+    whiteSpace: 'pre',
+    fontVariantLigatures: 'none',
+    fontKerning: 'none',
+};
 
 function syncEditorScroll(e) {
     const el = e?.target;
@@ -1813,6 +1827,7 @@ function handleTabKey(e, target) {
         emmetHint.value = '';
         nextTick(() => {
             el.selectionStart = el.selectionEnd = cursorPos;
+            syncEditorScroll({ target: el });
         });
     };
 
@@ -3221,11 +3236,12 @@ onUnmounted(() => {
                                             <span class="badge bg-info bg-opacity-25 text-info" style="font-size: 9px;">{{ item.kind }}</span>
                                         </button>
                                     </div>
-                                    <pre ref="highlightPreEl" class="dj-code-highlight" aria-hidden="true"><code v-html="highlightedCode"></code></pre>
+                                    <pre ref="highlightPreEl" class="dj-code-highlight" :style="editorTextStyle" aria-hidden="true"><code :style="editorTextStyle" style="padding: 0;" v-html="highlightedCode"></code></pre>
                                     <textarea
                                         v-if="codeTab === 'html'"
                                         v-model="htmlCode"
                                         :readonly="!canCoEditSharedCode"
+                                        :style="editorTextStyle"
                                         spellcheck="false"
                                         autocomplete="off"
                                         autocorrect="off"
@@ -3242,6 +3258,7 @@ onUnmounted(() => {
                                         v-else-if="codeTab === 'css'"
                                         v-model="cssCode"
                                         :readonly="!canCoEditSharedCode"
+                                        :style="editorTextStyle"
                                         spellcheck="false"
                                         autocomplete="off"
                                         autocorrect="off"
@@ -3258,6 +3275,7 @@ onUnmounted(() => {
                                         v-else
                                         v-model="jsCode"
                                         :readonly="!canCoEditSharedCode"
+                                        :style="editorTextStyle"
                                         spellcheck="false"
                                         autocomplete="off"
                                         autocorrect="off"
@@ -4620,9 +4638,9 @@ onUnmounted(() => {
 }
 .dj-gutter {
     width: 44px;
-    font-family: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
-    font-size: 13px !important;
-    line-height: 21px !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-size: 14px !important;
+    line-height: 22px !important;
     padding-top: 16px !important;
     padding-bottom: 16px !important;
     color: #475569;
@@ -4634,12 +4652,13 @@ onUnmounted(() => {
 }
 .dj-code-highlight,
 .dj-code-highlight code,
+.dj-code-highlight :deep(*),
 .dj-textarea-colored {
-    font-family: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
-    font-size: 13px !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-size: 14px !important;
     font-weight: 400 !important;
     font-style: normal !important;
-    line-height: 21px !important;
+    line-height: 22px !important;
     letter-spacing: 0px !important;
     word-spacing: 0px !important;
     font-variant-ligatures: none !important;
