@@ -952,13 +952,10 @@ function onPreviewDragEnd() {
 }
 
 const highlightPreEl = ref(null);
+const highlightCodeEl = ref(null);
 const gutterEl = ref(null);
-const editorWrapEl = ref(null);
 const emmetHint = ref('');
-const isEditorFocused = ref(false);
-const isCaretTyping = ref(false);
-const caretPos = ref({ top: 16, left: 16, visible: false });
-let caretTypingTimer = null;
+let isUpdatingFromEditor = false;
 const editorTextStyle = {
     fontFamily: "'Consolas', 'Courier New', Courier, monospace",
     fontSize: '14px',
@@ -979,97 +976,128 @@ const editorTextStyle = {
     fontKerning: 'none',
 };
 
-function updateCaretPosition(el, markTyping = false) {
-    if (!el || !highlightPreEl.value || !editorWrapEl.value || !isEditorFocused.value) {
-        caretPos.value = { ...caretPos.value, visible: false };
-        return;
-    }
-    if (markTyping) {
-        isCaretTyping.value = true;
-        if (caretTypingTimer) clearTimeout(caretTypingTimer);
-        caretTypingTimer = setTimeout(() => {
-            isCaretTyping.value = false;
-        }, 450);
-    }
-
-    const pos = el.selectionStart ?? 0;
-    const isCollapsed = (el.selectionStart ?? 0) === (el.selectionEnd ?? 0);
-    const value = el.value ?? '';
-    const textBefore = value.slice(0, pos);
-    const lines = textBefore.split('\n');
-    const lineIdx = lines.length - 1;
-    const fallbackTop = 16 + lineIdx * 22 - el.scrollTop;
-    const fallbackLeft = 16 - el.scrollLeft;
-
-    if (pos === 0 || textBefore.endsWith('\n')) {
-        caretPos.value = { top: fallbackTop, left: fallbackLeft, visible: isCollapsed };
-        return;
-    }
-
-    const codeEl = highlightPreEl.value.querySelector('code');
-    if (!codeEl) {
-        caretPos.value = { top: fallbackTop, left: fallbackLeft, visible: isCollapsed };
-        return;
-    }
-
-    const walker = document.createTreeWalker(codeEl, NodeFilter.SHOW_TEXT);
-    let remaining = pos;
-    let targetNode = null;
-    let targetOffset = 0;
-    let node;
-    while ((node = walker.nextNode())) {
-        const len = node.nodeValue?.length ?? 0;
-        if (remaining <= len) {
-            targetNode = node;
-            targetOffset = remaining;
-            break;
+function getPlainEditorText(codeEl) {
+    if (!codeEl) return '';
+    let out = '';
+    const walk = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+            out += node.nodeValue || '';
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.tagName === 'BR') {
+                if (!node.hasAttribute('data-hl-sentinel')) out += '\n';
+                return;
+            }
+            for (const child of node.childNodes) walk(child);
         }
-        remaining -= len;
-    }
+    };
+    walk(codeEl);
+    return out.replace(/\r\n?/g, '\n');
+}
 
-    if (!targetNode) {
-        caretPos.value = { top: fallbackTop, left: fallbackLeft, visible: isCollapsed };
-        return;
-    }
+function getEditorOffsets(codeEl) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !codeEl) return { start: 0, end: 0 };
+    const range = sel.getRangeAt(0);
+    if (!codeEl.contains(range.startContainer)) return { start: 0, end: 0 };
+    const measure = (targetNode, targetOffset) => {
+        const r = document.createRange();
+        r.selectNodeContents(codeEl);
+        try {
+            r.setEnd(targetNode, targetOffset);
+        } catch {
+            return 0;
+        }
+        const frag = r.cloneContents();
+        const tmp = document.createElement('div');
+        tmp.appendChild(frag);
+        return getPlainEditorText(tmp).length;
+    };
+    return {
+        start: measure(range.startContainer, range.startOffset),
+        end: measure(range.endContainer, range.endOffset),
+    };
+}
 
+function setEditorOffsets(codeEl, start, end = start) {
+    if (!codeEl) return;
+    const sel = window.getSelection();
+    if (!sel) return;
+    const totalLen = getPlainEditorText(codeEl).length;
+    const s = Math.max(0, Math.min(start, totalLen));
+    const e = Math.max(s, Math.min(end, totalLen));
+
+    const resolvePos = (targetOffset) => {
+        let remaining = targetOffset;
+        const walker = document.createTreeWalker(codeEl, NodeFilter.SHOW_TEXT);
+        let node;
+        let lastTextNode = null;
+        while ((node = walker.nextNode())) {
+            lastTextNode = node;
+            const len = node.nodeValue?.length ?? 0;
+            if (remaining <= len) {
+                return { node, offset: remaining };
+            }
+            remaining -= len;
+        }
+        if (lastTextNode) {
+            return { node: lastTextNode, offset: lastTextNode.nodeValue?.length ?? 0 };
+        }
+        return { node: codeEl, offset: 0 };
+    };
+
+    const startPos = resolvePos(s);
+    const endPos = s === e ? startPos : resolvePos(e);
     const range = document.createRange();
-    range.setStart(targetNode, targetOffset);
-    range.collapse(true);
-    const rect = range.getBoundingClientRect();
-    const wrapRect = editorWrapEl.value.getBoundingClientRect();
-    if (rect.height > 0) {
-        caretPos.value = {
-            top: rect.top - wrapRect.top,
-            left: rect.left - wrapRect.left,
-            visible: isCollapsed,
-        };
-    } else {
-        caretPos.value = { top: fallbackTop, left: fallbackLeft, visible: isCollapsed };
+    range.setStart(startPos.node, startPos.offset);
+    range.setEnd(endPos.node, endPos.offset);
+    sel.removeAllRanges();
+    sel.addRange(range);
+}
+
+function renderHighlightedCode(preserveCaret = true, forcedOffsets = null) {
+    const preEl = highlightPreEl.value;
+    const codeEl = highlightCodeEl.value;
+    if (!codeEl) return;
+    const isFocused = Boolean(preEl && document.activeElement === preEl);
+    const offsets = forcedOffsets || (preserveCaret && isFocused ? getEditorOffsets(codeEl) : null);
+    const src = activeCodeText.value || '';
+    const html = highlightCode(src, codeTab.value);
+    const needsSentinel = !src || src.endsWith('\n');
+    codeEl.innerHTML = html + (needsSentinel ? '<br data-hl-sentinel="1">' : '');
+    if (offsets && (isFocused || forcedOffsets)) {
+        setEditorOffsets(codeEl, offsets.start, offsets.end);
     }
 }
 
-function handleEditorFocus(e) {
-    isEditorFocused.value = true;
-    nextTick(() => updateCaretPosition(e?.target));
+function handleCodeEditorInput() {
+    if (!canCoEditSharedCode.value) return;
+    const codeEl = highlightCodeEl.value;
+    if (!codeEl) return;
+    const nextVal = getPlainEditorText(codeEl);
+    const offsets = getEditorOffsets(codeEl);
+    isUpdatingFromEditor = true;
+    if (codeTab.value === 'html') htmlCode.value = nextVal;
+    else if (codeTab.value === 'css') cssCode.value = nextVal;
+    else jsCode.value = nextVal;
+    renderHighlightedCode(false, offsets);
+    updateEmmetHint(codeEl, codeTab.value);
+    syncEditorScroll();
+    nextTick(() => {
+        isUpdatingFromEditor = false;
+    });
 }
 
-function handleEditorBlur() {
-    isEditorFocused.value = false;
-    isCaretTyping.value = false;
-    caretPos.value = { ...caretPos.value, visible: false };
+function handleCodeEditorCursor() {
+    syncEditorScroll();
+    updateEmmetHint(highlightCodeEl.value, codeTab.value);
 }
 
-function syncEditorScroll(e) {
-    const el = e?.target;
-    if (!el) return;
-    if (highlightPreEl.value) {
-        highlightPreEl.value.scrollTop = el.scrollTop;
-        highlightPreEl.value.scrollLeft = el.scrollLeft;
-    }
+function syncEditorScroll() {
+    const preEl = highlightPreEl.value;
+    if (!preEl) return;
     if (gutterEl.value) {
-        gutterEl.value.scrollTop = el.scrollTop;
+        gutterEl.value.scrollTop = preEl.scrollTop;
     }
-    updateCaretPosition(el);
 }
 
 function escapeHtml(str) {
@@ -1081,13 +1109,12 @@ function escapeHtml(str) {
 
 function highlightCode(code, lang) {
     const src = String(code || '');
-    if (!src) return '\n';
+    if (!src) return '';
     const hlLang = lang === 'html' ? 'html' : (lang === 'css' ? 'css' : 'javascript');
     try {
-        const html = hljs.highlight(src, { language: hlLang, ignoreIllegals: true }).value;
-        return html + (src.endsWith('\n') ? '\n' : '');
+        return hljs.highlight(src, { language: hlLang, ignoreIllegals: true }).value;
     } catch {
-        return escapeHtml(src) + (src.endsWith('\n') ? '\n' : '');
+        return escapeHtml(src);
     }
 }
 
@@ -1272,14 +1299,15 @@ const activeEditorEl = ref(null);
 const activeTokenRange = ref({ start: 0, end: 0 });
 
 function refreshAutocomplete(el, target, forceOpen = false) {
-    activeEditorEl.value = el;
-    if (!el || !canCoEditSharedCode.value) {
+    const codeEl = highlightCodeEl.value || el;
+    activeEditorEl.value = codeEl;
+    if (!codeEl || !canCoEditSharedCode.value) {
         showAutocomplete.value = false;
         return;
     }
-    const pos = el.selectionStart;
-    const val = el.value || '';
-    const before = val.slice(0, pos);
+    const { start: pos } = getEditorOffsets(codeEl);
+    const val = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
+    const before = (val || '').slice(0, pos);
     const match = before.match(/([@:a-zA-Z0-9_.-]+)$/);
     const prefix = match ? match[1] : '';
     if (!forceOpen && prefix.length < 2 && !prefix.startsWith('@') && !prefix.startsWith(':')) {
@@ -1301,20 +1329,23 @@ function refreshAutocomplete(el, target, forceOpen = false) {
 }
 
 function applyAutocompleteItem(item, target = codeTab.value) {
-    const el = activeEditorEl.value;
-    if (!item || !el) return;
+    const codeEl = highlightCodeEl.value;
+    const preEl = highlightPreEl.value;
+    if (!item || !codeEl) return;
     const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
     const { start, end } = activeTokenRange.value;
     const nextVal = current.slice(0, start) + item.insert + current.slice(end);
+    const cursorPos = start + (item.offset ?? item.insert.length);
+    isUpdatingFromEditor = true;
     if (target === 'html') htmlCode.value = nextVal;
     else if (target === 'css') cssCode.value = nextVal;
     else jsCode.value = nextVal;
     showAutocomplete.value = false;
     emmetHint.value = '';
     nextTick(() => {
-        el.focus();
-        const cursorPos = start + (item.offset ?? item.insert.length);
-        el.selectionStart = el.selectionEnd = cursorPos;
+        if (preEl) preEl.focus();
+        renderHighlightedCode(false, { start: cursorPos, end: cursorPos });
+        isUpdatingFromEditor = false;
     });
 }
 
@@ -1570,13 +1601,14 @@ watch([htmlCode, cssCode, jsCode], () => {
 });
 
 function updateEmmetHint(el, target) {
-    refreshAutocomplete(el, target, false);
-    if (!el || !canCoEditSharedCode.value) {
+    const codeEl = highlightCodeEl.value || el;
+    refreshAutocomplete(codeEl, target, false);
+    if (!codeEl || !canCoEditSharedCode.value) {
         emmetHint.value = '';
         return;
     }
-    const pos = el.selectionStart;
-    const val = el.value || '';
+    const { start: pos } = getEditorOffsets(codeEl);
+    const val = (target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value)) || '';
     const before = val.slice(0, pos);
     const lineStart = before.lastIndexOf('\n') + 1;
     const linePrefix = before.slice(lineStart);
@@ -1604,8 +1636,13 @@ function pushUndoState(target, val) {
 watch(htmlCode, (n, o) => { if (!isRestoringUndoRedo && o !== undefined) pushUndoState('html', o); });
 watch(cssCode, (n, o) => { if (!isRestoringUndoRedo && o !== undefined) pushUndoState('css', o); });
 watch(jsCode, (n, o) => { if (!isRestoringUndoRedo && o !== undefined) pushUndoState('js', o); });
+watch([activeCodeText, codeTab], () => {
+    if (!isUpdatingFromEditor) {
+        nextTick(() => renderHighlightedCode(true));
+    }
+});
 
-function undoCode(target, el) {
+function undoCode(target) {
     const stack = undoStacks[target];
     if (!stack.length) return;
     const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
@@ -1617,11 +1654,12 @@ function undoCode(target, el) {
     else jsCode.value = prev;
     nextTick(() => {
         isRestoringUndoRedo = false;
-        if (el) el.focus();
+        if (highlightPreEl.value) highlightPreEl.value.focus();
+        renderHighlightedCode(true);
     });
 }
 
-function redoCode(target, el) {
+function redoCode(target) {
     const stack = redoStacks[target];
     if (!stack.length) return;
     const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
@@ -1633,7 +1671,8 @@ function redoCode(target, el) {
     else jsCode.value = next;
     nextTick(() => {
         isRestoringUndoRedo = false;
-        if (el) el.focus();
+        if (highlightPreEl.value) highlightPreEl.value.focus();
+        renderHighlightedCode(true);
     });
 }
 
@@ -1816,17 +1855,17 @@ function handleTabKey(e, target) {
     }
     if (isMod && !e.shiftKey && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        undoCode(target, e.target);
+        undoCode(target);
         return;
     }
     if ((isMod && e.key.toLowerCase() === 'y') || (isMod && e.shiftKey && e.key.toLowerCase() === 'z')) {
         e.preventDefault();
-        redoCode(target, e.target);
+        redoCode(target);
         return;
     }
     if (e.ctrlKey && e.code === 'Space') {
         e.preventDefault();
-        refreshAutocomplete(e.target, target, true);
+        refreshAutocomplete(highlightCodeEl.value, target, true);
         return;
     }
 
@@ -1856,26 +1895,30 @@ function handleTabKey(e, target) {
         }
     }
 
-    const el = e.target;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
+    const preEl = highlightPreEl.value;
+    const codeEl = highlightCodeEl.value;
+    if (!codeEl) return;
+    const { start, end } = getEditorOffsets(codeEl);
     const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
     const setTargetCode = (nextVal, cursorPos) => {
+        isUpdatingFromEditor = true;
         if (target === 'html') htmlCode.value = nextVal;
         else if (target === 'css') cssCode.value = nextVal;
         else jsCode.value = nextVal;
         emmetHint.value = '';
-        nextTick(() => {
-            el.selectionStart = el.selectionEnd = cursorPos;
+        renderHighlightedCode(false, { start: cursorPos, end: cursorPos });
+        if (preEl) {
             const cursorLine = String(nextVal).slice(0, cursorPos).split('\n').length - 1;
             const cursorY = 16 + cursorLine * 22;
-            if (cursorY + 22 > el.scrollTop + el.clientHeight) {
-                el.scrollTop = cursorY + 22 - el.clientHeight + 16;
-            } else if (cursorY < el.scrollTop) {
-                el.scrollTop = Math.max(0, cursorY - 16);
+            if (cursorY + 22 > preEl.scrollTop + preEl.clientHeight) {
+                preEl.scrollTop = cursorY + 22 - preEl.clientHeight + 16;
+            } else if (cursorY < preEl.scrollTop) {
+                preEl.scrollTop = Math.max(0, cursorY - 16);
             }
-            syncEditorScroll({ target: el });
-            updateCaretPosition(el, true);
+            syncEditorScroll();
+        }
+        nextTick(() => {
+            isUpdatingFromEditor = false;
         });
     };
 
@@ -2758,6 +2801,7 @@ function handleOffline() {
 }
 
 onMounted(() => {
+    nextTick(() => renderHighlightedCode(false));
     try {
         const savedPos = localStorage.getItem(chatPosStorageKey);
         if (savedPos) {
@@ -3269,7 +3313,7 @@ onUnmounted(() => {
                                 <div ref="gutterEl" class="dj-gutter text-end user-select-none py-3 px-2 font-monospace overflow-hidden">
                                     <div v-for="n in lineCount" :key="n" :class="{ 'dj-gutter-err': errorLinesSet.has(n) }">{{ n }}</div>
                                 </div>
-                                <div ref="editorWrapEl" class="dj-editor-wrap position-relative flex-grow-1 h-100 overflow-hidden">
+                                <div class="dj-editor-wrap position-relative flex-grow-1 h-100 overflow-hidden">
                                     <!-- Intelligent Autocomplete Popup -->
                                     <div v-if="showAutocomplete && autocompleteItems.length" class="dj-autocomplete-menu shadow-lg rounded-3 p-1">
                                         <button
@@ -3284,74 +3328,21 @@ onUnmounted(() => {
                                             <span class="badge bg-info bg-opacity-25 text-info" style="font-size: 9px;">{{ item.kind }}</span>
                                         </button>
                                     </div>
-                                    <pre ref="highlightPreEl" class="dj-code-highlight" :style="editorTextStyle" aria-hidden="true"><code class="hljs" :class="codeTab === 'html' ? 'language-html' : (codeTab === 'css' ? 'language-css' : 'language-javascript')" :style="editorTextStyle" style="padding: 0;" v-html="highlightedCode"></code></pre>
-                                    <span
-                                        v-if="isEditorFocused && canCoEditSharedCode && caretPos.visible"
-                                        class="dj-vs-caret"
-                                        :class="{ 'is-typing': isCaretTyping }"
-                                        :style="{ top: caretPos.top + 'px', left: caretPos.left + 'px' }"
-                                        aria-hidden="true"
-                                    ></span>
-                                    <textarea
-                                        v-if="codeTab === 'html'"
-                                        v-model="htmlCode"
-                                        :readonly="!canCoEditSharedCode"
+                                    <pre
+                                        ref="highlightPreEl"
+                                        class="dj-code-highlight dj-code-editor-editable"
+                                        :class="{ 'is-readonly': !canCoEditSharedCode }"
                                         :style="editorTextStyle"
+                                        :contenteditable="canCoEditSharedCode ? 'plaintext-only' : 'false'"
                                         spellcheck="false"
-                                        autocomplete="off"
                                         autocorrect="off"
                                         autocapitalize="off"
-                                        wrap="off"
-                                        class="dj-textarea dj-textarea-colored"
-                                        @focus="handleEditorFocus($event)"
-                                        @blur="handleEditorBlur"
                                         @scroll="syncEditorScroll"
-                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'html'); nextTick(() => updateCaretPosition($event.target, true))"
-                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'html'); updateCaretPosition($event.target)"
-                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'html'); updateCaretPosition($event.target)"
-                                        @mouseup="updateCaretPosition($event.target)"
-                                        @keydown="handleTabKey($event, 'html')"
-                                    ></textarea>
-                                    <textarea
-                                        v-else-if="codeTab === 'css'"
-                                        v-model="cssCode"
-                                        :readonly="!canCoEditSharedCode"
-                                        :style="editorTextStyle"
-                                        spellcheck="false"
-                                        autocomplete="off"
-                                        autocorrect="off"
-                                        autocapitalize="off"
-                                        wrap="off"
-                                        class="dj-textarea dj-textarea-colored"
-                                        @focus="handleEditorFocus($event)"
-                                        @blur="handleEditorBlur"
-                                        @scroll="syncEditorScroll"
-                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'css'); nextTick(() => updateCaretPosition($event.target, true))"
-                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'css'); updateCaretPosition($event.target)"
-                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'css'); updateCaretPosition($event.target)"
-                                        @mouseup="updateCaretPosition($event.target)"
-                                        @keydown="handleTabKey($event, 'css')"
-                                    ></textarea>
-                                    <textarea
-                                        v-else
-                                        v-model="jsCode"
-                                        :readonly="!canCoEditSharedCode"
-                                        :style="editorTextStyle"
-                                        spellcheck="false"
-                                        autocomplete="off"
-                                        autocorrect="off"
-                                        autocapitalize="off"
-                                        wrap="off"
-                                        class="dj-textarea dj-textarea-colored"
-                                        @focus="handleEditorFocus($event)"
-                                        @blur="handleEditorBlur"
-                                        @scroll="syncEditorScroll"
-                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'js'); nextTick(() => updateCaretPosition($event.target, true))"
-                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'js'); updateCaretPosition($event.target)"
-                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'js'); updateCaretPosition($event.target)"
-                                        @mouseup="updateCaretPosition($event.target)"
-                                        @keydown="handleTabKey($event, 'js')"
-                                    ></textarea>
+                                        @input="handleCodeEditorInput"
+                                        @keyup="handleCodeEditorCursor"
+                                        @click="handleCodeEditorCursor"
+                                        @keydown="handleTabKey($event, codeTab)"
+                                    ><code ref="highlightCodeEl" class="hljs" :class="codeTab === 'html' ? 'language-html' : (codeTab === 'css' ? 'language-css' : 'language-javascript')" :style="editorTextStyle" style="padding: 0;"></code></pre>
                                 </div>
                             </div>
                         </div>
@@ -4750,9 +4741,13 @@ onUnmounted(() => {
 }
 .dj-code-highlight {
     color: #e2e8f0;
-    pointer-events: none;
-    overflow: hidden !important;
-    z-index: 1;
+    pointer-events: auto;
+    overflow: auto !important;
+    caret-color: #38bdf8;
+    z-index: 2;
+}
+.dj-code-highlight.is-readonly {
+    caret-color: transparent;
 }
 .dj-code-highlight code {
     display: block;
@@ -4762,45 +4757,11 @@ onUnmounted(() => {
     margin: 0 !important;
     background: transparent !important;
     color: inherit;
-}
-.dj-textarea {
-    background: transparent;
-    color: #e2e8f0;
-    border: none;
     outline: none;
-    resize: none;
-    font-size: 13px;
-    line-height: 21px;
-    min-height: 100%;
 }
-.dj-textarea-colored {
-    color: transparent !important;
-    caret-color: transparent !important;
-    background: transparent !important;
-    overflow: auto !important;
-    z-index: 2;
-}
-.dj-vs-caret {
-    position: absolute;
-    width: 2px;
-    height: 22px;
-    background: #38bdf8;
-    box-shadow: 0 0 6px rgba(56, 189, 248, 0.65);
-    pointer-events: none;
-    z-index: 3;
-    animation: djCaretBlink 1.05s steps(1, end) infinite;
-}
-.dj-vs-caret.is-typing {
-    animation: none;
-    opacity: 1;
-}
-@keyframes djCaretBlink {
-    0%, 49% { opacity: 1; }
-    50%, 100% { opacity: 0; }
-}
-.dj-textarea-colored::selection {
+.dj-code-highlight::selection,
+.dj-code-highlight :deep(*)::selection {
     background: rgba(56, 189, 248, 0.28);
-    color: transparent;
 }
 .dj-code-highlight :deep(.tok-comment) { color: #64748b; }
 .dj-code-highlight :deep(.tok-tag) { color: #f472b6; }
