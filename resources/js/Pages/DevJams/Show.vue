@@ -2,6 +2,17 @@
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import apiClient from '@/Composables/PortfolioBuilder/apiClient';
+import hljs from 'highlight.js/lib/core';
+import xmlLang from 'highlight.js/lib/languages/xml';
+import cssLang from 'highlight.js/lib/languages/css';
+import jsLang from 'highlight.js/lib/languages/javascript';
+import 'highlight.js/styles/atom-one-dark.css';
+
+hljs.registerLanguage('xml', xmlLang);
+hljs.registerLanguage('html', xmlLang);
+hljs.registerLanguage('css', cssLang);
+hljs.registerLanguage('javascript', jsLang);
+hljs.registerLanguage('js', jsLang);
 
 const props = defineProps({
     jam: { type: Object, required: true },
@@ -1071,78 +1082,13 @@ function escapeHtml(str) {
 function highlightCode(code, lang) {
     const src = String(code || '');
     if (!src) return '\n';
-
-    if (lang === 'html') {
-        const tokenRe = /(<!--[\s\S]*?-->)|(\{\{[\s\S]*?\}\})|(<\/?[a-zA-Z0-9-]+)([\s\S]*?)(\/?>)/g;
-        let out = '';
-        let last = 0;
-        let m;
-        while ((m = tokenRe.exec(src)) !== null) {
-            if (m.index > last) out += escapeHtml(src.slice(last, m.index));
-            if (m[1]) {
-                out += `<span class="tok-comment">${escapeHtml(m[1])}</span>`;
-            } else if (m[2]) {
-                out += `<span class="tok-vue-expr">${escapeHtml(m[2])}</span>`;
-            } else {
-                const tagOpen = `<span class="tok-tag">${escapeHtml(m[3])}</span>`;
-                const attrs = m[4].replace(
-                    /(\s+)(@[a-zA-Z0-9_.:-]+|:[a-zA-Z0-9_.-]+|v-[a-zA-Z0-9_.:-]+|[a-zA-Z0-9_:-]+)(\s*=\s*)("[^"]*"|'[^']*')?/g,
-                    (_, sp, attr, eq, val) => {
-                        const isVueDir = /^(@|:|v-)/.test(attr);
-                        const attrSpan = `<span class="${isVueDir ? 'tok-vue-dir' : 'tok-attr'}">${escapeHtml(attr)}</span>`;
-                        const valSpan = val ? `<span class="tok-str">${escapeHtml(val)}</span>` : '';
-                        return `${escapeHtml(sp)}${attrSpan}${escapeHtml(eq || '')}${valSpan}`;
-                    }
-                );
-                const tagClose = `<span class="tok-tag">${escapeHtml(m[5])}</span>`;
-                out += tagOpen + attrs + tagClose;
-            }
-            last = tokenRe.lastIndex;
-        }
-        if (last < src.length) out += escapeHtml(src.slice(last));
-        return out + (src.endsWith('\n') ? '\n' : '');
+    const hlLang = lang === 'html' ? 'html' : (lang === 'css' ? 'css' : 'javascript');
+    try {
+        const html = hljs.highlight(src, { language: hlLang, ignoreIllegals: true }).value;
+        return html + (src.endsWith('\n') ? '\n' : '');
+    } catch {
+        return escapeHtml(src) + (src.endsWith('\n') ? '\n' : '');
     }
-
-    if (lang === 'css') {
-        const tokenRe = /(\/\*[\s\S]*?\*\/)|(@[a-zA-Z-]+)|("[^"]*"|'[^']*')|(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:\.\d+)?(?:px|rem|em|vh|vw|%|s|ms|deg|fr)?\b)|([a-zA-Z-]+)(\s*:)|([.#][a-zA-Z_-][a-zA-Z0-9_-]*)|(:+[a-zA-Z-]+)/g;
-        let out = '';
-        let last = 0;
-        let m;
-        while ((m = tokenRe.exec(src)) !== null) {
-            if (m.index > last) out += escapeHtml(src.slice(last, m.index));
-            if (m[1]) out += `<span class="tok-comment">${escapeHtml(m[1])}</span>`;
-            else if (m[2]) out += `<span class="tok-kw">${escapeHtml(m[2])}</span>`;
-            else if (m[3]) out += `<span class="tok-str">${escapeHtml(m[3])}</span>`;
-            else if (m[4]) out += `<span class="tok-hex">${escapeHtml(m[4])}</span>`;
-            else if (m[5]) out += `<span class="tok-num">${escapeHtml(m[5])}</span>`;
-            else if (m[6]) out += `<span class="tok-prop">${escapeHtml(m[6])}</span>${escapeHtml(m[7])}`;
-            else if (m[8]) out += `<span class="tok-sel">${escapeHtml(m[8])}</span>`;
-            else if (m[9]) out += `<span class="tok-pseudo">${escapeHtml(m[9])}</span>`;
-            last = tokenRe.lastIndex;
-        }
-        if (last < src.length) out += escapeHtml(src.slice(last));
-        return out + (src.endsWith('\n') ? '\n' : '');
-    }
-
-    // JavaScript + React JSX + Vue 3 Composition API
-    const tokenRe = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(`(?:\\[\s\S]|[^`])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(<\/?[A-Z][A-Za-z0-9.]*|<\/?(?:div|span|p|h[1-6]|button|input|form|section|header|footer|main|ul|li|a|img)\b)|(\b(?:const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|import|export|from|default|async|await|try|catch|finally|throw|new|class|extends|typeof|instanceof|in|of)\b)|(\b(?:true|false|null|undefined|this|super)\b)|(\b(?:useState|useEffect|useRef|useMemo|useCallback|useContext|React|ReactDOM|createRoot|createApp|ref|reactive|computed|watch|onMounted|Vue|document|window|console)\b)|(\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_$][a-zA-Z0-9_$]*)(?=\s*\()/g;
-    let out = '';
-    let last = 0;
-    let m;
-    while ((m = tokenRe.exec(src)) !== null) {
-        if (m.index > last) out += escapeHtml(src.slice(last, m.index));
-        if (m[1]) out += `<span class="tok-comment">${escapeHtml(m[1])}</span>`;
-        else if (m[2]) out += `<span class="tok-str">${escapeHtml(m[2])}</span>`;
-        else if (m[3]) out += `<span class="tok-jsx">${escapeHtml(m[3])}</span>`;
-        else if (m[4]) out += `<span class="tok-kw">${escapeHtml(m[4])}</span>`;
-        else if (m[5]) out += `<span class="tok-bool">${escapeHtml(m[5])}</span>`;
-        else if (m[6]) out += `<span class="tok-framework">${escapeHtml(m[6])}</span>`;
-        else if (m[7]) out += `<span class="tok-num">${escapeHtml(m[7])}</span>`;
-        else if (m[8]) out += `<span class="tok-fn">${escapeHtml(m[8])}</span>`;
-        last = tokenRe.lastIndex;
-    }
-    if (last < src.length) out += escapeHtml(src.slice(last));
-    return out + (src.endsWith('\n') ? '\n' : '');
 }
 
 const highlightedCode = computed(() => highlightCode(activeCodeText.value, codeTab.value));
@@ -3338,7 +3284,7 @@ onUnmounted(() => {
                                             <span class="badge bg-info bg-opacity-25 text-info" style="font-size: 9px;">{{ item.kind }}</span>
                                         </button>
                                     </div>
-                                    <pre ref="highlightPreEl" class="dj-code-highlight" :style="editorTextStyle" aria-hidden="true"><code :style="editorTextStyle" style="padding: 0;" v-html="highlightedCode"></code></pre>
+                                    <pre ref="highlightPreEl" class="dj-code-highlight" :style="editorTextStyle" aria-hidden="true"><code class="hljs" :class="codeTab === 'html' ? 'language-html' : (codeTab === 'css' ? 'language-css' : 'language-javascript')" :style="editorTextStyle" style="padding: 0;" v-html="highlightedCode"></code></pre>
                                     <span
                                         v-if="isEditorFocused && canCoEditSharedCode && caretPos.visible"
                                         class="dj-vs-caret"
