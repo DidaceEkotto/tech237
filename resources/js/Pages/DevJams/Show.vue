@@ -1574,40 +1574,6 @@ onUnmounted(() => {
                     <i class="bi bi-clock me-1"></i>{{ countdownText }}
                 </span>
 
-                <!-- Synchronized Sprint / Pomodoro Timer -->
-                <div class="position-relative">
-                    <button
-                        v-if="sprint || canRearrangePreview"
-                        type="button"
-                        class="btn btn-sm rounded-pill px-2 py-1 d-flex align-items-center gap-1"
-                        :class="sprint ? (sprintEnded ? 'btn-danger' : 'btn-outline-info') : 'dj-btn-ghost'"
-                        style="font-size: 11px;"
-                        :title="canRearrangePreview ? 'Lancer ou gérer un Sprint chronométré' : 'Sprint en cours'"
-                        @click="canRearrangePreview ? (showSprintPopover = !showSprintPopover) : null"
-                    >
-                        <span>⏱️</span>
-                        <span v-if="sprint">{{ sprint.label }} : <strong>{{ sprintEnded ? 'Terminé !' : sprintTimeLeftText }}</strong></span>
-                        <span v-else class="d-none d-lg-inline">Sprint</span>
-                    </button>
-                    <div v-if="showSprintPopover && canRearrangePreview" class="dj-share-menu shadow-lg rounded-4 p-2 d-flex flex-column gap-1" style="min-width: 215px;">
-                        <input
-                            v-model="sprintLabel"
-                            type="text"
-                            class="form-control form-control-sm dj-dark-input mb-1"
-                            placeholder="Nom du sprint (ex: Sprint UI)"
-                            maxlength="60"
-                        />
-                        <div class="d-flex gap-1">
-                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(10)">10 min</button>
-                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(20)">20 min</button>
-                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(25)">25 min</button>
-                        </div>
-                        <button v-if="sprint" type="button" class="btn btn-xs btn-outline-danger mt-1" @click="stopSprint">
-                            Arrêter le Sprint
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Watch Party: Follow Creator Active Tab -->
                 <button
                     v-if="!canRearrangePreview"
@@ -1645,17 +1611,6 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- One-Click ZIP Export -->
-                <button
-                    type="button"
-                    class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1 d-none d-md-inline-flex align-items-center gap-1"
-                    title="Exporter le projet en ZIP (index.html, style.css, app.js)"
-                    @click="exportProjectZip"
-                >
-                    <i class="bi bi-file-earmark-zip-fill text-success"></i>
-                    <span class="d-none d-xl-inline">ZIP</span>
-                </button>
-
                 <!-- Publish to Portfolio -->
                 <button
                     v-if="authUser"
@@ -1685,43 +1640,6 @@ onUnmounted(() => {
                         ✋ {{ raisedHands.length }}
                     </span>
                 </button>
-
-                <!-- Social Share Dropdown -->
-                <div class="position-relative">
-                    <button
-                        type="button"
-                        class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1"
-                        title="Partager la Jam sur les réseaux sociaux"
-                        @click="showShareMenu = !showShareMenu"
-                    >
-                        <i class="bi bi-share-fill text-info me-1"></i><span class="d-none d-md-inline">Partager</span>
-                    </button>
-                    <div v-if="showShareMenu" class="dj-share-menu shadow-lg rounded-4 p-2 d-flex flex-column gap-1">
-                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('facebook')">
-                            <i class="bi bi-facebook text-primary me-2"></i>Facebook
-                        </button>
-                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('twitter')">
-                            <i class="bi bi-twitter-x text-light me-2"></i>Twitter / X
-                        </button>
-                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('whatsapp')">
-                            <i class="bi bi-whatsapp text-success me-2"></i>WhatsApp
-                        </button>
-                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('tiktok')">
-                            <i class="bi bi-tiktok text-danger me-2"></i>TikTok
-                        </button>
-                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('copy')">
-                            <i class="bi bi-link-45deg text-info me-2"></i>Copier le lien
-                        </button>
-                        <button
-                            v-if="canRearrangePreview"
-                            type="button"
-                            class="btn btn-sm btn-outline-info rounded-3 text-start mt-1"
-                            @click="shareJamLinkInChat"
-                        >
-                            <i class="bi bi-chat-quote-fill me-2"></i>Poster le lien dans le chat
-                        </button>
-                    </div>
-                </div>
 
                 <button
                     type="button"
@@ -2320,6 +2238,88 @@ onUnmounted(() => {
                     <i class="bi bi-bar-chart-fill"></i>
                     <span>{{ hasUnvotedOpenPoll ? 'Participer au sondage' : 'Sondage en cours' }}</span>
                 </button>
+
+                <!-- Synchronized Sprint / Pomodoro Timer -->
+                <div class="position-relative">
+                    <button
+                        v-if="sprint || canRearrangePreview"
+                        type="button"
+                        class="btn btn-xs rounded-pill px-2 py-0 d-flex align-items-center gap-1"
+                        :class="sprint ? (sprintEnded ? 'btn-danger' : 'btn-outline-info') : 'dj-btn-ghost'"
+                        style="font-size: 11px;"
+                        :title="canRearrangePreview ? 'Lancer ou gérer un Sprint chronométré' : 'Sprint en cours'"
+                        @click="canRearrangePreview ? (showSprintPopover = !showSprintPopover) : null"
+                    >
+                        <span>⏱️</span>
+                        <span v-if="sprint">{{ sprint.label }} : <strong>{{ sprintEnded ? 'Terminé !' : sprintTimeLeftText }}</strong></span>
+                        <span v-else class="d-none d-lg-inline">Sprint</span>
+                    </button>
+                    <div v-if="showSprintPopover && canRearrangePreview" class="dj-share-menu dj-share-menu-up shadow-lg rounded-4 p-2 d-flex flex-column gap-1" style="min-width: 215px;">
+                        <input
+                            v-model="sprintLabel"
+                            type="text"
+                            class="form-control form-control-sm dj-dark-input mb-1"
+                            placeholder="Nom du sprint (ex: Sprint UI)"
+                            maxlength="60"
+                        />
+                        <div class="d-flex gap-1">
+                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(10)">10 min</button>
+                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(20)">20 min</button>
+                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(25)">25 min</button>
+                        </div>
+                        <button v-if="sprint" type="button" class="btn btn-xs btn-outline-danger mt-1" @click="stopSprint">
+                            Arrêter le Sprint
+                        </button>
+                    </div>
+                </div>
+
+                <!-- One-Click ZIP Export -->
+                <button
+                    type="button"
+                    class="btn btn-xs dj-btn-ghost rounded-3 px-2 py-0 d-none d-md-inline-flex align-items-center gap-1"
+                    title="Exporter le projet en ZIP (index.html, style.css, app.js)"
+                    @click="exportProjectZip"
+                >
+                    <i class="bi bi-file-earmark-zip-fill text-success"></i>
+                    <span class="d-none d-xl-inline">ZIP</span>
+                </button>
+
+                <!-- Social Share Dropdown -->
+                <div class="position-relative">
+                    <button
+                        type="button"
+                        class="btn btn-xs dj-btn-ghost rounded-3 px-2 py-0 d-flex align-items-center gap-1"
+                        title="Partager la Jam sur les réseaux sociaux"
+                        @click="showShareMenu = !showShareMenu"
+                    >
+                        <i class="bi bi-share-fill text-info"></i><span class="d-none d-md-inline">Partager</span>
+                    </button>
+                    <div v-if="showShareMenu" class="dj-share-menu dj-share-menu-up shadow-lg rounded-4 p-2 d-flex flex-column gap-1">
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('facebook')">
+                            <i class="bi bi-facebook text-primary me-2"></i>Facebook
+                        </button>
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('twitter')">
+                            <i class="bi bi-twitter-x text-light me-2"></i>Twitter / X
+                        </button>
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('whatsapp')">
+                            <i class="bi bi-whatsapp text-success me-2"></i>WhatsApp
+                        </button>
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('tiktok')">
+                            <i class="bi bi-tiktok text-danger me-2"></i>TikTok
+                        </button>
+                        <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('copy')">
+                            <i class="bi bi-link-45deg text-info me-2"></i>Copier le lien
+                        </button>
+                        <button
+                            v-if="canRearrangePreview"
+                            type="button"
+                            class="btn btn-sm btn-outline-info rounded-3 text-start mt-1"
+                            @click="shareJamLinkInChat"
+                        >
+                            <i class="bi bi-chat-quote-fill me-2"></i>Poster le lien dans le chat
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="d-flex align-items-center gap-3">
                 <span class="d-none d-md-inline">UTF-8</span>
@@ -3268,6 +3268,12 @@ onUnmounted(() => {
     background: linear-gradient(160deg, rgba(16, 20, 32, 0.98), rgba(8, 10, 16, 0.99));
     border: 1px solid rgba(255, 255, 255, 0.12);
     z-index: 2500;
+}
+.dj-share-menu-up {
+    top: auto;
+    bottom: calc(100% + 8px);
+    left: 0;
+    right: auto;
 }
 .dj-share-item {
     color: #e2e8f0;
