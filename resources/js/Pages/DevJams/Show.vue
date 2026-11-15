@@ -158,24 +158,58 @@ const previewDevice = ref('desktop'); // 'desktop' | 'tablet' | 'mobile'
 const showConsole = ref(false);
 const consoleLogs = ref([]);
 const consoleErrorCount = computed(() => consoleLogs.value.filter((l) => l.level === 'error').length);
+const consoleReplInput = ref('');
+const consoleReplHistory = ref([]);
+const consoleReplHistoryIdx = ref(-1);
 
 function clearConsoleLogs() {
     consoleLogs.value = [];
 }
 
-function handleSandboxMessage(e) {
-    if (!e?.data || e.data.type !== 'dj-console') return;
-    const level = e.data.level || 'log';
-    const text = String(e.data.text || '');
+function pushConsoleEntry(level, text) {
     consoleLogs.value.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         level,
-        text,
+        text: String(text ?? ''),
         time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
     });
-    if (consoleLogs.value.length > 80) {
-        consoleLogs.value = consoleLogs.value.slice(-80);
+    if (consoleLogs.value.length > 100) {
+        consoleLogs.value = consoleLogs.value.slice(-100);
     }
+}
+
+function runConsoleRepl() {
+    const code = consoleReplInput.value.trim();
+    if (!code) return;
+    pushConsoleEntry('cmd', `> ${code}`);
+    consoleReplHistory.value.unshift(code);
+    if (consoleReplHistory.value.length > 30) consoleReplHistory.value.pop();
+    consoleReplHistoryIdx.value = -1;
+    consoleReplInput.value = '';
+
+    const win = previewIframeEl.value?.contentWindow;
+    if (!win) {
+        pushConsoleEntry('error', 'Sandbox aperçu non disponible (activez l’aperçu en direct).');
+        return;
+    }
+    win.postMessage({ type: 'dj-console-eval', code }, '*');
+}
+
+function navigateReplHistory(dir) {
+    if (!consoleReplHistory.value.length) return;
+    if (dir === 'up') {
+        consoleReplHistoryIdx.value = Math.min(consoleReplHistory.value.length - 1, consoleReplHistoryIdx.value + 1);
+    } else {
+        consoleReplHistoryIdx.value = Math.max(-1, consoleReplHistoryIdx.value - 1);
+    }
+    consoleReplInput.value = consoleReplHistoryIdx.value >= 0
+        ? consoleReplHistory.value[consoleReplHistoryIdx.value]
+        : '';
+}
+
+function handleSandboxMessage(e) {
+    if (!e?.data || e.data.type !== 'dj-console') return;
+    pushConsoleEntry(e.data.level || 'log', e.data.text || '');
 }
 
 function buildSandboxDoc(html, css, js, withLivePatch = false) {
@@ -202,7 +236,7 @@ function buildSandboxDoc(html, css, js, withLivePatch = false) {
         ? `<script>(function(){var send=function(lvl,args){try{var txt=[].slice.call(args).map(function(a){if(typeof a==='object'){try{return JSON.stringify(a);}catch(e){return String(a);}}return String(a);}).join(' ');if(lvl==='warn'&&txt.indexOf('in-browser Babel transformer')!==-1)return;parent.postMessage({type:'dj-console',level:lvl,text:txt},'*');}catch(e){}};['log','warn','error'].forEach(function(m){var orig=console[m];console[m]=function(){send(m,arguments);if(orig)orig.apply(console,arguments);};});window.addEventListener('error',function(ev){send('error',[ev.message+' (ligne '+ev.lineno+')']);});window.addEventListener('unhandledrejection',function(ev){send('error',['Promise rejetée: '+(ev.reason&&ev.reason.message?ev.reason.message:ev.reason)]);});})();<\/script>`
         : '';
     const patchBridge = withLivePatch
-        ? `<script>window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dj-patch')return;var st=document.getElementById('dj-live-style');if(st)st.textContent=e.data.css||'';if(e.data.htmlOnlyCss)return;var root=document.getElementById('dj-live-root');if(root)root.innerHTML=e.data.html||'';});<\/script>`
+        ? `<script>window.addEventListener('message',function(e){if(!e.data)return;if(e.data.type==='dj-patch'){var st=document.getElementById('dj-live-style');if(st)st.textContent=e.data.css||'';if(e.data.htmlOnlyCss)return;var root=document.getElementById('dj-live-root');if(root)root.innerHTML=e.data.html||'';}else if(e.data.type==='dj-console-eval'){try{var res=(0,eval)(String(e.data.code||''));var fmt=res===undefined?'undefined':(typeof res==='object'?JSON.stringify(res):String(res));parent.postMessage({type:'dj-console',level:'result',text:'← '+fmt},'*');}catch(err){parent.postMessage({type:'dj-console',level:'error',text:err&&err.message?err.message:String(err)},'*');}}});<\/script>`
         : '';
     const reactRunner = isReactBabel
         ? `<script type="text/plain" id="dj-jsx-src">${safeJs}<\/script><script>(function runReact(){var srcEl=document.getElementById('dj-jsx-src');if(!srcEl)return;var tries=0;function boot(){if(window.Babel&&window.React&&window.ReactDOM){try{var out=window.Babel.transform(srcEl.textContent||'',{presets:['react']}).code;(new Function(out))();}catch(err){console.error(err&&err.message?err.message:String(err));}}else if(tries++<60){setTimeout(boot,80);}}boot();})();<\/script>`
@@ -251,6 +285,7 @@ function applyStarterTemplate(key) {
     if (!tpl) return;
     showTemplateMenu.value = false;
     if (!window.confirm(`Remplacer le code actuel par "${tpl.label}" ?`)) return;
+    createHistorySnapshot(`Avant ${tpl.label}`);
     clearConsoleLogs();
     htmlCode.value = tpl.html;
     cssCode.value = tpl.css;
@@ -1081,7 +1116,379 @@ function resolveEmmetSnippet(token, lang, indent) {
     return null;
 }
 
+const AUTOCOMPLETE_DICT = {
+    html: [
+        { label: 'div', kind: 'HTML', insert: '<div></div>', offset: 5 },
+        { label: 'section', kind: 'HTML', insert: '<section></section>', offset: 9 },
+        { label: 'header', kind: 'HTML', insert: '<header></header>', offset: 8 },
+        { label: 'footer', kind: 'HTML', insert: '<footer></footer>', offset: 8 },
+        { label: 'button', kind: 'HTML', insert: '<button type="button"></button>', offset: 22 },
+        { label: 'input', kind: 'HTML', insert: '<input type="text" placeholder="" />', offset: 32 },
+        { label: 'form', kind: 'HTML', insert: '<form></form>', offset: 6 },
+        { label: 'ul', kind: 'HTML', insert: '<ul>\n    <li></li>\n</ul>', offset: 13 },
+        { label: 'a', kind: 'HTML', insert: '<a href="#"></a>', offset: 12 },
+        { label: 'img', kind: 'HTML', insert: '<img src="" alt="" />', offset: 10 },
+        { label: 'span', kind: 'HTML', insert: '<span></span>', offset: 6 },
+        { label: 'class=""', kind: 'HTML', insert: 'class=""', offset: 7 },
+        { label: 'v-if=""', kind: 'Vue', insert: 'v-if=""', offset: 6 },
+        { label: 'v-else', kind: 'Vue', insert: 'v-else', offset: 6 },
+        { label: 'v-for=""', kind: 'Vue', insert: 'v-for="item in items" :key="item.id"', offset: 36 },
+        { label: 'v-model=""', kind: 'Vue', insert: 'v-model=""', offset: 9 },
+        { label: 'v-show=""', kind: 'Vue', insert: 'v-show=""', offset: 8 },
+        { label: '@click=""', kind: 'Vue', insert: '@click=""', offset: 8 },
+        { label: '@submit.prevent=""', kind: 'Vue', insert: '@submit.prevent=""', offset: 17 },
+        { label: ':class=""', kind: 'Vue', insert: ':class=""', offset: 8 },
+        { label: '{{ }}', kind: 'Vue', insert: '{{  }}', offset: 3 },
+    ],
+    css: [
+        { label: 'display: flex;', kind: 'CSS', insert: 'display: flex;', offset: 14 },
+        { label: 'display: grid;', kind: 'CSS', insert: 'display: grid;', offset: 14 },
+        { label: 'justify-content: center;', kind: 'CSS', insert: 'justify-content: center;', offset: 24 },
+        { label: 'justify-content: space-between;', kind: 'CSS', insert: 'justify-content: space-between;', offset: 31 },
+        { label: 'align-items: center;', kind: 'CSS', insert: 'align-items: center;', offset: 20 },
+        { label: 'flex-direction: column;', kind: 'CSS', insert: 'flex-direction: column;', offset: 23 },
+        { label: 'grid-template-columns:', kind: 'CSS', insert: 'grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));', offset: 60 },
+        { label: 'background:', kind: 'CSS', insert: 'background: ;', offset: 12 },
+        { label: 'color:', kind: 'CSS', insert: 'color: ;', offset: 7 },
+        { label: 'padding:', kind: 'CSS', insert: 'padding: 16px;', offset: 13 },
+        { label: 'margin:', kind: 'CSS', insert: 'margin: 0;', offset: 9 },
+        { label: 'border-radius:', kind: 'CSS', insert: 'border-radius: 12px;', offset: 19 },
+        { label: 'box-shadow:', kind: 'CSS', insert: 'box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);', offset: 44 },
+        { label: 'transition:', kind: 'CSS', insert: 'transition: all 0.2s ease;', offset: 26 },
+        { label: 'font-family:', kind: 'CSS', insert: "font-family: 'Segoe UI', system-ui, sans-serif;", offset: 47 },
+        { label: 'backdrop-filter: blur(12px);', kind: 'CSS', insert: 'backdrop-filter: blur(12px);', offset: 28 },
+    ],
+    js: [
+        { label: 'console.log()', kind: 'JS', insert: 'console.log();', offset: 12 },
+        { label: 'document.querySelector()', kind: 'JS', insert: "document.querySelector('')", offset: 24 },
+        { label: 'document.getElementById()', kind: 'JS', insert: "document.getElementById('')", offset: 25 },
+        { label: 'addEventListener()', kind: 'JS', insert: "addEventListener('click', (e) => {\n    \n});", offset: 39 },
+        { label: 'async function', kind: 'JS', insert: 'async function name() {\n    \n}', offset: 15 },
+        { label: 'fetch()', kind: 'JS', insert: "fetch('').then(r => r.json())", offset: 7 },
+        { label: 'setTimeout()', kind: 'JS', insert: 'setTimeout(() => {\n    \n}, 1000);', offset: 23 },
+        { label: 'setInterval()', kind: 'JS', insert: 'setInterval(() => {\n    \n}, 1000);', offset: 24 },
+        { label: 'useState()', kind: 'React', insert: 'const [state, setState] = useState();', offset: 35 },
+        { label: 'useEffect()', kind: 'React', insert: 'useEffect(() => {\n    \n}, []);', offset: 22 },
+        { label: 'useRef()', kind: 'React', insert: 'const ref = useRef(null);', offset: 23 },
+        { label: 'useMemo()', kind: 'React', insert: 'const val = useMemo(() => , []);', offset: 26 },
+        { label: 'ReactDOM.createRoot()', kind: 'React', insert: "ReactDOM.createRoot(document.getElementById('root')).render(<App />);", offset: 67 },
+        { label: 'className=""', kind: 'React', insert: 'className=""', offset: 11 },
+        { label: 'onClick={}', kind: 'React', insert: 'onClick={() => }', offset: 15 },
+        { label: 'createApp()', kind: 'Vue', insert: "createApp({\n    setup() {\n        return {};\n    }\n}).mount('#app');", offset: 30 },
+        { label: 'ref()', kind: 'Vue', insert: 'const val = ref(0);', offset: 16 },
+        { label: 'reactive()', kind: 'Vue', insert: 'const state = reactive({});', offset: 25 },
+        { label: 'computed()', kind: 'Vue', insert: 'const val = computed(() => );', offset: 27 },
+        { label: 'watch()', kind: 'Vue', insert: 'watch(source, (newVal) => {\n    \n});', offset: 32 },
+        { label: 'onMounted()', kind: 'Vue', insert: 'onMounted(() => {\n    \n});', offset: 22 },
+    ],
+};
+
+const showAutocomplete = ref(false);
+const autocompleteItems = ref([]);
+const autocompleteIndex = ref(0);
+const activeEditorEl = ref(null);
+const activeTokenRange = ref({ start: 0, end: 0 });
+
+function refreshAutocomplete(el, target, forceOpen = false) {
+    activeEditorEl.value = el;
+    if (!el || !canCoEditSharedCode.value) {
+        showAutocomplete.value = false;
+        return;
+    }
+    const pos = el.selectionStart;
+    const val = el.value || '';
+    const before = val.slice(0, pos);
+    const match = before.match(/([@:a-zA-Z0-9_.-]+)$/);
+    const prefix = match ? match[1] : '';
+    if (!forceOpen && prefix.length < 2 && !prefix.startsWith('@') && !prefix.startsWith(':')) {
+        showAutocomplete.value = false;
+        return;
+    }
+    const q = prefix.toLowerCase();
+    const list = (AUTOCOMPLETE_DICT[target] || [])
+        .filter((item) => !q || item.label.toLowerCase().includes(q))
+        .slice(0, 8);
+    if (!list.length) {
+        showAutocomplete.value = false;
+        return;
+    }
+    activeTokenRange.value = { start: pos - prefix.length, end: pos };
+    autocompleteItems.value = list;
+    autocompleteIndex.value = 0;
+    showAutocomplete.value = true;
+}
+
+function applyAutocompleteItem(item, target = codeTab.value) {
+    const el = activeEditorEl.value;
+    if (!item || !el) return;
+    const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
+    const { start, end } = activeTokenRange.value;
+    const nextVal = current.slice(0, start) + item.insert + current.slice(end);
+    if (target === 'html') htmlCode.value = nextVal;
+    else if (target === 'css') cssCode.value = nextVal;
+    else jsCode.value = nextVal;
+    showAutocomplete.value = false;
+    emmetHint.value = '';
+    nextTick(() => {
+        el.focus();
+        const cursorPos = start + (item.offset ?? item.insert.length);
+        el.selectionStart = el.selectionEnd = cursorPos;
+    });
+}
+
+// Real-time Error Detection (Static + Sandbox Runtime)
+const showDiagnostics = ref(false);
+const codeDiagnostics = ref([]);
+const errorLinesSet = computed(() => {
+    const s = new Set();
+    codeDiagnostics.value.forEach((d) => {
+        if (d.tab === codeTab.value && d.line) s.add(d.line);
+    });
+    return s;
+});
+
+function runStaticDiagnostics() {
+    const diags = [];
+    // 1. Check JS / React / Vue
+    const js = jsCode.value || '';
+    const pairs = { '(': ')', '{': '}', '[': ']' };
+    const stack = [];
+    let inStr = null;
+    let line = 1;
+    for (let i = 0; i < js.length; i++) {
+        const ch = js[i];
+        if (ch === '\n') { line++; continue; }
+        if (inStr) {
+            if (ch === '\\') { i++; continue; }
+            if (ch === inStr) inStr = null;
+            continue;
+        }
+        if (ch === '/' && js[i + 1] === '/') {
+            while (i < js.length && js[i] !== '\n') i++;
+            line++;
+            continue;
+        }
+        if (ch === '/' && js[i + 1] === '*') {
+            i += 2;
+            while (i < js.length && !(js[i] === '*' && js[i + 1] === '/')) {
+                if (js[i] === '\n') line++;
+                i++;
+            }
+            i++;
+            continue;
+        }
+        if (ch === "'" || ch === '"' || ch === '`') { inStr = ch; continue; }
+        if (pairs[ch]) stack.push({ ch, line });
+        else if (ch === ')' || ch === '}' || ch === ']') {
+            const top = stack[stack.length - 1];
+            if (!top || pairs[top.ch] !== ch) {
+                diags.push({ tab: 'js', line, message: `Symbole "${ch}" inattendu` });
+            } else {
+                stack.pop();
+            }
+        }
+    }
+    if (inStr && inStr !== '`') {
+        diags.push({ tab: 'js', line, message: `Chaîne de caractères (${inStr}) non fermée` });
+    }
+    if (stack.length) {
+        const unclosed = stack[stack.length - 1];
+        diags.push({ tab: 'js', line: unclosed.line, message: `Bloc "${unclosed.ch}" non fermé` });
+    }
+    const looksLikeJsx = /<[A-Za-z][A-Za-z0-9]*[\s/>]/.test(js);
+    if (!looksLikeJsx && js.trim()) {
+        try {
+            const cleanForCheck = js.replace(/^\s*(?:import|export)\b[^\n]*/gm, '');
+            // eslint-disable-next-line no-new-func
+            new Function(cleanForCheck);
+        } catch (err) {
+            diags.push({ tab: 'js', line: 1, message: err?.message || 'Erreur de syntaxe JS' });
+        }
+    }
+
+    // 2. Check CSS
+    const css = cssCode.value || '';
+    let cssDepth = 0;
+    let cssLine = 1;
+    let firstUnclosedCssLine = 1;
+    for (let i = 0; i < css.length; i++) {
+        if (css[i] === '\n') cssLine++;
+        else if (css[i] === '{') {
+            if (cssDepth === 0) firstUnclosedCssLine = cssLine;
+            cssDepth++;
+        } else if (css[i] === '}') {
+            cssDepth--;
+            if (cssDepth < 0) {
+                diags.push({ tab: 'css', line: cssLine, message: 'Accolade fermante "}" en trop' });
+                cssDepth = 0;
+            }
+        }
+    }
+    if (cssDepth > 0) {
+        diags.push({ tab: 'css', line: firstUnclosedCssLine, message: 'Accolade ouvrante "{" non fermée' });
+    }
+
+    // 3. Check HTML
+    const html = htmlCode.value || '';
+    const htmlStack = [];
+    const voidSet = new Set(['img', 'input', 'br', 'hr', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr']);
+    const tagRe = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][a-zA-Z0-9-]*)[^>]*?(\/?)>/g;
+    let tm;
+    while ((tm = tagRe.exec(html)) !== null) {
+        if (!tm[2]) continue;
+        const isClose = tm[1] === '/';
+        const tag = tm[2].toLowerCase();
+        const selfClose = tm[3] === '/' || voidSet.has(tag);
+        if (selfClose || tag === 'script' || tag === 'style') continue;
+        const tagLine = html.slice(0, tm.index).split('\n').length;
+        if (!isClose) {
+            htmlStack.push({ tag, line: tagLine });
+        } else {
+            const top = htmlStack[htmlStack.length - 1];
+            if (!top || top.tag !== tag) {
+                diags.push({ tab: 'html', line: tagLine, message: `Balise fermante </${tag}> inattendue` });
+            } else {
+                htmlStack.pop();
+            }
+        }
+    }
+    if (htmlStack.length) {
+        const last = htmlStack[htmlStack.length - 1];
+        diags.push({ tab: 'html', line: last.line, message: `Balise <${last.tag}> non fermée` });
+    }
+
+    codeDiagnostics.value = diags;
+}
+
+let diagTimer = null;
+watch([htmlCode, cssCode, jsCode], () => {
+    clearTimeout(diagTimer);
+    diagTimer = setTimeout(runStaticDiagnostics, 250);
+}, { immediate: true });
+
+// Auto-Save, Version History, Diff Comparison & Restore
+const autoSaveStorageKey = `dj_autosave_${props.jam.slug}`;
+const historyStorageKey = `dj_history_${props.jam.slug}`;
+const autoSaveStatus = ref('');
+const hasPendingAutosave = ref(false);
+const pendingAutosaveData = ref(null);
+const versionHistory = ref([]);
+const showHistoryModal = ref(false);
+const compareVersionAId = ref('');
+const compareVersionBId = ref('current');
+const compareFileTab = ref('js');
+let autoSaveTimer = null;
+let autoSnapshotTimer = null;
+
+function persistHistory() {
+    try {
+        localStorage.setItem(historyStorageKey, JSON.stringify(versionHistory.value.slice(0, 25)));
+    } catch {
+        // ignore storage quota errors
+    }
+}
+
+function createHistorySnapshot(label = 'Modification automatique') {
+    const latest = versionHistory.value[0];
+    if (
+        latest &&
+        latest.html === (htmlCode.value || '') &&
+        latest.css === (cssCode.value || '') &&
+        latest.js === (jsCode.value || '')
+    ) {
+        return;
+    }
+    const snap = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        label,
+        createdAt: new Date().toISOString(),
+        html: htmlCode.value || '',
+        css: cssCode.value || '',
+        js: jsCode.value || '',
+    };
+    versionHistory.value = [snap, ...versionHistory.value].slice(0, 25);
+    if (!compareVersionAId.value) compareVersionAId.value = snap.id;
+    persistHistory();
+}
+
+function restoreHistoryVersion(ver) {
+    if (!canCoEditSharedCode.value || !ver) return;
+    createHistorySnapshot('Avant restauration');
+    htmlCode.value = ver.html || '';
+    cssCode.value = ver.css || '';
+    jsCode.value = ver.js || '';
+    refreshPreviewNow();
+    showHistoryModal.value = false;
+    showToast(`Version "${ver.label}" restaurée !`);
+}
+
+function restoreAutosaveDraft() {
+    if (!pendingAutosaveData.value || !canCoEditSharedCode.value) return;
+    createHistorySnapshot('Avant reprise brouillon auto');
+    htmlCode.value = pendingAutosaveData.value.html ?? htmlCode.value;
+    cssCode.value = pendingAutosaveData.value.css ?? cssCode.value;
+    jsCode.value = pendingAutosaveData.value.js ?? jsCode.value;
+    hasPendingAutosave.value = false;
+    pendingAutosaveData.value = null;
+    refreshPreviewNow();
+    showToast('Brouillon automatique restauré !');
+}
+
+function dismissAutosaveDraft() {
+    hasPendingAutosave.value = false;
+    pendingAutosaveData.value = null;
+}
+
+function computeLineDiff(textA, textB) {
+    const aLines = String(textA || '').split('\n');
+    const bLines = String(textB || '').split('\n');
+    const maxLen = Math.max(aLines.length, bLines.length);
+    const rows = [];
+    for (let i = 0; i < maxLen; i++) {
+        const a = aLines[i];
+        const b = bLines[i];
+        if (a === b) {
+            rows.push({ type: 'same', line: i + 1, text: a ?? '' });
+        } else {
+            if (a !== undefined) rows.push({ type: 'del', line: i + 1, text: a });
+            if (b !== undefined) rows.push({ type: 'add', line: i + 1, text: b });
+        }
+    }
+    return rows;
+}
+
+const comparedDiffRows = computed(() => {
+    const vA = versionHistory.value.find((v) => v.id === compareVersionAId.value) || versionHistory.value[0];
+    const vB = compareVersionBId.value === 'current'
+        ? { html: htmlCode.value, css: cssCode.value, js: jsCode.value }
+        : versionHistory.value.find((v) => v.id === compareVersionBId.value);
+    if (!vA || !vB) return [];
+    const field = compareFileTab.value;
+    return computeLineDiff(vA[field], vB[field]);
+});
+
+watch([htmlCode, cssCode, jsCode], () => {
+    if (!canCoEditSharedCode.value) return;
+    autoSaveStatus.value = 'Modification...';
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        try {
+            localStorage.setItem(autoSaveStorageKey, JSON.stringify({
+                html: htmlCode.value || '',
+                css: cssCode.value || '',
+                js: jsCode.value || '',
+                savedAt: Date.now(),
+            }));
+            const t = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            autoSaveStatus.value = `Sauvegardé à ${t}`;
+        } catch {
+            autoSaveStatus.value = '';
+        }
+    }, 1800);
+});
+
 function updateEmmetHint(el, target) {
+    refreshAutocomplete(el, target, false);
     if (!el || !canCoEditSharedCode.value) {
         emmetHint.value = '';
         return;
@@ -1102,6 +1509,7 @@ function handleTabKey(e, target) {
     if (!canCoEditSharedCode.value) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
+        createHistorySnapshot('Sauvegarde manuelle (Ctrl+S)');
         saveMySubmission();
         return;
     }
@@ -1109,6 +1517,34 @@ function handleTabKey(e, target) {
         e.preventDefault();
         previewKey.value++;
         return;
+    }
+    if (e.ctrlKey && e.code === 'Space') {
+        e.preventDefault();
+        refreshAutocomplete(e.target, target, true);
+        return;
+    }
+
+    if (showAutocomplete.value && autocompleteItems.value.length) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            autocompleteIndex.value = (autocompleteIndex.value + 1) % autocompleteItems.value.length;
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            autocompleteIndex.value = (autocompleteIndex.value - 1 + autocompleteItems.value.length) % autocompleteItems.value.length;
+            return;
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            showAutocomplete.value = false;
+            return;
+        }
+        if (e.key === 'Tab' || e.key === 'Enter') {
+            e.preventDefault();
+            applyAutocompleteItem(autocompleteItems.value[autocompleteIndex.value], target);
+            return;
+        }
     }
 
     const el = e.target;
@@ -1828,9 +2264,39 @@ onMounted(() => {
         if (savedDock === 'bottom' || savedDock === 'right') {
             previewDock.value = savedDock;
         }
+        const savedHist = localStorage.getItem(historyStorageKey);
+        if (savedHist) {
+            const parsedHist = JSON.parse(savedHist);
+            if (Array.isArray(parsedHist)) {
+                versionHistory.value = parsedHist;
+                if (parsedHist.length) compareVersionAId.value = parsedHist[0].id;
+            }
+        }
+        if (!versionHistory.value.length) {
+            createHistorySnapshot('État initial');
+        }
+        const savedDraft = localStorage.getItem(autoSaveStorageKey);
+        if (savedDraft && canCoEditSharedCode.value) {
+            const draft = JSON.parse(savedDraft);
+            if (
+                draft &&
+                (draft.html !== (htmlCode.value || '') ||
+                 draft.css !== (cssCode.value || '') ||
+                 draft.js !== (jsCode.value || ''))
+            ) {
+                pendingAutosaveData.value = draft;
+                hasPendingAutosave.value = true;
+            }
+        }
     } catch {
         // ignore storage errors
     }
+
+    autoSnapshotTimer = setInterval(() => {
+        if (canCoEditSharedCode.value) {
+            createHistorySnapshot('Sauvegarde auto');
+        }
+    }, 30000);
 
     updateCountdown();
     updateSprintDisplay();
@@ -1850,6 +2316,9 @@ onMounted(() => {
 onUnmounted(() => {
     clearInterval(countdownTimer);
     clearInterval(pollTimer);
+    clearInterval(autoSnapshotTimer);
+    clearTimeout(autoSaveTimer);
+    clearTimeout(diagTimer);
     clearTimeout(typingStopTimer);
     clearTimeout(heartFlushTimer);
     clearTimeout(jsReloadTimer);
@@ -2162,6 +2631,28 @@ onUnmounted(() => {
                                     <span v-if="emmetHint" class="badge bg-info bg-opacity-25 text-info rounded-pill" style="font-size: 10px;">
                                         {{ emmetHint }}
                                     </span>
+                                    <span v-if="autoSaveStatus" class="text-white-50 d-none d-xl-inline" style="font-size: 10px;">
+                                        <i class="bi bi-cloud-check text-success me-1"></i>{{ autoSaveStatus }}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="btn btn-xs dj-btn-ghost py-0 px-2 rounded-pill"
+                                        style="font-size: 10px;"
+                                        title="Historique des versions, comparaison et restauration"
+                                        @click="showHistoryModal = true"
+                                    >
+                                        <i class="bi bi-clock-history text-info me-1"></i>Historique ({{ versionHistory.length }})
+                                    </button>
+                                    <button
+                                        v-if="codeDiagnostics.length"
+                                        type="button"
+                                        class="btn btn-xs btn-outline-danger py-0 px-2 rounded-pill"
+                                        style="font-size: 10px;"
+                                        title="Voir les erreurs détectées"
+                                        @click="showDiagnostics = !showDiagnostics"
+                                    >
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ codeDiagnostics.length }}
+                                    </button>
                                     <template v-if="canCoEditSharedCode">
                                         <i class="bi bi-shield-lock-fill text-success"></i>Sandbox
                                     </template>
@@ -2171,12 +2662,53 @@ onUnmounted(() => {
                                 </span>
                             </div>
 
+                            <!-- Pending Autosave Restore Banner -->
+                            <div v-if="hasPendingAutosave && canCoEditSharedCode" class="px-3 py-1 bg-info bg-opacity-10 border-bottom border-info border-opacity-25 d-flex align-items-center justify-content-between gap-2" style="font-size: 11px;">
+                                <span class="text-info">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i>Un brouillon sauvegardé automatiquement a été trouvé.
+                                </span>
+                                <div class="d-flex gap-1">
+                                    <button type="button" class="btn btn-xs btn-info text-dark fw-semibold rounded-pill py-0 px-2" @click="restoreAutosaveDraft">Restaurer</button>
+                                    <button type="button" class="btn btn-xs dj-btn-ghost rounded-pill py-0 px-2" @click="dismissAutosaveDraft">Ignorer</button>
+                                </div>
+                            </div>
+
+                            <!-- Real-time Error Diagnostics Drawer -->
+                            <div v-if="showDiagnostics && codeDiagnostics.length" class="dj-diag-drawer border-bottom border-danger border-opacity-25 px-3 py-2">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small fw-bold text-danger" style="font-size: 11px;">
+                                        <i class="bi bi-bug-fill me-1"></i>Erreurs détectées ({{ codeDiagnostics.length }})
+                                    </span>
+                                    <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-1" @click="showDiagnostics = false">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </div>
+                                <div v-for="(d, idx) in codeDiagnostics" :key="idx" class="small text-light d-flex align-items-center gap-2 py-0" style="font-size: 11px; cursor: pointer;" @click="codeTab = d.tab">
+                                    <span class="badge bg-danger bg-opacity-25 text-danger">{{ d.tab.toUpperCase() }} L{{ d.line }}</span>
+                                    <span>{{ d.message }}</span>
+                                </div>
+                            </div>
+
                             <!-- Gutter + Syntax Highlighted Editor -->
                             <div class="d-flex flex-grow-1 overflow-hidden dj-code-surface position-relative">
                                 <div ref="gutterEl" class="dj-gutter text-end user-select-none py-3 px-2 font-monospace overflow-hidden">
-                                    <div v-for="n in lineCount" :key="n">{{ n }}</div>
+                                    <div v-for="n in lineCount" :key="n" :class="{ 'dj-gutter-err': errorLinesSet.has(n) }">{{ n }}</div>
                                 </div>
                                 <div class="dj-editor-wrap position-relative flex-grow-1 h-100 overflow-hidden">
+                                    <!-- Intelligent Autocomplete Popup -->
+                                    <div v-if="showAutocomplete && autocompleteItems.length" class="dj-autocomplete-menu shadow-lg rounded-3 p-1">
+                                        <button
+                                            v-for="(item, idx) in autocompleteItems"
+                                            :key="item.label"
+                                            type="button"
+                                            class="dj-autocomplete-item w-100 text-start d-flex align-items-center justify-content-between gap-2 px-2 py-1 rounded-2"
+                                            :class="{ active: idx === autocompleteIndex }"
+                                            @mousedown.prevent="applyAutocompleteItem(item, codeTab)"
+                                        >
+                                            <span class="font-monospace small text-white">{{ item.label }}</span>
+                                            <span class="badge bg-info bg-opacity-25 text-info" style="font-size: 9px;">{{ item.kind }}</span>
+                                        </button>
+                                    </div>
                                     <pre ref="highlightPreEl" class="dj-code-highlight font-monospace p-3 m-0" aria-hidden="true"><code v-html="highlightedCode"></code></pre>
                                     <textarea
                                         v-if="codeTab === 'html'"
@@ -2337,7 +2869,7 @@ onUnmounted(() => {
                                 </div>
                                 <div class="dj-console-logs overflow-auto px-3 py-2 font-monospace">
                                     <div v-if="!consoleLogs.length" class="text-white-50 small" style="font-size: 11px;">
-                                        Aucun log pour le moment. Utilisez <code>console.log()</code> dans app.js.
+                                        Aucun log pour le moment. Utilisez <code>console.log()</code> ou exécutez du JS ci-dessous (sandbox isolé).
                                     </div>
                                     <div
                                         v-for="entry in consoleLogs"
@@ -2350,6 +2882,21 @@ onUnmounted(() => {
                                         <span class="text-break" style="font-size: 11px;">{{ entry.text }}</span>
                                     </div>
                                 </div>
+                                <!-- Interactive Sandboxed JS REPL -->
+                                <form class="dj-console-repl d-flex align-items-center gap-2 px-3 py-1 border-top border-white border-opacity-10" @submit.prevent="runConsoleRepl">
+                                    <span class="text-info font-monospace fw-bold small">&gt;</span>
+                                    <input
+                                        v-model="consoleReplInput"
+                                        type="text"
+                                        class="form-control form-control-sm dj-console-repl-input font-monospace"
+                                        placeholder="Exécuter du JS dans le sandbox isolé (ex: 2 + 2, document.title)..."
+                                        @keydown.up.prevent="navigateReplHistory('up')"
+                                        @keydown.down.prevent="navigateReplHistory('down')"
+                                    />
+                                    <button type="submit" class="btn btn-xs btn-outline-info rounded-pill px-2 py-0" style="font-size: 10px;">
+                                        Exécuter
+                                    </button>
+                                </form>
                             </div>
                         </div>
 
@@ -3143,6 +3690,115 @@ onUnmounted(() => {
             </div>
         </div>
 
+        <!-- Version History, Diff Comparison & Restore Modal -->
+        <div v-if="showHistoryModal" class="position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-75 d-flex align-items-center justify-content-center p-3" style="z-index: 2710;" @click="showHistoryModal = false">
+            <div class="dj-glass-box rounded-4 shadow-lg w-100 overflow-hidden d-flex flex-column" style="max-width: 960px; max-height: 86vh;" @click.stop>
+                <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <h6 class="fw-bold mb-0 text-white">
+                        <i class="bi bi-clock-history text-info me-2"></i>Historique, Comparaison &amp; Restauration
+                    </h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <button
+                            v-if="canCoEditSharedCode"
+                            type="button"
+                            class="btn btn-xs btn-info text-dark fw-semibold rounded-pill px-3 py-1"
+                            @click="createHistorySnapshot('Point de sauvegarde manuel'); showToast('Point de sauvegarde créé !');"
+                        >
+                            <i class="bi bi-bookmark-plus-fill me-1"></i>Créer un point
+                        </button>
+                        <button type="button" class="btn-close btn-close-white" @click="showHistoryModal = false"></button>
+                    </div>
+                </div>
+
+                <div class="row g-0 flex-grow-1 overflow-hidden">
+                    <!-- Versions List -->
+                    <div class="col-md-4 border-end border-secondary border-opacity-25 p-3 overflow-auto" style="max-height: 70vh;">
+                        <div class="small fw-bold text-white-50 text-uppercase mb-2" style="font-size: 11px;">
+                            Versions enregistrées ({{ versionHistory.length }})
+                        </div>
+                        <div v-if="versionHistory.length" class="d-flex flex-column gap-2">
+                            <div
+                                v-for="ver in versionHistory"
+                                :key="ver.id"
+                                class="dj-dark-row rounded-3 p-2 d-flex flex-column gap-1"
+                                :class="{ 'border-info': compareVersionAId === ver.id }"
+                            >
+                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                    <span class="small fw-semibold text-white text-truncate">{{ ver.label }}</span>
+                                    <span class="text-white-50 flex-shrink-0" style="font-size: 10px;">
+                                        {{ formatMsgTime(ver.createdAt) }}
+                                    </span>
+                                </div>
+                                <div class="d-flex gap-1 mt-1">
+                                    <button
+                                        type="button"
+                                        class="btn btn-xs btn-outline-info rounded-pill px-2 py-0"
+                                        style="font-size: 10px;"
+                                        @click="compareVersionAId = ver.id"
+                                    >
+                                        Comparer
+                                    </button>
+                                    <button
+                                        v-if="canCoEditSharedCode"
+                                        type="button"
+                                        class="btn btn-xs btn-warning text-dark fw-semibold rounded-pill px-2 py-0"
+                                        style="font-size: 10px;"
+                                        @click="restoreHistoryVersion(ver)"
+                                    >
+                                        Restaurer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-else class="small text-white-50">
+                            Aucune version enregistrée pour le moment.
+                        </div>
+                    </div>
+
+                    <!-- Diff Viewer -->
+                    <div class="col-md-8 p-3 d-flex flex-column overflow-hidden" style="max-height: 70vh;">
+                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <select v-model="compareVersionAId" class="form-select form-select-sm dj-dark-input" style="width: auto; max-width: 190px;">
+                                    <option v-for="v in versionHistory" :key="`a-${v.id}`" :value="v.id">
+                                        {{ v.label }} ({{ formatMsgTime(v.createdAt) }})
+                                    </option>
+                                </select>
+                                <span class="text-white-50 small">→</span>
+                                <select v-model="compareVersionBId" class="form-select form-select-sm dj-dark-input" style="width: auto; max-width: 190px;">
+                                    <option value="current">Code actuel</option>
+                                    <option v-for="v in versionHistory" :key="`b-${v.id}`" :value="v.id">
+                                        {{ v.label }} ({{ formatMsgTime(v.createdAt) }})
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="btn-group btn-group-xs">
+                                <button type="button" class="btn btn-xs" :class="compareFileTab === 'html' ? 'btn-info text-dark' : 'dj-btn-ghost'" @click="compareFileTab = 'html'">HTML</button>
+                                <button type="button" class="btn btn-xs" :class="compareFileTab === 'css' ? 'btn-info text-dark' : 'dj-btn-ghost'" @click="compareFileTab = 'css'">CSS</button>
+                                <button type="button" class="btn btn-xs" :class="compareFileTab === 'js' ? 'btn-info text-dark' : 'dj-btn-ghost'" @click="compareFileTab = 'js'">JS</button>
+                            </div>
+                        </div>
+
+                        <div class="flex-grow-1 overflow-auto rounded-3 bg-black bg-opacity-50 border border-white border-opacity-10 p-2 font-monospace" style="font-size: 12px;">
+                            <div v-if="!comparedDiffRows.length" class="text-white-50 small p-2">
+                                Sélectionnez une version pour afficher les différences.
+                            </div>
+                            <div
+                                v-for="(row, idx) in comparedDiffRows"
+                                :key="idx"
+                                class="dj-diff-line px-2 py-0 d-flex gap-2"
+                                :class="`dj-diff-${row.type}`"
+                            >
+                                <span class="text-white-50 flex-shrink-0" style="width: 28px;">{{ row.line }}</span>
+                                <span class="fw-bold flex-shrink-0" style="width: 12px;">{{ row.type === 'add' ? '+' : (row.type === 'del' ? '-' : ' ') }}</span>
+                                <span class="text-break" style="white-space: pre-wrap;">{{ row.text }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Floating Social Hearts Layer -->
         <div class="dj-hearts-overlay" aria-hidden="true">
             <div
@@ -3891,5 +4547,64 @@ onUnmounted(() => {
     background: rgba(139, 92, 246, 0.2);
     color: #c4b5fd;
     border: 1px solid rgba(139, 92, 246, 0.35);
+}
+.dj-gutter-err {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.16);
+    border-radius: 4px;
+    font-weight: 700;
+}
+.dj-diag-drawer {
+    background: rgba(127, 29, 29, 0.22);
+    max-height: 110px;
+    overflow-y: auto;
+}
+.dj-autocomplete-menu {
+    position: absolute;
+    left: 16px;
+    bottom: 12px;
+    width: 280px;
+    max-width: calc(100% - 32px);
+    background: linear-gradient(160deg, rgba(16, 20, 32, 0.98), rgba(8, 10, 16, 0.99));
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    z-index: 30;
+}
+.dj-autocomplete-item {
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    cursor: pointer;
+}
+.dj-autocomplete-item.active,
+.dj-autocomplete-item:hover {
+    background: rgba(56, 189, 248, 0.2);
+}
+.dj-console-cmd {
+    color: #38bdf8;
+}
+.dj-console-result {
+    color: #4ade80;
+}
+.dj-console-repl {
+    background: #07090e;
+}
+.dj-console-repl-input {
+    background: transparent !important;
+    border: none !important;
+    color: #f8fafc !important;
+    font-size: 12px;
+    box-shadow: none !important;
+    padding: 2px 4px;
+}
+.dj-diff-add {
+    background: rgba(34, 197, 94, 0.14);
+    color: #86efac;
+}
+.dj-diff-del {
+    background: rgba(239, 68, 68, 0.16);
+    color: #fca5a5;
+}
+.dj-diff-same {
+    color: #94a3b8;
 }
 </style>
