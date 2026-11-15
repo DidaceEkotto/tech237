@@ -122,7 +122,10 @@ async function handlePublish() {
         localSite.value.is_published = true;
         showToast(res.data.message || 'Site publié en ligne !');
         if (localSite.value.slug && typeof window !== 'undefined') {
-            const useSubdomainTenancy = import.meta.env.VITE_PORTFOLIO_SUBDOMAIN_TENANCY === 'true';
+            const storedMode = window.localStorage.getItem('pb_tenant_mode');
+            const useSubdomainTenancy = storedMode
+                ? storedMode === 'subdomain'
+                : import.meta.env.VITE_PORTFOLIO_SUBDOMAIN_TENANCY === 'true';
             const { protocol, hostname, port, origin } = window.location;
             const url = (!useSubdomainTenancy || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname))
                 ? `${origin}/site/${localSite.value.slug}`

@@ -21,16 +21,26 @@ const statsData = ref(null);
 const loadingStats = ref(false);
 const viewMode = ref('list'); // list | grid
 
-const useSubdomainTenancy = import.meta.env.VITE_PORTFOLIO_SUBDOMAIN_TENANCY === 'true';
+const defaultTenantMode = import.meta.env.VITE_PORTFOLIO_SUBDOMAIN_TENANCY === 'true' ? 'subdomain' : 'path';
+const storedTenantMode = typeof window !== 'undefined' ? window.localStorage.getItem('pb_tenant_mode') : null;
+const tenantMode = ref(storedTenantMode === 'subdomain' || storedTenantMode === 'path' ? storedTenantMode : defaultTenantMode);
 
-function tenantUrl(site) {
+function setTenantMode(mode) {
+    tenantMode.value = mode;
+    if (typeof window !== 'undefined') {
+        window.localStorage.setItem('pb_tenant_mode', mode);
+    }
+    showToast(mode === 'subdomain'
+        ? 'Mode lien tenant : Sous-domaine (mon-site.tech237.com)'
+        : 'Mode lien tenant : Chemin (/site/mon-site)');
+}
+
+function tenantSubdomainUrl(site) {
     if (typeof window === 'undefined') {
-        return useSubdomainTenancy
-            ? `https://${site.slug}.tech237.com`
-            : `https://tech237.com/site/${site.slug}`;
+        return `https://${site.slug}.tech237.com`;
     }
     const { protocol, hostname, port, origin } = window.location;
-    if (!useSubdomainTenancy || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+    if (hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
         return `${origin}/site/${site.slug}`;
     }
     const baseHost = hostname.replace(/^www\./, '');
@@ -38,8 +48,25 @@ function tenantUrl(site) {
     return `${protocol}//${site.slug}.${baseHost}${portPart}`;
 }
 
+function tenantPathUrl(site) {
+    if (typeof window === 'undefined') {
+        return `https://tech237.com/site/${site.slug}`;
+    }
+    return `${window.location.origin}/site/${site.slug}`;
+}
+
+function tenantUrl(site) {
+    return tenantMode.value === 'subdomain' ? tenantSubdomainUrl(site) : tenantPathUrl(site);
+}
+
 function tenantDisplayLabel(site) {
-    if (useSubdomainTenancy) {
+    if (tenantMode.value === 'subdomain') {
+        if (typeof window !== 'undefined') {
+            const baseHost = window.location.hostname.replace(/^www\./, '');
+            if (baseHost !== '127.0.0.1' && !/^\d+\.\d+\.\d+\.\d+$/.test(baseHost)) {
+                return `${site.slug}.${baseHost}`;
+            }
+        }
         return `${site.slug}.tech237.com`;
     }
     if (typeof window !== 'undefined') {
@@ -187,6 +214,24 @@ async function deleteSite(site) {
                     </p>
                 </div>
                 <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <div class="btn-group btn-group-sm" role="group" title="Format d'URL des sites publiés">
+                        <button
+                            type="button"
+                            class="btn"
+                            :class="tenantMode === 'subdomain' ? 'btn-primary' : 'btn-outline-secondary'"
+                            @click="setTenantMode('subdomain')"
+                        >
+                            <i class="bi bi-globe me-1"></i>Sous-domaine
+                        </button>
+                        <button
+                            type="button"
+                            class="btn"
+                            :class="tenantMode === 'path' ? 'btn-primary' : 'btn-outline-secondary'"
+                            @click="setTenantMode('path')"
+                        >
+                            <i class="bi bi-link-45deg me-1"></i>/site/slug
+                        </button>
+                    </div>
                     <button type="button" class="btn btn-outline-primary rounded-pill px-3 fw-semibold btn-sm" @click="guideOpen = true">
                         <i class="bi bi-book-half me-1"></i>Guide d'utilisation
                     </button>
@@ -273,6 +318,16 @@ async function deleteSite(site) {
                                 <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0" style="font-size: 11px;" @click="copyTenantLink(site)">
                                     <i class="bi bi-clipboard me-1"></i>Copier
                                 </button>
+                                <a
+                                    :href="tenantMode === 'subdomain' ? tenantPathUrl(site) : tenantSubdomainUrl(site)"
+                                    target="_blank"
+                                    rel="noopener"
+                                    class="badge bg-light text-secondary border text-decoration-none"
+                                    style="font-size: 10px;"
+                                    title="Lien alternatif"
+                                >
+                                    {{ tenantMode === 'subdomain' ? `/site/${site.slug}` : `${site.slug}.tech237.com` }}
+                                </a>
                             </div>
                         </div>
 

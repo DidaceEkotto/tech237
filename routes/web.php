@@ -3,14 +3,18 @@
 use Illuminate\Support\Facades\Route;
 
 // Subdomain Multi-Tenant Sites ({slug}.tech237.com/{pageSlug?})
-$tenantBaseHost = strtolower(preg_replace('/^www\./', '', (string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'tech237.com')));
-if ($tenantBaseHost && !in_array($tenantBaseHost, ['127.0.0.1'], true)) {
+$appHost = strtolower(preg_replace('/^www\./', '', (string) (parse_url((string) config('app.url'), PHP_URL_HOST) ?: '')));
+$tenantHosts = array_values(array_unique(array_filter([
+    'tech237.com',
+    ($appHost && !in_array($appHost, ['127.0.0.1', 'localhost'], true)) ? $appHost : null,
+])));
+foreach ($tenantHosts as $tenantBaseHost) {
     Route::domain('{siteSlug}.' . $tenantBaseHost)
         ->where(['siteSlug' => '(?!www$|admin$|api$)[a-zA-Z0-9_\-]+'])
-        ->group(function () {
+        ->group(function () use ($tenantBaseHost) {
             Route::get('/{pageSlug?}', [App\Http\Controllers\Front\PortfolioController::class, 'showTenant'])
                 ->where(['pageSlug' => '[a-zA-Z0-9_\-]+'])
-                ->name('portfolio.tenant.subdomain');
+                ->name($tenantBaseHost === 'tech237.com' ? 'portfolio.tenant.subdomain' : 'portfolio.tenant.subdomain.' . md5($tenantBaseHost));
         });
 }
 
