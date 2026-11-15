@@ -1900,10 +1900,13 @@ function handleTabKey(e, target) {
             showAutocomplete.value = false;
             return;
         }
-        if (e.key === 'Tab' || e.key === 'Enter') {
+        if (e.key === 'Tab') {
             e.preventDefault();
             applyAutocompleteItem(autocompleteItems.value[autocompleteIndex.value], target);
             return;
+        }
+        if (e.key === 'Enter') {
+            showAutocomplete.value = false;
         }
     }
 
@@ -1918,6 +1921,13 @@ function handleTabKey(e, target) {
         emmetHint.value = '';
         nextTick(() => {
             el.selectionStart = el.selectionEnd = cursorPos;
+            const cursorLine = String(nextVal).slice(0, cursorPos).split('\n').length - 1;
+            const cursorY = 16 + cursorLine * 22;
+            if (cursorY + 22 > el.scrollTop + el.clientHeight) {
+                el.scrollTop = cursorY + 22 - el.clientHeight + 16;
+            } else if (cursorY < el.scrollTop) {
+                el.scrollTop = Math.max(0, cursorY - 16);
+            }
             syncEditorScroll({ target: el });
             updateCaretPosition(el, true);
         });
