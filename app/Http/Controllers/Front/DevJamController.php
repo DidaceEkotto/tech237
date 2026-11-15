@@ -148,6 +148,7 @@ class DevJamController extends Controller
             'initialPolls' => $this->formatPolls($jam, $user?->id),
             'initialCollaborators' => $collab['collaborators'],
             'initialLiveCode' => $collab['live_code'],
+            'initialPinnedMessage' => Cache::get("dev_jam:{$jam->id}:pinned_msg"),
         ]);
     }
 
@@ -260,6 +261,7 @@ class DevJamController extends Controller
             'pending_invites_for_me' => $collab['pending_invites_for_me'],
             'collab_notifications_for_me' => $collab['collab_notifications_for_me'],
             'live_code' => $collab['live_code'],
+            'pinned_message' => Cache::get("dev_jam:{$jam->id}:pinned_msg"),
         ]);
     }
 
@@ -348,6 +350,37 @@ class DevJamController extends Controller
         return response()->json(['deleted' => true]);
     }
 
+    public function pinMessage(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+
+        if ($jam->creator_user_id !== $user->id) {
+            abort(403);
+        }
+
+        $messageId = $request->input('message_id');
+        $key = "dev_jam:{$jam->id}:pinned_msg";
+
+        if (!$messageId) {
+            Cache::forget($key);
+            return response()->json(['pinned_message' => null]);
+        }
+
+        $msg = DevJamMessage::with('user:id,name,username')
+            ->where('dev_jam_id', $jam->id)
+            ->findOrFail($messageId);
+
+        $pinned = [
+            'id' => $msg->id,
+            'message' => $msg->message,
+            'author' => $msg->user?->name ?? 'Créateur',
+        ];
+        Cache::put($key, $pinned, now()->addDays(7));
+
+        return response()->json(['pinned_message' => $pinned]);
+    }
+
     private function touchPresenceAndSnapshot(DevJam $jam, Request $request): array
     {
         $user = Auth::guard('web')->user();
@@ -422,6 +455,16 @@ class DevJamController extends Controller
 
         if ($jam->creator_user_id !== $user->id) {
             return response()->json(['message' => 'Seul le créateur de la Jam peut créer un sondage.'], 403);
+        }
+
+        $hasOpenPoll = DevJamPoll::where('dev_jam_id', $jam->id)
+            ->where('is_closed', false)
+            ->exists();
+
+        if ($hasOpenPoll) {
+            return response()->json([
+                'message' => 'Veuillez d’abord clôturer le sondage en cours avant d’en créer un nouveau.',
+            ], 422);
         }
 
         $validated = $request->validate([

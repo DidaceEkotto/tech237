@@ -14,6 +14,7 @@ const props = defineProps({
     initialPolls: { type: Array, default: () => [] },
     initialCollaborators: { type: Array, default: () => [] },
     initialLiveCode: { type: Object, default: null },
+    initialPinnedMessage: { type: Object, default: null },
 });
 
 const page = usePage();
@@ -83,6 +84,11 @@ const pollOptions = ref(['', '']);
 const creatingPoll = ref(false);
 const votingPollId = ref(null);
 const openPollsCount = computed(() => polls.value.filter((p) => !p.is_closed).length);
+const activeOpenPoll = computed(() => polls.value.find((p) => !p.is_closed) || null);
+const hasUnvotedOpenPoll = computed(() => Boolean(activeOpenPoll.value && !activeOpenPoll.value.user_voted_option_id));
+
+// Pinned Chat Announcement (Community Tool)
+const pinnedMessage = ref(props.initialPinnedMessage || null);
 
 // Live Co-Editing / Collaboration State
 const collaborators = ref([...(props.initialCollaborators || [])]);
@@ -419,6 +425,7 @@ function onPreviewDragEnd() {
 }
 
 function handleTabKey(e, target) {
+    if (!canCoEditSharedCode.value) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault();
         saveMySubmission();
@@ -854,6 +861,19 @@ async function deleteMsg(msg) {
     }
 }
 
+async function pinMessage(messageId) {
+    if (!canRearrangePreview.value) return;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/messages/pin`, {
+            message_id: messageId,
+        });
+        pinnedMessage.value = res.data.pinned_message || null;
+        showToast(pinnedMessage.value ? 'Message épinglé en haut du chat !' : 'Message désépinglé.');
+    } catch {
+        showToast('Impossible d’épingler ce message.');
+    }
+}
+
 async function pollMessages() {
     try {
         const lastId = messages.value.length ? messages.value[messages.value.length - 1].id : 0;
@@ -862,6 +882,7 @@ async function pollMessages() {
         if (Array.isArray(res.data.online_users)) onlineUsers.value = res.data.online_users;
         if (Array.isArray(res.data.typing_users)) typingUsers.value = res.data.typing_users;
         if (Array.isArray(res.data.polls)) polls.value = res.data.polls;
+        if ('pinned_message' in res.data) pinnedMessage.value = res.data.pinned_message;
 
         if (Array.isArray(res.data.collaborators)) {
             collaborators.value = res.data.collaborators;
@@ -1111,6 +1132,7 @@ onUnmounted(() => {
                 </button>
 
                 <button
+                    v-if="canCoEditSharedCode"
                     type="button"
                     class="btn btn-sm rounded-3 px-3 py-1 fw-semibold dj-save-btn"
                     :disabled="savingSubmission"
@@ -1120,6 +1142,14 @@ onUnmounted(() => {
                     <i v-else class="bi bi-cloud-arrow-up-fill me-1"></i>
                     <span class="d-none d-sm-inline">Enregistrer</span>
                 </button>
+                <span
+                    v-else
+                    class="badge bg-secondary bg-opacity-25 border border-secondary border-opacity-50 text-white-50 rounded-pill px-2 py-1"
+                    style="font-size: 11px;"
+                    title="Seul le créateur ou un co-éditeur invité peut manipuler le code"
+                >
+                    <i class="bi bi-lock-fill me-1"></i>Lecture seule
+                </span>
             </div>
         </header>
 
@@ -1189,9 +1219,9 @@ onUnmounted(() => {
 
                 <div class="mb-3">
                     <label class="form-label text-white-50 mb-1" style="font-size: 11px;">Nom de votre projet</label>
-                    <input v-model="subTitle" type="text" class="form-control form-control-sm dj-dark-input mb-2" placeholder="Titre du projet..." />
-                    <input v-model="subDescription" type="text" class="form-control form-control-sm dj-dark-input mb-2" placeholder="Courte description..." />
-                    <select v-if="jam.allow_external_links" v-model="subType" class="form-select form-select-sm dj-dark-input">
+                    <input v-model="subTitle" :disabled="!canCoEditSharedCode" type="text" class="form-control form-control-sm dj-dark-input mb-2" placeholder="Titre du projet..." />
+                    <input v-model="subDescription" :disabled="!canCoEditSharedCode" type="text" class="form-control form-control-sm dj-dark-input mb-2" placeholder="Courte description..." />
+                    <select v-if="jam.allow_external_links" v-model="subType" :disabled="!canCoEditSharedCode" class="form-select form-select-sm dj-dark-input">
                         <option value="studio">Studio HTML/CSS/JS</option>
                         <option value="external">Lien GitHub / Démo</option>
                     </select>
@@ -1270,7 +1300,12 @@ onUnmounted(() => {
                                     </button>
                                 </div>
                                 <span class="small text-white-50 d-none d-sm-inline pe-2" style="font-size: 11px;">
-                                    <i class="bi bi-shield-lock-fill text-success me-1"></i>Sandbox
+                                    <template v-if="canCoEditSharedCode">
+                                        <i class="bi bi-shield-lock-fill text-success me-1"></i>Sandbox
+                                    </template>
+                                    <template v-else>
+                                        <i class="bi bi-lock-fill text-warning me-1"></i>Lecture seule
+                                    </template>
                                 </span>
                             </div>
 
@@ -1282,6 +1317,7 @@ onUnmounted(() => {
                                 <textarea
                                     v-if="codeTab === 'html'"
                                     v-model="htmlCode"
+                                    :readonly="!canCoEditSharedCode"
                                     spellcheck="false"
                                     class="dj-textarea flex-grow-1 font-monospace p-3"
                                     @keydown="handleTabKey($event, 'html')"
@@ -1289,6 +1325,7 @@ onUnmounted(() => {
                                 <textarea
                                     v-else-if="codeTab === 'css'"
                                     v-model="cssCode"
+                                    :readonly="!canCoEditSharedCode"
                                     spellcheck="false"
                                     class="dj-textarea flex-grow-1 font-monospace p-3 text-info"
                                     @keydown="handleTabKey($event, 'css')"
@@ -1296,6 +1333,7 @@ onUnmounted(() => {
                                 <textarea
                                     v-else
                                     v-model="jsCode"
+                                    :readonly="!canCoEditSharedCode"
                                     spellcheck="false"
                                     class="dj-textarea flex-grow-1 font-monospace p-3 text-warning"
                                     @keydown="handleTabKey($event, 'js')"
@@ -1439,31 +1477,47 @@ onUnmounted(() => {
                         <!-- Creator-only Poll Builder -->
                         <div v-if="canRearrangePreview" class="dj-glass-box rounded-4 p-4 mb-4">
                             <h6 class="fw-bold text-white mb-3"><i class="bi bi-plus-circle me-2 text-info"></i>Créer un nouveau sondage</h6>
-                            <div class="mb-3">
-                                <label class="form-label small text-white-50">Question du sondage</label>
-                                <input v-model="pollQuestion" type="text" class="form-control dj-dark-input" placeholder="Ex : Quel framework préférez-vous pour ce défi ?" maxlength="280" />
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label small text-white-50">Choix de réponses (2 à 6)</label>
-                                <div v-for="(opt, idx) in pollOptions" :key="idx" class="d-flex gap-2 mb-2">
-                                    <input v-model="pollOptions[idx]" type="text" class="form-control form-control-sm dj-dark-input" :placeholder="`Option ${idx + 1}`" maxlength="120" />
-                                    <button v-if="pollOptions.length > 2" type="button" class="btn btn-sm btn-outline-danger" @click="removePollOption(idx)">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
-                                </div>
-                                <button v-if="pollOptions.length < 6" type="button" class="btn btn-xs dj-btn-ghost rounded-pill px-3 py-1" @click="addPollOption">
-                                    <i class="bi bi-plus me-1"></i>Ajouter un choix
+                            <div v-if="activeOpenPoll" class="p-3 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <span class="small text-warning">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                    Un sondage est déjà en cours. Clôturez-le d'abord avant d'en créer un second.
+                                </span>
+                                <button type="button" class="btn btn-xs btn-warning text-dark rounded-pill px-3 fw-semibold" @click="toggleClosePoll(activeOpenPoll)">
+                                    Clôturer le sondage en cours
                                 </button>
                             </div>
-                            <button type="button" class="btn btn-sm dj-save-btn rounded-pill px-4 fw-semibold" :disabled="creatingPoll" @click="createPoll">
-                                <span v-if="creatingPoll" class="spinner-border spinner-border-sm me-1"></span>
-                                Publier le sondage
-                            </button>
+                            <template v-else>
+                                <div class="mb-3">
+                                    <label class="form-label small text-white-50">Question du sondage</label>
+                                    <input v-model="pollQuestion" type="text" class="form-control dj-dark-input" placeholder="Ex : Quel framework préférez-vous pour ce défi ?" maxlength="280" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small text-white-50">Choix de réponses (2 à 6)</label>
+                                    <div v-for="(opt, idx) in pollOptions" :key="idx" class="d-flex gap-2 mb-2">
+                                        <input v-model="pollOptions[idx]" type="text" class="form-control form-control-sm dj-dark-input" :placeholder="`Option ${idx + 1}`" maxlength="120" />
+                                        <button v-if="pollOptions.length > 2" type="button" class="btn btn-sm btn-outline-danger" @click="removePollOption(idx)">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                    <button v-if="pollOptions.length < 6" type="button" class="btn btn-xs dj-btn-ghost rounded-pill px-3 py-1" @click="addPollOption">
+                                        <i class="bi bi-plus me-1"></i>Ajouter un choix
+                                    </button>
+                                </div>
+                                <button type="button" class="btn btn-sm dj-save-btn rounded-pill px-4 fw-semibold" :disabled="creatingPoll" @click="createPoll">
+                                    <span v-if="creatingPoll" class="spinner-border spinner-border-sm me-1"></span>
+                                    Publier le sondage
+                                </button>
+                            </template>
                         </div>
 
                         <!-- Polls List -->
                         <div v-if="polls.length" class="d-flex flex-column gap-3">
-                            <div v-for="poll in polls" :key="poll.id" class="dj-glass-box rounded-4 p-4">
+                            <div
+                                v-for="poll in polls"
+                                :key="poll.id"
+                                class="dj-glass-box rounded-4 p-4"
+                                :class="{ 'dj-poll-card-glow': !poll.is_closed && !poll.user_voted_option_id }"
+                            >
                                 <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                                     <div>
                                         <h6 class="fw-bold text-white mb-1">{{ poll.question }}</h6>
@@ -1487,9 +1541,9 @@ onUnmounted(() => {
                                         class="dj-poll-option text-start position-relative overflow-hidden"
                                         :class="{
                                             'is-selected': poll.user_voted_option_id === opt.id,
-                                            'is-locked': Boolean(poll.user_voted_option_id) || poll.is_closed,
+                                            'is-locked': Boolean(poll.user_voted_option_id) || poll.is_closed || !authUser,
                                         }"
-                                        :disabled="Boolean(poll.user_voted_option_id) || poll.is_closed || votingPollId === poll.id"
+                                        :disabled="Boolean(poll.user_voted_option_id) || poll.is_closed || votingPollId === poll.id || !authUser"
                                         @click="votePoll(poll, opt.id)"
                                     >
                                         <div class="dj-poll-progress" :style="{ width: `${opt.percentage}%` }"></div>
@@ -1501,6 +1555,11 @@ onUnmounted(() => {
                                             <span class="small fw-bold text-info">{{ opt.percentage }}% ({{ opt.votes_count }})</span>
                                         </div>
                                     </button>
+                                </div>
+                                <div v-if="!authUser && !poll.is_closed" class="mt-3">
+                                    <Link href="/login" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-semibold">
+                                        <i class="bi bi-lock-fill me-1"></i>Connectez-vous pour voter
+                                    </Link>
                                 </div>
                             </div>
                         </div>
@@ -1532,6 +1591,16 @@ onUnmounted(() => {
             <div class="d-flex align-items-center gap-3">
                 <span><i class="bi bi-git me-1"></i>tech237-jam</span>
                 <span class="d-none d-sm-inline"><i class="bi bi-shield-check text-success me-1"></i>Sandbox Isolé</span>
+                <button
+                    v-if="activeOpenPoll"
+                    type="button"
+                    class="btn btn-xs rounded-pill px-3 py-0 fw-semibold dj-statusbar-poll-btn d-flex align-items-center gap-1"
+                    :class="{ 'dj-poll-glow-pulse': hasUnvotedOpenPoll }"
+                    @click="activeSection = 'polls'"
+                >
+                    <i class="bi bi-bar-chart-fill"></i>
+                    <span>{{ hasUnvotedOpenPoll ? 'Participer au sondage' : 'Sondage en cours' }}</span>
+                </button>
             </div>
             <div class="d-flex align-items-center gap-3">
                 <span class="d-none d-md-inline">UTF-8</span>
@@ -1598,6 +1667,17 @@ onUnmounted(() => {
                 </select>
             </div>
 
+            <!-- Pinned Announcement Banner -->
+            <div v-if="pinnedMessage" class="dj-pinned-banner px-3 py-2 border-bottom d-flex align-items-start justify-content-between gap-2">
+                <div class="min-w-0">
+                    <div class="text-warning fw-bold" style="font-size: 10px;">
+                        <i class="bi bi-pin-angle-fill me-1"></i>Épinglé • {{ pinnedMessage.author }}
+                    </div>
+                    <div class="small text-white text-truncate" style="font-size: 12px;">{{ pinnedMessage.message }}</div>
+                </div>
+                <button v-if="canRearrangePreview" type="button" class="btn-close btn-close-white flex-shrink-0" style="font-size: 8px;" title="Désépingler" @click="pinMessage(null)"></button>
+            </div>
+
             <div ref="chatListEl" class="dj-chat-body flex-grow-1 overflow-auto p-3 d-flex flex-column gap-2">
                 <div v-if="!filteredMessages.length" class="text-center text-white-50 small my-auto py-4">
                     Aucun message pour le moment. Envoyez le premier ! 🚀
@@ -1630,6 +1710,16 @@ onUnmounted(() => {
                             </div>
                             <div class="d-flex align-items-center gap-1 flex-shrink-0">
                                 <span class="opacity-75" style="font-size: 10px;">{{ formatMsgTime(m.created_at) }}</span>
+                                <button
+                                    v-if="canRearrangePreview"
+                                    type="button"
+                                    class="btn btn-link p-0 text-warning opacity-75"
+                                    style="font-size: 10px;"
+                                    title="Épingler ce message en haut du chat"
+                                    @click="pinMessage(m.id)"
+                                >
+                                    <i class="bi bi-pin-angle-fill"></i>
+                                </button>
                                 <button
                                     v-if="canRearrangePreview && !isMyMessage(m) && m.user_id"
                                     type="button"
@@ -1686,16 +1776,21 @@ onUnmounted(() => {
             </div>
 
             <!-- @Mention Autocomplete Popover -->
-            <div v-if="authUser && filteredMentions.length" class="dj-mention-menu border-top p-1 d-flex flex-column gap-1">
+            <div v-if="authUser && filteredMentions.length" class="dj-mention-menu border-top p-2 d-flex flex-column gap-1">
                 <button
                     v-for="cand in filteredMentions"
                     :key="cand.id"
                     type="button"
-                    class="btn btn-sm dj-mention-item d-flex align-items-center justify-content-between text-start px-2 py-1"
+                    class="btn btn-sm dj-mention-item d-flex align-items-center justify-content-between gap-2 text-start px-3 py-2 w-100"
                     @click="insertMention(cand)"
                 >
-                    <span class="fw-semibold text-white small">{{ cand.name }}</span>
-                    <span class="text-info font-monospace" style="font-size: 11px;">@{{ cand.tag }}</span>
+                    <div class="d-flex align-items-center gap-2 min-w-0 flex-grow-1">
+                        <span class="dj-avatar dj-avatar-other flex-shrink-0" style="width: 24px; height: 24px; font-size: 9px;">
+                            {{ userInitials(cand.name) }}
+                        </span>
+                        <span class="fw-semibold text-white text-truncate" style="font-size: 13px;">{{ cand.name }}</span>
+                    </div>
+                    <span class="badge bg-info bg-opacity-25 text-info font-monospace flex-shrink-0" style="font-size: 11px;">@{{ cand.tag }}</span>
                 </button>
             </div>
 
@@ -1742,7 +1837,7 @@ onUnmounted(() => {
                     </button>
                 </form>
                 <div v-else class="text-center py-1">
-                    <Link href="/connexion" class="btn btn-sm btn-outline-info rounded-pill w-100 fw-semibold">
+                    <Link href="/login" class="btn btn-sm btn-outline-info rounded-pill w-100 fw-semibold">
                         <i class="bi bi-lock-fill me-1"></i>Connectez-vous pour commenter
                     </Link>
                 </div>
@@ -1823,7 +1918,7 @@ onUnmounted(() => {
                             </button>
                         </div>
                         <div v-if="collaborators.length" class="d-flex flex-column gap-2">
-                            <div v-for="c in collaborators" :key="c.id" class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-white bg-opacity-5 border border-secondary border-opacity-25">
+                            <div v-for="c in collaborators" :key="c.id" class="d-flex align-items-center justify-content-between p-2 rounded-3 dj-dark-row">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="dj-avatar dj-avatar-me">{{ userInitials(c.name) }}</div>
                                     <div>
@@ -1852,7 +1947,7 @@ onUnmounted(() => {
                             Inviter un participant du chat à vous aider
                         </div>
                         <div v-if="mentionCandidates.length" class="d-flex flex-column gap-2">
-                            <div v-for="cand in mentionCandidates" :key="cand.id" class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-white bg-opacity-5 border border-secondary border-opacity-25">
+                            <div v-for="cand in mentionCandidates" :key="cand.id" class="d-flex align-items-center justify-content-between p-2 rounded-3 dj-dark-row">
                                 <div class="d-flex align-items-center gap-2">
                                     <div class="dj-avatar dj-avatar-other">{{ userInitials(cand.name) }}</div>
                                     <span class="small fw-semibold text-white">{{ cand.name }}</span>
@@ -2404,6 +2499,49 @@ onUnmounted(() => {
     backdrop-filter: blur(14px);
     z-index: 2560;
     animation: msgPopIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dj-dark-row {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.dj-pinned-banner {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.16), rgba(15, 23, 42, 0.92));
+    border-color: rgba(245, 158, 11, 0.28) !important;
+}
+.dj-statusbar-poll-btn {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(6, 182, 212, 0.3));
+    border: 1px solid rgba(56, 189, 248, 0.55);
+    color: #e0f2fe;
+    font-size: 11px;
+}
+.dj-statusbar-poll-btn:hover {
+    color: #ffffff;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.5), rgba(6, 182, 212, 0.5));
+}
+.dj-poll-glow-pulse {
+    animation: pollGlowPulse 1.8s infinite ease-in-out;
+}
+.dj-poll-card-glow {
+    border: 1px solid rgba(56, 189, 248, 0.65) !important;
+    animation: pollCardGlow 2.2s infinite ease-in-out;
+}
+@keyframes pollGlowPulse {
+    0%, 100% {
+        box-shadow: 0 0 6px rgba(56, 189, 248, 0.45), 0 0 14px rgba(99, 102, 241, 0.3);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 14px rgba(56, 189, 248, 0.9), 0 0 26px rgba(99, 102, 241, 0.6);
+        transform: scale(1.03);
+    }
+}
+@keyframes pollCardGlow {
+    0%, 100% {
+        box-shadow: 0 0 12px rgba(56, 189, 248, 0.22), 0 0 26px rgba(99, 102, 241, 0.16);
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(56, 189, 248, 0.5), 0 0 42px rgba(99, 102, 241, 0.35);
+    }
 }
 @media (min-width: 992px) {
     .w-lg-50 {

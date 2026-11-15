@@ -148,6 +148,7 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/dev-jams/{slug}/submissions/{submission}/vote', [App\Http\Controllers\Front\DevJamController::class, 'voteSubmission'])->name('devjams.vote');
     Route::post('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'postMessage'])->name('devjams.messages.post')->middleware('throttle:20,1');
     Route::post('/dev-jams/{slug}/typing', [App\Http\Controllers\Front\DevJamController::class, 'updateTyping'])->name('devjams.typing');
+    Route::post('/dev-jams/{slug}/messages/pin', [App\Http\Controllers\Front\DevJamController::class, 'pinMessage'])->name('devjams.messages.pin');
     Route::delete('/dev-jams/{slug}/messages/{message}', [App\Http\Controllers\Front\DevJamController::class, 'deleteMessage'])->name('devjams.messages.delete');
     Route::post('/dev-jams/{slug}/polls', [App\Http\Controllers\Front\DevJamController::class, 'createPoll'])->name('devjams.polls.create');
     Route::post('/dev-jams/{slug}/polls/{poll}/vote', [App\Http\Controllers\Front\DevJamController::class, 'votePoll'])->name('devjams.polls.vote');
