@@ -127,6 +127,7 @@ let lastAppliedCodeAt = props.initialLiveCode?.updated_at || 0;
 const effectiveStatus = ref(props.jam.effective_status || props.jam.status || 'active');
 const isJamSuspended = computed(() => effectiveStatus.value === 'suspended' || Boolean(props.jam.is_suspended));
 const isJamEnded = computed(() => effectiveStatus.value === 'ended');
+const isJamLocked = computed(() => isJamSuspended.value || isJamEnded.value);
 const outcomeVotes = ref({ ...(props.initialOutcomeVotes || { yes: 0, no: 0, total: 0, user_vote: null }) });
 const outcomeVoting = ref(false);
 let lastExpiryNotifBucket = null;
@@ -412,25 +413,6 @@ function exportProjectZip() {
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
     showToast('Projet exporté en ZIP (index.html, style.css, app.js) !');
-}
-
-function publishToPortfolio() {
-    const fullSnippet = `<!-- ${props.jam.title} -->\n<style>\n${cssCode.value || ''}\n</style>\n${htmlCode.value || ''}\n<script>\n${jsCode.value || ''}\n<\/script>`;
-    try {
-        localStorage.setItem('dj_portfolio_handoff', JSON.stringify({
-            title: subTitle.value || props.jam.title,
-            description: subDescription.value || props.jam.description || '',
-            html_code: htmlCode.value || '',
-            css_code: cssCode.value || '',
-            js_code: jsCode.value || '',
-            jam_slug: props.jam.slug,
-        }));
-    } catch {
-        // ignore storage errors
-    }
-    navigator.clipboard?.writeText(fullSnippet).catch(() => {});
-    showToast('Code copié ! Redirection vers votre Portfolio Builder Tech237...');
-    window.open('/espace-utilisateur/portfolio-builder/sites', '_blank', 'noopener');
 }
 
 const liveSrcDoc = ref(buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value, true));
@@ -752,6 +734,14 @@ function selectCodeTab(tab) {
     codeTab.value = tab;
 }
 
+watch(isJamLocked, (locked) => {
+    if (locked) {
+        showTemplateMenu.value = false;
+        showCollabModal.value = false;
+        showShareMenu.value = false;
+    }
+});
+
 watch(canCoEditSharedCode, (canEdit) => {
     if (!canEdit) {
         showConsole.value = false;
@@ -926,9 +916,11 @@ function setPreviewDock(zone) {
 }
 
 let previewDragStart = { x: 0, y: 0 };
+const isPreviewPointerDown = ref(false);
 function startPreviewDrag(e) {
     if (previewFullscreen.value) return;
     if (e.target.closest('button')) return;
+    isPreviewPointerDown.value = true;
     previewDragStart = { x: e.clientX, y: e.clientY };
     previewDragCoords.value = { x: e.clientX, y: e.clientY };
     isDraggingPreview.value = false;
@@ -971,6 +963,7 @@ function onPreviewDragEnd() {
                 : 'Aperçu replacé à droite du Sandbox.'
         );
     }
+    isPreviewPointerDown.value = false;
     isDraggingPreview.value = false;
     previewDropZone.value = null;
 }
@@ -2826,8 +2819,9 @@ onUnmounted(() => {
                     class="btn btn-sm rounded-3 px-2 py-1 d-none d-lg-flex align-items-center gap-1"
                     :class="followCreator ? 'btn-info text-dark fw-semibold' : 'dj-btn-ghost'"
                     style="font-size: 11px;"
+                    :disabled="isJamLocked"
                     title="Suivre automatiquement l'onglet actif du créateur"
-                    @click="followCreator = !followCreator; if (followCreator) codeTab = creatorActiveTab;"
+                    @click="!isJamLocked && (followCreator = !followCreator, followCreator && (codeTab = creatorActiveTab))"
                 >
                     <i class="bi bi-eye-fill"></i>
                     <span>{{ followCreator ? 'Suit le créateur' : 'Suivre' }}</span>
@@ -2838,12 +2832,13 @@ onUnmounted(() => {
                     <button
                         type="button"
                         class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1"
+                        :disabled="isJamLocked"
                         title="Charger un template de démarrage"
-                        @click="showTemplateMenu = !showTemplateMenu"
+                        @click="!isJamLocked && (showTemplateMenu = !showTemplateMenu)"
                     >
                         <i class="bi bi-magic text-info me-1"></i>Templates
                     </button>
-                    <div v-if="showTemplateMenu" class="dj-share-menu shadow-lg rounded-4 p-2 d-flex flex-column gap-1" style="min-width: 210px;">
+                    <div v-if="showTemplateMenu && !isJamLocked" class="dj-share-menu shadow-lg rounded-4 p-2 d-flex flex-column gap-1" style="min-width: 210px;">
                         <button
                             v-for="(tpl, key) in starterTemplates"
                             :key="key"
@@ -2856,25 +2851,14 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- Publish to Portfolio (Creator only) -->
-                <button
-                    v-if="canRearrangePreview"
-                    type="button"
-                    class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1 d-none d-xl-inline-flex align-items-center gap-1"
-                    title="Copier le code et ouvrir le Portfolio Builder Tech237"
-                    @click="publishToPortfolio"
-                >
-                    <i class="bi bi-briefcase-fill text-primary"></i>
-                    <span>Portfolio</span>
-                </button>
-
                 <!-- Co-édition & Invitations Button -->
                 <button
                     type="button"
                     class="btn btn-sm rounded-3 px-2 py-1 d-flex align-items-center gap-1"
                     :class="collaborators.length || isCollaborator || raisedHands.length ? 'btn-outline-warning' : 'dj-btn-ghost'"
+                    :disabled="isJamLocked"
                     title="Co-édition : inviter à coder ensemble, mains levées ou révoquer l'accès"
-                    @click="showCollabModal = true"
+                    @click="!isJamLocked && (showCollabModal = true)"
                 >
                     <i class="bi bi-people-fill text-warning"></i>
                     <span class="d-none d-md-inline">Co-édition</span>
@@ -3279,7 +3263,7 @@ onUnmounted(() => {
                                     sandbox="allow-scripts allow-modals"
                                     class="border-0 h-100 dj-preview-frame"
                                     :class="`dj-device-${previewDevice}`"
-                                    style="background: #0b0e15;"
+                                    :style="{ background: '#0b0e15', pointerEvents: isPreviewPointerDown ? 'none' : 'auto' }"
                                     title="Aperçu en direct Dev Jam"
                                 ></iframe>
                             </div>
@@ -3578,40 +3562,6 @@ onUnmounted(() => {
                     <span>{{ hasUnvotedOpenPoll ? 'Participer au sondage' : 'Sondage en cours' }}</span>
                 </button>
 
-                <!-- Synchronized Sprint / Pomodoro Timer -->
-                <div class="position-relative">
-                    <button
-                        v-if="sprint || canRearrangePreview"
-                        type="button"
-                        class="btn btn-xs rounded-pill px-2 py-0 d-flex align-items-center gap-1"
-                        :class="sprint ? (sprintEnded ? 'btn-danger' : 'btn-outline-info') : 'dj-btn-ghost'"
-                        style="font-size: 11px;"
-                        :title="canRearrangePreview ? 'Lancer ou gérer un Sprint chronométré' : 'Sprint en cours'"
-                        @click="canRearrangePreview ? (showSprintPopover = !showSprintPopover) : null"
-                    >
-                        <span>⏱️</span>
-                        <span v-if="sprint">{{ sprint.label }} : <strong>{{ sprintEnded ? 'Terminé !' : sprintTimeLeftText }}</strong></span>
-                        <span v-else class="d-none d-lg-inline">Sprint</span>
-                    </button>
-                    <div v-if="showSprintPopover && canRearrangePreview" class="dj-share-menu dj-share-menu-up shadow-lg rounded-4 p-2 d-flex flex-column gap-1" style="min-width: 215px;">
-                        <input
-                            v-model="sprintLabel"
-                            type="text"
-                            class="form-control form-control-sm dj-dark-input mb-1"
-                            placeholder="Nom du sprint (ex: Sprint UI)"
-                            maxlength="60"
-                        />
-                        <div class="d-flex gap-1">
-                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(10)">10 min</button>
-                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(20)">20 min</button>
-                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(25)">25 min</button>
-                        </div>
-                        <button v-if="sprint" type="button" class="btn btn-xs btn-outline-danger mt-1" @click="stopSprint">
-                            Arrêter le Sprint
-                        </button>
-                    </div>
-                </div>
-
                 <!-- One-Click ZIP Export -->
                 <button
                     type="button"
@@ -3628,12 +3578,13 @@ onUnmounted(() => {
                     <button
                         type="button"
                         class="btn btn-xs dj-btn-ghost rounded-3 px-2 py-0 d-flex align-items-center gap-1"
+                        :disabled="isJamLocked"
                         title="Partager la Jam sur les réseaux sociaux"
-                        @click="showShareMenu = !showShareMenu"
+                        @click="!isJamLocked && (showShareMenu = !showShareMenu)"
                     >
                         <i class="bi bi-share-fill text-info"></i><span class="d-none d-md-inline">Partager</span>
                     </button>
-                    <div v-if="showShareMenu" class="dj-share-menu dj-share-menu-up shadow-lg rounded-4 p-2 d-flex flex-column gap-1">
+                    <div v-if="showShareMenu && !isJamLocked" class="dj-share-menu dj-share-menu-up shadow-lg rounded-4 p-2 d-flex flex-column gap-1">
                         <button type="button" class="btn btn-sm dj-share-item text-start" @click="shareSocial('facebook')">
                             <i class="bi bi-facebook text-primary me-2"></i>Facebook
                         </button>
