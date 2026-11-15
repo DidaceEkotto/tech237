@@ -270,13 +270,6 @@ class PortfolioSiteController extends Controller
     {
         Gate::authorize('delete', $site);
 
-        $total = PortfolioSite::where('user_id', $site->user_id)->count();
-        if ($total <= 1) {
-            return response()->json([
-                'message' => 'Vous devez conserver au moins un site principal.',
-            ], 422);
-        }
-
         $wasPrimary = $site->is_primary;
         $userId = $site->user_id;
         $site->delete();
@@ -285,7 +278,7 @@ class PortfolioSiteController extends Controller
             PortfolioSite::where('user_id', $userId)->latest()->first()?->update(['is_primary' => true]);
         }
 
-        return response()->json(['message' => 'Site supprimé.']);
+        return response()->json(['message' => 'Projet supprimé avec succès.']);
     }
 
     private function uniqueSlug(string $base): string

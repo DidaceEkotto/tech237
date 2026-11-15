@@ -1,5 +1,5 @@
 ﻿<script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import apiClient from '@/Composables/PortfolioBuilder/apiClient';
 import GuideModal from '@/Components/PortfolioBuilder/Editor/GuideModal.vue';
 
@@ -20,22 +20,13 @@ const statsModalSite = ref(null);
 const statsData = ref(null);
 const loadingStats = ref(false);
 const viewMode = ref('list'); // list | grid
+const deleteConfirmSite = ref(null);
+const deletingSite = ref(false);
 
-const defaultTenantMode = import.meta.env.VITE_PORTFOLIO_SUBDOMAIN_TENANCY === 'true' ? 'subdomain' : 'path';
-const storedTenantMode = typeof window !== 'undefined' ? window.localStorage.getItem('pb_tenant_mode') : null;
-const tenantMode = ref(storedTenantMode === 'subdomain' || storedTenantMode === 'path' ? storedTenantMode : defaultTenantMode);
+const primarySite = computed(() => sites.value.find((s) => s.is_primary) || sites.value[0] || null);
 
-function setTenantMode(mode) {
-    tenantMode.value = mode;
-    if (typeof window !== 'undefined') {
-        window.localStorage.setItem('pb_tenant_mode', mode);
-    }
-    showToast(mode === 'subdomain'
-        ? 'Mode lien tenant : Sous-domaine (mon-site.tech237.com)'
-        : 'Mode lien tenant : Chemin (/site/mon-site)');
-}
-
-function tenantSubdomainUrl(site) {
+function tenantUrl(site) {
+    if (!site?.slug) return '#';
     if (typeof window === 'undefined') {
         return `https://${site.slug}.tech237.com`;
     }
@@ -48,31 +39,15 @@ function tenantSubdomainUrl(site) {
     return `${protocol}//${site.slug}.${baseHost}${portPart}`;
 }
 
-function tenantPathUrl(site) {
-    if (typeof window === 'undefined') {
-        return `https://tech237.com/site/${site.slug}`;
-    }
-    return `${window.location.origin}/site/${site.slug}`;
-}
-
-function tenantUrl(site) {
-    return tenantMode.value === 'subdomain' ? tenantSubdomainUrl(site) : tenantPathUrl(site);
-}
-
 function tenantDisplayLabel(site) {
-    if (tenantMode.value === 'subdomain') {
-        if (typeof window !== 'undefined') {
-            const baseHost = window.location.hostname.replace(/^www\./, '');
-            if (baseHost !== '127.0.0.1' && !/^\d+\.\d+\.\d+\.\d+$/.test(baseHost)) {
-                return `${site.slug}.${baseHost}`;
-            }
-        }
-        return `${site.slug}.tech237.com`;
-    }
+    if (!site?.slug) return '';
     if (typeof window !== 'undefined') {
-        return `${window.location.host}/site/${site.slug}`;
+        const baseHost = window.location.hostname.replace(/^www\./, '');
+        if (baseHost && baseHost !== '127.0.0.1' && !/^\d+\.\d+\.\d+\.\d+$/.test(baseHost)) {
+            return `${site.slug}.${baseHost}`;
+        }
     }
-    return `tech237.com/site/${site.slug}`;
+    return `${site.slug}.tech237.com`;
 }
 
 async function copyTenantLink(site) {
@@ -187,14 +162,26 @@ async function openStats(site) {
     }
 }
 
-async function deleteSite(site) {
-    if (!window.confirm(`Supprimer définitivement le site "${site.name}" ?`)) return;
+function requestDeleteSite(site) {
+    deleteConfirmSite.value = site;
+}
+
+async function confirmDeleteSite() {
+    const site = deleteConfirmSite.value;
+    if (!site) return;
+    deletingSite.value = true;
     try {
         await apiClient.delete(`/espace-utilisateur/portfolio-builder/sites/${site.id}`);
         sites.value = sites.value.filter((s) => s.id !== site.id);
-        showToast('Site supprimé.');
+        if (site.is_primary && sites.value.length > 0 && !sites.value.some((s) => s.is_primary)) {
+            sites.value[0].is_primary = true;
+        }
+        deleteConfirmSite.value = null;
+        showToast(`Le projet "${site.name}" a été supprimé.`);
     } catch (e) {
-        showToast(e.response?.data?.message || 'Impossible de supprimer ce site.');
+        showToast(e.response?.data?.message || 'Impossible de supprimer ce projet.');
+    } finally {
+        deletingSite.value = false;
     }
 }
 </script>
@@ -214,29 +201,17 @@ async function deleteSite(site) {
                     </p>
                 </div>
                 <div class="d-flex gap-2 align-items-center flex-wrap">
-                    <div class="btn-group btn-group-sm" role="group" title="Format d'URL des sites publiés">
-                        <button
-                            type="button"
-                            class="btn"
-                            :class="tenantMode === 'subdomain' ? 'btn-primary' : 'btn-outline-secondary'"
-                            @click="setTenantMode('subdomain')"
-                        >
-                            <i class="bi bi-globe me-1"></i>Sous-domaine
-                        </button>
-                        <button
-                            type="button"
-                            class="btn"
-                            :class="tenantMode === 'path' ? 'btn-primary' : 'btn-outline-secondary'"
-                            @click="setTenantMode('path')"
-                        >
-                            <i class="bi bi-link-45deg me-1"></i>/site/slug
-                        </button>
-                    </div>
                     <button type="button" class="btn btn-outline-primary rounded-pill px-3 fw-semibold btn-sm" @click="guideOpen = true">
                         <i class="bi bi-book-half me-1"></i>Guide d'utilisation
                     </button>
-                    <a v-if="user?.username" :href="`/@${user.username}`" target="_blank" class="btn btn-outline-dark rounded-pill px-3 fw-semibold btn-sm">
-                        <i class="bi bi-box-arrow-up-right me-1"></i>Voir /@{{ user.username }}
+                    <a
+                        v-if="primarySite"
+                        :href="tenantUrl(primarySite)"
+                        target="_blank"
+                        rel="noopener"
+                        class="btn btn-outline-dark rounded-pill px-3 fw-semibold btn-sm"
+                    >
+                        <i class="bi bi-box-arrow-up-right me-1"></i>Voir {{ tenantDisplayLabel(primarySite) }}
                     </a>
                 </div>
             </div>
@@ -318,16 +293,6 @@ async function deleteSite(site) {
                                 <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-0" style="font-size: 11px;" @click="copyTenantLink(site)">
                                     <i class="bi bi-clipboard me-1"></i>Copier
                                 </button>
-                                <a
-                                    :href="tenantMode === 'subdomain' ? tenantPathUrl(site) : tenantSubdomainUrl(site)"
-                                    target="_blank"
-                                    rel="noopener"
-                                    class="badge bg-light text-secondary border text-decoration-none"
-                                    style="font-size: 10px;"
-                                    title="Lien alternatif"
-                                >
-                                    {{ tenantMode === 'subdomain' ? `/site/${site.slug}` : `${site.slug}.tech237.com` }}
-                                </a>
                             </div>
                         </div>
 
@@ -363,8 +328,10 @@ async function deleteSite(site) {
                             </div>
 
                             <button v-if="!site.is_primary" type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2" style="font-size:11px;" @click="setPrimary(site)">Principal</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:11px;" @click="duplicateSite(site)"><i class="bi bi-copy"></i></button>
-                            <button v-if="sites.length > 1" type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2" style="font-size:11px;" @click="deleteSite(site)"><i class="bi bi-trash"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-2" style="font-size:11px;" title="Dupliquer" @click="duplicateSite(site)"><i class="bi bi-copy"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-2" style="font-size:11px;" title="Supprimer le projet" @click="requestDeleteSite(site)">
+                                <i class="bi bi-trash me-1"></i>Supprimer
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -408,6 +375,28 @@ async function deleteSite(site) {
                             </tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div v-if="deleteConfirmSite" class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 d-flex align-items-center justify-content-center p-3" style="z-index: 2250;" @click="deleteConfirmSite = null">
+            <div class="bg-white rounded-4 shadow-lg p-4 w-100" style="max-width: 440px;" @click.stop>
+                <div class="d-flex align-items-center gap-2 text-danger mb-2">
+                    <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                    <h5 class="fw-bold mb-0">Confirmer la suppression</h5>
+                </div>
+                <p class="small text-secondary mb-3">
+                    Êtes-vous sûr de vouloir supprimer définitivement le projet <strong>"{{ deleteConfirmSite.name }}"</strong> (<code>{{ tenantDisplayLabel(deleteConfirmSite) }}</code>) ? Toutes ses pages et sections seront perdues.
+                </p>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" :disabled="deletingSite" @click="deleteConfirmSite = null">
+                        Annuler
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger rounded-pill px-3 fw-semibold" :disabled="deletingSite" @click="confirmDeleteSite">
+                        <span v-if="deletingSite" class="spinner-border spinner-border-sm me-1"></span>
+                        <i v-else class="bi bi-trash me-1"></i>Oui, supprimer
+                    </button>
                 </div>
             </div>
         </div>
