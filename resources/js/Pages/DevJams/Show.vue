@@ -942,7 +942,12 @@ function onPreviewDragEnd() {
 
 const highlightPreEl = ref(null);
 const gutterEl = ref(null);
+const editorWrapEl = ref(null);
 const emmetHint = ref('');
+const isEditorFocused = ref(false);
+const isCaretTyping = ref(false);
+const caretPos = ref({ top: 16, left: 16, visible: false });
+let caretTypingTimer = null;
 const editorTextStyle = {
     fontFamily: "'Consolas', 'Courier New', Courier, monospace",
     fontSize: '14px',
@@ -963,6 +968,86 @@ const editorTextStyle = {
     fontKerning: 'none',
 };
 
+function updateCaretPosition(el, markTyping = false) {
+    if (!el || !highlightPreEl.value || !editorWrapEl.value || !isEditorFocused.value) {
+        caretPos.value = { ...caretPos.value, visible: false };
+        return;
+    }
+    if (markTyping) {
+        isCaretTyping.value = true;
+        if (caretTypingTimer) clearTimeout(caretTypingTimer);
+        caretTypingTimer = setTimeout(() => {
+            isCaretTyping.value = false;
+        }, 450);
+    }
+
+    const pos = el.selectionStart ?? 0;
+    const isCollapsed = (el.selectionStart ?? 0) === (el.selectionEnd ?? 0);
+    const value = el.value ?? '';
+    const textBefore = value.slice(0, pos);
+    const lines = textBefore.split('\n');
+    const lineIdx = lines.length - 1;
+    const fallbackTop = 16 + lineIdx * 22 - el.scrollTop;
+    const fallbackLeft = 16 - el.scrollLeft;
+
+    if (pos === 0 || textBefore.endsWith('\n')) {
+        caretPos.value = { top: fallbackTop, left: fallbackLeft, visible: isCollapsed };
+        return;
+    }
+
+    const codeEl = highlightPreEl.value.querySelector('code');
+    if (!codeEl) {
+        caretPos.value = { top: fallbackTop, left: fallbackLeft, visible: isCollapsed };
+        return;
+    }
+
+    const walker = document.createTreeWalker(codeEl, NodeFilter.SHOW_TEXT);
+    let remaining = pos;
+    let targetNode = null;
+    let targetOffset = 0;
+    let node;
+    while ((node = walker.nextNode())) {
+        const len = node.nodeValue?.length ?? 0;
+        if (remaining <= len) {
+            targetNode = node;
+            targetOffset = remaining;
+            break;
+        }
+        remaining -= len;
+    }
+
+    if (!targetNode) {
+        caretPos.value = { top: fallbackTop, left: fallbackLeft, visible: isCollapsed };
+        return;
+    }
+
+    const range = document.createRange();
+    range.setStart(targetNode, targetOffset);
+    range.collapse(true);
+    const rect = range.getBoundingClientRect();
+    const wrapRect = editorWrapEl.value.getBoundingClientRect();
+    if (rect.height > 0) {
+        caretPos.value = {
+            top: rect.top - wrapRect.top,
+            left: rect.left - wrapRect.left,
+            visible: isCollapsed,
+        };
+    } else {
+        caretPos.value = { top: fallbackTop, left: fallbackLeft, visible: isCollapsed };
+    }
+}
+
+function handleEditorFocus(e) {
+    isEditorFocused.value = true;
+    nextTick(() => updateCaretPosition(e?.target));
+}
+
+function handleEditorBlur() {
+    isEditorFocused.value = false;
+    isCaretTyping.value = false;
+    caretPos.value = { ...caretPos.value, visible: false };
+}
+
 function syncEditorScroll(e) {
     const el = e?.target;
     if (!el) return;
@@ -973,6 +1058,7 @@ function syncEditorScroll(e) {
     if (gutterEl.value) {
         gutterEl.value.scrollTop = el.scrollTop;
     }
+    updateCaretPosition(el);
 }
 
 function escapeHtml(str) {
@@ -1833,6 +1919,7 @@ function handleTabKey(e, target) {
         nextTick(() => {
             el.selectionStart = el.selectionEnd = cursorPos;
             syncEditorScroll({ target: el });
+            updateCaretPosition(el, true);
         });
     };
 
@@ -3226,7 +3313,7 @@ onUnmounted(() => {
                                 <div ref="gutterEl" class="dj-gutter text-end user-select-none py-3 px-2 font-monospace overflow-hidden">
                                     <div v-for="n in lineCount" :key="n" :class="{ 'dj-gutter-err': errorLinesSet.has(n) }">{{ n }}</div>
                                 </div>
-                                <div class="dj-editor-wrap position-relative flex-grow-1 h-100 overflow-hidden">
+                                <div ref="editorWrapEl" class="dj-editor-wrap position-relative flex-grow-1 h-100 overflow-hidden">
                                     <!-- Intelligent Autocomplete Popup -->
                                     <div v-if="showAutocomplete && autocompleteItems.length" class="dj-autocomplete-menu shadow-lg rounded-3 p-1">
                                         <button
@@ -3242,6 +3329,13 @@ onUnmounted(() => {
                                         </button>
                                     </div>
                                     <pre ref="highlightPreEl" class="dj-code-highlight" :style="editorTextStyle" aria-hidden="true"><code :style="editorTextStyle" style="padding: 0;" v-html="highlightedCode"></code></pre>
+                                    <span
+                                        v-if="isEditorFocused && canCoEditSharedCode && caretPos.visible"
+                                        class="dj-vs-caret"
+                                        :class="{ 'is-typing': isCaretTyping }"
+                                        :style="{ top: caretPos.top + 'px', left: caretPos.left + 'px' }"
+                                        aria-hidden="true"
+                                    ></span>
                                     <textarea
                                         v-if="codeTab === 'html'"
                                         v-model="htmlCode"
@@ -3253,10 +3347,13 @@ onUnmounted(() => {
                                         autocapitalize="off"
                                         wrap="off"
                                         class="dj-textarea dj-textarea-colored"
+                                        @focus="handleEditorFocus($event)"
+                                        @blur="handleEditorBlur"
                                         @scroll="syncEditorScroll"
-                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'html')"
-                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'html')"
-                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'html')"
+                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'html'); nextTick(() => updateCaretPosition($event.target, true))"
+                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'html'); updateCaretPosition($event.target)"
+                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'html'); updateCaretPosition($event.target)"
+                                        @mouseup="updateCaretPosition($event.target)"
                                         @keydown="handleTabKey($event, 'html')"
                                     ></textarea>
                                     <textarea
@@ -3270,10 +3367,13 @@ onUnmounted(() => {
                                         autocapitalize="off"
                                         wrap="off"
                                         class="dj-textarea dj-textarea-colored"
+                                        @focus="handleEditorFocus($event)"
+                                        @blur="handleEditorBlur"
                                         @scroll="syncEditorScroll"
-                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'css')"
-                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'css')"
-                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'css')"
+                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'css'); nextTick(() => updateCaretPosition($event.target, true))"
+                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'css'); updateCaretPosition($event.target)"
+                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'css'); updateCaretPosition($event.target)"
+                                        @mouseup="updateCaretPosition($event.target)"
                                         @keydown="handleTabKey($event, 'css')"
                                     ></textarea>
                                     <textarea
@@ -3287,10 +3387,13 @@ onUnmounted(() => {
                                         autocapitalize="off"
                                         wrap="off"
                                         class="dj-textarea dj-textarea-colored"
+                                        @focus="handleEditorFocus($event)"
+                                        @blur="handleEditorBlur"
                                         @scroll="syncEditorScroll"
-                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'js')"
-                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'js')"
-                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'js')"
+                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'js'); nextTick(() => updateCaretPosition($event.target, true))"
+                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'js'); updateCaretPosition($event.target)"
+                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'js'); updateCaretPosition($event.target)"
+                                        @mouseup="updateCaretPosition($event.target)"
                                         @keydown="handleTabKey($event, 'js')"
                                     ></textarea>
                                 </div>
@@ -4716,10 +4819,28 @@ onUnmounted(() => {
 }
 .dj-textarea-colored {
     color: transparent !important;
-    caret-color: #38bdf8 !important;
+    caret-color: transparent !important;
     background: transparent !important;
     overflow: auto !important;
     z-index: 2;
+}
+.dj-vs-caret {
+    position: absolute;
+    width: 2px;
+    height: 22px;
+    background: #38bdf8;
+    box-shadow: 0 0 6px rgba(56, 189, 248, 0.65);
+    pointer-events: none;
+    z-index: 3;
+    animation: djCaretBlink 1.05s steps(1, end) infinite;
+}
+.dj-vs-caret.is-typing {
+    animation: none;
+    opacity: 1;
+}
+@keyframes djCaretBlink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
 }
 .dj-textarea-colored::selection {
     background: rgba(56, 189, 248, 0.28);
