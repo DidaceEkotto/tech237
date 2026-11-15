@@ -259,6 +259,21 @@
                     $ogType = 'website';
                 }
             }
+            elseif (Request::routeIs('devjams.index')) {
+                $seoTitle = "Dev Jams Studio - Challenges & Co-édition HTML/CSS/JS | " . $siteName;
+                $seoDesc = "Participez aux Dev Jams officielles et communautaires : codez en direct en HTML, CSS et JavaScript, collaborez en temps réel et votez pour les meilleures créations.";
+                $seoImg = $defaultImg;
+            }
+            elseif (Request::routeIs('devjams.show')) {
+                $slug = request()->route('slug');
+                $jam = \App\Models\DevJam::with('creatorUser')->where('slug', $slug)->first();
+                if ($jam) {
+                    $seoTitle = "Dev Jam : " . $jam->title . ($jam->theme ? ' — ' . $jam->theme : '') . " | " . $siteName;
+                    $seoDesc = $formatText($jam->description ?: $jam->theme ?: ("Participez à la Dev Jam « " . $jam->title . " » en direct dans le studio HTML/CSS/JS sur " . $siteName . "."));
+                    $seoImg = $formatImage($jam->creatorUser->avatar ?? null);
+                    $ogType = 'website';
+                }
+            }
         } catch (\Throwable $e) {
             // Safe fallback to site defaults
             $seoTitle = $siteName . ' - Là où les idées deviennent des projets';
