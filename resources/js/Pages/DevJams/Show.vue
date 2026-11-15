@@ -954,7 +954,6 @@ function onPreviewDragEnd() {
 const highlightPreEl = ref(null);
 const highlightCodeEl = ref(null);
 const gutterEl = ref(null);
-const emmetHint = ref('');
 let isUpdatingFromEditor = false;
 const editorTextStyle = {
     fontFamily: "'Consolas', 'Courier New', Courier, monospace",
@@ -1080,7 +1079,6 @@ function handleCodeEditorInput() {
     else if (codeTab.value === 'css') cssCode.value = nextVal;
     else jsCode.value = nextVal;
     renderHighlightedCode(false, offsets);
-    updateEmmetHint(codeEl, codeTab.value);
     syncEditorScroll();
     nextTick(() => {
         isUpdatingFromEditor = false;
@@ -1089,7 +1087,6 @@ function handleCodeEditorInput() {
 
 function handleCodeEditorCursor() {
     syncEditorScroll();
-    updateEmmetHint(highlightCodeEl.value, codeTab.value);
 }
 
 function syncEditorScroll() {
@@ -1223,130 +1220,6 @@ function resolveEmmetSnippet(token, lang, indent) {
         }
     }
     return null;
-}
-
-const AUTOCOMPLETE_DICT = {
-    html: [
-        { label: 'div', kind: 'HTML', insert: '<div></div>', offset: 5 },
-        { label: 'section', kind: 'HTML', insert: '<section></section>', offset: 9 },
-        { label: 'header', kind: 'HTML', insert: '<header></header>', offset: 8 },
-        { label: 'footer', kind: 'HTML', insert: '<footer></footer>', offset: 8 },
-        { label: 'button', kind: 'HTML', insert: '<button type="button"></button>', offset: 22 },
-        { label: 'input', kind: 'HTML', insert: '<input type="text" placeholder="" />', offset: 32 },
-        { label: 'form', kind: 'HTML', insert: '<form></form>', offset: 6 },
-        { label: 'ul', kind: 'HTML', insert: '<ul>\n    <li></li>\n</ul>', offset: 13 },
-        { label: 'a', kind: 'HTML', insert: '<a href="#"></a>', offset: 12 },
-        { label: 'img', kind: 'HTML', insert: '<img src="" alt="" />', offset: 10 },
-        { label: 'span', kind: 'HTML', insert: '<span></span>', offset: 6 },
-        { label: 'class=""', kind: 'HTML', insert: 'class=""', offset: 7 },
-        { label: 'v-if=""', kind: 'Vue', insert: 'v-if=""', offset: 6 },
-        { label: 'v-else', kind: 'Vue', insert: 'v-else', offset: 6 },
-        { label: 'v-for=""', kind: 'Vue', insert: 'v-for="item in items" :key="item.id"', offset: 36 },
-        { label: 'v-model=""', kind: 'Vue', insert: 'v-model=""', offset: 9 },
-        { label: 'v-show=""', kind: 'Vue', insert: 'v-show=""', offset: 8 },
-        { label: '@click=""', kind: 'Vue', insert: '@click=""', offset: 8 },
-        { label: '@submit.prevent=""', kind: 'Vue', insert: '@submit.prevent=""', offset: 17 },
-        { label: ':class=""', kind: 'Vue', insert: ':class=""', offset: 8 },
-        { label: '{{ }}', kind: 'Vue', insert: '{{  }}', offset: 3 },
-    ],
-    css: [
-        { label: 'display: flex;', kind: 'CSS', insert: 'display: flex;', offset: 14 },
-        { label: 'display: grid;', kind: 'CSS', insert: 'display: grid;', offset: 14 },
-        { label: 'justify-content: center;', kind: 'CSS', insert: 'justify-content: center;', offset: 24 },
-        { label: 'justify-content: space-between;', kind: 'CSS', insert: 'justify-content: space-between;', offset: 31 },
-        { label: 'align-items: center;', kind: 'CSS', insert: 'align-items: center;', offset: 20 },
-        { label: 'flex-direction: column;', kind: 'CSS', insert: 'flex-direction: column;', offset: 23 },
-        { label: 'grid-template-columns:', kind: 'CSS', insert: 'grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));', offset: 60 },
-        { label: 'background:', kind: 'CSS', insert: 'background: ;', offset: 12 },
-        { label: 'color:', kind: 'CSS', insert: 'color: ;', offset: 7 },
-        { label: 'padding:', kind: 'CSS', insert: 'padding: 16px;', offset: 13 },
-        { label: 'margin:', kind: 'CSS', insert: 'margin: 0;', offset: 9 },
-        { label: 'border-radius:', kind: 'CSS', insert: 'border-radius: 12px;', offset: 19 },
-        { label: 'box-shadow:', kind: 'CSS', insert: 'box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);', offset: 44 },
-        { label: 'transition:', kind: 'CSS', insert: 'transition: all 0.2s ease;', offset: 26 },
-        { label: 'font-family:', kind: 'CSS', insert: "font-family: 'Segoe UI', system-ui, sans-serif;", offset: 47 },
-        { label: 'backdrop-filter: blur(12px);', kind: 'CSS', insert: 'backdrop-filter: blur(12px);', offset: 28 },
-    ],
-    js: [
-        { label: 'console.log()', kind: 'JS', insert: 'console.log();', offset: 12 },
-        { label: 'document.querySelector()', kind: 'JS', insert: "document.querySelector('')", offset: 24 },
-        { label: 'document.getElementById()', kind: 'JS', insert: "document.getElementById('')", offset: 25 },
-        { label: 'addEventListener()', kind: 'JS', insert: "addEventListener('click', (e) => {\n    \n});", offset: 39 },
-        { label: 'async function', kind: 'JS', insert: 'async function name() {\n    \n}', offset: 15 },
-        { label: 'fetch()', kind: 'JS', insert: "fetch('').then(r => r.json())", offset: 7 },
-        { label: 'setTimeout()', kind: 'JS', insert: 'setTimeout(() => {\n    \n}, 1000);', offset: 23 },
-        { label: 'setInterval()', kind: 'JS', insert: 'setInterval(() => {\n    \n}, 1000);', offset: 24 },
-        { label: 'useState()', kind: 'React', insert: 'const [state, setState] = useState();', offset: 35 },
-        { label: 'useEffect()', kind: 'React', insert: 'useEffect(() => {\n    \n}, []);', offset: 22 },
-        { label: 'useRef()', kind: 'React', insert: 'const ref = useRef(null);', offset: 23 },
-        { label: 'useMemo()', kind: 'React', insert: 'const val = useMemo(() => , []);', offset: 26 },
-        { label: 'ReactDOM.createRoot()', kind: 'React', insert: "ReactDOM.createRoot(document.getElementById('root')).render(<App />);", offset: 67 },
-        { label: 'className=""', kind: 'React', insert: 'className=""', offset: 11 },
-        { label: 'onClick={}', kind: 'React', insert: 'onClick={() => }', offset: 15 },
-        { label: 'createApp()', kind: 'Vue', insert: "createApp({\n    setup() {\n        return {};\n    }\n}).mount('#app');", offset: 30 },
-        { label: 'ref()', kind: 'Vue', insert: 'const val = ref(0);', offset: 16 },
-        { label: 'reactive()', kind: 'Vue', insert: 'const state = reactive({});', offset: 25 },
-        { label: 'computed()', kind: 'Vue', insert: 'const val = computed(() => );', offset: 27 },
-        { label: 'watch()', kind: 'Vue', insert: 'watch(source, (newVal) => {\n    \n});', offset: 32 },
-        { label: 'onMounted()', kind: 'Vue', insert: 'onMounted(() => {\n    \n});', offset: 22 },
-    ],
-};
-
-const showAutocomplete = ref(false);
-const autocompleteItems = ref([]);
-const autocompleteIndex = ref(0);
-const activeEditorEl = ref(null);
-const activeTokenRange = ref({ start: 0, end: 0 });
-
-function refreshAutocomplete(el, target, forceOpen = false) {
-    const codeEl = highlightCodeEl.value || el;
-    activeEditorEl.value = codeEl;
-    if (!codeEl || !canCoEditSharedCode.value) {
-        showAutocomplete.value = false;
-        return;
-    }
-    const { start: pos } = getEditorOffsets(codeEl);
-    const val = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
-    const before = (val || '').slice(0, pos);
-    const match = before.match(/([@:a-zA-Z0-9_.-]+)$/);
-    const prefix = match ? match[1] : '';
-    if (!forceOpen && prefix.length < 2 && !prefix.startsWith('@') && !prefix.startsWith(':')) {
-        showAutocomplete.value = false;
-        return;
-    }
-    const q = prefix.toLowerCase();
-    const list = (AUTOCOMPLETE_DICT[target] || [])
-        .filter((item) => !q || item.label.toLowerCase().includes(q))
-        .slice(0, 8);
-    if (!list.length) {
-        showAutocomplete.value = false;
-        return;
-    }
-    activeTokenRange.value = { start: pos - prefix.length, end: pos };
-    autocompleteItems.value = list;
-    autocompleteIndex.value = 0;
-    showAutocomplete.value = true;
-}
-
-function applyAutocompleteItem(item, target = codeTab.value) {
-    const codeEl = highlightCodeEl.value;
-    const preEl = highlightPreEl.value;
-    if (!item || !codeEl) return;
-    const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
-    const { start, end } = activeTokenRange.value;
-    const nextVal = current.slice(0, start) + item.insert + current.slice(end);
-    const cursorPos = start + (item.offset ?? item.insert.length);
-    isUpdatingFromEditor = true;
-    if (target === 'html') htmlCode.value = nextVal;
-    else if (target === 'css') cssCode.value = nextVal;
-    else jsCode.value = nextVal;
-    showAutocomplete.value = false;
-    emmetHint.value = '';
-    nextTick(() => {
-        if (preEl) preEl.focus();
-        renderHighlightedCode(false, { start: cursorPos, end: cursorPos });
-        isUpdatingFromEditor = false;
-    });
 }
 
 // Real-time Error Detection (Static + Sandbox Runtime)
@@ -1600,25 +1473,6 @@ watch([htmlCode, cssCode, jsCode], () => {
     }, 1800);
 });
 
-function updateEmmetHint(el, target) {
-    const codeEl = highlightCodeEl.value || el;
-    refreshAutocomplete(codeEl, target, false);
-    if (!codeEl || !canCoEditSharedCode.value) {
-        emmetHint.value = '';
-        return;
-    }
-    const { start: pos } = getEditorOffsets(codeEl);
-    const val = (target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value)) || '';
-    const before = val.slice(0, pos);
-    const lineStart = before.lastIndexOf('\n') + 1;
-    const linePrefix = before.slice(lineStart);
-    const indent = (linePrefix.match(/^\s*/) || [''])[0];
-    const tokenMatch = linePrefix.match(/([^\s;{}()]+)$/);
-    const token = tokenMatch ? tokenMatch[1] : '';
-    const snippet = resolveEmmetSnippet(token, target, indent);
-    emmetHint.value = snippet ? `⚡ Tab pour étendre "${token}"` : '';
-}
-
 // Undo / Redo Stacks (Ctrl+Z / Cmd+Z & Ctrl+Y / Cmd+Shift+Z)
 const undoStacks = { html: [], css: [], js: [] };
 const redoStacks = { html: [], css: [], js: [] };
@@ -1863,37 +1717,6 @@ function handleTabKey(e, target) {
         redoCode(target);
         return;
     }
-    if (e.ctrlKey && e.code === 'Space') {
-        e.preventDefault();
-        refreshAutocomplete(highlightCodeEl.value, target, true);
-        return;
-    }
-
-    if (showAutocomplete.value && autocompleteItems.value.length) {
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            autocompleteIndex.value = (autocompleteIndex.value + 1) % autocompleteItems.value.length;
-            return;
-        }
-        if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            autocompleteIndex.value = (autocompleteIndex.value - 1 + autocompleteItems.value.length) % autocompleteItems.value.length;
-            return;
-        }
-        if (e.key === 'Escape') {
-            e.preventDefault();
-            showAutocomplete.value = false;
-            return;
-        }
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            applyAutocompleteItem(autocompleteItems.value[autocompleteIndex.value], target);
-            return;
-        }
-        if (e.key === 'Enter') {
-            showAutocomplete.value = false;
-        }
-    }
 
     const preEl = highlightPreEl.value;
     const codeEl = highlightCodeEl.value;
@@ -1905,7 +1728,6 @@ function handleTabKey(e, target) {
         if (target === 'html') htmlCode.value = nextVal;
         else if (target === 'css') cssCode.value = nextVal;
         else jsCode.value = nextVal;
-        emmetHint.value = '';
         renderHighlightedCode(false, { start: cursorPos, end: cursorPos });
         if (preEl) {
             const cursorLine = String(nextVal).slice(0, cursorPos).split('\n').length - 1;
@@ -2071,21 +1893,6 @@ function handleTabKey(e, target) {
 
     if (e.key === 'Tab') {
         e.preventDefault();
-        if (start === end) {
-            const before = current.slice(0, start);
-            const lineStart = before.lastIndexOf('\n') + 1;
-            const linePrefix = before.slice(lineStart);
-            const indent = (linePrefix.match(/^\s*/) || [''])[0];
-            const tokenMatch = linePrefix.match(/([^\s;{}()]+)$/);
-            const token = tokenMatch ? tokenMatch[1] : '';
-            const snippet = resolveEmmetSnippet(token, target, indent);
-            if (snippet) {
-                const tokenStart = start - token.length;
-                const nextVal = current.slice(0, tokenStart) + snippet.text + current.slice(end);
-                setTargetCode(nextVal, tokenStart + snippet.cursorOffset);
-                return;
-            }
-        }
         const updated = current.substring(0, start) + '    ' + current.substring(end);
         setTargetCode(updated, start + 4);
     }
@@ -3266,9 +3073,6 @@ onUnmounted(() => {
                                     </button>
                                 </div>
                                 <span class="small text-white-50 d-none d-sm-flex align-items-center gap-2 pe-2" style="font-size: 11px;">
-                                    <span v-if="emmetHint" class="badge bg-info bg-opacity-25 text-info rounded-pill" style="font-size: 10px;">
-                                        {{ emmetHint }}
-                                    </span>
                                     <button
                                         type="button"
                                         class="btn btn-xs dj-btn-ghost py-0 px-2 rounded-pill"
@@ -3314,20 +3118,6 @@ onUnmounted(() => {
                                     <div v-for="n in lineCount" :key="n" :class="{ 'dj-gutter-err': errorLinesSet.has(n) }">{{ n }}</div>
                                 </div>
                                 <div class="dj-editor-wrap position-relative flex-grow-1 h-100 overflow-hidden">
-                                    <!-- Intelligent Autocomplete Popup -->
-                                    <div v-if="showAutocomplete && autocompleteItems.length" class="dj-autocomplete-menu shadow-lg rounded-3 p-1">
-                                        <button
-                                            v-for="(item, idx) in autocompleteItems"
-                                            :key="item.label"
-                                            type="button"
-                                            class="dj-autocomplete-item w-100 text-start d-flex align-items-center justify-content-between gap-2 px-2 py-1 rounded-2"
-                                            :class="{ active: idx === autocompleteIndex }"
-                                            @mousedown.prevent="applyAutocompleteItem(item, codeTab)"
-                                        >
-                                            <span class="font-monospace small text-white">{{ item.label }}</span>
-                                            <span class="badge bg-info bg-opacity-25 text-info" style="font-size: 9px;">{{ item.kind }}</span>
-                                        </button>
-                                    </div>
                                     <pre
                                         ref="highlightPreEl"
                                         class="dj-code-highlight dj-code-editor-editable"
