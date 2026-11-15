@@ -136,9 +136,13 @@ let removeInertiaBeforeListener = null;
 const isCollaborator = computed(() =>
     Boolean(authUser.value && collaborators.value.some((c) => Number(c.id) === Number(authUser.value.id)))
 );
-const canCoEditSharedCode = computed(() =>
-    !isJamSuspended.value && !isJamEnded.value && (canRearrangePreview.value || isCollaborator.value)
+const isCreatorYieldedToCollab = computed(() =>
+    canRearrangePreview.value && collaborators.value.length > 0 && !isCollaborator.value
 );
+const canCoEditSharedCode = computed(() =>
+    !isJamSuspended.value && !isJamEnded.value && (isCollaborator.value || (canRearrangePreview.value && collaborators.value.length === 0))
+);
+const isRefreshingEditor = ref(false);
 
 // Social Share Menu State
 const showShareMenu = ref(false);
@@ -923,7 +927,7 @@ function setPreviewDock(zone) {
 
 let previewDragStart = { x: 0, y: 0 };
 function startPreviewDrag(e) {
-    if (!canCoEditSharedCode.value) return;
+    if (previewFullscreen.value) return;
     if (e.target.closest('button')) return;
     previewDragStart = { x: e.clientX, y: e.clientY };
     previewDragCoords.value = { x: e.clientX, y: e.clientY };
@@ -2398,6 +2402,23 @@ async function pinMessage(messageId) {
     }
 }
 
+async function refreshFullEditor() {
+    if (isRefreshingEditor.value) return;
+    isRefreshingEditor.value = true;
+    try {
+        await pollMessages();
+        await nextTick();
+        renderHighlightedCode(false);
+        runStaticDiagnostics();
+        refreshPreviewNow();
+        showToast('Éditeur de code actualisé !');
+    } finally {
+        setTimeout(() => {
+            isRefreshingEditor.value = false;
+        }, 350);
+    }
+}
+
 async function pollMessages() {
     if (!isOnline.value) return;
     try {
@@ -2991,6 +3012,15 @@ onUnmounted(() => {
                 </button>
                 <button
                     type="button"
+                    class="dj-activity-btn"
+                    title="Actualiser tout l'éditeur de code"
+                    :disabled="isRefreshingEditor"
+                    @click="refreshFullEditor"
+                >
+                    <i class="bi bi-arrow-repeat fs-5" :class="{ 'dj-spin': isRefreshingEditor }"></i>
+                </button>
+                <button
+                    type="button"
                     class="dj-activity-btn mt-auto"
                     :class="{ active: chatOpen }"
                     title="Live Chat Flottant"
@@ -3166,15 +3196,15 @@ onUnmounted(() => {
                         >
                             <div
                                 class="dj-preview-bar d-flex align-items-center justify-content-between px-3 py-1 border-bottom user-select-none"
-                                :class="{ 'dj-preview-draggable': canCoEditSharedCode && !previewFullscreen }"
-                                :title="canCoEditSharedCode ? 'Maintenir et glisser pour placer en bas du Sandbox ou à droite' : ''"
+                                :class="{ 'dj-preview-draggable': !previewFullscreen }"
+                                :title="!previewFullscreen ? 'Maintenir et glisser pour placer en bas du Sandbox ou à droite' : ''"
                                 @pointerdown="startPreviewDrag"
                             >
                                 <div class="d-flex align-items-center gap-2">
-                                    <i v-if="canCoEditSharedCode && !previewFullscreen" class="bi bi-grip-vertical text-white-50"></i>
+                                    <i v-if="!previewFullscreen" class="bi bi-grip-vertical text-white-50"></i>
                                     <span class="badge bg-success bg-opacity-25 text-success rounded-pill" style="font-size: 10px;">● LIVE</span>
                                     <span class="small text-white-50 font-monospace" style="font-size: 11px;">Aperçu en direct</span>
-                                    <span v-if="canCoEditSharedCode" class="badge bg-white bg-opacity-10 text-info d-none d-xl-inline" style="font-size: 9px;">
+                                    <span class="badge bg-white bg-opacity-10 text-info d-none d-xl-inline" style="font-size: 9px;">
                                         {{ previewDock === 'bottom' ? 'Ancré en bas' : 'Ancré à droite' }}
                                     </span>
                                 </div>
@@ -3656,7 +3686,7 @@ onUnmounted(() => {
                     </button>
                     <i v-if="canCoEditSharedCode" class="bi bi-shield-lock-fill text-success"></i>
                     <i v-else class="bi bi-lock-fill text-warning"></i>
-                    <span>{{ canCoEditSharedCode ? 'Sandbox' : 'Lecture seule' }}</span>
+                    <span>{{ canCoEditSharedCode ? 'Sandbox' : (isCreatorYieldedToCollab ? 'Mode lecteur (invité actif)' : 'Lecture seule') }}</span>
                 </span>
 
                 <!-- Direct GitHub Push Button (Creator only) -->
@@ -4595,6 +4625,14 @@ onUnmounted(() => {
 }
 .dj-preview-draggable {
     cursor: grab;
+}
+.dj-spin {
+    display: inline-block;
+    animation: djSpinAnim 0.7s linear infinite;
+}
+@keyframes djSpinAnim {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 .dj-preview-draggable:active {
     cursor: grabbing;
