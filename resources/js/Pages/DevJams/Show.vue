@@ -181,18 +181,34 @@ function handleSandboxMessage(e) {
 function buildSandboxDoc(html, css, js, withLivePatch = false) {
     const safeCss = String(css || '').replace(/<\/style>/gi, '<\\/style>');
     const safeJs = String(js || '').replace(/<\/script>/gi, '<\\/script>');
+    const isReactBabel = /babel-standalone|@babel\/standalone/i.test(String(html || '')) || /<[A-Z][A-Za-z0-9]*[\s/>]|ReactDOM\.createRoot|createRoot\(/.test(String(js || ''));
     const consoleBridge = withLivePatch
         ? `<script>(function(){var send=function(lvl,args){try{var txt=[].slice.call(args).map(function(a){if(typeof a==='object'){try{return JSON.stringify(a);}catch(e){return String(a);}}return String(a);}).join(' ');parent.postMessage({type:'dj-console',level:lvl,text:txt},'*');}catch(e){}};['log','warn','error'].forEach(function(m){var orig=console[m];console[m]=function(){send(m,arguments);if(orig)orig.apply(console,arguments);};});window.addEventListener('error',function(ev){send('error',[ev.message+' (ligne '+ev.lineno+')']);});window.addEventListener('unhandledrejection',function(ev){send('error',['Promise rejetée: '+(ev.reason&&ev.reason.message?ev.reason.message:ev.reason)]);});})();<\/script>`
         : '';
     const patchBridge = withLivePatch
-        ? `<script>window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dj-patch')return;var st=document.getElementById('dj-live-style');if(st)st.textContent=e.data.css||'';var root=document.getElementById('dj-live-root');if(root)root.innerHTML=e.data.html||'';});<\/script>`
+        ? `<script>window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dj-patch')return;var st=document.getElementById('dj-live-style');if(st)st.textContent=e.data.css||'';if(e.data.htmlOnlyCss)return;var root=document.getElementById('dj-live-root');if(root)root.innerHTML=e.data.html||'';});<\/script>`
         : '';
-    return `<!doctype html><html><head><meta charset="utf-8"><style id="dj-live-style">${safeCss}</style></head><body><div id="dj-live-root">${html || ''}</div>${consoleBridge}${patchBridge}<script>${safeJs}<\/script></body></html>`;
+    const scriptTag = isReactBabel
+        ? `<script type="text/babel" data-presets="react">${safeJs}<\/script>`
+        : `<script>${safeJs}<\/script>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><style id="dj-live-style">${safeCss}</style></head><body><div id="dj-live-root">${html || ''}</div>${consoleBridge}${patchBridge}${scriptTag}</body></html>`;
 }
 
 // Starter Templates, ZIP Export & Portfolio Publish
 const showTemplateMenu = ref(false);
 const starterTemplates = {
+    react: {
+        label: 'Starter React.js (JSX)',
+        html: `<div id="root"></div>\n<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>\n<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>\n<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`,
+        css: `body {\n    margin: 0;\n    min-height: 100vh;\n    display: grid;\n    place-items: center;\n    background: radial-gradient(circle at top, #0f172a, #05070c 70%);\n    font-family: 'Segoe UI', system-ui, sans-serif;\n    color: #f8fafc;\n}\n.react-card {\n    background: rgba(15, 23, 42, 0.85);\n    border: 1px solid rgba(56, 189, 248, 0.35);\n    border-radius: 20px;\n    padding: 2rem;\n    text-align: center;\n    max-width: 380px;\n    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);\n}\n.react-badge {\n    display: inline-block;\n    padding: 4px 12px;\n    border-radius: 999px;\n    background: rgba(56, 189, 248, 0.18);\n    color: #38bdf8;\n    font-size: 12px;\n    font-weight: 700;\n}\n.react-btn {\n    margin-top: 14px;\n    padding: 10px 22px;\n    border-radius: 999px;\n    border: none;\n    background: linear-gradient(135deg, #06b6d4, #3b82f6);\n    color: #ffffff;\n    font-weight: 700;\n    cursor: pointer;\n}`,
+        js: `const { useState } = React;\n\nfunction App() {\n    const [count, setCount] = useState(0);\n\n    return (\n        <div className="react-card">\n            <span className="react-badge">⚛️ React 18 JSX</span>\n            <h2>Compteur Tech237</h2>\n            <p>Vous avez cliqué {count} fois.</p>\n            <button className="react-btn" onClick={() => setCount(c => c + 1)}>\n                Incrémenter +1\n            </button>\n        </div>\n    );\n}\n\nReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
+    },
+    vue: {
+        label: 'Starter Vue.js 3',
+        html: `<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"><\/script>\n<div id="app">\n    <div class="vue-card">\n        <span class="vue-badge">🟢 Vue.js 3</span>\n        <h2>{{ title }}</h2>\n        <p>Score en direct : <strong>{{ count }}</strong></p>\n        <div class="vue-actions">\n            <button @click="count++" class="vue-btn">+1 Point</button>\n            <button @click="count = 0" class="vue-btn-outline">Reset</button>\n        </div>\n    </div>\n</div>`,
+        css: `body {\n    margin: 0;\n    min-height: 100vh;\n    display: grid;\n    place-items: center;\n    background: radial-gradient(circle at top, #064e3b, #05070c 70%);\n    font-family: 'Segoe UI', system-ui, sans-serif;\n    color: #ecfdf5;\n}\n.vue-card {\n    background: rgba(6, 20, 16, 0.88);\n    border: 1px solid rgba(52, 211, 153, 0.35);\n    border-radius: 20px;\n    padding: 2rem;\n    text-align: center;\n    max-width: 380px;\n}\n.vue-badge {\n    display: inline-block;\n    padding: 4px 12px;\n    border-radius: 999px;\n    background: rgba(16, 185, 129, 0.2);\n    color: #34d399;\n    font-size: 12px;\n    font-weight: 700;\n}\n.vue-actions {\n    display: flex;\n    gap: 10px;\n    justify-content: center;\n    margin-top: 14px;\n}\n.vue-btn {\n    padding: 10px 20px;\n    border-radius: 999px;\n    border: none;\n    background: linear-gradient(135deg, #10b981, #059669);\n    color: #ffffff;\n    font-weight: 700;\n    cursor: pointer;\n}\n.vue-btn-outline {\n    padding: 10px 18px;\n    border-radius: 999px;\n    border: 1px solid rgba(52, 211, 153, 0.45);\n    background: transparent;\n    color: #a7f3d0;\n    cursor: pointer;\n}`,
+        js: `const { createApp, ref } = Vue;\n\ncreateApp({\n    setup() {\n        const title = ref('Dev Jam Vue 3');\n        const count = ref(0);\n        return { title, count };\n    }\n}).mount('#app');`,
+    },
     tailwind: {
         label: 'Starter Tailwind CDN',
         html: `<script src="https://cdn.tailwindcss.com"><\/script>\n<div class="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">\n  <div class="max-w-md w-full rounded-2xl border border-indigo-500/30 bg-slate-900/80 p-8 shadow-2xl">\n    <span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 mb-4">Tech237 Starter</span>\n    <h1 class="text-3xl font-extrabold mb-2">Interface Moderne</h1>\n    <p class="text-slate-400 text-sm mb-6">Prêt avec Tailwind CSS CDN pour prototyper rapidement.</p>\n    <button id="tw-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 font-bold hover:opacity-90 transition">Tester l'action</button>\n  </div>\n</div>`,
@@ -324,7 +340,23 @@ function refreshPreviewNow() {
     previewKey.value++;
 }
 
-watch([htmlCode, cssCode], () => {
+watch(cssCode, () => {
+    const win = previewIframeEl.value?.contentWindow;
+    if (win) {
+        win.postMessage({ type: 'dj-patch', css: cssCode.value || '', htmlOnlyCss: true }, '*');
+    } else {
+        liveSrcDoc.value = buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value, true);
+    }
+});
+
+watch(htmlCode, () => {
+    if (/<script/i.test(htmlCode.value || '')) {
+        clearTimeout(jsReloadTimer);
+        jsReloadTimer = setTimeout(() => {
+            liveSrcDoc.value = buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value, true);
+        }, 450);
+        return;
+    }
     const win = previewIframeEl.value?.contentWindow;
     if (win) {
         win.postMessage({ type: 'dj-patch', html: htmlCode.value || '', css: cssCode.value || '' }, '*');
@@ -825,6 +857,230 @@ function onPreviewDragEnd() {
     previewDropZone.value = null;
 }
 
+const highlightPreEl = ref(null);
+const gutterEl = ref(null);
+const emmetHint = ref('');
+
+function syncEditorScroll(e) {
+    const el = e?.target;
+    if (!el) return;
+    if (highlightPreEl.value) {
+        highlightPreEl.value.scrollTop = el.scrollTop;
+        highlightPreEl.value.scrollLeft = el.scrollLeft;
+    }
+    if (gutterEl.value) {
+        gutterEl.value.scrollTop = el.scrollTop;
+    }
+}
+
+function escapeHtml(str) {
+    return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function highlightCode(code, lang) {
+    const src = String(code || '');
+    if (!src) return '\n';
+
+    if (lang === 'html') {
+        const tokenRe = /(<!--[\s\S]*?-->)|(\{\{[\s\S]*?\}\})|(<\/?[a-zA-Z0-9-]+)([\s\S]*?)(\/?>)/g;
+        let out = '';
+        let last = 0;
+        let m;
+        while ((m = tokenRe.exec(src)) !== null) {
+            if (m.index > last) out += escapeHtml(src.slice(last, m.index));
+            if (m[1]) {
+                out += `<span class="tok-comment">${escapeHtml(m[1])}</span>`;
+            } else if (m[2]) {
+                out += `<span class="tok-vue-expr">${escapeHtml(m[2])}</span>`;
+            } else {
+                const tagOpen = `<span class="tok-tag">${escapeHtml(m[3])}</span>`;
+                const attrs = m[4].replace(
+                    /(\s+)(@[a-zA-Z0-9_.:-]+|:[a-zA-Z0-9_.-]+|v-[a-zA-Z0-9_.:-]+|[a-zA-Z0-9_:-]+)(\s*=\s*)("[^"]*"|'[^']*')?/g,
+                    (_, sp, attr, eq, val) => {
+                        const isVueDir = /^(@|:|v-)/.test(attr);
+                        const attrSpan = `<span class="${isVueDir ? 'tok-vue-dir' : 'tok-attr'}">${escapeHtml(attr)}</span>`;
+                        const valSpan = val ? `<span class="tok-str">${escapeHtml(val)}</span>` : '';
+                        return `${escapeHtml(sp)}${attrSpan}${escapeHtml(eq || '')}${valSpan}`;
+                    }
+                );
+                const tagClose = `<span class="tok-tag">${escapeHtml(m[5])}</span>`;
+                out += tagOpen + attrs + tagClose;
+            }
+            last = tokenRe.lastIndex;
+        }
+        if (last < src.length) out += escapeHtml(src.slice(last));
+        return out + (src.endsWith('\n') ? '\n' : '');
+    }
+
+    if (lang === 'css') {
+        const tokenRe = /(\/\*[\s\S]*?\*\/)|(@[a-zA-Z-]+)|("[^"]*"|'[^']*')|(#[0-9a-fA-F]{3,8}\b)|(\b\d+(?:\.\d+)?(?:px|rem|em|vh|vw|%|s|ms|deg|fr)?\b)|([a-zA-Z-]+)(\s*:)|([.#][a-zA-Z_-][a-zA-Z0-9_-]*)|(:+[a-zA-Z-]+)/g;
+        let out = '';
+        let last = 0;
+        let m;
+        while ((m = tokenRe.exec(src)) !== null) {
+            if (m.index > last) out += escapeHtml(src.slice(last, m.index));
+            if (m[1]) out += `<span class="tok-comment">${escapeHtml(m[1])}</span>`;
+            else if (m[2]) out += `<span class="tok-kw">${escapeHtml(m[2])}</span>`;
+            else if (m[3]) out += `<span class="tok-str">${escapeHtml(m[3])}</span>`;
+            else if (m[4]) out += `<span class="tok-hex">${escapeHtml(m[4])}</span>`;
+            else if (m[5]) out += `<span class="tok-num">${escapeHtml(m[5])}</span>`;
+            else if (m[6]) out += `<span class="tok-prop">${escapeHtml(m[6])}</span>${escapeHtml(m[7])}`;
+            else if (m[8]) out += `<span class="tok-sel">${escapeHtml(m[8])}</span>`;
+            else if (m[9]) out += `<span class="tok-pseudo">${escapeHtml(m[9])}</span>`;
+            last = tokenRe.lastIndex;
+        }
+        if (last < src.length) out += escapeHtml(src.slice(last));
+        return out + (src.endsWith('\n') ? '\n' : '');
+    }
+
+    // JavaScript + React JSX + Vue 3 Composition API
+    const tokenRe = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(`(?:\\[\s\S]|[^`])*`|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(<\/?[A-Z][A-Za-z0-9.]*|<\/?(?:div|span|p|h[1-6]|button|input|form|section|header|footer|main|ul|li|a|img)\b)|(\b(?:const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|import|export|from|default|async|await|try|catch|finally|throw|new|class|extends|typeof|instanceof|in|of)\b)|(\b(?:true|false|null|undefined|this|super)\b)|(\b(?:useState|useEffect|useRef|useMemo|useCallback|useContext|React|ReactDOM|createRoot|createApp|ref|reactive|computed|watch|onMounted|Vue|document|window|console)\b)|(\b\d+(?:\.\d+)?\b)|(\b[a-zA-Z_$][a-zA-Z0-9_$]*)(?=\s*\()/g;
+    let out = '';
+    let last = 0;
+    let m;
+    while ((m = tokenRe.exec(src)) !== null) {
+        if (m.index > last) out += escapeHtml(src.slice(last, m.index));
+        if (m[1]) out += `<span class="tok-comment">${escapeHtml(m[1])}</span>`;
+        else if (m[2]) out += `<span class="tok-str">${escapeHtml(m[2])}</span>`;
+        else if (m[3]) out += `<span class="tok-jsx">${escapeHtml(m[3])}</span>`;
+        else if (m[4]) out += `<span class="tok-kw">${escapeHtml(m[4])}</span>`;
+        else if (m[5]) out += `<span class="tok-bool">${escapeHtml(m[5])}</span>`;
+        else if (m[6]) out += `<span class="tok-framework">${escapeHtml(m[6])}</span>`;
+        else if (m[7]) out += `<span class="tok-num">${escapeHtml(m[7])}</span>`;
+        else if (m[8]) out += `<span class="tok-fn">${escapeHtml(m[8])}</span>`;
+        last = tokenRe.lastIndex;
+    }
+    if (last < src.length) out += escapeHtml(src.slice(last));
+    return out + (src.endsWith('\n') ? '\n' : '');
+}
+
+const highlightedCode = computed(() => highlightCode(activeCodeText.value, codeTab.value));
+
+const CSS_EMMET = {
+    df: { text: 'display: flex;', cursorOffset: 14 },
+    dg: { text: 'display: grid;', cursorOffset: 14 },
+    db: { text: 'display: block;', cursorOffset: 15 },
+    dn: { text: 'display: none;', cursorOffset: 14 },
+    jcc: { text: 'justify-content: center;', cursorOffset: 24 },
+    jcsb: { text: 'justify-content: space-between;', cursorOffset: 31 },
+    aic: { text: 'align-items: center;', cursorOffset: 20 },
+    fdc: { text: 'flex-direction: column;', cursorOffset: 23 },
+    gap: { text: 'gap: 16px;', cursorOffset: 9 },
+    bg: { text: 'background: ;', cursorOffset: 12 },
+    c: { text: 'color: ;', cursorOffset: 7 },
+    p: { text: 'padding: 16px;', cursorOffset: 13 },
+    m: { text: 'margin: 0;', cursorOffset: 9 },
+    br: { text: 'border-radius: 12px;', cursorOffset: 19 },
+    w100: { text: 'width: 100%;', cursorOffset: 12 },
+    h100: { text: 'height: 100vh;', cursorOffset: 14 },
+    tac: { text: 'text-align: center;', cursorOffset: 19 },
+    fw: { text: 'font-weight: 700;', cursorOffset: 17 },
+    tr: { text: 'transition: all 0.2s ease;', cursorOffset: 26 },
+    posr: { text: 'position: relative;', cursorOffset: 19 },
+    posa: { text: 'position: absolute;', cursorOffset: 19 },
+};
+
+function buildSimpleEmmetTag(expr) {
+    const m = expr.match(/^([a-zA-Z][a-zA-Z0-9-]*)((?:[#.][a-zA-Z0-9_-]+)*)$/);
+    if (!m) return null;
+    const tag = m[1];
+    const mods = m[2] || '';
+    let id = '';
+    const classes = [];
+    mods.replace(/([#.])([a-zA-Z0-9_-]+)/g, (_, sym, name) => {
+        if (sym === '#') id = name;
+        else classes.push(name);
+    });
+    const voidTags = new Set(['img', 'input', 'br', 'hr', 'meta', 'link']);
+    const attrs = [];
+    if (id) attrs.push(`id="${id}"`);
+    if (classes.length) attrs.push(`class="${classes.join(' ')}"`);
+    if (tag === 'a') attrs.push('href="#"');
+    if (tag === 'img') attrs.push('src="" alt=""');
+    if (tag === 'input') attrs.push('type="text"');
+    const attrStr = attrs.length ? ' ' + attrs.join(' ') : '';
+    if (voidTags.has(tag)) return { text: `<${tag}${attrStr}>`, cursorOffset: `<${tag}${attrStr}>`.length };
+    return { text: `<${tag}${attrStr}></${tag}>`, cursorOffset: `<${tag}${attrStr}>`.length };
+}
+
+function resolveEmmetSnippet(token, lang, indent) {
+    if (!token) return null;
+    if (lang === 'css') {
+        return CSS_EMMET[token] || null;
+    }
+    if (lang === 'js') {
+        const JS_SNIPPETS = {
+            clg: { text: 'console.log();', cursorOffset: 12 },
+            fn: { text: `function name() {\n${indent}    \n${indent}}`, cursorOffset: 9 },
+            afn: { text: `const name = () => {\n${indent}    \n${indent}};`, cursorOffset: 6 },
+            ael: { text: `addEventListener('click', (e) => {\n${indent}    \n${indent}});`, cursorOffset: 35 + indent.length + 4 },
+            qs: { text: `document.querySelector('')`, cursorOffset: 24 },
+            qsa: { text: `document.querySelectorAll('')`, cursorOffset: 27 },
+            us: { text: `const [state, setState] = useState();`, cursorOffset: 35 },
+            ue: { text: `useEffect(() => {\n${indent}    \n${indent}}, []);`, cursorOffset: 18 + indent.length + 4 },
+            rcomp: { text: `function Component() {\n${indent}    return (\n${indent}        <div></div>\n${indent}    );\n${indent}}`, cursorOffset: 9 },
+            vref: { text: `const count = ref(0);`, cursorOffset: 18 },
+            vapp: { text: `createApp({\n${indent}    setup() {\n${indent}        return {};\n${indent}    }\n${indent}}).mount('#app');`, cursorOffset: 12 },
+        };
+        return JS_SNIPPETS[token] || null;
+    }
+    if (lang === 'html') {
+        if (token === '!') {
+            const doc = `<!DOCTYPE html>\n${indent}<html lang="fr">\n${indent}<head>\n${indent}    <meta charset="UTF-8">\n${indent}    <title>Document</title>\n${indent}</head>\n${indent}<body>\n${indent}    \n${indent}</body>\n${indent}</html>`;
+            return { text: doc, cursorOffset: doc.indexOf(`<body>\n${indent}    `) + `<body>\n${indent}    `.length };
+        }
+        const HTML_SHORT = {
+            btn: '<button type="button" class="btn"></button>',
+            card: `<div class="card">\n${indent}    <h3>Titre</h3>\n${indent}    <p>Contenu</p>\n${indent}</div>`,
+            flex: `<div class="d-flex align-items-center gap-2">\n${indent}    \n${indent}</div>`,
+            vfor: '<div v-for="item in items" :key="item.id">{{ item }}</div>',
+            vif: '<div v-if="condition"></div>',
+        };
+        if (HTML_SHORT[token]) {
+            return { text: HTML_SHORT[token], cursorOffset: HTML_SHORT[token].length };
+        }
+        // Emmet child/multiplier: e.g. ul>li*3 or div.card>h2
+        const childMult = token.match(/^([a-zA-Z0-9.#_-]+)>([a-zA-Z0-9.#_-]+)(?:\*(\d{1,2}))?$/);
+        if (childMult) {
+            const parent = buildSimpleEmmetTag(childMult[1]);
+            const child = buildSimpleEmmetTag(childMult[2]);
+            const count = Math.min(10, Math.max(1, parseInt(childMult[3] || '1', 10)));
+            if (parent && child) {
+                const openEnd = parent.text.indexOf('>') + 1;
+                const openTag = parent.text.slice(0, openEnd);
+                const closeTag = parent.text.slice(openEnd);
+                const children = Array.from({ length: count }, () => `${indent}    ${child.text}`).join('\n');
+                const full = `${openTag}\n${children}\n${indent}${closeTag}`;
+                return { text: full, cursorOffset: openTag.length + 1 + indent.length + 4 + child.cursorOffset };
+            }
+        }
+        if (/[.#]/.test(token) || /^(div|span|section|header|footer|main|nav|article|ul|ol|li|a|p|h[1-6]|button|input|form|img|label|textarea)$/.test(token)) {
+            return buildSimpleEmmetTag(token);
+        }
+    }
+    return null;
+}
+
+function updateEmmetHint(el, target) {
+    if (!el || !canCoEditSharedCode.value) {
+        emmetHint.value = '';
+        return;
+    }
+    const pos = el.selectionStart;
+    const val = el.value || '';
+    const before = val.slice(0, pos);
+    const lineStart = before.lastIndexOf('\n') + 1;
+    const linePrefix = before.slice(lineStart);
+    const indent = (linePrefix.match(/^\s*/) || [''])[0];
+    const tokenMatch = linePrefix.match(/([^\s;{}()]+)$/);
+    const token = tokenMatch ? tokenMatch[1] : '';
+    const snippet = resolveEmmetSnippet(token, target, indent);
+    emmetHint.value = snippet ? `⚡ Tab pour étendre "${token}"` : '';
+}
+
 function handleTabKey(e, target) {
     if (!canCoEditSharedCode.value) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
@@ -837,19 +1093,85 @@ function handleTabKey(e, target) {
         previewKey.value++;
         return;
     }
-    if (e.key !== 'Tab') return;
-    e.preventDefault();
+
     const el = e.target;
     const start = el.selectionStart;
     const end = el.selectionEnd;
     const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
-    const updated = current.substring(0, start) + '  ' + current.substring(end);
-    if (target === 'html') htmlCode.value = updated;
-    else if (target === 'css') cssCode.value = updated;
-    else jsCode.value = updated;
-    nextTick(() => {
-        el.selectionStart = el.selectionEnd = start + 2;
-    });
+    const setTargetCode = (nextVal, cursorPos) => {
+        if (target === 'html') htmlCode.value = nextVal;
+        else if (target === 'css') cssCode.value = nextVal;
+        else jsCode.value = nextVal;
+        emmetHint.value = '';
+        nextTick(() => {
+            el.selectionStart = el.selectionEnd = cursorPos;
+        });
+    };
+
+    // Smart 4-space auto-indentation on Enter (HTML, CSS, JS / React / Vue)
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const before = current.slice(0, start);
+        const after = current.slice(end);
+        const lineStart = before.lastIndexOf('\n') + 1;
+        const currentLine = before.slice(lineStart);
+        const baseIndent = (currentLine.match(/^\s*/) || [''])[0];
+        const trimmedBefore = before.trimEnd();
+        const trimmedAfter = after.trimStart();
+
+        if (target === 'css' || target === 'js') {
+            const lastChar = trimmedBefore.slice(-1);
+            const nextChar = trimmedAfter.charAt(0);
+            if ((lastChar === '{' && nextChar === '}') || (lastChar === '(' && nextChar === ')') || (lastChar === '[' && nextChar === ']')) {
+                const insert = `\n${baseIndent}    \n${baseIndent}`;
+                setTargetCode(before + insert + after, start + 1 + baseIndent.length + 4);
+                return;
+            }
+            if (lastChar === '{' || lastChar === '(' || lastChar === '[' || trimmedBefore.endsWith('=>')) {
+                const nextIndent = baseIndent + '    ';
+                setTargetCode(before + '\n' + nextIndent + after, start + 1 + nextIndent.length);
+                return;
+            }
+        } else if (target === 'html') {
+            const openTagMatch = currentLine.match(/<([a-zA-Z0-9-]+)(?:\s[^>]*)?>\s*$/);
+            const voidTags = new Set(['img', 'input', 'br', 'hr', 'meta', 'link', 'area', 'base', 'col', 'embed', 'source', 'track', 'wbr']);
+            if (openTagMatch && !voidTags.has(openTagMatch[1].toLowerCase()) && !/\/\s*>$/.test(currentLine)) {
+                const tagName = openTagMatch[1];
+                if (after.startsWith(`</${tagName}>`)) {
+                    const insert = `\n${baseIndent}    \n${baseIndent}`;
+                    setTargetCode(before + insert + after, start + 1 + baseIndent.length + 4);
+                    return;
+                }
+                const nextIndent = baseIndent + '    ';
+                setTargetCode(before + '\n' + nextIndent + after, start + 1 + nextIndent.length);
+                return;
+            }
+        }
+
+        setTargetCode(before + '\n' + baseIndent + after, start + 1 + baseIndent.length);
+        return;
+    }
+
+    if (e.key === 'Tab') {
+        e.preventDefault();
+        if (start === end) {
+            const before = current.slice(0, start);
+            const lineStart = before.lastIndexOf('\n') + 1;
+            const linePrefix = before.slice(lineStart);
+            const indent = (linePrefix.match(/^\s*/) || [''])[0];
+            const tokenMatch = linePrefix.match(/([^\s;{}()]+)$/);
+            const token = tokenMatch ? tokenMatch[1] : '';
+            const snippet = resolveEmmetSnippet(token, target, indent);
+            if (snippet) {
+                const tokenStart = start - token.length;
+                const nextVal = current.slice(0, tokenStart) + snippet.text + current.slice(end);
+                setTargetCode(nextVal, tokenStart + snippet.cursorOffset);
+                return;
+            }
+        }
+        const updated = current.substring(0, start) + '    ' + current.substring(end);
+        setTargetCode(updated, start + 4);
+    }
 }
 
 function insertEmoji(emoji) {
@@ -1819,45 +2141,66 @@ onUnmounted(() => {
                                         <i class="bi bi-filetype-js text-warning me-1"></i>app.js
                                     </button>
                                 </div>
-                                <span class="small text-white-50 d-none d-sm-inline pe-2" style="font-size: 11px;">
+                                <span class="small text-white-50 d-none d-sm-flex align-items-center gap-2 pe-2" style="font-size: 11px;">
+                                    <span v-if="emmetHint" class="badge bg-info bg-opacity-25 text-info rounded-pill" style="font-size: 10px;">
+                                        {{ emmetHint }}
+                                    </span>
                                     <template v-if="canCoEditSharedCode">
-                                        <i class="bi bi-shield-lock-fill text-success me-1"></i>Sandbox
+                                        <i class="bi bi-shield-lock-fill text-success"></i>Sandbox
                                     </template>
                                     <template v-else>
-                                        <i class="bi bi-lock-fill text-warning me-1"></i>Lecture seule
+                                        <i class="bi bi-lock-fill text-warning"></i>Lecture seule
                                     </template>
                                 </span>
                             </div>
 
-                            <!-- Gutter + Textarea -->
-                            <div class="d-flex flex-grow-1 overflow-auto dj-code-surface position-relative">
-                                <div class="dj-gutter text-end user-select-none py-3 px-2 font-monospace">
+                            <!-- Gutter + Syntax Highlighted Editor -->
+                            <div class="d-flex flex-grow-1 overflow-hidden dj-code-surface position-relative">
+                                <div ref="gutterEl" class="dj-gutter text-end user-select-none py-3 px-2 font-monospace overflow-hidden">
                                     <div v-for="n in lineCount" :key="n">{{ n }}</div>
                                 </div>
-                                <textarea
-                                    v-if="codeTab === 'html'"
-                                    v-model="htmlCode"
-                                    :readonly="!canCoEditSharedCode"
-                                    spellcheck="false"
-                                    class="dj-textarea flex-grow-1 font-monospace p-3"
-                                    @keydown="handleTabKey($event, 'html')"
-                                ></textarea>
-                                <textarea
-                                    v-else-if="codeTab === 'css'"
-                                    v-model="cssCode"
-                                    :readonly="!canCoEditSharedCode"
-                                    spellcheck="false"
-                                    class="dj-textarea flex-grow-1 font-monospace p-3 text-info"
-                                    @keydown="handleTabKey($event, 'css')"
-                                ></textarea>
-                                <textarea
-                                    v-else
-                                    v-model="jsCode"
-                                    :readonly="!canCoEditSharedCode"
-                                    spellcheck="false"
-                                    class="dj-textarea flex-grow-1 font-monospace p-3 text-warning"
-                                    @keydown="handleTabKey($event, 'js')"
-                                ></textarea>
+                                <div class="dj-editor-wrap position-relative flex-grow-1 h-100 overflow-hidden">
+                                    <pre ref="highlightPreEl" class="dj-code-highlight font-monospace p-3 m-0" aria-hidden="true"><code v-html="highlightedCode"></code></pre>
+                                    <textarea
+                                        v-if="codeTab === 'html'"
+                                        v-model="htmlCode"
+                                        :readonly="!canCoEditSharedCode"
+                                        spellcheck="false"
+                                        wrap="off"
+                                        class="dj-textarea dj-textarea-colored font-monospace p-3"
+                                        @scroll="syncEditorScroll"
+                                        @input="updateEmmetHint($event.target, 'html')"
+                                        @keyup="updateEmmetHint($event.target, 'html')"
+                                        @click="updateEmmetHint($event.target, 'html')"
+                                        @keydown="handleTabKey($event, 'html')"
+                                    ></textarea>
+                                    <textarea
+                                        v-else-if="codeTab === 'css'"
+                                        v-model="cssCode"
+                                        :readonly="!canCoEditSharedCode"
+                                        spellcheck="false"
+                                        wrap="off"
+                                        class="dj-textarea dj-textarea-colored font-monospace p-3"
+                                        @scroll="syncEditorScroll"
+                                        @input="updateEmmetHint($event.target, 'css')"
+                                        @keyup="updateEmmetHint($event.target, 'css')"
+                                        @click="updateEmmetHint($event.target, 'css')"
+                                        @keydown="handleTabKey($event, 'css')"
+                                    ></textarea>
+                                    <textarea
+                                        v-else
+                                        v-model="jsCode"
+                                        :readonly="!canCoEditSharedCode"
+                                        spellcheck="false"
+                                        wrap="off"
+                                        class="dj-textarea dj-textarea-colored font-monospace p-3"
+                                        @scroll="syncEditorScroll"
+                                        @input="updateEmmetHint($event.target, 'js')"
+                                        @keyup="updateEmmetHint($event.target, 'js')"
+                                        @click="updateEmmetHint($event.target, 'js')"
+                                        @keydown="handleTabKey($event, 'js')"
+                                    ></textarea>
+                                </div>
                             </div>
                         </div>
 
@@ -2934,11 +3277,34 @@ onUnmounted(() => {
 }
 .dj-gutter {
     width: 44px;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.6;
     color: #475569;
     background: rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
+}
+.dj-editor-wrap {
+    min-width: 0;
+}
+.dj-code-highlight,
+.dj-textarea-colored {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    font-size: 13px;
+    line-height: 1.6;
+    tab-size: 4;
+    white-space: pre;
+    overflow: auto;
+    margin: 0;
+    border: none;
+    outline: none;
+}
+.dj-code-highlight {
+    color: #e2e8f0;
+    pointer-events: none;
+    z-index: 1;
 }
 .dj-textarea {
     background: transparent;
@@ -2950,6 +3316,32 @@ onUnmounted(() => {
     line-height: 1.6;
     min-height: 100%;
 }
+.dj-textarea-colored {
+    color: transparent;
+    caret-color: #38bdf8;
+    background: transparent;
+    z-index: 2;
+}
+.dj-textarea-colored::selection {
+    background: rgba(56, 189, 248, 0.28);
+    color: transparent;
+}
+.dj-code-highlight :deep(.tok-comment) { color: #64748b; font-style: italic; }
+.dj-code-highlight :deep(.tok-tag) { color: #f472b6; }
+.dj-code-highlight :deep(.tok-attr) { color: #38bdf8; }
+.dj-code-highlight :deep(.tok-str) { color: #a3e635; }
+.dj-code-highlight :deep(.tok-kw) { color: #c084fc; font-weight: 600; }
+.dj-code-highlight :deep(.tok-fn) { color: #60a5fa; }
+.dj-code-highlight :deep(.tok-num) { color: #fb923c; }
+.dj-code-highlight :deep(.tok-bool) { color: #f97316; }
+.dj-code-highlight :deep(.tok-prop) { color: #7dd3fc; }
+.dj-code-highlight :deep(.tok-sel) { color: #fbbf24; }
+.dj-code-highlight :deep(.tok-hex) { color: #f472b6; font-weight: 600; }
+.dj-code-highlight :deep(.tok-pseudo) { color: #c084fc; }
+.dj-code-highlight :deep(.tok-jsx) { color: #22d3ee; font-weight: 600; }
+.dj-code-highlight :deep(.tok-framework) { color: #34d399; font-weight: 600; }
+.dj-code-highlight :deep(.tok-vue-dir) { color: #34d399; font-weight: 600; }
+.dj-code-highlight :deep(.tok-vue-expr) { color: #fde047; }
 .dj-preview-bar {
     background: linear-gradient(90deg, #0d1018, #161b28);
     border-color: rgba(255, 255, 255, 0.08) !important;
