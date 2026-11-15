@@ -720,7 +720,14 @@ async function stopSprint() {
 
 // Watch Party (Suivre le créateur)
 const creatorActiveTab = ref(props.initialCreatorActiveTab || 'html');
-const followCreator = ref(false);
+const followCreator = ref(!props.isJamCreator);
+
+watch(canCoEditSharedCode, (canEdit) => {
+    if (!canEdit) {
+        showConsole.value = false;
+        showTemplateMenu.value = false;
+    }
+});
 
 watch(codeTab, (newTab) => {
     if (canRearrangePreview.value && isOnline.value) {
@@ -885,7 +892,7 @@ function setPreviewDock(zone) {
 
 let previewDragStart = { x: 0, y: 0 };
 function startPreviewDrag(e) {
-    if (!canRearrangePreview.value) return;
+    if (!canCoEditSharedCode.value) return;
     if (e.target.closest('button')) return;
     previewDragStart = { x: e.clientX, y: e.clientY };
     previewDragCoords.value = { x: e.clientX, y: e.clientY };
@@ -2247,7 +2254,6 @@ function applyRemoteLiveCode(liveCode) {
 
 watch([htmlCode, cssCode, jsCode], () => {
     if (isApplyingRemoteCode || !canCoEditSharedCode.value) return;
-    if (!collaborators.value.length && !isCollaborator.value) return;
     clearTimeout(liveCodeSyncTimer);
     liveCodeSyncTimer = setTimeout(async () => {
         try {
@@ -2262,7 +2268,7 @@ watch([htmlCode, cssCode, jsCode], () => {
         } catch {
             // silent sync failure
         }
-    }, 550);
+    }, 150);
 });
 
 // Social Share Actions
@@ -2518,8 +2524,14 @@ async function pollMessages() {
         if (res.data.outcome_votes) {
             outcomeVotes.value = res.data.outcome_votes;
         }
-        if (res.data.live_code && canCoEditSharedCode.value) {
+        if (res.data.live_code) {
             applyRemoteLiveCode(res.data.live_code);
+        }
+        if (res.data.creator_active_tab) {
+            creatorActiveTab.value = res.data.creator_active_tab;
+            if (!canCoEditSharedCode.value && followCreator.value && codeTab.value !== res.data.creator_active_tab) {
+                codeTab.value = res.data.creator_active_tab;
+            }
         }
 
         const incoming = res.data.messages || [];
@@ -2745,7 +2757,10 @@ onMounted(() => {
         updateCountdown();
         updateSprintDisplay();
     }, 1000);
-    pollTimer = setInterval(pollMessages, 2500);
+    pollTimer = setInterval(pollMessages, 1200);
+    if (props.initialLiveCode && !canRearrangePreview.value) {
+        applyRemoteLiveCode(props.initialLiveCode);
+    }
     pollMessages();
     window.addEventListener('resize', handleWindowResize);
     window.addEventListener('online', handleOnline);
@@ -3271,15 +3286,15 @@ onUnmounted(() => {
                         >
                             <div
                                 class="dj-preview-bar d-flex align-items-center justify-content-between px-3 py-1 border-bottom user-select-none"
-                                :class="{ 'dj-preview-draggable': canRearrangePreview && !previewFullscreen }"
-                                :title="canRearrangePreview ? 'Maintenir et glisser pour placer en bas du Sandbox ou à droite' : ''"
+                                :class="{ 'dj-preview-draggable': canCoEditSharedCode && !previewFullscreen }"
+                                :title="canCoEditSharedCode ? 'Maintenir et glisser pour placer en bas du Sandbox ou à droite' : ''"
                                 @pointerdown="startPreviewDrag"
                             >
                                 <div class="d-flex align-items-center gap-2">
-                                    <i v-if="canRearrangePreview && !previewFullscreen" class="bi bi-grip-vertical text-white-50"></i>
+                                    <i v-if="canCoEditSharedCode && !previewFullscreen" class="bi bi-grip-vertical text-white-50"></i>
                                     <span class="badge bg-success bg-opacity-25 text-success rounded-pill" style="font-size: 10px;">● LIVE</span>
                                     <span class="small text-white-50 font-monospace" style="font-size: 11px;">Aperçu en direct</span>
-                                    <span v-if="canRearrangePreview" class="badge bg-white bg-opacity-10 text-info d-none d-xl-inline" style="font-size: 9px;">
+                                    <span v-if="canCoEditSharedCode" class="badge bg-white bg-opacity-10 text-info d-none d-xl-inline" style="font-size: 9px;">
                                         {{ previewDock === 'bottom' ? 'Ancré en bas' : 'Ancré à droite' }}
                                     </span>
                                 </div>
@@ -3315,9 +3330,9 @@ onUnmounted(() => {
                                         </button>
                                     </div>
 
-                                    <!-- Console JS Toggle (Creator only) -->
+                                    <!-- Console JS Toggle (Creator or Invited Collaborator) -->
                                     <button
-                                        v-if="canRearrangePreview"
+                                        v-if="canCoEditSharedCode"
                                         type="button"
                                         class="btn btn-xs py-0 px-2 d-flex align-items-center gap-1"
                                         :class="showConsole ? 'btn-warning text-dark' : 'dj-btn-ghost'"
@@ -3330,7 +3345,7 @@ onUnmounted(() => {
                                     </button>
 
                                     <button
-                                        v-if="canRearrangePreview && !previewFullscreen"
+                                        v-if="canCoEditSharedCode && !previewFullscreen"
                                         type="button"
                                         class="btn btn-xs dj-btn-ghost py-0 px-2"
                                         :title="previewDock === 'bottom' ? 'Revenir à droite du Sandbox' : 'Placer en bas du Sandbox'"
@@ -3359,8 +3374,8 @@ onUnmounted(() => {
                                 ></iframe>
                             </div>
 
-                            <!-- Integrated JS Console Drawer (Creator only) -->
-                            <div v-if="canRearrangePreview && showConsole" class="dj-console-drawer border-top d-flex flex-column">
+                            <!-- Integrated JS Console Drawer (Creator or Invited Collaborator) -->
+                            <div v-if="canCoEditSharedCode && showConsole" class="dj-console-drawer border-top d-flex flex-column">
                                 <div class="d-flex align-items-center justify-content-between px-3 py-1 border-bottom border-white border-opacity-10">
                                     <span class="small fw-semibold text-white-50 font-monospace" style="font-size: 11px;">
                                         <i class="bi bi-terminal-fill text-warning me-1"></i>Console JS ({{ consoleLogs.length }})
