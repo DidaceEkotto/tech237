@@ -247,6 +247,18 @@ function buildSandboxDoc(html, css, js, withLivePatch = false) {
 // Starter Templates, ZIP Export & Portfolio Publish
 const showTemplateMenu = ref(false);
 const starterTemplates = {
+    vanilla: {
+        label: 'Starter HTML / CSS / JS Simple',
+        html: `<div class="box">\n    <span class="tag">HTML • CSS • JS</span>\n    <h1>Bienvenue sur Tech237</h1>\n    <p>Un starter léger, propre et prêt à coder.</p>\n    <div class="counter-row">\n        <button id="dec-btn">-</button>\n        <strong id="val">0</strong>\n        <button id="inc-btn">+</button>\n    </div>\n</div>`,
+        css: `body {\n    margin: 0;\n    min-height: 100vh;\n    display: grid;\n    place-items: center;\n    background: #0b0e15;\n    color: #f8fafc;\n    font-family: 'Segoe UI', system-ui, sans-serif;\n}\n.box {\n    background: #141926;\n    border: 1px solid rgba(255, 255, 255, 0.12);\n    border-radius: 18px;\n    padding: 2rem;\n    text-align: center;\n}\n.tag {\n    display: inline-block;\n    padding: 4px 12px;\n    border-radius: 999px;\n    background: rgba(56, 189, 248, 0.18);\n    color: #38bdf8;\n    font-size: 12px;\n    font-weight: 700;\n}\n.counter-row {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    gap: 14px;\n    margin-top: 16px;\n}\n.counter-row button {\n    width: 38px;\n    height: 38px;\n    border-radius: 50%;\n    border: none;\n    background: #38bdf8;\n    color: #090b10;\n    font-size: 18px;\n    font-weight: 800;\n    cursor: pointer;\n}`,
+        js: `let count = 0;\nconst valEl = document.getElementById('val');\ndocument.getElementById('inc-btn')?.addEventListener('click', () => {\n    count++;\n    if (valEl) valEl.textContent = count;\n});\ndocument.getElementById('dec-btn')?.addEventListener('click', () => {\n    count--;\n    if (valEl) valEl.textContent = count;\n});`,
+    },
+    bootstrap5: {
+        label: 'Starter Bootstrap 5',
+        html: `<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">\n<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">\n<div class="container py-5">\n    <div class="card bg-dark text-light border-secondary mx-auto shadow-lg" style="max-width: 440px;">\n        <div class="card-body p-4 text-center">\n            <span class="badge bg-primary rounded-pill mb-2"><i class="bi bi-bootstrap-fill me-1"></i>Bootstrap 5.3</span>\n            <h3 class="card-title fw-bold">Projet Tech237</h3>\n            <p class="text-secondary small">Composants Bootstrap 5 prêts à l'emploi.</p>\n            <div class="d-flex justify-content-center align-items-center gap-3 my-3">\n                <button id="bs-dec" class="btn btn-outline-light btn-sm rounded-pill px-3">-1</button>\n                <span id="bs-count" class="fs-2 fw-bold text-info">0</span>\n                <button id="bs-inc" class="btn btn-primary btn-sm rounded-pill px-3">+1</button>\n            </div>\n        </div>\n    </div>\n</div>`,
+        css: `body {\n    margin: 0;\n    min-height: 100vh;\n    background: radial-gradient(circle at top, #1e1b4b, #090b10 70%);\n}`,
+        js: `let n = 0;\nconst out = document.getElementById('bs-count');\ndocument.getElementById('bs-inc')?.addEventListener('click', () => { n++; if (out) out.textContent = n; });\ndocument.getElementById('bs-dec')?.addEventListener('click', () => { n--; if (out) out.textContent = n; });`,
+    },
     react: {
         label: 'Starter React.js (Compteur)',
         html: `<div id="root"></div>\n<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin><\/script>\n<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin><\/script>\n<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"><\/script>`,
@@ -1505,17 +1517,241 @@ function updateEmmetHint(el, target) {
     emmetHint.value = snippet ? `⚡ Tab pour étendre "${token}"` : '';
 }
 
+// Undo / Redo Stacks (Ctrl+Z / Cmd+Z & Ctrl+Y / Cmd+Shift+Z)
+const undoStacks = { html: [], css: [], js: [] };
+const redoStacks = { html: [], css: [], js: [] };
+let isRestoringUndoRedo = false;
+
+function pushUndoState(target, val) {
+    if (isRestoringUndoRedo) return;
+    const stack = undoStacks[target];
+    if (stack.length && stack[stack.length - 1] === val) return;
+    stack.push(val);
+    if (stack.length > 80) stack.shift();
+    redoStacks[target] = [];
+}
+
+watch(htmlCode, (n, o) => { if (!isRestoringUndoRedo && o !== undefined) pushUndoState('html', o); });
+watch(cssCode, (n, o) => { if (!isRestoringUndoRedo && o !== undefined) pushUndoState('css', o); });
+watch(jsCode, (n, o) => { if (!isRestoringUndoRedo && o !== undefined) pushUndoState('js', o); });
+
+function undoCode(target, el) {
+    const stack = undoStacks[target];
+    if (!stack.length) return;
+    const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
+    redoStacks[target].push(current);
+    const prev = stack.pop();
+    isRestoringUndoRedo = true;
+    if (target === 'html') htmlCode.value = prev;
+    else if (target === 'css') cssCode.value = prev;
+    else jsCode.value = prev;
+    nextTick(() => {
+        isRestoringUndoRedo = false;
+        if (el) el.focus();
+    });
+}
+
+function redoCode(target, el) {
+    const stack = redoStacks[target];
+    if (!stack.length) return;
+    const current = target === 'html' ? htmlCode.value : (target === 'css' ? cssCode.value : jsCode.value);
+    undoStacks[target].push(current);
+    const next = stack.pop();
+    isRestoringUndoRedo = true;
+    if (target === 'html') htmlCode.value = next;
+    else if (target === 'css') cssCode.value = next;
+    else jsCode.value = next;
+    nextTick(() => {
+        isRestoringUndoRedo = false;
+        if (el) el.focus();
+    });
+}
+
+// VS Code Shortcuts Helper Modal
+const showShortcutsModal = ref(false);
+
+// Direct Git Push (GitHub REST API)
+const showGitPushModal = ref(false);
+const gitRepo = ref('');
+const gitBranch = ref('main');
+const gitCommitMsg = ref(`feat(dev-jam): ${props.jam.title}`);
+const gitToken = ref('');
+const gitPushing = ref(false);
+const gitPushError = ref('');
+const gitPushSuccessUrl = ref('');
+
+async function pushToGitHub() {
+    gitPushError.value = '';
+    gitPushSuccessUrl.value = '';
+    const repo = gitRepo.value.trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
+    const branch = gitBranch.value.trim() || 'main';
+    const token = gitToken.value.trim();
+    const message = gitCommitMsg.value.trim() || `Update from Tech237 Dev Jam (${props.jam.slug})`;
+
+    if (!repo || !repo.includes('/')) {
+        gitPushError.value = 'Format attendu : utilisateur/nom-du-depot (ex: moncompte/mon-projet).';
+        return;
+    }
+    if (!token) {
+        gitPushError.value = 'Veuillez saisir un Personal Access Token GitHub (scope repo / contents:write).';
+        return;
+    }
+
+    gitPushing.value = true;
+    const headers = {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    };
+    const apiBase = `https://api.github.com/repos/${repo}`;
+
+    try {
+        const refRes = await fetch(`${apiBase}/git/ref/heads/${encodeURIComponent(branch)}`, { headers });
+        if (!refRes.ok) {
+            const errData = await refRes.json().catch(() => ({}));
+            throw new Error(errData.message || `Branche "${branch}" introuvable (${refRes.status}).`);
+        }
+        const refData = await refRes.json();
+        const latestCommitSha = refData.object.sha;
+
+        const commitRes = await fetch(`${apiBase}/git/commits/${latestCommitSha}`, { headers });
+        if (!commitRes.ok) throw new Error('Impossible de lire le dernier commit.');
+        const commitData = await commitRes.json();
+        const baseTreeSha = commitData.tree.sha;
+
+        const fullIndexHtml = `<!doctype html>\n<html lang="fr">\n<head>\n  <meta charset="utf-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>${subTitle.value || props.jam.title}</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n${htmlCode.value || ''}\n  <script src="app.js"><\/script>\n</body>\n</html>`;
+        const filesToPush = [
+            { path: 'index.html', content: fullIndexHtml },
+            { path: 'style.css', content: cssCode.value || '' },
+            { path: 'app.js', content: jsCode.value || '' },
+        ];
+
+        const treeItems = [];
+        for (const f of filesToPush) {
+            const blobRes = await fetch(`${apiBase}/git/blobs`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ content: f.content, encoding: 'utf-8' }),
+            });
+            if (!blobRes.ok) throw new Error(`Échec de création du blob pour ${f.path}.`);
+            const blobData = await blobRes.json();
+            treeItems.push({ path: f.path, mode: '100644', type: 'blob', sha: blobData.sha });
+        }
+
+        const treeRes = await fetch(`${apiBase}/git/trees`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ base_tree: baseTreeSha, tree: treeItems }),
+        });
+        if (!treeRes.ok) throw new Error('Impossible de créer le nouvel arbre Git.');
+        const treeData = await treeRes.json();
+
+        const newCommitRes = await fetch(`${apiBase}/git/commits`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ message, tree: treeData.sha, parents: [latestCommitSha] }),
+        });
+        if (!newCommitRes.ok) throw new Error('Impossible de créer le commit Git.');
+        const newCommitData = await newCommitRes.json();
+
+        const updateRefRes = await fetch(`${apiBase}/git/refs/heads/${encodeURIComponent(branch)}`, {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ sha: newCommitData.sha }),
+        });
+        if (!updateRefRes.ok) throw new Error('Impossible de mettre à jour la branche distante.');
+
+        gitPushSuccessUrl.value = `https://github.com/${repo}/commit/${newCommitData.sha}`;
+        showToast('🚀 Code poussé sur GitHub avec succès !');
+    } catch (err) {
+        gitPushError.value = err?.message || 'Erreur lors du push vers GitHub.';
+    } finally {
+        gitPushing.value = false;
+    }
+}
+
+// Draggable Floating Chat Launcher ("Live Chat (N)")
+const launcherPosStorageKey = `dj_launcher_pos_${props.jam.slug}`;
+const launcherPos = ref({ x: null, y: null });
+const isDraggingLauncher = ref(false);
+let launcherMoved = false;
+let launcherDragOffset = { x: 0, y: 0 };
+
+const launcherStyle = computed(() => {
+    if (launcherPos.value.x === null || launcherPos.value.y === null) return {};
+    return {
+        left: `${launcherPos.value.x}px`,
+        top: `${launcherPos.value.y}px`,
+        right: 'auto',
+        bottom: 'auto',
+    };
+});
+
+function startLauncherDrag(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    isDraggingLauncher.value = true;
+    launcherMoved = false;
+    launcherDragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    window.addEventListener('pointermove', onLauncherDragMove);
+    window.addEventListener('pointerup', onLauncherDragEnd);
+}
+
+function onLauncherDragMove(e) {
+    if (!isDraggingLauncher.value) return;
+    launcherMoved = true;
+    const maxX = Math.max(12, window.innerWidth - 180);
+    const maxY = Math.max(12, window.innerHeight - 56);
+    launcherPos.value = {
+        x: Math.min(Math.max(8, e.clientX - launcherDragOffset.x), maxX),
+        y: Math.min(Math.max(8, e.clientY - launcherDragOffset.y), maxY),
+    };
+}
+
+function onLauncherDragEnd() {
+    if (!isDraggingLauncher.value) return;
+    isDraggingLauncher.value = false;
+    window.removeEventListener('pointermove', onLauncherDragMove);
+    window.removeEventListener('pointerup', onLauncherDragEnd);
+    try {
+        if (launcherPos.value.x !== null) {
+            localStorage.setItem(launcherPosStorageKey, JSON.stringify(launcherPos.value));
+        }
+    } catch {
+        // ignore storage errors
+    }
+}
+
+function handleLauncherClick() {
+    if (launcherMoved) {
+        launcherMoved = false;
+        return;
+    }
+    openChat();
+}
+
 function handleTabKey(e, target) {
     if (!canCoEditSharedCode.value) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    const isMod = e.ctrlKey || e.metaKey;
+    if (isMod && e.key.toLowerCase() === 's') {
         e.preventDefault();
         createHistorySnapshot('Sauvegarde manuelle (Ctrl+S)');
         saveMySubmission();
         return;
     }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if (isMod && e.key === 'Enter') {
         e.preventDefault();
         previewKey.value++;
+        return;
+    }
+    if (isMod && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undoCode(target, e.target);
+        return;
+    }
+    if ((isMod && e.key.toLowerCase() === 'y') || (isMod && e.shiftKey && e.key.toLowerCase() === 'z')) {
+        e.preventDefault();
+        redoCode(target, e.target);
         return;
     }
     if (e.ctrlKey && e.code === 'Space') {
@@ -1560,6 +1796,109 @@ function handleTabKey(e, target) {
             el.selectionStart = el.selectionEnd = cursorPos;
         });
     };
+
+    // VS Code shortcut: Ctrl/Cmd + / (toggle line comment)
+    if (isMod && (e.key === '/' || e.code === 'Slash')) {
+        e.preventDefault();
+        const lineStart = current.lastIndexOf('\n', start - 1) + 1;
+        let lineEnd = current.indexOf('\n', end);
+        if (lineEnd === -1) lineEnd = current.length;
+        const selectedBlock = current.slice(lineStart, lineEnd);
+        const lines = selectedBlock.split('\n');
+        let nextLines;
+        if (target === 'html') {
+            const allCommented = lines.every((l) => /^\s*<!--.*-->\s*$/.test(l) || !l.trim());
+            nextLines = lines.map((l) => {
+                if (!l.trim()) return l;
+                if (allCommented) return l.replace(/^(\s*)<!--\s?(.*?)\s?-->(\s*)$/, '$1$2$3');
+                return l.replace(/^(\s*)(.*)$/, '$1<!-- $2 -->');
+            });
+        } else if (target === 'css') {
+            const allCommented = lines.every((l) => /^\s*\/\*.*\*\/\s*$/.test(l) || !l.trim());
+            nextLines = lines.map((l) => {
+                if (!l.trim()) return l;
+                if (allCommented) return l.replace(/^(\s*)\/\*\s?(.*?)\s?\*\/(\s*)$/, '$1$2$3');
+                return l.replace(/^(\s*)(.*)$/, '$1/* $2 */');
+            });
+        } else {
+            const allCommented = lines.every((l) => /^\s*\/\//.test(l) || !l.trim());
+            nextLines = lines.map((l) => {
+                if (!l.trim()) return l;
+                if (allCommented) return l.replace(/^(\s*)\/\/\s?/, '$1');
+                return l.replace(/^(\s*)/, '$1// ');
+            });
+        }
+        const replaced = nextLines.join('\n');
+        setTargetCode(current.slice(0, lineStart) + replaced + current.slice(lineEnd), lineStart + replaced.length);
+        return;
+    }
+
+    // VS Code shortcut: Ctrl/Cmd + D (duplicate current line below)
+    if (isMod && !e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        const lineStart = current.lastIndexOf('\n', start - 1) + 1;
+        let lineEnd = current.indexOf('\n', start);
+        if (lineEnd === -1) lineEnd = current.length;
+        const line = current.slice(lineStart, lineEnd);
+        const nextVal = current.slice(0, lineEnd) + '\n' + line + current.slice(lineEnd);
+        setTargetCode(nextVal, start + line.length + 1);
+        return;
+    }
+
+    // VS Code shortcut: Ctrl/Cmd + Shift + K (delete current line)
+    if (isMod && e.shiftKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const lineStart = current.lastIndexOf('\n', start - 1) + 1;
+        let lineEnd = current.indexOf('\n', start);
+        let nextVal;
+        let nextCursor = lineStart;
+        if (lineEnd !== -1) {
+            nextVal = current.slice(0, lineStart) + current.slice(lineEnd + 1);
+        } else if (lineStart > 0) {
+            nextVal = current.slice(0, lineStart - 1);
+            nextCursor = lineStart - 1;
+        } else {
+            nextVal = '';
+            nextCursor = 0;
+        }
+        setTargetCode(nextVal, nextCursor);
+        return;
+    }
+
+    // VS Code shortcut: Alt + ArrowUp / ArrowDown (move current line up or down)
+    if (e.altKey && !isMod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        const lines = current.split('\n');
+        const lineIndex = current.slice(0, start).split('\n').length - 1;
+        const targetIndex = e.key === 'ArrowUp' ? lineIndex - 1 : lineIndex + 1;
+        if (targetIndex < 0 || targetIndex >= lines.length) return;
+        const col = start - (current.lastIndexOf('\n', start - 1) + 1);
+        [lines[lineIndex], lines[targetIndex]] = [lines[targetIndex], lines[lineIndex]];
+        const nextVal = lines.join('\n');
+        const newLineStart = lines.slice(0, targetIndex).reduce((acc, l) => acc + l.length + 1, 0);
+        setTargetCode(nextVal, newLineStart + Math.min(col, lines[targetIndex].length));
+        return;
+    }
+
+    // VS Code shortcut: Ctrl/Cmd + ] or [ (indent / outdent current line by 4 spaces)
+    if (isMod && (e.key === ']' || e.key === '[')) {
+        e.preventDefault();
+        const lineStart = current.lastIndexOf('\n', start - 1) + 1;
+        let lineEnd = current.indexOf('\n', start);
+        if (lineEnd === -1) lineEnd = current.length;
+        const line = current.slice(lineStart, lineEnd);
+        if (e.key === ']') {
+            const nextVal = current.slice(0, lineStart) + '    ' + line + current.slice(lineEnd);
+            setTargetCode(nextVal, start + 4);
+        } else {
+            const spacesMatch = line.match(/^ {1,4}/);
+            const removed = spacesMatch ? spacesMatch[0].length : 0;
+            if (!removed) return;
+            const nextVal = current.slice(0, lineStart) + line.slice(removed) + current.slice(lineEnd);
+            setTargetCode(nextVal, Math.max(lineStart, start - removed));
+        }
+        return;
+    }
 
     // Smart 4-space auto-indentation on Enter (HTML, CSS, JS / React / Vue)
     if (e.key === 'Enter') {
@@ -2260,6 +2599,16 @@ onMounted(() => {
                 chatPos.value = clampChatPos(parsed.x, parsed.y);
             }
         }
+        const savedLauncherPos = localStorage.getItem(launcherPosStorageKey);
+        if (savedLauncherPos) {
+            const parsedL = JSON.parse(savedLauncherPos);
+            if (typeof parsedL?.x === 'number' && typeof parsedL?.y === 'number') {
+                launcherPos.value = {
+                    x: Math.max(12, Math.min(window.innerWidth - 180, parsedL.x)),
+                    y: Math.max(12, Math.min(window.innerHeight - 60, parsedL.y)),
+                };
+            }
+        }
         const savedDock = localStorage.getItem(previewDockStorageKey);
         if (savedDock === 'bottom' || savedDock === 'right') {
             previewDock.value = savedDock;
@@ -2327,6 +2676,8 @@ onUnmounted(() => {
     window.removeEventListener('offline', handleOffline);
     window.removeEventListener('message', handleSandboxMessage);
     window.removeEventListener('pointermove', onChatDragMove);
+    window.removeEventListener('pointermove', onLauncherDragMove);
+    window.removeEventListener('pointerup', onLauncherDragEnd);
     window.removeEventListener('pointerup', onChatDragEnd);
     window.removeEventListener('pointermove', onPreviewDragMove);
     window.removeEventListener('pointerup', onPreviewDragEnd);
@@ -2631,34 +2982,15 @@ onUnmounted(() => {
                                     <span v-if="emmetHint" class="badge bg-info bg-opacity-25 text-info rounded-pill" style="font-size: 10px;">
                                         {{ emmetHint }}
                                     </span>
-                                    <span v-if="autoSaveStatus" class="text-white-50 d-none d-xl-inline" style="font-size: 10px;">
-                                        <i class="bi bi-cloud-check text-success me-1"></i>{{ autoSaveStatus }}
-                                    </span>
                                     <button
                                         type="button"
                                         class="btn btn-xs dj-btn-ghost py-0 px-2 rounded-pill"
                                         style="font-size: 10px;"
-                                        title="Historique des versions, comparaison et restauration"
-                                        @click="showHistoryModal = true"
+                                        title="Raccourcis clavier VS Code (Ctrl+Z, Ctrl+/, Ctrl+D, Alt+↑/↓...)"
+                                        @click="showShortcutsModal = true"
                                     >
-                                        <i class="bi bi-clock-history text-info me-1"></i>Historique ({{ versionHistory.length }})
+                                        <i class="bi bi-keyboard text-warning me-1"></i>Raccourcis
                                     </button>
-                                    <button
-                                        v-if="codeDiagnostics.length"
-                                        type="button"
-                                        class="btn btn-xs btn-outline-danger py-0 px-2 rounded-pill"
-                                        style="font-size: 10px;"
-                                        title="Voir les erreurs détectées"
-                                        @click="showDiagnostics = !showDiagnostics"
-                                    >
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ codeDiagnostics.length }}
-                                    </button>
-                                    <template v-if="canCoEditSharedCode">
-                                        <i class="bi bi-shield-lock-fill text-success"></i>Sandbox
-                                    </template>
-                                    <template v-else>
-                                        <i class="bi bi-lock-fill text-warning"></i>Lecture seule
-                                    </template>
                                 </span>
                             </div>
 
@@ -3227,6 +3559,47 @@ onUnmounted(() => {
                         </button>
                     </div>
                 </div>
+
+                <!-- Moved Status / History / Errors / Sandbox Block -->
+                <span class="small text-white-50 d-none d-sm-flex align-items-center gap-2 pe-2" style="font-size: 11px;">
+                    <span v-if="autoSaveStatus" class="text-white-50 d-none d-xl-inline" style="font-size: 10px;">
+                        <i class="bi bi-cloud-check text-success me-1"></i>{{ autoSaveStatus }}
+                    </span>
+                    <button
+                        type="button"
+                        class="btn btn-xs dj-btn-ghost py-0 px-2 rounded-pill"
+                        style="font-size: 10px;"
+                        title="Historique des versions, comparaison et restauration"
+                        @click="showHistoryModal = true"
+                    >
+                        <i class="bi bi-clock-history text-info me-1"></i>Historique ({{ versionHistory.length }})
+                    </button>
+                    <button
+                        v-if="codeDiagnostics.length"
+                        type="button"
+                        class="btn btn-xs btn-outline-danger py-0 px-2 rounded-pill"
+                        style="font-size: 10px;"
+                        title="Voir les erreurs détectées"
+                        @click="showDiagnostics = !showDiagnostics"
+                    >
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ codeDiagnostics.length }}
+                    </button>
+                    <i v-if="canCoEditSharedCode" class="bi bi-shield-lock-fill text-success"></i>
+                    <i v-else class="bi bi-lock-fill text-warning"></i>
+                    <span>{{ canCoEditSharedCode ? 'Sandbox' : 'Lecture seule' }}</span>
+                </span>
+
+                <!-- Direct GitHub Push Button -->
+                <button
+                    type="button"
+                    class="btn btn-xs dj-btn-ghost rounded-pill px-2 py-0 d-inline-flex align-items-center gap-1"
+                    style="font-size: 11px;"
+                    title="Pusher index.html, style.css et app.js directement sur GitHub"
+                    @click="showGitPushModal = true"
+                >
+                    <i class="bi bi-github text-white"></i>
+                    <span class="d-none d-lg-inline">Push Git</span>
+                </button>
             </div>
             <div class="d-flex align-items-center gap-3">
                 <span class="d-none d-md-inline">UTF-8</span>
@@ -3527,13 +3900,18 @@ onUnmounted(() => {
             </div>
         </div>
 
-        <!-- Floating Chat Minimized Launcher -->
+        <!-- Floating Chat Minimized Launcher (Draggable anywhere on screen) -->
         <button
             v-else
             type="button"
             class="dj-chat-launcher btn btn-primary rounded-pill shadow-lg px-3 py-2 fw-semibold d-flex align-items-center gap-2"
-            @click="openChat"
+            :class="{ 'is-dragging': isDraggingLauncher }"
+            :style="launcherStyle"
+            title="Cliquer pour ouvrir le chat • Maintenir pour déplacer"
+            @pointerdown="startLauncherDrag"
+            @click="handleLauncherClick"
         >
+            <i class="bi bi-grip-horizontal opacity-75"></i>
             <i class="bi bi-chat-dots-fill"></i>
             <span>Live Chat ({{ filteredMessages.length }})</span>
             <span v-if="unreadCount > 0" class="badge bg-danger rounded-pill">+{{ unreadCount }}</span>
@@ -3685,6 +4063,106 @@ onUnmounted(() => {
                         <span v-else>
                             Seul le créateur de la Jam peut envoyer des invitations de co-édition. Si vous êtes invité, une popup apparaîtra en bas à gauche de votre écran.
                         </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Direct GitHub Push Modal -->
+        <div v-if="showGitPushModal" class="position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-75 d-flex align-items-center justify-content-center p-3" style="z-index: 2720;" @click="showGitPushModal = false">
+            <div class="dj-glass-box rounded-4 p-4 shadow-lg w-100" style="max-width: 480px;" @click.stop>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-white">
+                        <i class="bi bi-github text-info me-2"></i>Pusher le code sur GitHub
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" @click="showGitPushModal = false"></button>
+                </div>
+                <p class="small text-white-50 mb-3">
+                    Envoie directement <code>index.html</code>, <code>style.css</code> et <code>app.js</code> en un commit sur votre dépôt GitHub (votre jeton n'est jamais envoyé à notre serveur).
+                </p>
+                <form class="d-flex flex-column gap-2" @submit.prevent="pushToGitHub">
+                    <div>
+                        <label class="form-label small text-white-50 mb-1">Dépôt GitHub (<code>owner/repo</code>)</label>
+                        <input v-model="gitRepo" type="text" class="form-control form-control-sm dj-dark-input" placeholder="ex: mon-compte/mon-projet-jam" required />
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-5">
+                            <label class="form-label small text-white-50 mb-1">Branche</label>
+                            <input v-model="gitBranch" type="text" class="form-control form-control-sm dj-dark-input" placeholder="main" required />
+                        </div>
+                        <div class="col-7">
+                            <label class="form-label small text-white-50 mb-1">Message de commit</label>
+                            <input v-model="gitCommitMsg" type="text" class="form-control form-control-sm dj-dark-input" placeholder="feat: code depuis Tech237 Jam" required />
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label small text-white-50 mb-1">Personal Access Token (scope <code>repo</code>)</label>
+                        <input v-model="gitToken" type="password" class="form-control form-control-sm dj-dark-input" placeholder="ghp_... ou github_pat_..." autocomplete="off" required />
+                    </div>
+                    <div v-if="gitPushError" class="alert alert-danger py-2 px-3 small mb-0 mt-1">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ gitPushError }}
+                    </div>
+                    <div v-if="gitPushSuccessUrl" class="alert alert-success py-2 px-3 small mb-0 mt-1">
+                        <i class="bi bi-check-circle-fill me-1"></i>Push réussi !
+                        <a :href="gitPushSuccessUrl" target="_blank" rel="noopener" class="alert-link ms-1">Voir le commit sur GitHub</a>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 mt-2">
+                        <button type="button" class="btn btn-sm dj-btn-ghost rounded-pill px-3" @click="showGitPushModal = false">Fermer</button>
+                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold" :disabled="gitPushing">
+                            <span v-if="gitPushing" class="spinner-border spinner-border-sm me-1"></span>
+                            <i v-else class="bi bi-cloud-arrow-up-fill me-1"></i>
+                            {{ gitPushing ? 'Push en cours...' : 'Pusher sur GitHub' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- VS Code Shortcuts Modal -->
+        <div v-if="showShortcutsModal" class="position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-75 d-flex align-items-center justify-content-center p-3" style="z-index: 2720;" @click="showShortcutsModal = false">
+            <div class="dj-glass-box rounded-4 p-4 shadow-lg w-100" style="max-width: 520px;" @click.stop>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0 text-white">
+                        <i class="bi bi-keyboard text-warning me-2"></i>Raccourcis clavier (VS Code)
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" @click="showShortcutsModal = false"></button>
+                </div>
+                <div class="d-flex flex-column gap-2 small">
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Annuler (Undo)</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Ctrl + Z / Cmd + Z</kbd>
+                    </div>
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Rétablir (Redo)</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Ctrl + Y / Cmd + Shift + Z</kbd>
+                    </div>
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Commenter / Décommenter la ligne</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Ctrl + / (Cmd + /)</kbd>
+                    </div>
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Dupliquer la ligne</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Ctrl + D (Cmd + D)</kbd>
+                    </div>
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Déplacer la ligne haut / bas</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Alt + ↑ / Alt + ↓</kbd>
+                    </div>
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Supprimer la ligne</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Ctrl + Shift + K</kbd>
+                    </div>
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Indenter / Désindenter la ligne</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Ctrl + ] / Ctrl + [</kbd>
+                    </div>
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Autocomplétion / Emmet</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Ctrl + Espace / Tab</kbd>
+                    </div>
+                    <div class="dj-dark-row rounded-3 px-3 py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-light">Sauvegarder / Recharger l'aperçu</span>
+                        <kbd class="bg-dark border border-secondary px-2 py-1 rounded">Ctrl + S / Ctrl + Entrée</kbd>
                     </div>
                 </div>
             </div>
@@ -4606,5 +5084,15 @@ onUnmounted(() => {
 }
 .dj-diff-same {
     color: #94a3b8;
+}
+.dj-chat-launcher {
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+}
+.dj-chat-launcher.is-dragging {
+    cursor: grabbing;
+    opacity: 0.92;
+    transform: scale(1.03);
 }
 </style>
