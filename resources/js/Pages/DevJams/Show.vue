@@ -2866,8 +2866,8 @@ onUnmounted(() => {
                     <span>{{ followCreator ? 'Suit le créateur' : 'Suivre' }}</span>
                 </button>
 
-                <!-- Starter Templates -->
-                <div v-if="canCoEditSharedCode" class="position-relative d-none d-lg-block">
+                <!-- Starter Templates (Creator only) -->
+                <div v-if="canRearrangePreview" class="position-relative d-none d-lg-block">
                     <button
                         type="button"
                         class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1"
@@ -2889,9 +2889,9 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- Publish to Portfolio -->
+                <!-- Publish to Portfolio (Creator only) -->
                 <button
-                    v-if="authUser"
+                    v-if="canRearrangePreview"
                     type="button"
                     class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1 d-none d-xl-inline-flex align-items-center gap-1"
                     title="Copier le code et ouvrir le Portfolio Builder Tech237"
@@ -3206,18 +3206,21 @@ onUnmounted(() => {
                                             <span class="badge bg-info bg-opacity-25 text-info" style="font-size: 9px;">{{ item.kind }}</span>
                                         </button>
                                     </div>
-                                    <pre ref="highlightPreEl" class="dj-code-highlight font-monospace p-3 m-0" aria-hidden="true"><code v-html="highlightedCode"></code></pre>
+                                    <pre ref="highlightPreEl" class="dj-code-highlight" aria-hidden="true"><code v-html="highlightedCode"></code></pre>
                                     <textarea
                                         v-if="codeTab === 'html'"
                                         v-model="htmlCode"
                                         :readonly="!canCoEditSharedCode"
                                         spellcheck="false"
+                                        autocomplete="off"
+                                        autocorrect="off"
+                                        autocapitalize="off"
                                         wrap="off"
-                                        class="dj-textarea dj-textarea-colored font-monospace p-3"
+                                        class="dj-textarea dj-textarea-colored"
                                         @scroll="syncEditorScroll"
-                                        @input="updateEmmetHint($event.target, 'html')"
-                                        @keyup="updateEmmetHint($event.target, 'html')"
-                                        @click="updateEmmetHint($event.target, 'html')"
+                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'html')"
+                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'html')"
+                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'html')"
                                         @keydown="handleTabKey($event, 'html')"
                                     ></textarea>
                                     <textarea
@@ -3225,12 +3228,15 @@ onUnmounted(() => {
                                         v-model="cssCode"
                                         :readonly="!canCoEditSharedCode"
                                         spellcheck="false"
+                                        autocomplete="off"
+                                        autocorrect="off"
+                                        autocapitalize="off"
                                         wrap="off"
-                                        class="dj-textarea dj-textarea-colored font-monospace p-3"
+                                        class="dj-textarea dj-textarea-colored"
                                         @scroll="syncEditorScroll"
-                                        @input="updateEmmetHint($event.target, 'css')"
-                                        @keyup="updateEmmetHint($event.target, 'css')"
-                                        @click="updateEmmetHint($event.target, 'css')"
+                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'css')"
+                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'css')"
+                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'css')"
                                         @keydown="handleTabKey($event, 'css')"
                                     ></textarea>
                                     <textarea
@@ -3238,12 +3244,15 @@ onUnmounted(() => {
                                         v-model="jsCode"
                                         :readonly="!canCoEditSharedCode"
                                         spellcheck="false"
+                                        autocomplete="off"
+                                        autocorrect="off"
+                                        autocapitalize="off"
                                         wrap="off"
-                                        class="dj-textarea dj-textarea-colored font-monospace p-3"
+                                        class="dj-textarea dj-textarea-colored"
                                         @scroll="syncEditorScroll"
-                                        @input="updateEmmetHint($event.target, 'js')"
-                                        @keyup="updateEmmetHint($event.target, 'js')"
-                                        @click="updateEmmetHint($event.target, 'js')"
+                                        @input="syncEditorScroll($event); updateEmmetHint($event.target, 'js')"
+                                        @keyup="syncEditorScroll($event); updateEmmetHint($event.target, 'js')"
+                                        @click="syncEditorScroll($event); updateEmmetHint($event.target, 'js')"
                                         @keydown="handleTabKey($event, 'js')"
                                     ></textarea>
                                 </div>
@@ -3306,8 +3315,9 @@ onUnmounted(() => {
                                         </button>
                                     </div>
 
-                                    <!-- Console JS Toggle -->
+                                    <!-- Console JS Toggle (Creator only) -->
                                     <button
+                                        v-if="canRearrangePreview"
                                         type="button"
                                         class="btn btn-xs py-0 px-2 d-flex align-items-center gap-1"
                                         :class="showConsole ? 'btn-warning text-dark' : 'dj-btn-ghost'"
@@ -3349,8 +3359,8 @@ onUnmounted(() => {
                                 ></iframe>
                             </div>
 
-                            <!-- Integrated JS Console Drawer -->
-                            <div v-if="showConsole" class="dj-console-drawer border-top d-flex flex-column">
+                            <!-- Integrated JS Console Drawer (Creator only) -->
+                            <div v-if="canRearrangePreview && showConsole" class="dj-console-drawer border-top d-flex flex-column">
                                 <div class="d-flex align-items-center justify-content-between px-3 py-1 border-bottom border-white border-opacity-10">
                                     <span class="small fw-semibold text-white-50 font-monospace" style="font-size: 11px;">
                                         <i class="bi bi-terminal-fill text-warning me-1"></i>Console JS ({{ consoleLogs.length }})
@@ -3725,8 +3735,8 @@ onUnmounted(() => {
                     </div>
                 </div>
 
-                <!-- Moved Status / History / Errors / Sandbox Block -->
-                <span class="small text-white-50 d-none d-sm-flex align-items-center gap-2 pe-2" style="font-size: 11px;">
+                <!-- Moved Status / History / Errors / Sandbox Block (Creator only) -->
+                <span v-if="canRearrangePreview" class="small text-white-50 d-none d-sm-flex align-items-center gap-2 pe-2" style="font-size: 11px;">
                     <span v-if="autoSaveStatus" class="text-white-50 d-none d-xl-inline" style="font-size: 10px;">
                         <i class="bi bi-cloud-check text-success me-1"></i>{{ autoSaveStatus }}
                     </span>
@@ -3754,8 +3764,9 @@ onUnmounted(() => {
                     <span>{{ canCoEditSharedCode ? 'Sandbox' : 'Lecture seule' }}</span>
                 </span>
 
-                <!-- Direct GitHub Push Button -->
+                <!-- Direct GitHub Push Button (Creator only) -->
                 <button
+                    v-if="canRearrangePreview"
                     type="button"
                     class="btn btn-xs dj-btn-ghost rounded-pill px-2 py-0 d-inline-flex align-items-center gap-1"
                     style="font-size: 11px;"
@@ -4594,8 +4605,11 @@ onUnmounted(() => {
 }
 .dj-gutter {
     width: 44px;
-    font-size: 13px;
-    line-height: 1.6;
+    font-family: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
+    font-size: 13px !important;
+    line-height: 21px !important;
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
     color: #475569;
     background: rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
@@ -4604,24 +4618,45 @@ onUnmounted(() => {
     min-width: 0;
 }
 .dj-code-highlight,
+.dj-code-highlight code,
+.dj-textarea-colored {
+    font-family: ui-monospace, 'Cascadia Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace !important;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    font-style: normal !important;
+    line-height: 21px !important;
+    letter-spacing: 0px !important;
+    word-spacing: 0px !important;
+    font-variant-ligatures: none !important;
+    font-kerning: none !important;
+    tab-size: 4 !important;
+    -moz-tab-size: 4 !important;
+    white-space: pre !important;
+    box-sizing: border-box !important;
+}
+.dj-code-highlight,
 .dj-textarea-colored {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
-    font-size: 13px;
-    line-height: 1.6;
-    tab-size: 4;
-    white-space: pre;
-    overflow: auto;
-    margin: 0;
-    border: none;
-    outline: none;
+    padding: 16px !important;
+    margin: 0 !important;
+    border: 0 !important;
+    outline: none !important;
 }
 .dj-code-highlight {
     color: #e2e8f0;
     pointer-events: none;
+    overflow: hidden !important;
     z-index: 1;
+}
+.dj-code-highlight code {
+    display: block;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    color: inherit;
 }
 .dj-textarea {
     background: transparent;
@@ -4630,34 +4665,35 @@ onUnmounted(() => {
     outline: none;
     resize: none;
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 21px;
     min-height: 100%;
 }
 .dj-textarea-colored {
-    color: transparent;
-    caret-color: #38bdf8;
-    background: transparent;
+    color: transparent !important;
+    caret-color: #38bdf8 !important;
+    background: transparent !important;
+    overflow: auto !important;
     z-index: 2;
 }
 .dj-textarea-colored::selection {
     background: rgba(56, 189, 248, 0.28);
     color: transparent;
 }
-.dj-code-highlight :deep(.tok-comment) { color: #64748b; font-style: italic; }
+.dj-code-highlight :deep(.tok-comment) { color: #64748b; }
 .dj-code-highlight :deep(.tok-tag) { color: #f472b6; }
 .dj-code-highlight :deep(.tok-attr) { color: #38bdf8; }
 .dj-code-highlight :deep(.tok-str) { color: #a3e635; }
-.dj-code-highlight :deep(.tok-kw) { color: #c084fc; font-weight: 600; }
+.dj-code-highlight :deep(.tok-kw) { color: #c084fc; }
 .dj-code-highlight :deep(.tok-fn) { color: #60a5fa; }
 .dj-code-highlight :deep(.tok-num) { color: #fb923c; }
 .dj-code-highlight :deep(.tok-bool) { color: #f97316; }
 .dj-code-highlight :deep(.tok-prop) { color: #7dd3fc; }
 .dj-code-highlight :deep(.tok-sel) { color: #fbbf24; }
-.dj-code-highlight :deep(.tok-hex) { color: #f472b6; font-weight: 600; }
+.dj-code-highlight :deep(.tok-hex) { color: #f472b6; }
 .dj-code-highlight :deep(.tok-pseudo) { color: #c084fc; }
-.dj-code-highlight :deep(.tok-jsx) { color: #22d3ee; font-weight: 600; }
-.dj-code-highlight :deep(.tok-framework) { color: #34d399; font-weight: 600; }
-.dj-code-highlight :deep(.tok-vue-dir) { color: #34d399; font-weight: 600; }
+.dj-code-highlight :deep(.tok-jsx) { color: #22d3ee; }
+.dj-code-highlight :deep(.tok-framework) { color: #34d399; }
+.dj-code-highlight :deep(.tok-vue-dir) { color: #34d399; }
 .dj-code-highlight :deep(.tok-vue-expr) { color: #fde047; }
 .dj-preview-bar {
     background: linear-gradient(90deg, #0d1018, #161b28);
