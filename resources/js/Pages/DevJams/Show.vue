@@ -13,6 +13,9 @@ const props = defineProps({
 
 const page = usePage();
 const authUser = computed(() => page.props.auth?.user || null);
+const canRearrangePreview = computed(() =>
+    Boolean(props.isJamCreator || (authUser.value && Number(props.jam.user_id) === Number(authUser.value.id)))
+);
 
 // IDE Layout State
 const activeSection = ref('editor'); // editor | gallery | info
@@ -21,6 +24,14 @@ const showPreview = ref(true);
 const previewFullscreen = ref(false);
 const codeTab = ref('html'); // html | css | js
 const toast = ref('');
+
+// Creator-only Dockable Preview Layout ('right' | 'bottom')
+const previewDockStorageKey = `dj_preview_dock_${props.jam.slug}`;
+const previewDock = ref('right');
+const isDraggingPreview = ref(false);
+const previewDropZone = ref(null); // 'right' | 'bottom' | null
+const previewDragCoords = ref({ x: 0, y: 0 });
+const workspaceSplitEl = ref(null);
 
 // Studio form state
 const subTitle = ref(props.mySubmission?.title || 'Mon projet Dev Jam');
@@ -39,7 +50,7 @@ const submissions = ref([...(props.jam.submissions || [])]);
 const votedIds = ref(new Set(props.votedSubmissionIds || []));
 const previewSubmission = ref(null);
 
-// Floating Live Chat State
+// Floating Live Chat State (Draggable & Persisted)
 const chatOpen = ref(true);
 const chatExpanded = ref(false);
 const showEmojiPicker = ref(false);
@@ -48,7 +59,26 @@ const chatInput = ref('');
 const sendingMessage = ref(false);
 const activeTargetSubmissionId = ref(null);
 const chatListEl = ref(null);
+const chatWindowEl = ref(null);
 const lastSentId = ref(null);
+const unreadCount = ref(0);
+
+const chatPosStorageKey = `dj_chat_pos_${props.jam.slug}`;
+const chatPos = ref({ x: null, y: null });
+const isDraggingChat = ref(false);
+let chatDragOffset = { x: 0, y: 0 };
+
+// Sound Effects (iPhone-style send swoosh)
+const soundEnabled = ref(true);
+let sharedAudioCtx = null;
+
+// Floating Social Hearts State
+const heartStorageKey = `dj_hearts_${props.jam.slug}`;
+const heartCount = ref(0);
+const heartPulse = ref(false);
+const floatingHearts = ref([]);
+let heartSeq = 0;
+const HEART_COLORS = ['#f43f5e', '#ec4899', '#fb7185', '#e11d48', '#ff4d6d', '#f97316'];
 
 const EMOJI_GROUPS = [
     '🚀', '🔥', '💻', '⚡', '🎉', '❤️', '👏', '😂',
@@ -81,6 +111,11 @@ const filteredMessages = computed(() => {
     return messages.value.filter((m) => m.submission_id === activeTargetSubmissionId.value);
 });
 
+function isMyMessage(m) {
+    if (!authUser.value) return false;
+    return Number(m.user_id) === Number(authUser.value.id);
+}
+
 function userInitials(name) {
     return String(name || 'M')
         .split(/\s+/)
@@ -102,7 +137,265 @@ function showToast(msg) {
     }, 3200);
 }
 
+function getAudioContext() {
+    if (typeof window === 'undefined') return null;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    if (!sharedAudioCtx) sharedAudioCtx = new AudioCtx();
+    if (sharedAudioCtx.state === 'suspended') {
+        sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+}
+
+function playIphoneSendSound() {
+    if (!soundEnabled.value) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+
+    // Layer 1: iMessage-style upward pitch swoosh
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(520, now);
+    osc1.frequency.exponentialRampToValueAtTime(1240, now + 0.085);
+    gain1.gain.setValueAtTime(0.001, now);
+    gain1.gain.linearRampToValueAtTime(0.16, now + 0.015);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.13);
+
+    // Layer 2: Crisp upper harmonic pop
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(980, now + 0.025);
+    osc2.frequency.exponentialRampToValueAtTime(1680, now + 0.095);
+    gain2.gain.setValueAtTime(0.001, now + 0.025);
+    gain2.gain.linearRampToValueAtTime(0.08, now + 0.04);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.025);
+    osc2.stop(now + 0.12);
+}
+
+function playHeartPopSound() {
+    if (!soundEnabled.value) return;
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    const baseFreq = 580 + Math.random() * 180;
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.45, now + 0.06);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.06, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.09);
+}
+
+function toggleSound() {
+    soundEnabled.value = !soundEnabled.value;
+    try {
+        localStorage.setItem('dj_sound_enabled', soundEnabled.value ? '1' : '0');
+    } catch {
+        // ignore storage errors
+    }
+}
+
+// Floating Hearts (Multi-click Social Animation)
+function spawnHeart(e) {
+    heartCount.value += 1;
+    heartPulse.value = true;
+    setTimeout(() => {
+        heartPulse.value = false;
+    }, 180);
+
+    try {
+        localStorage.setItem(heartStorageKey, String(heartCount.value));
+    } catch {
+        // ignore storage errors
+    }
+
+    playHeartPopSound();
+
+    const rect = e?.currentTarget?.getBoundingClientRect?.();
+    const originX = rect ? rect.left + rect.width / 2 : window.innerWidth - 60;
+    const originY = rect ? rect.top + rect.height / 2 : window.innerHeight - 80;
+
+    const burstCount = Math.random() > 0.65 ? 2 : 1;
+    for (let i = 0; i < burstCount; i++) {
+        const id = ++heartSeq;
+        const duration = 1400 + Math.round(Math.random() * 550);
+        floatingHearts.value.push({
+            id,
+            x: originX + (Math.random() * 24 - 12),
+            y: originY - 6,
+            drift: Math.round(Math.random() * 76 - 38),
+            rot: Math.round(Math.random() * 40 - 20),
+            scale: (0.85 + Math.random() * 0.55).toFixed(2),
+            color: HEART_COLORS[Math.floor(Math.random() * HEART_COLORS.length)],
+            duration,
+        });
+        setTimeout(() => {
+            floatingHearts.value = floatingHearts.value.filter((h) => h.id !== id);
+        }, duration + 60);
+    }
+}
+
+// Draggable Floating Chat Window
+function clampChatPos(x, y) {
+    const winW = window.innerWidth;
+    const winH = window.innerHeight;
+    const w = chatWindowEl.value?.offsetWidth || (chatExpanded.value ? 460 : 350);
+    const h = chatWindowEl.value?.offsetHeight || (chatExpanded.value ? 600 : 470);
+    const maxX = Math.max(8, winW - w - 8);
+    const maxY = Math.max(8, winH - h - 8);
+    return {
+        x: Math.min(Math.max(8, x), maxX),
+        y: Math.min(Math.max(8, y), maxY),
+    };
+}
+
+function getDefaultChatPos() {
+    const w = chatExpanded.value ? 460 : 350;
+    const h = chatExpanded.value ? 600 : 470;
+    return clampChatPos(window.innerWidth - w - 20, window.innerHeight - h - 38);
+}
+
+const chatStyle = computed(() => {
+    if (chatPos.value.x === null || chatPos.value.y === null) {
+        return { right: '20px', bottom: '34px' };
+    }
+    return {
+        left: `${chatPos.value.x}px`,
+        top: `${chatPos.value.y}px`,
+        right: 'auto',
+        bottom: 'auto',
+    };
+});
+
+function startChatDrag(e) {
+    if (e.target.closest('button') || e.target.closest('select')) return;
+    const el = chatWindowEl.value;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    chatPos.value = { x: rect.left, y: rect.top };
+    chatDragOffset = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    isDraggingChat.value = true;
+    window.addEventListener('pointermove', onChatDragMove);
+    window.addEventListener('pointerup', onChatDragEnd);
+}
+
+function onChatDragMove(e) {
+    if (!isDraggingChat.value) return;
+    chatPos.value = clampChatPos(e.clientX - chatDragOffset.x, e.clientY - chatDragOffset.y);
+}
+
+function onChatDragEnd() {
+    if (!isDraggingChat.value) return;
+    isDraggingChat.value = false;
+    window.removeEventListener('pointermove', onChatDragMove);
+    window.removeEventListener('pointerup', onChatDragEnd);
+    try {
+        localStorage.setItem(chatPosStorageKey, JSON.stringify(chatPos.value));
+    } catch {
+        // ignore storage errors
+    }
+}
+
+function resetChatPosition() {
+    chatPos.value = getDefaultChatPos();
+    try {
+        localStorage.setItem(chatPosStorageKey, JSON.stringify(chatPos.value));
+    } catch {
+        // ignore storage errors
+    }
+}
+
+// Creator-Only Draggable & Dockable Preview ("Aperçu en direct")
+function setPreviewDock(zone) {
+    if (!canRearrangePreview.value) return;
+    previewDock.value = zone === 'bottom' ? 'bottom' : 'right';
+    try {
+        localStorage.setItem(previewDockStorageKey, previewDock.value);
+    } catch {
+        // ignore storage errors
+    }
+}
+
+let previewDragStart = { x: 0, y: 0 };
+function startPreviewDrag(e) {
+    if (!canRearrangePreview.value) return;
+    if (e.target.closest('button')) return;
+    previewDragStart = { x: e.clientX, y: e.clientY };
+    previewDragCoords.value = { x: e.clientX, y: e.clientY };
+    isDraggingPreview.value = false;
+    window.addEventListener('pointermove', onPreviewDragMove);
+    window.addEventListener('pointerup', onPreviewDragEnd);
+}
+
+function onPreviewDragMove(e) {
+    const dx = e.clientX - previewDragStart.x;
+    const dy = e.clientY - previewDragStart.y;
+    if (!isDraggingPreview.value && Math.hypot(dx, dy) < 10) return;
+
+    isDraggingPreview.value = true;
+    previewDragCoords.value = { x: e.clientX, y: e.clientY };
+
+    const rect = workspaceSplitEl.value?.getBoundingClientRect();
+    if (!rect) {
+        previewDropZone.value = e.clientY > window.innerHeight * 0.55 ? 'bottom' : 'right';
+        return;
+    }
+    const relY = (e.clientY - rect.top) / Math.max(1, rect.height);
+    const relX = (e.clientX - rect.left) / Math.max(1, rect.width);
+    if (relY > 0.55) {
+        previewDropZone.value = 'bottom';
+    } else if (relX > 0.45) {
+        previewDropZone.value = 'right';
+    } else {
+        previewDropZone.value = 'bottom';
+    }
+}
+
+function onPreviewDragEnd() {
+    window.removeEventListener('pointermove', onPreviewDragMove);
+    window.removeEventListener('pointerup', onPreviewDragEnd);
+    if (isDraggingPreview.value && previewDropZone.value) {
+        setPreviewDock(previewDropZone.value);
+        showToast(
+            previewDropZone.value === 'bottom'
+                ? 'Aperçu placé en bas du Sandbox (pleine largeur).'
+                : 'Aperçu replacé à droite du Sandbox.'
+        );
+    }
+    isDraggingPreview.value = false;
+    previewDropZone.value = null;
+}
+
 function handleTabKey(e, target) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveMySubmission();
+        return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        previewKey.value++;
+        return;
+    }
     if (e.key !== 'Tab') return;
     e.preventDefault();
     const el = e.target;
@@ -181,6 +474,7 @@ async function sendMessage() {
             messages.value.push(newMsg);
         }
         chatInput.value = '';
+        playIphoneSendSound();
         nextTick(scrollChatBottom);
     } catch (e) {
         showToast(e.response?.data?.message || 'Message non envoyé.');
@@ -204,16 +498,27 @@ async function pollMessages() {
         const res = await apiClient.get(`/dev-jams/${props.jam.slug}/messages?after_id=${lastId}`);
         const incoming = res.data.messages || [];
         if (incoming.length) {
+            let added = 0;
             incoming.forEach((m) => {
                 if (!messages.value.some((x) => x.id === m.id)) {
                     messages.value.push(m);
+                    added += 1;
                 }
             });
+            if (added > 0 && !chatOpen.value) {
+                unreadCount.value += added;
+            }
             nextTick(scrollChatBottom);
         }
     } catch {
         // silent background poll
     }
+}
+
+function openChat() {
+    chatOpen.value = true;
+    unreadCount.value = 0;
+    nextTick(scrollChatBottom);
 }
 
 function scrollChatBottom() {
@@ -241,19 +546,52 @@ function updateCountdown() {
 
 function focusSubmissionChat(sub) {
     activeTargetSubmissionId.value = sub.id;
-    chatOpen.value = true;
+    openChat();
+}
+
+function handleWindowResize() {
+    if (chatPos.value.x !== null && chatPos.value.y !== null) {
+        chatPos.value = clampChatPos(chatPos.value.x, chatPos.value.y);
+    }
 }
 
 onMounted(() => {
+    try {
+        const savedPos = localStorage.getItem(chatPosStorageKey);
+        if (savedPos) {
+            const parsed = JSON.parse(savedPos);
+            if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+                chatPos.value = clampChatPos(parsed.x, parsed.y);
+            }
+        }
+        const savedDock = localStorage.getItem(previewDockStorageKey);
+        if (savedDock === 'bottom' || savedDock === 'right') {
+            previewDock.value = savedDock;
+        }
+        const savedHearts = Number(localStorage.getItem(heartStorageKey) || 0);
+        if (!Number.isNaN(savedHearts)) heartCount.value = savedHearts;
+
+        const savedSound = localStorage.getItem('dj_sound_enabled');
+        if (savedSound === '0') soundEnabled.value = false;
+    } catch {
+        // ignore storage errors
+    }
+
     updateCountdown();
     countdownTimer = setInterval(updateCountdown, 1000);
     pollTimer = setInterval(pollMessages, 3500);
+    window.addEventListener('resize', handleWindowResize);
     nextTick(scrollChatBottom);
 });
 
 onUnmounted(() => {
     clearInterval(countdownTimer);
     clearInterval(pollTimer);
+    window.removeEventListener('resize', handleWindowResize);
+    window.removeEventListener('pointermove', onChatDragMove);
+    window.removeEventListener('pointerup', onChatDragEnd);
+    window.removeEventListener('pointermove', onPreviewDragMove);
+    window.removeEventListener('pointerup', onPreviewDragEnd);
 });
 </script>
 
@@ -350,10 +688,12 @@ onUnmounted(() => {
                     class="dj-activity-btn mt-auto"
                     :class="{ active: chatOpen }"
                     title="Live Chat Flottant"
-                    @click="chatOpen = !chatOpen"
+                    @click="chatOpen ? (chatOpen = false) : openChat()"
                 >
                     <i class="bi bi-chat-dots-fill fs-5"></i>
-                    <span class="dj-mini-badge bg-primary">{{ filteredMessages.length }}</span>
+                    <span class="dj-mini-badge" :class="unreadCount > 0 ? 'bg-danger' : 'bg-primary'">
+                        {{ unreadCount > 0 ? `+${unreadCount}` : filteredMessages.length }}
+                    </span>
                 </button>
             </aside>
 
@@ -414,9 +754,22 @@ onUnmounted(() => {
                     </div>
 
                     <!-- Studio Code + Live Preview Split -->
-                    <div v-else class="d-flex flex-column flex-lg-row flex-grow-1 overflow-hidden">
+                    <div
+                        v-else
+                        ref="workspaceSplitEl"
+                        class="d-flex flex-grow-1 overflow-hidden position-relative"
+                        :class="previewDock === 'bottom' ? 'flex-column' : 'flex-column flex-lg-row'"
+                    >
                         <!-- Code Pane -->
-                        <div v-show="!previewFullscreen" class="d-flex flex-column overflow-hidden" :class="showPreview ? 'w-100 w-lg-50 border-end border-secondary border-opacity-25' : 'w-100'" style="min-height: 45%;">
+                        <div
+                            v-show="!previewFullscreen"
+                            class="d-flex flex-column overflow-hidden"
+                            :class="[
+                                previewDock === 'bottom'
+                                    ? (showPreview ? 'w-100 dj-split-bottom-pane border-bottom border-secondary border-opacity-25' : 'w-100 h-100')
+                                    : (showPreview ? 'w-100 w-lg-50 border-end border-secondary border-opacity-25' : 'w-100'),
+                            ]"
+                        >
                             <!-- VS Code Tabs -->
                             <div class="dj-tabs d-flex align-items-center justify-content-between px-2 border-bottom">
                                 <div class="d-flex">
@@ -465,14 +818,40 @@ onUnmounted(() => {
                         </div>
 
                         <!-- Live Preview Pane ("Aperçu en direct" in sleek browser frame) -->
-                        <div v-if="showPreview" class="d-flex flex-column overflow-hidden bg-black" :class="previewFullscreen ? 'w-100' : 'w-100 w-lg-50'" style="min-height: 45%;">
-                            <div class="dj-preview-bar d-flex align-items-center justify-content-between px-3 py-1 border-bottom">
+                        <div
+                            v-if="showPreview"
+                            class="d-flex flex-column overflow-hidden bg-black"
+                            :class="[
+                                previewFullscreen
+                                    ? 'w-100 h-100'
+                                    : (previewDock === 'bottom' ? 'w-100 dj-split-bottom-pane' : 'w-100 w-lg-50'),
+                            ]"
+                        >
+                            <div
+                                class="dj-preview-bar d-flex align-items-center justify-content-between px-3 py-1 border-bottom user-select-none"
+                                :class="{ 'dj-preview-draggable': canRearrangePreview && !previewFullscreen }"
+                                :title="canRearrangePreview ? 'Maintenir et glisser pour placer en bas du Sandbox ou à droite' : ''"
+                                @pointerdown="startPreviewDrag"
+                            >
                                 <div class="d-flex align-items-center gap-2">
+                                    <i v-if="canRearrangePreview && !previewFullscreen" class="bi bi-grip-vertical text-white-50"></i>
                                     <span class="badge bg-success bg-opacity-25 text-success rounded-pill" style="font-size: 10px;">● LIVE</span>
                                     <span class="small text-white-50 font-monospace" style="font-size: 11px;">Aperçu en direct</span>
+                                    <span v-if="canRearrangePreview" class="badge bg-white bg-opacity-10 text-info d-none d-xl-inline" style="font-size: 9px;">
+                                        {{ previewDock === 'bottom' ? 'Ancré en bas' : 'Ancré à droite' }}
+                                    </span>
                                 </div>
                                 <div class="d-flex align-items-center gap-1">
-                                    <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-2" title="Rafraîchir l'aperçu" @click="previewKey++">
+                                    <button
+                                        v-if="canRearrangePreview && !previewFullscreen"
+                                        type="button"
+                                        class="btn btn-xs dj-btn-ghost py-0 px-2"
+                                        :title="previewDock === 'bottom' ? 'Revenir à droite du Sandbox' : 'Placer en bas du Sandbox'"
+                                        @click="setPreviewDock(previewDock === 'bottom' ? 'right' : 'bottom')"
+                                    >
+                                        <i class="bi" :class="previewDock === 'bottom' ? 'bi-layout-sidebar-reverse' : 'bi-layout-split'"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-2" title="Rafraîchir l'aperçu (Ctrl+Entrée)" @click="previewKey++">
                                         <i class="bi bi-arrow-clockwise"></i>
                                     </button>
                                     <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-2" :title="previewFullscreen ? 'Réduire' : 'Plein écran'" @click="previewFullscreen = !previewFullscreen">
@@ -487,6 +866,25 @@ onUnmounted(() => {
                                 class="w-100 border-0 flex-grow-1 bg-white"
                                 title="Aperçu en direct Dev Jam"
                             ></iframe>
+                        </div>
+
+                        <!-- Creator Drag-and-Drop Zone Overlays -->
+                        <div v-if="isDraggingPreview" class="dj-drop-overlay">
+                            <div class="dj-drop-zone dj-drop-right" :class="{ active: previewDropZone === 'right' }">
+                                <i class="bi bi-layout-sidebar-reverse fs-3 mb-2"></i>
+                                <span class="fw-semibold small">Aperçu à droite (côte à côte)</span>
+                            </div>
+                            <div class="dj-drop-zone dj-drop-bottom" :class="{ active: previewDropZone === 'bottom' }">
+                                <i class="bi bi-layout-split fs-3 mb-2"></i>
+                                <span class="fw-semibold small">Aperçu en bas du Sandbox (pleine largeur)</span>
+                            </div>
+                        </div>
+                        <div
+                            v-if="isDraggingPreview"
+                            class="dj-drag-ghost badge rounded-pill px-3 py-2 shadow-lg"
+                            :style="{ left: `${previewDragCoords.x + 14}px`, top: `${previewDragCoords.y + 14}px` }"
+                        >
+                            <i class="bi bi-window me-1"></i>Aperçu en direct
                         </div>
                     </div>
                 </template>
@@ -569,21 +967,58 @@ onUnmounted(() => {
                 <span class="d-none d-md-inline">UTF-8</span>
                 <span>{{ codeTab.toUpperCase() }}</span>
                 <span class="d-none d-sm-inline">{{ submissions.length }} projet(s)</span>
+                <button
+                    type="button"
+                    class="btn btn-xs rounded-pill px-2 py-0 dj-heart-btn d-flex align-items-center gap-1"
+                    :class="{ 'is-pulsing': heartPulse }"
+                    title="Envoyer des cœurs (cliquez plusieurs fois !)"
+                    @click="spawnHeart($event)"
+                >
+                    <i class="bi bi-heart-fill text-danger"></i>
+                    <span class="fw-bold" style="font-size: 11px;">{{ heartCount }}</span>
+                </button>
             </div>
         </footer>
 
-        <!-- FLOATING LIVE CHAT WINDOW -->
-        <div v-if="chatOpen" class="dj-floating-chat shadow-lg d-flex flex-column" :class="{ expanded: chatExpanded }">
-            <div class="dj-chat-header d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="dj-live-dot"></span>
-                    <span class="fw-bold small text-white">Live Chat &amp; Commentaires</span>
+        <!-- FLOATING LIVE CHAT WINDOW (Draggable by any participant) -->
+        <div
+            v-if="chatOpen"
+            ref="chatWindowEl"
+            class="dj-floating-chat shadow-lg d-flex flex-column"
+            :class="{ expanded: chatExpanded, 'is-dragging': isDraggingChat }"
+            :style="chatStyle"
+        >
+            <div
+                class="dj-chat-header d-flex align-items-center justify-content-between px-3 py-2 border-bottom user-select-none"
+                title="Maintenir pour déplacer le chat n'importe où sur l'écran"
+                @pointerdown="startChatDrag"
+            >
+                <div class="d-flex align-items-center gap-2 min-w-0">
+                    <i class="bi bi-grip-horizontal text-white-50"></i>
+                    <span class="dj-live-dot flex-shrink-0"></span>
+                    <span class="fw-bold small text-white text-truncate">Live Chat &amp; Commentaires</span>
                 </div>
-                <div class="d-flex align-items-center gap-1">
+                <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                    <button
+                        type="button"
+                        class="btn btn-xs dj-btn-ghost"
+                        :title="soundEnabled ? 'Désactiver le son d\'envoi' : 'Activer le son d\'envoi'"
+                        @click="toggleSound"
+                    >
+                        <i class="bi" :class="soundEnabled ? 'bi-volume-up-fill text-info' : 'bi-volume-mute-fill text-white-50'"></i>
+                    </button>
+                    <button
+                        type="button"
+                        class="btn btn-xs dj-btn-ghost"
+                        title="Réinitialiser la position du chat"
+                        @click="resetChatPosition"
+                    >
+                        <i class="bi bi-geo-alt"></i>
+                    </button>
                     <button type="button" class="btn btn-xs dj-btn-ghost" :title="chatExpanded ? 'Réduire' : 'Agrandir'" @click="chatExpanded = !chatExpanded">
                         <i class="bi" :class="chatExpanded ? 'bi-arrows-angle-contract' : 'bi-arrows-angle-expand'"></i>
                     </button>
-                    <button type="button" class="btn btn-xs dj-btn-ghost" title="Fermer le chat" @click="chatOpen = false">
+                    <button type="button" class="btn btn-xs dj-btn-ghost" title="Réduire en bulle" @click="chatOpen = false">
                         <i class="bi bi-dash-lg"></i>
                     </button>
                 </div>
@@ -608,23 +1043,30 @@ onUnmounted(() => {
                     :key="m.id"
                     class="d-flex gap-2 align-items-end dj-msg-anim"
                     :class="[
-                        authUser && m.user_id === authUser.id ? 'flex-row-reverse' : 'flex-row',
+                        isMyMessage(m) ? 'flex-row-reverse' : 'flex-row',
                         lastSentId === m.id ? 'dj-msg-just-sent' : '',
                     ]"
                 >
-                    <div class="dj-avatar flex-shrink-0">
+                    <div class="dj-avatar flex-shrink-0" :class="isMyMessage(m) ? 'dj-avatar-me' : 'dj-avatar-other'">
                         {{ userInitials(m.user?.name) }}
                     </div>
                     <div
                         class="dj-bubble px-3 py-2"
-                        :class="authUser && m.user_id === authUser.id ? 'dj-bubble-me' : 'dj-bubble-other'"
+                        :class="isMyMessage(m) ? 'dj-bubble-me' : 'dj-bubble-other'"
                     >
                         <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
-                            <span class="fw-bold" style="font-size: 11px;">{{ m.user?.name || 'Membre' }}</span>
-                            <div class="d-flex align-items-center gap-1">
-                                <span class="opacity-50" style="font-size: 10px;">{{ formatMsgTime(m.created_at) }}</span>
+                            <div class="d-flex align-items-center gap-1 min-w-0">
+                                <span class="fw-bold text-truncate" style="font-size: 11px;">
+                                    {{ isMyMessage(m) ? 'Vous' : (m.user?.name || 'Membre') }}
+                                </span>
+                                <span v-if="Number(m.user_id) === Number(jam.user_id)" class="badge bg-warning bg-opacity-25 text-warning" style="font-size: 9px;">
+                                    Créateur
+                                </span>
+                            </div>
+                            <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                <span class="opacity-75" style="font-size: 10px;">{{ formatMsgTime(m.created_at) }}</span>
                                 <button
-                                    v-if="authUser && (m.user_id === authUser.id || isJamCreator)"
+                                    v-if="authUser && (isMyMessage(m) || canRearrangePreview)"
                                     type="button"
                                     class="btn btn-link p-0 text-danger opacity-75"
                                     style="font-size: 10px;"
@@ -692,11 +1134,33 @@ onUnmounted(() => {
         <button
             v-else
             type="button"
-            class="dj-chat-launcher btn btn-primary rounded-pill shadow-lg px-3 py-2 fw-semibold"
-            @click="chatOpen = true"
+            class="dj-chat-launcher btn btn-primary rounded-pill shadow-lg px-3 py-2 fw-semibold d-flex align-items-center gap-2"
+            @click="openChat"
         >
-            <i class="bi bi-chat-dots-fill me-2"></i>Live Chat ({{ filteredMessages.length }})
+            <i class="bi bi-chat-dots-fill"></i>
+            <span>Live Chat ({{ filteredMessages.length }})</span>
+            <span v-if="unreadCount > 0" class="badge bg-danger rounded-pill">+{{ unreadCount }}</span>
         </button>
+
+        <!-- Floating Social Hearts Layer -->
+        <div class="dj-hearts-overlay" aria-hidden="true">
+            <div
+                v-for="h in floatingHearts"
+                :key="h.id"
+                class="dj-floating-heart"
+                :style="{
+                    left: `${h.x}px`,
+                    top: `${h.y}px`,
+                    color: h.color,
+                    '--drift-x': `${h.drift}px`,
+                    '--rot': `${h.rot}deg`,
+                    '--heart-scale': h.scale,
+                    '--duration': `${h.duration}ms`,
+                }"
+            >
+                <i class="bi bi-heart-fill"></i>
+            </div>
+        </div>
 
         <!-- Fullscreen Submission Preview Modal -->
         <div v-if="previewSubmission" class="position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-75 d-flex align-items-center justify-content-center p-3" style="z-index: 2700;" @click="previewSubmission = null">
@@ -830,6 +1294,61 @@ onUnmounted(() => {
     background: linear-gradient(90deg, #0d1018, #161b28);
     border-color: rgba(255, 255, 255, 0.08) !important;
 }
+.dj-preview-draggable {
+    cursor: grab;
+}
+.dj-preview-draggable:active {
+    cursor: grabbing;
+}
+.dj-split-bottom-pane {
+    height: 50% !important;
+    min-height: 0;
+}
+.dj-drop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2100;
+    background: rgba(5, 7, 12, 0.65);
+    backdrop-filter: blur(4px);
+    pointer-events: none;
+}
+.dj-drop-zone {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed rgba(56, 189, 248, 0.4);
+    background: rgba(15, 23, 42, 0.65);
+    color: #cbd5e1;
+    border-radius: 14px;
+    transition: all 0.15s ease;
+}
+.dj-drop-right {
+    top: 12px;
+    right: 12px;
+    width: calc(50% - 18px);
+    height: calc(54% - 18px);
+}
+.dj-drop-bottom {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    height: calc(46% - 18px);
+}
+.dj-drop-zone.active {
+    border-color: #38bdf8;
+    background: rgba(14, 165, 233, 0.24);
+    color: #ffffff;
+    box-shadow: 0 0 24px rgba(56, 189, 248, 0.35);
+}
+.dj-drag-ghost {
+    position: fixed;
+    z-index: 2650;
+    pointer-events: none;
+    background: linear-gradient(135deg, #4f46e5, #06b6d4);
+    color: #ffffff;
+}
 .dj-statusbar {
     background: linear-gradient(90deg, #090b10 0%, #111625 100%);
     border-color: rgba(255, 255, 255, 0.08) !important;
@@ -869,27 +1388,33 @@ onUnmounted(() => {
 }
 .dj-floating-chat {
     position: fixed;
-    right: 20px;
-    bottom: 34px;
     width: 350px;
     height: 470px;
-    max-width: calc(100vw - 24px);
-    max-height: calc(100vh - 90px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 24px);
     border-radius: 18px;
     background: linear-gradient(160deg, rgba(16, 20, 30, 0.96) 0%, rgba(8, 10, 16, 0.98) 100%);
     border: 1px solid rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(18px);
     z-index: 2200;
     overflow: hidden;
-    transition: width 0.2s ease, height 0.2s ease;
+    transition: width 0.2s ease, height 0.2s ease, box-shadow 0.2s ease;
+}
+.dj-floating-chat.is-dragging {
+    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(99, 102, 241, 0.5) !important;
 }
 .dj-floating-chat.expanded {
     width: 460px;
     height: 600px;
 }
 .dj-chat-header {
-    background: linear-gradient(90deg, rgba(99, 102, 241, 0.18), rgba(6, 182, 212, 0.08));
+    background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(6, 182, 212, 0.08));
     border-color: rgba(255, 255, 255, 0.08) !important;
+    cursor: grab;
+    touch-action: none;
+}
+.dj-floating-chat.is-dragging .dj-chat-header {
+    cursor: grabbing;
 }
 .dj-live-dot {
     width: 8px;
@@ -902,28 +1427,81 @@ onUnmounted(() => {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #334155, #1e293b);
-    color: #e2e8f0;
     font-size: 10px;
     font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
 }
+.dj-avatar-me {
+    background: linear-gradient(135deg, #10b981, #0891b2);
+    color: #ffffff;
+}
+.dj-avatar-other {
+    background: linear-gradient(135deg, #334155, #1e293b);
+    color: #e2e8f0;
+}
 .dj-bubble {
     max-width: 78%;
     border-radius: 16px;
 }
 .dj-bubble-me {
-    background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
     color: #ffffff;
+    border: 1px solid rgba(52, 211, 153, 0.45);
     border-bottom-right-radius: 4px;
+    box-shadow: 0 6px 18px rgba(5, 150, 105, 0.22);
 }
 .dj-bubble-other {
-    background: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(145deg, #1b2131 0%, #121622 100%);
     color: #e2e8f0;
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.09);
     border-bottom-left-radius: 4px;
+}
+.dj-heart-btn {
+    background: rgba(244, 63, 94, 0.14);
+    border: 1px solid rgba(244, 63, 94, 0.35);
+    color: #fda4af;
+    transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), background 0.16s ease;
+}
+.dj-heart-btn:hover {
+    background: rgba(244, 63, 94, 0.25);
+    color: #ffffff;
+}
+.dj-heart-btn.is-pulsing {
+    transform: scale(1.16);
+}
+.dj-hearts-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2550;
+    overflow: hidden;
+}
+.dj-floating-heart {
+    position: fixed;
+    font-size: 22px;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 4px 10px rgba(244, 63, 94, 0.5));
+    animation: floatHeartUp var(--duration, 1600ms) cubic-bezier(0.18, 0.89, 0.32, 1) forwards;
+    will-change: transform, opacity;
+}
+@keyframes floatHeartUp {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
+    }
+    15% {
+        opacity: 1;
+        transform: translate(calc(-50% + var(--drift-x, 0px) * 0.25), -85px) scale(var(--heart-scale, 1.1)) rotate(calc(var(--rot, 0deg) * 0.4));
+    }
+    70% {
+        opacity: 0.92;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--drift-x, 0px)), -230px) scale(calc(var(--heart-scale, 1) * 0.75)) rotate(var(--rot, 0deg));
+    }
 }
 .dj-emoji-tray {
     background: rgba(10, 12, 18, 0.96);
