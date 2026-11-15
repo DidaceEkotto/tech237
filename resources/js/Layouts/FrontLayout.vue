@@ -253,6 +253,11 @@
             <i class="bi bi-calendar-event me-1"></i> Événements
           </Link>
 
+          <!-- Dev Jams Studio -->
+          <Link href="/dev-jams" class="nav-item-link" :class="{ 'active': $page.url.startsWith('/dev-jams') }">
+            <i class="bi bi-code-slash me-1 text-primary"></i> Dev Jams
+          </Link>
+
           <!-- Offres d'Emploi IT -->
           <Link href="/emplois" class="nav-item-link" :class="{ 'active': $page.url.startsWith('/emploi') }">
             <i class="bi bi-briefcase-fill me-1"></i> Emplois

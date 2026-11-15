@@ -106,6 +106,9 @@
                     <span class="badge bg-warning text-dark ms-auto" title="En attente de validation">{{ $pendingConferencesCount }}</span>
                 @endif
             </a>
+            <a href="{{ route('admin.devjams.index') }}" class="nav-link {{ request()->routeIs('admin.devjams.*') ? 'active' : '' }}">
+                <i class="bi bi-code-slash"></i> Dev Jams Studio
+            </a>
             <a href="{{ route('admin.jobs.index') }}" class="nav-link {{ request()->routeIs('admin.jobs.*') ? 'active' : '' }}">
                 <i class="bi bi-briefcase-fill"></i> Offres d'Emploi IT
                 @php $pendingJobsCount = \App\Models\JobOffer::where('status', 'pending_validation')->count(); @endphp

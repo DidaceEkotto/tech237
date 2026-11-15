@@ -139,6 +139,19 @@ Route::get('/conference/{slug}', [ConferenceController::class, 'show'])->name('c
 Route::post('/conference/{id}/inscription', [ConferenceController::class, 'register'])->name('conferences.register');
 Route::post('/conference/proposer', [ConferenceController::class, 'propose'])->name('conferences.propose')->middleware('auth:web');
 
+// Dev Jams Studio (Jams Officielles & Communautaires + Éditeur HTML/CSS/JS + Live Chat)
+Route::get('/dev-jams', [App\Http\Controllers\Front\DevJamController::class, 'index'])->name('devjams.index');
+Route::middleware('auth:web')->group(function () {
+    Route::get('/dev-jams/creer', [App\Http\Controllers\Front\DevJamController::class, 'createCommunity'])->name('devjams.create');
+    Route::post('/dev-jams/creer', [App\Http\Controllers\Front\DevJamController::class, 'storeCommunity'])->name('devjams.store');
+    Route::post('/dev-jams/{slug}/soumettre', [App\Http\Controllers\Front\DevJamController::class, 'saveSubmission'])->name('devjams.submit');
+    Route::post('/dev-jams/{slug}/submissions/{submission}/vote', [App\Http\Controllers\Front\DevJamController::class, 'voteSubmission'])->name('devjams.vote');
+    Route::post('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'postMessage'])->name('devjams.messages.post')->middleware('throttle:20,1');
+    Route::delete('/dev-jams/{slug}/messages/{message}', [App\Http\Controllers\Front\DevJamController::class, 'deleteMessage'])->name('devjams.messages.delete');
+});
+Route::get('/dev-jams/{slug}', [App\Http\Controllers\Front\DevJamController::class, 'show'])->name('devjams.show');
+Route::get('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'fetchMessages'])->name('devjams.messages.fetch');
+
 // Offres d'Emploi IT
 Route::get('/emplois', [JobController::class, 'index'])->name('jobs.index');
 Route::get('/emploi/{slug}', [JobController::class, 'show'])->name('jobs.show');
@@ -557,6 +570,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // Rétention & Communauté
         Route::get('/polls', AdminPollsIndex::class)->name('polls.index');
         Route::get('/pocs', AdminPocsIndex::class)->name('pocs.index');
+        Route::get('/dev-jams', App\Livewire\Admin\DevJams\Index::class)->name('devjams.index');
         Route::get('/messages', App\Livewire\Admin\Messages\Index::class)->name('messages.index');
         Route::get('/retention/upvotes', AdminUpvotesIndex::class)->name('retention.upvotes');
         Route::get('/retention/badges', AdminBadgesIndex::class)->name('retention.badges');
