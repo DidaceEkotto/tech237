@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Front;
 
 use App\Http\Controllers\Controller;
 use App\Models\DevJam;
+use App\Models\DevJamCreatorBlock;
 use App\Models\DevJamMessage;
+use App\Models\DevJamOutcomeVote;
 use App\Models\DevJamPoll;
 use App\Models\DevJamPollOption;
 use App\Models\DevJamPollVote;
@@ -24,28 +26,51 @@ class DevJamController extends Controller
         $mode = $request->query('mode', 'all'); // all | official | community
         $userId = Auth::guard('web')->id();
 
-        $query = DevJam::with(['creatorUser:id,name,username,avatar', 'creatorAdmin:id,name'])
+        $query = DevJam::with(['creatorUser:id,name,first_name,username,avatar', 'creatorAdmin:id,name'])
             ->withCount(['submissions', 'messages'])
             ->where(function ($q) use ($userId) {
                 $q->whereNotIn('status', ['pending_validation', 'rejected']);
                 if ($userId) {
                     $q->orWhere('creator_user_id', $userId);
                 }
-            })
-            ->orderByDesc('is_featured')
-            ->latest();
+            });
 
         if (in_array($mode, ['official', 'community'], true)) {
             $query->where('mode', $mode);
         }
 
-        $jams = $query->get()->map(function (DevJam $jam) {
+        $blockedCreatorIds = $userId
+            ? DevJamCreatorBlock::where('blocked_user_id', $userId)->pluck('creator_user_id')->all()
+            : [];
+
+        $jams = $query->get()->map(function (DevJam $jam) use ($blockedCreatorIds) {
             $jam->effective_status = $jam->computedStatus();
+            $jam->online_count = $this->getJamOnlineCount($jam);
+            $jam->hearts_count = (int) ($jam->hearts_count ?? 0);
+            $jam->popularity_score = ($jam->online_count * 5)
+                + ((int) $jam->submissions_count * 3)
+                + ((int) $jam->messages_count * 2)
+                + $jam->hearts_count;
+            $jam->is_blocked_for_me = $jam->creator_user_id && in_array($jam->creator_user_id, $blockedCreatorIds, true);
             return $jam;
-        });
+        })->sortByDesc(function (DevJam $jam) {
+            $statusWeight = $jam->effective_status === 'active' ? 2 : ($jam->effective_status === 'upcoming' ? 1 : 0);
+            return [
+                $jam->is_featured ? 1 : 0,
+                $statusWeight,
+                $jam->popularity_score,
+                $jam->id,
+            ];
+        })->values();
+
+        $activeJams = $jams->where('effective_status', 'active')->values();
+        $popularJams = $activeJams->count() > 1
+            ? $activeJams->sortByDesc('popularity_score')->take(3)->values()
+            : collect([]);
 
         return Inertia::render('DevJams/Index', [
             'jams' => $jams,
+            'popularJams' => $popularJams,
             'modeFilter' => $mode,
             'counts' => [
                 'all' => $jams->count(),
@@ -53,6 +78,29 @@ class DevJamController extends Controller
                 'community' => DevJam::where('mode', 'community')->whereNotIn('status', ['pending_validation', 'rejected'])->count(),
             ],
         ]);
+    }
+
+    public function liveStats()
+    {
+        $jams = DevJam::withCount(['submissions', 'messages'])
+            ->whereNotIn('status', ['pending_validation', 'rejected'])
+            ->get()
+            ->mapWithKeys(function (DevJam $jam) {
+                $online = $this->getJamOnlineCount($jam);
+                $hearts = (int) ($jam->hearts_count ?? 0);
+                return [
+                    $jam->id => [
+                        'effective_status' => $jam->computedStatus(),
+                        'submissions_count' => (int) $jam->submissions_count,
+                        'messages_count' => (int) $jam->messages_count,
+                        'hearts_count' => $hearts,
+                        'online_count' => $online,
+                        'popularity_score' => ($online * 5) + ((int) $jam->submissions_count * 3) + ((int) $jam->messages_count * 2) + $hearts,
+                    ],
+                ];
+            });
+
+        return response()->json(['stats' => $jams]);
     }
 
     public function createCommunity()
@@ -106,14 +154,17 @@ class DevJamController extends Controller
     public function show(Request $request, string $slug)
     {
         $jam = DevJam::with([
-            'creatorUser:id,name,username,avatar',
+            'creatorUser:id,name,first_name,username,avatar',
             'creatorAdmin:id,name',
-            'submissions' => fn ($q) => $q->with('user:id,name,username,avatar')->orderByDesc('votes_count')->latest(),
+            'submissions' => fn ($q) => $q->with('user:id,name,first_name,username,avatar')->orderByDesc('votes_count')->latest(),
         ])->where('slug', $slug)->firstOrFail();
 
         $user = Auth::guard('web')->user();
         if (in_array($jam->status, ['pending_validation', 'rejected'], true) && (!$user || $jam->creator_user_id !== $user->id)) {
             abort(404);
+        }
+        if ($this->isBlockedFromJam($jam, $user)) {
+            abort(403, 'Vous avez été bloqué par le créateur de cette Jam et ne pouvez plus accéder à ses Dev Jams.');
         }
 
         $jam->effective_status = $jam->computedStatus();
@@ -161,13 +212,21 @@ class DevJamController extends Controller
             'initialMessageReactions' => Cache::get("dev_jam:{$jam->id}:msg_reactions", []),
             'initialSprint' => $this->getActiveSprint($jam),
             'initialCreatorActiveTab' => Cache::get("dev_jam:{$jam->id}:creator_tab", 'html'),
+            'initialOutcomeVotes' => $this->getOutcomeVotesSnapshot($jam, $user?->id),
         ]);
     }
 
     public function saveSubmission(Request $request, string $slug)
     {
         $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+        if ($this->isBlockedFromJam($jam, $user)) {
+            return response()->json(['message' => 'Accès refusé par le créateur de cette Jam.'], 403);
+        }
         $effective = $jam->computedStatus();
+        if ($effective === 'suspended') {
+            return response()->json(['message' => 'Cette Dev Jam a été suspendue car le créateur a quitté la session.'], 423);
+        }
         if (in_array($effective, ['ended', 'rejected'], true)) {
             return response()->json(['message' => 'Cette Dev Jam est terminée.'], 422);
         }
@@ -286,12 +345,22 @@ class DevJamController extends Controller
             'message_reactions' => Cache::get("dev_jam:{$jam->id}:msg_reactions", []),
             'sprint' => $this->getActiveSprint($jam),
             'creator_active_tab' => Cache::get("dev_jam:{$jam->id}:creator_tab", 'html'),
+            'effective_status' => $jam->computedStatus(),
+            'is_suspended' => (bool) $jam->is_suspended,
+            'outcome_votes' => $this->getOutcomeVotesSnapshot($jam, $userId),
         ]);
     }
 
     public function addHeart(Request $request, string $slug)
     {
         $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+        if ($this->isBlockedFromJam($jam, $user)) {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+        if ($jam->computedStatus() === 'suspended') {
+            return response()->json(['message' => 'Cette Dev Jam est suspendue.'], 423);
+        }
         $delta = max(1, min(20, (int) $request->input('count', 1)));
         $jam->increment('hearts_count', $delta);
         $jam->refresh();
@@ -336,6 +405,13 @@ class DevJamController extends Controller
     public function postMessage(Request $request, string $slug)
     {
         $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+        if ($this->isBlockedFromJam($jam, $user)) {
+            return response()->json(['message' => 'Vous avez été bloqué par le créateur de cette Jam.'], 403);
+        }
+        if ($jam->computedStatus() === 'suspended') {
+            return response()->json(['message' => 'Cette Dev Jam est suspendue : le chat est verrouillé.'], 423);
+        }
 
         $validated = $request->validate([
             'message' => ['required', 'string', 'min:1', 'max:1000'],
@@ -782,6 +858,16 @@ class DevJamController extends Controller
     {
         $jam = DevJam::where('slug', $slug)->firstOrFail();
         $user = Auth::guard('web')->user();
+        if ($this->isBlockedFromJam($jam, $user)) {
+            return response()->json(['message' => 'Accès refusé.'], 403);
+        }
+        $effective = $jam->computedStatus();
+        if ($effective === 'suspended') {
+            return response()->json(['message' => 'Cette Dev Jam est suspendue.'], 423);
+        }
+        if (in_array($effective, ['ended', 'rejected'], true)) {
+            return response()->json(['message' => 'Le temps de la Jam est écoulé : mode lecture seule.'], 422);
+        }
 
         $collabKey = "dev_jam:{$jam->id}:collab";
         $state = Cache::get($collabKey, ['collaborators' => []]);
@@ -1035,5 +1121,96 @@ class DevJamController extends Controller
         }
 
         return $sprint;
+    }
+
+    public function suspendJam(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+
+        if (!$user || $jam->creator_user_id !== $user->id) {
+            return response()->json(['message' => 'Seul le créateur peut suspendre cette Jam.'], 403);
+        }
+
+        if (!$jam->is_suspended && $jam->computedStatus() !== 'ended') {
+            $jam->is_suspended = true;
+            $jam->suspended_at = now();
+            $jam->save();
+        }
+
+        return response()->json([
+            'suspended' => true,
+            'effective_status' => $jam->computedStatus(),
+        ]);
+    }
+
+    public function voteOutcome(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'Connexion requise pour voter.'], 401);
+        }
+        if ($this->isBlockedFromJam($jam, $user)) {
+            return response()->json(['message' => 'Vous avez été bloqué par le créateur de cette Jam.'], 403);
+        }
+        if ($jam->computedStatus() === 'suspended') {
+            return response()->json(['message' => 'Cette Jam est suspendue et verrouillée.'], 423);
+        }
+        if ($jam->computedStatus() !== 'ended' && (!$jam->ends_at || now()->lt($jam->ends_at))) {
+            return response()->json(['message' => 'Le vote final Oui/Non est disponible une fois la Jam terminée.'], 422);
+        }
+
+        $validated = $request->validate([
+            'vote' => ['required', 'in:yes,no'],
+        ]);
+
+        DevJamOutcomeVote::updateOrCreate(
+            ['dev_jam_id' => $jam->id, 'user_id' => $user->id],
+            ['vote' => $validated['vote']]
+        );
+
+        return response()->json([
+            'outcome_votes' => $this->getOutcomeVotesSnapshot($jam, $user->id),
+        ]);
+    }
+
+    private function isBlockedFromJam(DevJam $jam, ?User $user): bool
+    {
+        if (!$user || !$jam->creator_user_id || $jam->creator_user_id === $user->id) {
+            return false;
+        }
+
+        return DevJamCreatorBlock::where('creator_user_id', $jam->creator_user_id)
+            ->where('blocked_user_id', $user->id)
+            ->exists();
+    }
+
+    private function getOutcomeVotesSnapshot(DevJam $jam, ?int $userId): array
+    {
+        $yes = DevJamOutcomeVote::where('dev_jam_id', $jam->id)->where('vote', 'yes')->count();
+        $no = DevJamOutcomeVote::where('dev_jam_id', $jam->id)->where('vote', 'no')->count();
+        $userVote = $userId
+            ? DevJamOutcomeVote::where('dev_jam_id', $jam->id)->where('user_id', $userId)->value('vote')
+            : null;
+
+        return [
+            'yes' => $yes,
+            'no' => $no,
+            'total' => $yes + $no,
+            'user_vote' => $userVote,
+        ];
+    }
+
+    private function getJamOnlineCount(DevJam $jam): int
+    {
+        $presence = Cache::get("dev_jam:{$jam->id}:presence", []);
+        if (!is_array($presence) || empty($presence)) {
+            return 0;
+        }
+        $now = time();
+        $active = array_filter($presence, fn ($entry) => ($entry['expires_at'] ?? 0) >= $now);
+        return count($active);
     }
 }

@@ -226,8 +226,24 @@ class DashboardController extends Controller
             $q->where('user_id', $user->id)->orWhere('is_public', true);
         })->latest()->get();
 
+        $myDevJams = \App\Models\DevJam::where('creator_user_id', $user->id)
+            ->withCount(['submissions', 'messages', 'polls', 'outcomeVotes'])
+            ->latest()
+            ->get()
+            ->map(function (\App\Models\DevJam $jam) {
+                $jam->effective_status = $jam->computedStatus();
+                return $jam;
+            });
+
+        $blockedJamUsers = \App\Models\DevJamCreatorBlock::with('blockedUser:id,name,first_name,username,avatar')
+            ->where('creator_user_id', $user->id)
+            ->latest()
+            ->get();
+
         return Inertia::render('User/Dashboard', [
             'user' => $user,
+            'myDevJams' => $myDevJams,
+            'blockedJamUsers' => $blockedJamUsers,
             'startups' => $startups,
             'projects' => $projects,
             'pocs' => $pocs,

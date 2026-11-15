@@ -17,12 +17,15 @@ class DevJam extends Model
         'rules',
         'mode',
         'status',
+        'is_suspended',
+        'suspended_at',
         'creator_user_id',
         'creator_admin_id',
         'starts_at',
         'ends_at',
         'prize_text',
         'allow_external_links',
+        'hearts_count',
         'is_featured',
     ];
 
@@ -31,8 +34,11 @@ class DevJam extends Model
         return [
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
+            'suspended_at' => 'datetime',
+            'is_suspended' => 'boolean',
             'allow_external_links' => 'boolean',
             'is_featured' => 'boolean',
+            'hearts_count' => 'integer',
         ];
     }
 
@@ -61,8 +67,21 @@ class DevJam extends Model
         return $this->hasMany(DevJamVote::class);
     }
 
+    public function outcomeVotes()
+    {
+        return $this->hasMany(DevJamOutcomeVote::class);
+    }
+
+    public function polls()
+    {
+        return $this->hasMany(DevJamPoll::class);
+    }
+
     public function computedStatus(): string
     {
+        if ($this->is_suspended || $this->status === 'suspended') {
+            return 'suspended';
+        }
         if (in_array($this->status, ['pending_validation', 'rejected', 'voting', 'ended'], true)) {
             return $this->status;
         }
@@ -71,7 +90,7 @@ class DevJam extends Model
             return 'upcoming';
         }
         if ($this->ends_at && $now->gt($this->ends_at)) {
-            return 'voting';
+            return 'ended';
         }
         return 'active';
     }

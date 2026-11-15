@@ -141,9 +141,12 @@ Route::post('/conference/proposer', [ConferenceController::class, 'propose'])->n
 
 // Dev Jams Studio (Jams Officielles & Communautaires + Éditeur HTML/CSS/JS + Live Chat)
 Route::get('/dev-jams', [App\Http\Controllers\Front\DevJamController::class, 'index'])->name('devjams.index');
+Route::get('/dev-jams/live-stats', [App\Http\Controllers\Front\DevJamController::class, 'liveStats'])->name('devjams.live_stats');
 Route::middleware('auth:web')->group(function () {
     Route::get('/dev-jams/creer', [App\Http\Controllers\Front\DevJamController::class, 'createCommunity'])->name('devjams.create');
     Route::post('/dev-jams/creer', [App\Http\Controllers\Front\DevJamController::class, 'storeCommunity'])->name('devjams.store');
+    Route::post('/dev-jams/{slug}/suspend', [App\Http\Controllers\Front\DevJamController::class, 'suspendJam'])->name('devjams.suspend');
+    Route::post('/dev-jams/{slug}/outcome-vote', [App\Http\Controllers\Front\DevJamController::class, 'voteOutcome'])->name('devjams.outcome_vote');
     Route::post('/dev-jams/{slug}/soumettre', [App\Http\Controllers\Front\DevJamController::class, 'saveSubmission'])->name('devjams.submit');
     Route::post('/dev-jams/{slug}/submissions/{submission}/vote', [App\Http\Controllers\Front\DevJamController::class, 'voteSubmission'])->name('devjams.vote');
     Route::post('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'postMessage'])->name('devjams.messages.post')->middleware('throttle:20,1');
@@ -272,6 +275,9 @@ Route::middleware('guest:web')->group(function () {
 Route::middleware('auth:web')->group(function () {
     Route::post('/logout', [UserAuthController::class, 'logout'])->name('logout');
     Route::get('/espace-utilisateur', [UserDashboardController::class, 'index'])->name('user.dashboard');
+    Route::get('/espace-utilisateur/dev-jams/{slug}', [App\Http\Controllers\User\UserDevJamController::class, 'show'])->name('user.devjams.show');
+    Route::post('/espace-utilisateur/dev-jams/{slug}/block', [App\Http\Controllers\User\UserDevJamController::class, 'blockUser'])->name('user.devjams.block');
+    Route::post('/espace-utilisateur/dev-jams/{slug}/unblock', [App\Http\Controllers\User\UserDevJamController::class, 'unblockUser'])->name('user.devjams.unblock');
     
     // Quick section aliases
     Route::get('/espace-utilisateur/projets', function () {

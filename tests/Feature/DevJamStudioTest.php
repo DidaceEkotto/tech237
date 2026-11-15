@@ -96,4 +96,68 @@ class DevJamStudioTest extends TestCase
         $this->get('/dev-jams?mode=official')->assertOk();
         $this->get('/dev-jams/tech237-official-jam-1')->assertOk();
     }
+
+    public function test_creator_can_suspend_jam_vote_outcome_and_block_unblock_user(): void
+    {
+        $creator = User::factory()->create(['name' => 'Ekotto', 'first_name' => 'Didace', 'username' => 'creator237']);
+        $participant = User::factory()->create(['name' => 'Mbarga', 'first_name' => 'Paul', 'username' => 'paul237']);
+
+        $activeJam = DevJam::create([
+            'slug' => 'jam-active-lock',
+            'title' => 'Jam Active Lock',
+            'description' => 'Test suspension et blocage.',
+            'mode' => 'community',
+            'status' => 'active',
+            'creator_user_id' => $creator->id,
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addHours(2),
+        ]);
+
+        $endedJam = DevJam::create([
+            'slug' => 'jam-ended-vote',
+            'title' => 'Jam Ended Vote',
+            'description' => 'Test vote oui/non.',
+            'mode' => 'community',
+            'status' => 'active',
+            'creator_user_id' => $creator->id,
+            'starts_at' => now()->subHours(3),
+            'ends_at' => now()->subMinute(),
+        ]);
+
+        // 1. Live stats endpoint
+        $this->getJson('/dev-jams/live-stats')->assertOk()->assertJsonStructure(['stats']);
+
+        // 2. Outcome vote Oui/Non on ended jam
+        $this->actingAs($participant)
+            ->postJson("/dev-jams/{$endedJam->slug}/outcome-vote", ['vote' => 'yes'])
+            ->assertOk()
+            ->assertJsonPath('outcome_votes.yes', 1)
+            ->assertJsonPath('outcome_votes.user_vote', 'yes');
+
+        // 3. Creator manages jam in /espace-utilisateur and blocks participant
+        $this->actingAs($creator)->get("/espace-utilisateur/dev-jams/{$activeJam->slug}")->assertOk();
+        $this->actingAs($creator)
+            ->post("/espace-utilisateur/dev-jams/{$activeJam->slug}/block", ['user_id' => $participant->id])
+            ->assertRedirect();
+
+        // Blocked user cannot access any of creator's jams
+        $this->actingAs($participant)->get("/dev-jams/{$activeJam->slug}")->assertStatus(403);
+        $this->actingAs($participant)->get("/dev-jams/{$endedJam->slug}")->assertStatus(403);
+
+        // Unblock restores access
+        $this->actingAs($creator)
+            ->post("/espace-utilisateur/dev-jams/{$activeJam->slug}/unblock", ['user_id' => $participant->id])
+            ->assertRedirect();
+        $this->actingAs($participant)->get("/dev-jams/{$activeJam->slug}")->assertOk();
+
+        // 4. Creator suspends jam -> chat & submission locked (423)
+        $this->actingAs($creator)
+            ->postJson("/dev-jams/{$activeJam->slug}/suspend")
+            ->assertOk()
+            ->assertJsonPath('suspended', true);
+
+        $this->actingAs($participant)
+            ->postJson("/dev-jams/{$activeJam->slug}/messages", ['message' => 'Test après suspension'])
+            ->assertStatus(423);
+    }
 }

@@ -131,6 +131,18 @@
                 </span>
               </button>
 
+              <button 
+                @click="setSection('devjams')" 
+                class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+                :class="currentSection === 'devjams' ? 'bg-danger text-white' : 'text-dark'"
+              >
+                <i class="bi bi-code-slash me-2 fs-5"></i>
+                <span>Mes Dev Jams</span>
+                <span class="badge rounded-pill ms-auto" :class="currentSection === 'devjams' ? 'bg-white text-danger' : 'bg-secondary-subtle text-secondary'">
+                  {{ (myDevJams || []).length }}
+                </span>
+              </button>
+
               <Link 
                 href="/espace-utilisateur/kanban" 
                 class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1 text-dark text-decoration-none"
@@ -461,6 +473,53 @@
                 <Link href="/espace-utilisateur/startups/create" class="btn btn-danger btn-sm rounded-pill px-4">
                   Créer ma première startup
                 </Link>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3B. MES DEV JAMS -->
+          <div v-else-if="currentSection === 'devjams'">
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                <div>
+                  <h4 class="fw-bold mb-1 text-dark">Mes Dev Jams Créées</h4>
+                  <p class="text-muted small mb-0">Cliquez sur une Jam pour voir ses statistiques, commentaires, sondages, réactions et gérer les utilisateurs bloqués.</p>
+                </div>
+                <Link href="/dev-jams/creer" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold">
+                  <i class="bi bi-plus-lg me-1"></i>Nouvelle Jam
+                </Link>
+              </div>
+              <div v-if="(myDevJams || []).length" class="row g-3">
+                <div v-for="jam in myDevJams" :key="jam.id" class="col-md-6">
+                  <Link
+                    :href="`/espace-utilisateur/dev-jams/${jam.slug}`"
+                    class="card h-100 border rounded-4 p-3 text-decoration-none text-dark shadow-sm"
+                  >
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                      <h6 class="fw-bold mb-0">{{ jam.title }}</h6>
+                      <span
+                        class="badge rounded-pill"
+                        :class="jam.effective_status === 'active' ? 'bg-success' : (jam.effective_status === 'ended' ? 'bg-danger' : (jam.effective_status === 'suspended' ? 'bg-dark' : 'bg-secondary'))"
+                      >
+                        {{ jam.effective_status === 'active' ? 'En cours' : (jam.effective_status === 'ended' ? 'Terminée' : (jam.effective_status === 'suspended' ? 'Suspendue' : jam.effective_status)) }}
+                      </span>
+                    </div>
+                    <p class="small text-muted mb-3 text-truncate">{{ jam.description }}</p>
+                    <div class="d-flex align-items-center justify-content-between small text-muted pt-2 border-top mt-auto">
+                      <div class="d-flex gap-3">
+                        <span><i class="bi bi-chat-dots me-1"></i>{{ jam.messages_count || 0 }}</span>
+                        <span><i class="bi bi-heart-fill text-danger me-1"></i>{{ jam.hearts_count || 0 }}</span>
+                        <span><i class="bi bi-bar-chart me-1"></i>{{ jam.polls_count || 0 }}</span>
+                      </div>
+                      <span class="text-primary fw-semibold">Gérer &rarr;</span>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+              <div v-else class="text-center py-5 text-muted bg-light rounded-4">
+                <i class="bi bi-code-slash fs-1 d-block mb-2"></i>
+                <h6 class="fw-bold text-dark">Vous n'avez pas encore créé de Dev Jam</h6>
+                <Link href="/dev-jams/creer" class="btn btn-primary btn-sm rounded-pill px-4 mt-2">Créer ma première Dev Jam</Link>
               </div>
             </div>
           </div>
@@ -3533,6 +3592,13 @@
           <i class="bi bi-kanban me-2"></i> Mes Projets ({{ projects.length }})
         </button>
         <button 
+          @click="selectMobileSection('devjams')" 
+          class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
+          :class="currentSection === 'devjams' ? 'bg-danger text-white' : 'text-dark'"
+        >
+          <i class="bi bi-code-slash me-2"></i> Mes Dev Jams ({{ (myDevJams || []).length }})
+        </button>
+        <button 
           @click="selectMobileSection('jobs')" 
           class="list-group-item list-group-item-action border-0 rounded-3 py-3 fw-bold d-flex align-items-center mb-1"
           :class="currentSection === 'jobs' ? 'bg-danger text-white' : 'text-dark'"
@@ -4116,6 +4182,8 @@ import PortfolioBuilderIndex from '@/Pages/User/Portfolio/Index.vue'
 
 const props = defineProps({
   user: { type: Object, required: true },
+  myDevJams: { type: Array, default: () => [] },
+  blockedJamUsers: { type: Array, default: () => [] },
   portfolioSites: { type: Array, default: () => [] },
   portfolioMedia: { type: Array, default: () => [] },
   startups: { type: Array, default: () => [] },

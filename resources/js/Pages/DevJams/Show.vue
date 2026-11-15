@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { Head, Link, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import apiClient from '@/Composables/PortfolioBuilder/apiClient';
 
 const props = defineProps({
@@ -20,6 +20,7 @@ const props = defineProps({
     initialMessageReactions: { type: Object, default: () => ({}) },
     initialSprint: { type: Object, default: null },
     initialCreatorActiveTab: { type: String, default: 'html' },
+    initialOutcomeVotes: { type: Object, default: () => ({ yes: 0, no: 0, total: 0, user_vote: null }) },
 });
 
 const page = usePage();
@@ -103,10 +104,21 @@ let bottomPopupTimer = null;
 let liveCodeSyncTimer = null;
 let isApplyingRemoteCode = false;
 let lastAppliedCodeAt = props.initialLiveCode?.updated_at || 0;
+const effectiveStatus = ref(props.jam.effective_status || props.jam.status || 'active');
+const isJamSuspended = computed(() => effectiveStatus.value === 'suspended' || Boolean(props.jam.is_suspended));
+const isJamEnded = computed(() => effectiveStatus.value === 'ended');
+const outcomeVotes = ref({ ...(props.initialOutcomeVotes || { yes: 0, no: 0, total: 0, user_vote: null }) });
+const outcomeVoting = ref(false);
+let lastExpiryNotifBucket = null;
+let didNotifyExpired = false;
+let removeInertiaBeforeListener = null;
+
 const isCollaborator = computed(() =>
     Boolean(authUser.value && collaborators.value.some((c) => Number(c.id) === Number(authUser.value.id)))
 );
-const canCoEditSharedCode = computed(() => canRearrangePreview.value || isCollaborator.value);
+const canCoEditSharedCode = computed(() =>
+    !isJamSuspended.value && !isJamEnded.value && (canRearrangePreview.value || isCollaborator.value)
+);
 
 // Social Share Menu State
 const showShareMenu = ref(false);
@@ -2500,6 +2512,12 @@ async function pollMessages() {
             notes.forEach((n) => showToast(n.text));
         }
 
+        if (res.data.effective_status) {
+            effectiveStatus.value = res.data.effective_status;
+        }
+        if (res.data.outcome_votes) {
+            outcomeVotes.value = res.data.outcome_votes;
+        }
         if (res.data.live_code && canCoEditSharedCode.value) {
             applyRemoteLiveCode(res.data.live_code);
         }
@@ -2553,20 +2571,94 @@ function scrollChatBottom() {
 }
 
 function updateCountdown() {
+    if (isJamSuspended.value) {
+        countdownText.value = 'Jam suspendue';
+        return;
+    }
     const now = Date.now();
     const start = new Date(props.jam.starts_at).getTime();
     const end = new Date(props.jam.ends_at).getTime();
-    const target = now < start ? start : end;
+    const isBeforeStart = now < start;
+    const target = isBeforeStart ? start : end;
     const diff = target - now;
     if (diff <= 0) {
         countdownText.value = 'Temps écoulé';
+        if (!isBeforeStart && !isJamSuspended.value) {
+            if (effectiveStatus.value !== 'ended') {
+                effectiveStatus.value = 'ended';
+            }
+            if (!didNotifyExpired) {
+                didNotifyExpired = true;
+                showToast('⏱️ Temps écoulé ! La Jam est terminée : mode lecture seule activé. Votez Oui/Non !');
+            }
+        }
         return;
     }
+
+    // Last minute countdown warning every 10 seconds (60s, 50s, 40s, 30s, 20s, 10s)
+    if (!isBeforeStart && diff <= 60000) {
+        const secsLeft = Math.ceil(diff / 1000);
+        const bucket = Math.ceil(secsLeft / 10) * 10;
+        if (bucket !== lastExpiryNotifBucket && bucket > 0 && bucket <= 60) {
+            lastExpiryNotifBucket = bucket;
+            showToast(`⏳ Attention : plus que ${secsLeft}s avant la fin de la Jam !`);
+        }
+    }
+
     const d = Math.floor(diff / 86400000);
     const h = Math.floor((diff % 86400000) / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
-    countdownText.value = `${now < start ? 'Début dans ' : 'Fin dans '}${d}j ${h}h ${m}m ${s}s`;
+    countdownText.value = `${isBeforeStart ? 'Début dans ' : 'Fin dans '}${d}j ${h}h ${m}m ${s}s`;
+}
+
+async function submitOutcomeVote(vote) {
+    if (outcomeVoting.value || isJamSuspended.value || !authUser.value) return;
+    outcomeVoting.value = true;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/outcome-vote`, { vote });
+        if (res.data?.outcome_votes) {
+            outcomeVotes.value = res.data.outcome_votes;
+            showToast(vote === 'yes' ? '👍 Vote "Oui, Jam réussie" enregistré !' : '👎 Vote "Non" enregistré.');
+        }
+    } catch (err) {
+        showToast(err?.response?.data?.message || 'Impossible d’enregistrer votre vote.');
+    } finally {
+        outcomeVoting.value = false;
+    }
+}
+
+function suspendJamOnExit() {
+    if (!props.isJamCreator || isJamEnded.value || isJamSuspended.value) return;
+    const url = `/dev-jams/${props.jam.slug}/suspend`;
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    try {
+        fetch(url, {
+            method: 'POST',
+            keepalive: true,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({}),
+        }).catch(() => {});
+    } catch {
+        // ignore exit errors
+    }
+    effectiveStatus.value = 'suspended';
+}
+
+function handleCreatorBeforeUnload(e) {
+    if (!props.isJamCreator || isJamEnded.value || isJamSuspended.value) return;
+    e.preventDefault();
+    e.returnValue = 'Si vous quittez cette page, votre Dev Jam sera suspendue et tout sera verrouillé.';
+    return e.returnValue;
+}
+
+function handleCreatorPageHide() {
+    if (!props.isJamCreator || isJamEnded.value || isJamSuspended.value) return;
+    suspendJamOnExit();
 }
 
 function focusSubmissionChat(sub) {
@@ -2659,6 +2751,25 @@ onMounted(() => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     window.addEventListener('message', handleSandboxMessage);
+    if (props.isJamCreator) {
+        window.addEventListener('beforeunload', handleCreatorBeforeUnload);
+        window.addEventListener('pagehide', handleCreatorPageHide);
+        removeInertiaBeforeListener = router.on('before', (event) => {
+            if (isJamEnded.value || isJamSuspended.value) return true;
+            const targetPath = event?.detail?.visit?.url?.pathname || '';
+            if (targetPath && targetPath.includes(`/dev-jams/${props.jam.slug}`)) {
+                return true;
+            }
+            const ok = window.confirm(
+                '⚠️ Attention créateur : si vous quittez la page de votre Jam en cours, celle-ci sera immédiatement suspendue, tout sera verrouillé et plus personne ne pourra rien faire. Voulez-vous vraiment quitter ?'
+            );
+            if (!ok) {
+                return false;
+            }
+            suspendJamOnExit();
+            return true;
+        });
+    }
     nextTick(scrollChatBottom);
 });
 
@@ -2681,6 +2792,14 @@ onUnmounted(() => {
     window.removeEventListener('pointerup', onChatDragEnd);
     window.removeEventListener('pointermove', onPreviewDragMove);
     window.removeEventListener('pointerup', onPreviewDragEnd);
+    if (props.isJamCreator) {
+        window.removeEventListener('beforeunload', handleCreatorBeforeUnload);
+        window.removeEventListener('pagehide', handleCreatorPageHide);
+        if (typeof removeInertiaBeforeListener === 'function') {
+            removeInertiaBeforeListener();
+            removeInertiaBeforeListener = null;
+        }
+    }
 });
 </script>
 
@@ -2831,6 +2950,52 @@ onUnmounted(() => {
                 </span>
             </div>
         </header>
+
+        <!-- Suspended Jam Banner (All Locked) -->
+        <div
+            v-if="isJamSuspended"
+            class="px-3 py-2 bg-danger bg-opacity-25 border-bottom border-danger border-opacity-50 d-flex flex-wrap align-items-center justify-content-between gap-2 small"
+        >
+            <div class="d-flex align-items-center gap-2 text-white fw-semibold">
+                <i class="bi bi-shield-lock-fill text-danger fs-5"></i>
+                <span>Jam suspendue : le créateur a quitté la session. Tout est verrouillé (code, chat, votes et réactions).</span>
+            </div>
+            <Link href="/dev-jams" class="btn btn-xs btn-outline-light rounded-pill px-3">
+                Retour aux Jams
+            </Link>
+        </div>
+
+        <!-- Ended Jam Banner + Oui/Non Success Vote -->
+        <div
+            v-else-if="isJamEnded"
+            class="px-3 py-2 bg-warning bg-opacity-15 border-bottom border-warning border-opacity-50 d-flex flex-wrap align-items-center justify-content-between gap-2 small"
+        >
+            <div class="d-flex align-items-center gap-2 text-warning fw-semibold">
+                <i class="bi bi-flag-fill"></i>
+                <span>Jam terminée — L'éditeur est passé en mode lecture seule. A-t-il / elle réussi son Jam ?</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button
+                    type="button"
+                    class="btn btn-xs rounded-pill px-3 fw-semibold"
+                    :class="outcomeVotes.user_vote === 'yes' ? 'btn-success' : 'btn-outline-success'"
+                    :disabled="outcomeVoting || !authUser"
+                    @click="submitOutcomeVote('yes')"
+                >
+                    <i class="bi bi-hand-thumbs-up-fill me-1"></i>Oui ({{ outcomeVotes.yes || 0 }})
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-xs rounded-pill px-3 fw-semibold"
+                    :class="outcomeVotes.user_vote === 'no' ? 'btn-danger' : 'btn-outline-danger'"
+                    :disabled="outcomeVoting || !authUser"
+                    @click="submitOutcomeVote('no')"
+                >
+                    <i class="bi bi-hand-thumbs-down-fill me-1"></i>Non ({{ outcomeVotes.no || 0 }})
+                </button>
+                <span v-if="!authUser" class="text-white-50" style="font-size: 11px;">(Connectez-vous pour voter)</span>
+            </div>
+        </div>
 
         <div v-if="toast" class="position-fixed top-0 start-50 translate-middle-x mt-5 px-3 py-2 rounded-pill shadow-lg small fw-semibold dj-toast" style="z-index: 2600;">
             <i class="bi bi-check-circle-fill text-info me-2"></i>{{ toast }}
@@ -3878,7 +4043,8 @@ onUnmounted(() => {
                         v-model="chatInput"
                         rows="1"
                         class="form-control form-control-sm dj-dark-input dj-chat-textarea rounded-4"
-                        placeholder="Écrire un message (@ pour tagger)..."
+                        :placeholder="isJamSuspended ? 'Jam suspendue : chat verrouillé' : 'Écrire un message (@ pour tagger)...'"
+                        :disabled="!isOnline || isJamSuspended"
                         maxlength="1000"
                         @input="handleChatInput"
                         @keydown="handleChatKeydown"
@@ -3887,7 +4053,7 @@ onUnmounted(() => {
                         type="submit"
                         class="btn btn-sm btn-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
                         style="width: 32px; height: 32px;"
-                        :disabled="!isOnline || !chatInput.trim()"
+                        :disabled="!isOnline || isJamSuspended || !chatInput.trim()"
                     >
                         <i class="bi bi-send-fill" style="font-size: 12px;"></i>
                     </button>
