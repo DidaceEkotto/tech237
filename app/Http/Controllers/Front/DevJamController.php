@@ -9,6 +9,7 @@ use App\Models\DevJamSubmission;
 use App\Models\DevJamVote;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -98,7 +99,7 @@ class DevJamController extends Controller
             ->with('success', 'Votre Dev Jam communautaire est en ligne !');
     }
 
-    public function show(string $slug)
+    public function show(Request $request, string $slug)
     {
         $jam = DevJam::with([
             'creatorUser:id,name,username,avatar',
@@ -129,12 +130,16 @@ class DevJamController extends Controller
             ->reverse()
             ->values();
 
+        $presence = $this->touchPresenceAndSnapshot($jam, $request);
+
         return Inertia::render('DevJams/Show', [
             'jam' => $jam,
             'mySubmission' => $mySubmission,
             'votedSubmissionIds' => $votedSubmissionIds,
             'initialMessages' => $messages,
             'isJamCreator' => $user && $jam->creator_user_id === $user->id,
+            'initialOnlineCount' => $presence['online_count'],
+            'initialOnlineUsers' => $presence['online_users'],
         ]);
     }
 
@@ -233,7 +238,46 @@ class DevJamController extends Controller
             ->limit(50)
             ->get();
 
-        return response()->json(['messages' => $messages]);
+        $presence = $this->touchPresenceAndSnapshot($jam, $request);
+
+        return response()->json([
+            'messages' => $messages,
+            'online_count' => $presence['online_count'],
+            'online_users' => $presence['online_users'],
+            'typing_users' => $presence['typing_users'],
+        ]);
+    }
+
+    public function updateTyping(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+        $isTyping = $request->boolean('is_typing', true);
+
+        $typingKey = "dev_jam:{$jam->id}:typing";
+        $typing = Cache::get($typingKey, []);
+        $now = time();
+
+        foreach ($typing as $uid => $entry) {
+            if (($entry['expires_at'] ?? 0) < $now) {
+                unset($typing[$uid]);
+            }
+        }
+
+        if ($isTyping) {
+            $typing[$user->id] = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'expires_at' => $now + 6,
+            ];
+        } else {
+            unset($typing[$user->id]);
+        }
+
+        Cache::put($typingKey, $typing, now()->addSeconds(30));
+        $presence = $this->touchPresenceAndSnapshot($jam, $request);
+
+        return response()->json($presence);
     }
 
     public function postMessage(Request $request, string $slug)
@@ -261,6 +305,12 @@ class DevJamController extends Controller
             'message' => trim(strip_tags($validated['message'])),
         ]);
 
+        // Clear typing status immediately once message is sent
+        $typingKey = "dev_jam:{$jam->id}:typing";
+        $typing = Cache::get($typingKey, []);
+        unset($typing[$user->id]);
+        Cache::put($typingKey, $typing, now()->addSeconds(30));
+
         return response()->json([
             'message' => $msg->load('user:id,name,username,avatar'),
         ]);
@@ -281,5 +331,72 @@ class DevJamController extends Controller
         $message->delete();
 
         return response()->json(['deleted' => true]);
+    }
+
+    private function touchPresenceAndSnapshot(DevJam $jam, Request $request): array
+    {
+        $user = Auth::guard('web')->user();
+        $now = time();
+
+        $onlineKey = "dev_jam:{$jam->id}:online";
+        $online = Cache::get($onlineKey, []);
+
+        foreach ($online as $k => $entry) {
+            if (($entry['last_seen'] ?? 0) < $now - 20) {
+                unset($online[$k]);
+            }
+        }
+
+        $visitorKey = $user
+            ? 'u:' . $user->id
+            : 'g:' . sha1(($request->session()->getId() ?: $request->ip()) . '|' . ($request->userAgent() ?? ''));
+
+        $online[$visitorKey] = [
+            'id' => $user?->id,
+            'name' => $user?->name,
+            'username' => $user?->username,
+            'last_seen' => $now,
+        ];
+
+        Cache::put($onlineKey, $online, now()->addSeconds(60));
+
+        $typingKey = "dev_jam:{$jam->id}:typing";
+        $typing = Cache::get($typingKey, []);
+        $typingUsers = [];
+        $typingDirty = false;
+
+        foreach ($typing as $uid => $entry) {
+            if (($entry['expires_at'] ?? 0) < $now) {
+                unset($typing[$uid]);
+                $typingDirty = true;
+                continue;
+            }
+            if (!$user || (int) $uid !== (int) $user->id) {
+                $typingUsers[] = [
+                    'id' => (int) $uid,
+                    'name' => $entry['name'],
+                ];
+            }
+        }
+
+        if ($typingDirty) {
+            Cache::put($typingKey, $typing, now()->addSeconds(30));
+        }
+
+        $onlineUsers = collect($online)
+            ->filter(fn ($entry) => !empty($entry['id']) && !empty($entry['name']))
+            ->map(fn ($entry) => [
+                'id' => (int) $entry['id'],
+                'name' => $entry['name'],
+                'username' => $entry['username'] ?? null,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'online_count' => count($online),
+            'online_users' => $onlineUsers,
+            'typing_users' => $typingUsers,
+        ];
     }
 }

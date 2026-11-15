@@ -9,6 +9,8 @@ const props = defineProps({
     votedSubmissionIds: { type: Array, default: () => [] },
     initialMessages: { type: Array, default: () => [] },
     isJamCreator: { type: Boolean, default: false },
+    initialOnlineCount: { type: Number, default: 1 },
+    initialOnlineUsers: { type: Array, default: () => [] },
 });
 
 const page = usePage();
@@ -56,6 +58,7 @@ const chatExpanded = ref(false);
 const showEmojiPicker = ref(false);
 const messages = ref([...(props.initialMessages || [])]);
 const chatInput = ref('');
+const chatInputEl = ref(null);
 const sendingMessage = ref(false);
 const activeTargetSubmissionId = ref(null);
 const chatListEl = ref(null);
@@ -63,13 +66,19 @@ const chatWindowEl = ref(null);
 const lastSentId = ref(null);
 const unreadCount = ref(0);
 
+// Per-Jam Presence, Typing & @Mentions
+const onlineCount = ref(props.initialOnlineCount || 1);
+const onlineUsers = ref([...(props.initialOnlineUsers || [])]);
+const typingUsers = ref([]);
+let typingStopTimer = null;
+let lastTypingSentAt = 0;
+
 const chatPosStorageKey = `dj_chat_pos_${props.jam.slug}`;
 const chatPos = ref({ x: null, y: null });
 const isDraggingChat = ref(false);
 let chatDragOffset = { x: 0, y: 0 };
 
-// Sound Effects (iPhone-style send swoosh)
-const soundEnabled = ref(true);
+// Sound Effects (iPhone-style send swoosh - always active)
 let sharedAudioCtx = null;
 
 // Floating Social Hearts State
@@ -148,10 +157,16 @@ function getAudioContext() {
     return sharedAudioCtx;
 }
 
-function playIphoneSendSound() {
-    if (!soundEnabled.value) return;
+async function playIphoneSendSound() {
     const ctx = getAudioContext();
     if (!ctx) return;
+    if (ctx.state === 'suspended') {
+        try {
+            await ctx.resume();
+        } catch {
+            return;
+        }
+    }
 
     const now = ctx.currentTime;
 
@@ -162,12 +177,12 @@ function playIphoneSendSound() {
     osc1.frequency.setValueAtTime(520, now);
     osc1.frequency.exponentialRampToValueAtTime(1240, now + 0.085);
     gain1.gain.setValueAtTime(0.001, now);
-    gain1.gain.linearRampToValueAtTime(0.16, now + 0.015);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    gain1.gain.linearRampToValueAtTime(0.22, now + 0.015);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
     osc1.connect(gain1);
     gain1.connect(ctx.destination);
     osc1.start(now);
-    osc1.stop(now + 0.13);
+    osc1.stop(now + 0.14);
 
     // Layer 2: Crisp upper harmonic pop
     const osc2 = ctx.createOscillator();
@@ -176,16 +191,15 @@ function playIphoneSendSound() {
     osc2.frequency.setValueAtTime(980, now + 0.025);
     osc2.frequency.exponentialRampToValueAtTime(1680, now + 0.095);
     gain2.gain.setValueAtTime(0.001, now + 0.025);
-    gain2.gain.linearRampToValueAtTime(0.08, now + 0.04);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+    gain2.gain.linearRampToValueAtTime(0.11, now + 0.04);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
     osc2.connect(gain2);
     gain2.connect(ctx.destination);
     osc2.start(now + 0.025);
-    osc2.stop(now + 0.12);
+    osc2.stop(now + 0.13);
 }
 
 function playHeartPopSound() {
-    if (!soundEnabled.value) return;
     const ctx = getAudioContext();
     if (!ctx) return;
 
@@ -197,21 +211,12 @@ function playHeartPopSound() {
     osc.frequency.setValueAtTime(baseFreq, now);
     osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.45, now + 0.06);
     gain.gain.setValueAtTime(0.001, now);
-    gain.gain.linearRampToValueAtTime(0.06, now + 0.01);
+    gain.gain.linearRampToValueAtTime(0.08, now + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.09);
-}
-
-function toggleSound() {
-    soundEnabled.value = !soundEnabled.value;
-    try {
-        localStorage.setItem('dj_sound_enabled', soundEnabled.value ? '1' : '0');
-    } catch {
-        // ignore storage errors
-    }
 }
 
 // Floating Hearts (Multi-click Social Animation)
@@ -459,8 +464,126 @@ async function toggleVote(sub) {
     }
 }
 
+const mentionCandidates = computed(() => {
+    const map = new Map();
+    const add = (u) => {
+        if (!u || !u.id || !u.name) return;
+        if (authUser.value && Number(u.id) === Number(authUser.value.id)) return;
+        if (!map.has(Number(u.id))) {
+            map.set(Number(u.id), {
+                id: Number(u.id),
+                name: u.name,
+                tag: u.username || u.name.replace(/\s+/g, ''),
+            });
+        }
+    };
+    onlineUsers.value.forEach(add);
+    messages.value.forEach((m) => add(m.user));
+    submissions.value.forEach((s) => add(s.user));
+    if (props.jam.creator_user) add(props.jam.creator_user);
+    return Array.from(map.values());
+});
+
+const mentionQuery = computed(() => {
+    const match = chatInput.value.match(/(?:^|\s)@([^\s@]{0,30})$/);
+    return match ? match[1].toLowerCase() : null;
+});
+
+const filteredMentions = computed(() => {
+    if (mentionQuery.value === null) return [];
+    const q = mentionQuery.value;
+    return mentionCandidates.value
+        .filter((u) => !q || u.name.toLowerCase().includes(q) || u.tag.toLowerCase().includes(q))
+        .slice(0, 6);
+});
+
+const typingBannerText = computed(() => {
+    const list = typingUsers.value;
+    if (!list.length) return '';
+    if (list.length === 1) return `${list[0].name} est en train d'écrire`;
+    if (list.length === 2) return `${list[0].name} et ${list[1].name} sont en train d'écrire`;
+    return `${list[0].name}, ${list[1].name} et ${list.length - 2} autre(s) écrivent`;
+});
+
+function insertMention(candidate) {
+    chatInput.value = chatInput.value.replace(/(^|\s)@[^\s@]*$/, `$1@${candidate.tag} `);
+    nextTick(() => chatInputEl.value?.focus());
+}
+
+function replyToMessage(msg) {
+    if (!authUser.value) {
+        showToast('Connectez-vous pour répondre dans le chat.');
+        return;
+    }
+    const targetName = msg.user?.username || (msg.user?.name ? msg.user.name.replace(/\s+/g, '') : 'Membre');
+    const prefix = `@${targetName} `;
+    if (!chatInput.value.startsWith(prefix)) {
+        chatInput.value = prefix + chatInput.value;
+    }
+    openChat();
+    nextTick(() => chatInputEl.value?.focus());
+}
+
+function splitMentions(text) {
+    const str = String(text || '');
+    const regex = /(@[A-Za-z0-9_.\-À-ÿ]+)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(str)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push({ text: str.slice(lastIndex, match.index), isMention: false });
+        }
+        parts.push({ text: match[0], isMention: true });
+        lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < str.length) {
+        parts.push({ text: str.slice(lastIndex), isMention: false });
+    }
+    return parts.length ? parts : [{ text: str, isMention: false }];
+}
+
+async function notifyTyping(isTyping) {
+    if (!authUser.value) return;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/typing`, { is_typing: isTyping });
+        if (typeof res.data.online_count === 'number') onlineCount.value = res.data.online_count;
+        if (Array.isArray(res.data.online_users)) onlineUsers.value = res.data.online_users;
+        if (Array.isArray(res.data.typing_users)) typingUsers.value = res.data.typing_users;
+    } catch {
+        // silent typing update
+    }
+}
+
+function handleChatInput() {
+    getAudioContext();
+    if (!authUser.value) return;
+    if (!chatInput.value.trim()) {
+        clearTimeout(typingStopTimer);
+        notifyTyping(false);
+        return;
+    }
+    const now = Date.now();
+    if (now - lastTypingSentAt > 2200) {
+        lastTypingSentAt = now;
+        notifyTyping(true);
+    }
+    clearTimeout(typingStopTimer);
+    typingStopTimer = setTimeout(() => {
+        lastTypingSentAt = 0;
+        notifyTyping(false);
+    }, 3000);
+}
+
 async function sendMessage() {
     if (!authUser.value || !chatInput.value.trim()) return;
+    // Unlock Web Audio synchronously inside the user submit gesture
+    const ctx = getAudioContext();
+    if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+    }
+    clearTimeout(typingStopTimer);
+    lastTypingSentAt = 0;
     sendingMessage.value = true;
     showEmojiPicker.value = false;
     try {
@@ -496,6 +619,10 @@ async function pollMessages() {
     try {
         const lastId = messages.value.length ? messages.value[messages.value.length - 1].id : 0;
         const res = await apiClient.get(`/dev-jams/${props.jam.slug}/messages?after_id=${lastId}`);
+        if (typeof res.data.online_count === 'number') onlineCount.value = res.data.online_count;
+        if (Array.isArray(res.data.online_users)) onlineUsers.value = res.data.online_users;
+        if (Array.isArray(res.data.typing_users)) typingUsers.value = res.data.typing_users;
+
         const incoming = res.data.messages || [];
         if (incoming.length) {
             let added = 0;
@@ -570,16 +697,14 @@ onMounted(() => {
         }
         const savedHearts = Number(localStorage.getItem(heartStorageKey) || 0);
         if (!Number.isNaN(savedHearts)) heartCount.value = savedHearts;
-
-        const savedSound = localStorage.getItem('dj_sound_enabled');
-        if (savedSound === '0') soundEnabled.value = false;
     } catch {
         // ignore storage errors
     }
 
     updateCountdown();
     countdownTimer = setInterval(updateCountdown, 1000);
-    pollTimer = setInterval(pollMessages, 3500);
+    pollTimer = setInterval(pollMessages, 2500);
+    pollMessages();
     window.addEventListener('resize', handleWindowResize);
     nextTick(scrollChatBottom);
 });
@@ -587,6 +712,7 @@ onMounted(() => {
 onUnmounted(() => {
     clearInterval(countdownTimer);
     clearInterval(pollTimer);
+    clearTimeout(typingStopTimer);
     window.removeEventListener('resize', handleWindowResize);
     window.removeEventListener('pointermove', onChatDragMove);
     window.removeEventListener('pointerup', onChatDragEnd);
@@ -620,6 +746,9 @@ onUnmounted(() => {
             </div>
 
             <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-success bg-opacity-25 border border-success border-opacity-50 text-success rounded-pill px-2 py-1 d-none d-sm-inline" style="font-size: 11px;" title="Participants connectés à cette Jam uniquement">
+                    <i class="bi bi-people-fill me-1"></i>{{ onlineCount }} en ligne
+                </span>
                 <span class="badge bg-black bg-opacity-50 border border-secondary border-opacity-50 text-warning rounded-pill px-2 py-1 d-none d-md-inline" style="font-size: 11px;">
                     <i class="bi bi-clock me-1"></i>{{ countdownText }}
                 </span>
@@ -996,17 +1125,12 @@ onUnmounted(() => {
                 <div class="d-flex align-items-center gap-2 min-w-0">
                     <i class="bi bi-grip-horizontal text-white-50"></i>
                     <span class="dj-live-dot flex-shrink-0"></span>
-                    <span class="fw-bold small text-white text-truncate">Live Chat &amp; Commentaires</span>
+                    <span class="fw-bold small text-white text-truncate">Live Chat</span>
+                    <span class="badge bg-success bg-opacity-25 text-success rounded-pill flex-shrink-0" style="font-size: 10px;" title="Connectés sur cette Jam uniquement">
+                        {{ onlineCount }} en ligne
+                    </span>
                 </div>
                 <div class="d-flex align-items-center gap-1 flex-shrink-0">
-                    <button
-                        type="button"
-                        class="btn btn-xs dj-btn-ghost"
-                        :title="soundEnabled ? 'Désactiver le son d\'envoi' : 'Activer le son d\'envoi'"
-                        @click="toggleSound"
-                    >
-                        <i class="bi" :class="soundEnabled ? 'bi-volume-up-fill text-info' : 'bi-volume-mute-fill text-white-50'"></i>
-                    </button>
                     <button
                         type="button"
                         class="btn btn-xs dj-btn-ghost"
@@ -1066,6 +1190,16 @@ onUnmounted(() => {
                             <div class="d-flex align-items-center gap-1 flex-shrink-0">
                                 <span class="opacity-75" style="font-size: 10px;">{{ formatMsgTime(m.created_at) }}</span>
                                 <button
+                                    v-if="authUser && !isMyMessage(m)"
+                                    type="button"
+                                    class="btn btn-link p-0 text-info opacity-75"
+                                    style="font-size: 11px;"
+                                    title="Tagger / Répondre"
+                                    @click="replyToMessage(m)"
+                                >
+                                    <i class="bi bi-reply-fill"></i>
+                                </button>
+                                <button
                                     v-if="authUser && (isMyMessage(m) || canRearrangePreview)"
                                     type="button"
                                     class="btn btn-link p-0 text-danger opacity-75"
@@ -1077,9 +1211,34 @@ onUnmounted(() => {
                                 </button>
                             </div>
                         </div>
-                        <div class="small" style="white-space: pre-wrap; word-break: break-word;">{{ m.message }}</div>
+                        <div class="small" style="white-space: pre-wrap; word-break: break-word;">
+                            <template v-for="(part, idx) in splitMentions(m.message)" :key="idx">
+                                <span v-if="part.isMention" class="dj-mention-tag">{{ part.text }}</span>
+                                <template v-else>{{ part.text }}</template>
+                            </template>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- WhatsApp-style Typing Indicator -->
+            <div v-if="typingBannerText" class="dj-typing-bar px-3 py-1 border-top d-flex align-items-center gap-2 small">
+                <span class="dj-typing-dots"><span></span><span></span><span></span></span>
+                <span class="text-info text-truncate" style="font-size: 11px;">{{ typingBannerText }}...</span>
+            </div>
+
+            <!-- @Mention Autocomplete Popover -->
+            <div v-if="authUser && filteredMentions.length" class="dj-mention-menu border-top p-1 d-flex flex-column gap-1">
+                <button
+                    v-for="cand in filteredMentions"
+                    :key="cand.id"
+                    type="button"
+                    class="btn btn-sm dj-mention-item d-flex align-items-center justify-content-between text-start px-2 py-1"
+                    @click="insertMention(cand)"
+                >
+                    <span class="fw-semibold text-white small">{{ cand.name }}</span>
+                    <span class="text-info font-monospace" style="font-size: 11px;">@{{ cand.tag }}</span>
+                </button>
             </div>
 
             <!-- Emoji Picker Popover -->
@@ -1107,11 +1266,13 @@ onUnmounted(() => {
                         <i class="bi bi-emoji-smile text-warning"></i>
                     </button>
                     <input
+                        ref="chatInputEl"
                         v-model="chatInput"
                         type="text"
                         class="form-control form-control-sm dj-dark-input rounded-pill"
-                        placeholder="Écrire un message..."
+                        placeholder="Écrire un message (@ pour tagger)..."
                         maxlength="1000"
+                        @input="handleChatInput"
                     />
                     <button
                         type="submit"
@@ -1541,6 +1702,64 @@ onUnmounted(() => {
 }
 .dj-msg-just-sent .dj-bubble {
     box-shadow: 0 0 18px rgba(99, 102, 241, 0.45);
+}
+.dj-mention-tag {
+    display: inline-block;
+    padding: 0 5px;
+    border-radius: 6px;
+    background: rgba(56, 189, 248, 0.22);
+    color: #7dd3fc;
+    font-weight: 700;
+}
+.dj-bubble-me .dj-mention-tag {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+}
+.dj-typing-bar {
+    background: rgba(10, 14, 22, 0.9);
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.dj-typing-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+.dj-typing-dots span {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #38bdf8;
+    animation: typingBounce 1.2s infinite ease-in-out;
+}
+.dj-typing-dots span:nth-child(2) {
+    animation-delay: 0.15s;
+}
+.dj-typing-dots span:nth-child(3) {
+    animation-delay: 0.3s;
+}
+@keyframes typingBounce {
+    0%, 60%, 100% {
+        transform: translateY(0);
+        opacity: 0.45;
+    }
+    30% {
+        transform: translateY(-4px);
+        opacity: 1;
+    }
+}
+.dj-mention-menu {
+    background: rgba(12, 16, 26, 0.98);
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    max-height: 150px;
+    overflow-y: auto;
+}
+.dj-mention-item {
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+}
+.dj-mention-item:hover {
+    background: rgba(99, 102, 241, 0.22);
 }
 @media (min-width: 992px) {
     .w-lg-50 {

@@ -147,6 +147,7 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/dev-jams/{slug}/soumettre', [App\Http\Controllers\Front\DevJamController::class, 'saveSubmission'])->name('devjams.submit');
     Route::post('/dev-jams/{slug}/submissions/{submission}/vote', [App\Http\Controllers\Front\DevJamController::class, 'voteSubmission'])->name('devjams.vote');
     Route::post('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'postMessage'])->name('devjams.messages.post')->middleware('throttle:20,1');
+    Route::post('/dev-jams/{slug}/typing', [App\Http\Controllers\Front\DevJamController::class, 'updateTyping'])->name('devjams.typing');
     Route::delete('/dev-jams/{slug}/messages/{message}', [App\Http\Controllers\Front\DevJamController::class, 'deleteMessage'])->name('devjams.messages.delete');
 });
 Route::get('/dev-jams/{slug}', [App\Http\Controllers\Front\DevJamController::class, 'show'])->name('devjams.show');
