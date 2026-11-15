@@ -160,6 +160,7 @@ Route::middleware('auth:web')->group(function () {
 });
 Route::get('/dev-jams/{slug}', [App\Http\Controllers\Front\DevJamController::class, 'show'])->name('devjams.show');
 Route::get('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'fetchMessages'])->name('devjams.messages.fetch');
+Route::post('/dev-jams/{slug}/heart', [App\Http\Controllers\Front\DevJamController::class, 'addHeart'])->name('devjams.heart');
 
 // Offres d'Emploi IT
 Route::get('/emplois', [JobController::class, 'index'])->name('jobs.index');

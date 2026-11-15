@@ -149,6 +149,7 @@ class DevJamController extends Controller
             'initialCollaborators' => $collab['collaborators'],
             'initialLiveCode' => $collab['live_code'],
             'initialPinnedMessage' => Cache::get("dev_jam:{$jam->id}:pinned_msg"),
+            'initialHeartsCount' => (int) ($jam->hearts_count ?? 0),
         ]);
     }
 
@@ -262,6 +263,19 @@ class DevJamController extends Controller
             'collab_notifications_for_me' => $collab['collab_notifications_for_me'],
             'live_code' => $collab['live_code'],
             'pinned_message' => Cache::get("dev_jam:{$jam->id}:pinned_msg"),
+            'hearts_count' => (int) ($jam->hearts_count ?? 0),
+        ]);
+    }
+
+    public function addHeart(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $delta = max(1, min(20, (int) $request->input('count', 1)));
+        $jam->increment('hearts_count', $delta);
+        $jam->refresh();
+
+        return response()->json([
+            'hearts_count' => (int) $jam->hearts_count,
         ]);
     }
 

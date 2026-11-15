@@ -15,6 +15,7 @@ const props = defineProps({
     initialCollaborators: { type: Array, default: () => [] },
     initialLiveCode: { type: Object, default: null },
     initialPinnedMessage: { type: Object, default: null },
+    initialHeartsCount: { type: Number, default: 0 },
 });
 
 const page = usePage();
@@ -115,12 +116,16 @@ let chatDragOffset = { x: 0, y: 0 };
 // Sound Effects (iPhone-style send swoosh - always active)
 let sharedAudioCtx = null;
 
-// Floating Social Hearts State
-const heartStorageKey = `dj_hearts_${props.jam.slug}`;
-const heartCount = ref(0);
+// Network Connectivity State (Blocking Offline Popup)
+const isOnline = ref(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+// Floating Social Hearts State (Synchronized across all accounts)
+const heartCount = ref(props.initialHeartsCount || 0);
 const heartPulse = ref(false);
 const floatingHearts = ref([]);
 let heartSeq = 0;
+let pendingHearts = 0;
+let heartFlushTimer = null;
 const HEART_COLORS = ['#f43f5e', '#ec4899', '#fb7185', '#e11d48', '#ff4d6d', '#f97316'];
 
 const EMOJI_GROUPS = [
@@ -141,13 +146,40 @@ const activeCodeText = computed(() => {
 
 const lineCount = computed(() => Math.max(20, activeCodeText.value.split('\n').length));
 
-function buildSandboxDoc(html, css, js) {
+const previewIframeEl = ref(null);
+let jsReloadTimer = null;
+
+function buildSandboxDoc(html, css, js, withLivePatch = false) {
     const safeCss = String(css || '').replace(/<\/style>/gi, '<\\/style>');
     const safeJs = String(js || '').replace(/<\/script>/gi, '<\\/script>');
-    return `<!doctype html><html><head><meta charset="utf-8"><style>${safeCss}</style></head><body>${html || ''}<script>${safeJs}<\/script></body></html>`;
+    const patchBridge = withLivePatch
+        ? `<script>window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dj-patch')return;var st=document.getElementById('dj-live-style');if(st)st.textContent=e.data.css||'';var root=document.getElementById('dj-live-root');if(root)root.innerHTML=e.data.html||'';});<\/script>`
+        : '';
+    return `<!doctype html><html><head><meta charset="utf-8"><style id="dj-live-style">${safeCss}</style></head><body><div id="dj-live-root">${html || ''}</div>${patchBridge}<script>${safeJs}<\/script></body></html>`;
 }
 
-const liveSrcDoc = computed(() => buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value));
+const liveSrcDoc = ref(buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value, true));
+
+function refreshPreviewNow() {
+    liveSrcDoc.value = buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value, true);
+    previewKey.value++;
+}
+
+watch([htmlCode, cssCode], () => {
+    const win = previewIframeEl.value?.contentWindow;
+    if (win) {
+        win.postMessage({ type: 'dj-patch', html: htmlCode.value || '', css: cssCode.value || '' }, '*');
+    } else {
+        liveSrcDoc.value = buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value, true);
+    }
+});
+
+watch(jsCode, () => {
+    clearTimeout(jsReloadTimer);
+    jsReloadTimer = setTimeout(() => {
+        liveSrcDoc.value = buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value, true);
+    }, 450);
+});
 
 const filteredMessages = computed(() => {
     if (!activeTargetSubmissionId.value) return messages.value;
@@ -253,19 +285,35 @@ function playHeartPopSound() {
     osc.stop(now + 0.09);
 }
 
-// Floating Hearts (Multi-click Social Animation)
+// Floating Hearts (Multi-click Social Animation + Server Sync)
+function flushHeartsToServer() {
+    if (pendingHearts <= 0 || !isOnline.value) return;
+    const countToSend = Math.min(20, pendingHearts);
+    pendingHearts -= countToSend;
+    apiClient
+        .post(`/dev-jams/${props.jam.slug}/heart`, { count: countToSend })
+        .then((res) => {
+            if (typeof res.data?.hearts_count === 'number') {
+                heartCount.value = Math.max(heartCount.value, res.data.hearts_count);
+            }
+            if (pendingHearts > 0) flushHeartsToServer();
+        })
+        .catch(() => {
+            // keep local optimistic count if transient error
+        });
+}
+
 function spawnHeart(e) {
+    if (!isOnline.value) return;
     heartCount.value += 1;
+    pendingHearts += 1;
     heartPulse.value = true;
     setTimeout(() => {
         heartPulse.value = false;
     }, 180);
 
-    try {
-        localStorage.setItem(heartStorageKey, String(heartCount.value));
-    } catch {
-        // ignore storage errors
-    }
+    clearTimeout(heartFlushTimer);
+    heartFlushTimer = setTimeout(flushHeartsToServer, 240);
 
     playHeartPopSound();
 
@@ -801,9 +849,24 @@ async function notifyTyping(isTyping) {
     }
 }
 
+function autoResizeChatInput() {
+    const el = chatInputEl.value;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 110)}px`;
+}
+
+function handleChatKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+}
+
 function handleChatInput() {
     getAudioContext();
-    if (!authUser.value) return;
+    autoResizeChatInput();
+    if (!authUser.value || !isOnline.value) return;
     if (!chatInput.value.trim()) {
         clearTimeout(typingStopTimer);
         notifyTyping(false);
@@ -821,35 +884,74 @@ function handleChatInput() {
     }, 3000);
 }
 
-async function sendMessage() {
-    if (!authUser.value || !chatInput.value.trim()) return;
+let optimisticMsgSeq = 0;
+function sendMessage() {
+    if (!isOnline.value) return;
+    const text = chatInput.value.trim();
+    if (!authUser.value || !text) return;
+
     // Unlock Web Audio synchronously inside the user submit gesture
     const ctx = getAudioContext();
     if (ctx && ctx.state === 'suspended') {
         ctx.resume().catch(() => {});
     }
+
     clearTimeout(typingStopTimer);
     lastTypingSentAt = 0;
-    sendingMessage.value = true;
     showEmojiPicker.value = false;
-    try {
-        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/messages`, {
-            message: chatInput.value.trim(),
+
+    const tempId = -++optimisticMsgSeq;
+    const optimisticMsg = {
+        id: tempId,
+        user_id: authUser.value.id,
+        submission_id: activeTargetSubmissionId.value,
+        message: text,
+        created_at: new Date().toISOString(),
+        user: {
+            id: authUser.value.id,
+            name: authUser.value.name,
+            username: authUser.value.username,
+        },
+        _optimistic: true,
+    };
+
+    // Instant zero-latency UI update + iPhone send sound
+    lastSentId.value = tempId;
+    messages.value.push(optimisticMsg);
+    chatInput.value = '';
+    nextTick(() => {
+        autoResizeChatInput();
+        scrollChatBottom();
+    });
+    playIphoneSendSound();
+
+    apiClient
+        .post(`/dev-jams/${props.jam.slug}/messages`, {
+            message: text,
             submission_id: activeTargetSubmissionId.value,
+        })
+        .then((res) => {
+            const realMsg = res.data.message;
+            const idx = messages.value.findIndex((m) => m.id === tempId);
+            if (messages.value.some((m) => m.id === realMsg.id)) {
+                if (idx !== -1) messages.value.splice(idx, 1);
+            } else if (idx !== -1) {
+                lastSentId.value = realMsg.id;
+                messages.value[idx] = realMsg;
+            } else {
+                messages.value.push(realMsg);
+            }
+        })
+        .catch((e) => {
+            messages.value = messages.value.filter((m) => m.id !== tempId);
+            chatInput.value = text;
+            nextTick(autoResizeChatInput);
+            if (!navigator.onLine) {
+                isOnline.value = false;
+            } else {
+                showToast(e.response?.data?.message || 'Message non envoyé.');
+            }
         });
-        const newMsg = res.data.message;
-        if (!messages.value.some((m) => m.id === newMsg.id)) {
-            lastSentId.value = newMsg.id;
-            messages.value.push(newMsg);
-        }
-        chatInput.value = '';
-        playIphoneSendSound();
-        nextTick(scrollChatBottom);
-    } catch (e) {
-        showToast(e.response?.data?.message || 'Message non envoyé.');
-    } finally {
-        sendingMessage.value = false;
-    }
 }
 
 async function deleteMsg(msg) {
@@ -875,14 +977,20 @@ async function pinMessage(messageId) {
 }
 
 async function pollMessages() {
+    if (!isOnline.value) return;
     try {
-        const lastId = messages.value.length ? messages.value[messages.value.length - 1].id : 0;
+        const serverMessages = messages.value.filter((m) => m.id > 0);
+        const lastId = serverMessages.length ? serverMessages[serverMessages.length - 1].id : 0;
         const res = await apiClient.get(`/dev-jams/${props.jam.slug}/messages?after_id=${lastId}`);
+        isOnline.value = true;
         if (typeof res.data.online_count === 'number') onlineCount.value = res.data.online_count;
         if (Array.isArray(res.data.online_users)) onlineUsers.value = res.data.online_users;
         if (Array.isArray(res.data.typing_users)) typingUsers.value = res.data.typing_users;
         if (Array.isArray(res.data.polls)) polls.value = res.data.polls;
         if ('pinned_message' in res.data) pinnedMessage.value = res.data.pinned_message;
+        if (typeof res.data.hearts_count === 'number' && pendingHearts === 0) {
+            heartCount.value = res.data.hearts_count;
+        }
 
         if (Array.isArray(res.data.collaborators)) {
             collaborators.value = res.data.collaborators;
@@ -936,8 +1044,10 @@ async function pollMessages() {
             }
             nextTick(scrollChatBottom);
         }
-    } catch {
-        // silent background poll
+    } catch (err) {
+        if (!navigator.onLine || !err?.response) {
+            isOnline.value = false;
+        }
     }
 }
 
@@ -981,6 +1091,16 @@ function handleWindowResize() {
     }
 }
 
+function handleOnline() {
+    isOnline.value = true;
+    pollMessages();
+    if (pendingHearts > 0) flushHeartsToServer();
+}
+
+function handleOffline() {
+    isOnline.value = false;
+}
+
 onMounted(() => {
     try {
         const savedPos = localStorage.getItem(chatPosStorageKey);
@@ -994,8 +1114,6 @@ onMounted(() => {
         if (savedDock === 'bottom' || savedDock === 'right') {
             previewDock.value = savedDock;
         }
-        const savedHearts = Number(localStorage.getItem(heartStorageKey) || 0);
-        if (!Number.isNaN(savedHearts)) heartCount.value = savedHearts;
     } catch {
         // ignore storage errors
     }
@@ -1005,6 +1123,8 @@ onMounted(() => {
     pollTimer = setInterval(pollMessages, 2500);
     pollMessages();
     window.addEventListener('resize', handleWindowResize);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     nextTick(scrollChatBottom);
 });
 
@@ -1012,7 +1132,11 @@ onUnmounted(() => {
     clearInterval(countdownTimer);
     clearInterval(pollTimer);
     clearTimeout(typingStopTimer);
+    clearTimeout(heartFlushTimer);
+    clearTimeout(jsReloadTimer);
     window.removeEventListener('resize', handleWindowResize);
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
     window.removeEventListener('pointermove', onChatDragMove);
     window.removeEventListener('pointerup', onChatDragEnd);
     window.removeEventListener('pointermove', onPreviewDragMove);
@@ -1375,7 +1499,7 @@ onUnmounted(() => {
                                     >
                                         <i class="bi" :class="previewDock === 'bottom' ? 'bi-layout-sidebar-reverse' : 'bi-layout-split'"></i>
                                     </button>
-                                    <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-2" title="Rafraîchir l'aperçu (Ctrl+Entrée)" @click="previewKey++">
+                                    <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-2" title="Rafraîchir l'aperçu (Ctrl+Entrée)" @click="refreshPreviewNow">
                                         <i class="bi bi-arrow-clockwise"></i>
                                     </button>
                                     <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-2" :title="previewFullscreen ? 'Réduire' : 'Plein écran'" @click="previewFullscreen = !previewFullscreen">
@@ -1384,10 +1508,12 @@ onUnmounted(() => {
                                 </div>
                             </div>
                             <iframe
+                                ref="previewIframeEl"
                                 :key="previewKey"
                                 :srcdoc="liveSrcDoc"
                                 sandbox="allow-scripts allow-modals"
-                                class="w-100 border-0 flex-grow-1 bg-white"
+                                class="w-100 border-0 flex-grow-1"
+                                style="background: #0b0e15;"
                                 title="Aperçu en direct Dev Jam"
                             ></iframe>
                         </div>
@@ -1809,29 +1935,30 @@ onUnmounted(() => {
 
             <!-- Chat Input (Auth Required) -->
             <div class="p-2 border-top border-secondary border-opacity-25">
-                <form v-if="authUser" class="d-flex align-items-center gap-1" @submit.prevent="sendMessage">
+                <form v-if="authUser" class="d-flex align-items-end gap-1" @submit.prevent="sendMessage">
                     <button
                         type="button"
-                        class="btn btn-sm dj-btn-ghost rounded-circle"
+                        class="btn btn-sm dj-btn-ghost rounded-circle flex-shrink-0"
                         title="Emojis & Émoticônes"
                         @click="showEmojiPicker = !showEmojiPicker"
                     >
                         <i class="bi bi-emoji-smile text-warning"></i>
                     </button>
-                    <input
+                    <textarea
                         ref="chatInputEl"
                         v-model="chatInput"
-                        type="text"
-                        class="form-control form-control-sm dj-dark-input rounded-pill"
+                        rows="1"
+                        class="form-control form-control-sm dj-dark-input dj-chat-textarea rounded-4"
                         placeholder="Écrire un message (@ pour tagger)..."
                         maxlength="1000"
                         @input="handleChatInput"
-                    />
+                        @keydown="handleChatKeydown"
+                    ></textarea>
                     <button
                         type="submit"
-                        class="btn btn-sm btn-primary rounded-circle d-flex align-items-center justify-content-center"
+                        class="btn btn-sm btn-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
                         style="width: 32px; height: 32px;"
-                        :disabled="sendingMessage || !chatInput.trim()"
+                        :disabled="!isOnline || !chatInput.trim()"
                     >
                         <i class="bi bi-send-fill" style="font-size: 12px;"></i>
                     </button>
@@ -2007,6 +2134,25 @@ onUnmounted(() => {
                     <button type="button" class="btn-close btn-close-white" @click="previewSubmission = null"></button>
                 </div>
                 <iframe :srcdoc="buildSandboxDoc(previewSubmission.html_code, previewSubmission.css_code, previewSubmission.js_code)" sandbox="allow-scripts" class="w-100 border-0 flex-grow-1 bg-white" :title="previewSubmission.title"></iframe>
+            </div>
+        </div>
+
+        <!-- Offline Blocking Overlay -->
+        <div v-if="!isOnline" class="dj-offline-overlay d-flex align-items-center justify-content-center p-3">
+            <div class="dj-glass-box rounded-4 shadow-lg p-4 text-center" style="max-width: 420px; border-color: rgba(244, 63, 94, 0.5) !important;">
+                <div class="mb-3">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger bg-opacity-25 text-danger" style="width: 56px; height: 56px;">
+                        <i class="bi bi-wifi-off fs-3"></i>
+                    </span>
+                </div>
+                <h5 class="fw-bold text-white mb-2">Connexion internet perdue</h5>
+                <p class="small text-white-50 mb-3">
+                    Vous êtes hors ligne. Toutes les actions sont temporairement bloquées jusqu'au rétablissement de votre connexion.
+                </p>
+                <div class="d-inline-flex align-items-center gap-2 small text-warning">
+                    <span class="spinner-border spinner-border-sm"></span>
+                    <span>Tentative de reconnexion en cours...</span>
+                </div>
             </div>
         </div>
     </div>
@@ -2547,5 +2693,21 @@ onUnmounted(() => {
     .w-lg-50 {
         width: 50% !important;
     }
+}
+.dj-chat-textarea {
+    resize: none;
+    overflow-y: auto;
+    max-height: 110px;
+    line-height: 1.4;
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+.dj-offline-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(5, 7, 12, 0.82);
+    backdrop-filter: blur(10px);
+    pointer-events: all;
 }
 </style>
