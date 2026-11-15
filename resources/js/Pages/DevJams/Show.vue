@@ -180,10 +180,22 @@ function handleSandboxMessage(e) {
 
 function buildSandboxDoc(html, css, js, withLivePatch = false) {
     const safeCss = String(css || '').replace(/<\/style>/gi, '<\\/style>');
-    const safeJs = String(js || '').replace(/<\/script>/gi, '<\\/script>');
-    const isReactBabel = /babel-standalone|@babel\/standalone/i.test(String(html || '')) || /<[A-Z][A-Za-z0-9]*[\s/>]|ReactDOM\.createRoot|createRoot\(/.test(String(js || ''));
+    let rawJs = String(js || '');
+    const isReactBabel = /babel-standalone|@babel\/standalone/i.test(String(html || '')) || /<[A-Z][A-Za-z0-9]*[\s/>]|ReactDOM\.createRoot|createRoot\(/.test(rawJs);
+
+    if (isReactBabel) {
+        // Transform common ES module React imports into global React/ReactDOM destructuring so top-level `import` never throws SyntaxError
+        rawJs = rawJs
+            .replace(/^\s*import\s+React\s*,\s*\{([^}]+)\}\s*from\s*['"]react['"]\s*;?\s*$/gm, 'const {$1} = React;')
+            .replace(/^\s*import\s+\{([^}]+)\}\s*from\s*['"]react['"]\s*;?\s*$/gm, 'const {$1} = React;')
+            .replace(/^\s*import\s+React\s+from\s*['"]react['"]\s*;?\s*$/gm, '')
+            .replace(/^\s*import\s+\{([^}]+)\}\s*from\s*['"]react-dom\/client['"]\s*;?\s*$/gm, 'const {$1} = ReactDOM;')
+            .replace(/^\s*import\s+ReactDOM\s+from\s*['"]react-dom(?:\/client)?['"]\s*;?\s*$/gm, '');
+    }
+
+    const safeJs = rawJs.replace(/<\/script>/gi, '<\\/script>');
     const consoleBridge = withLivePatch
-        ? `<script>(function(){var send=function(lvl,args){try{var txt=[].slice.call(args).map(function(a){if(typeof a==='object'){try{return JSON.stringify(a);}catch(e){return String(a);}}return String(a);}).join(' ');parent.postMessage({type:'dj-console',level:lvl,text:txt},'*');}catch(e){}};['log','warn','error'].forEach(function(m){var orig=console[m];console[m]=function(){send(m,arguments);if(orig)orig.apply(console,arguments);};});window.addEventListener('error',function(ev){send('error',[ev.message+' (ligne '+ev.lineno+')']);});window.addEventListener('unhandledrejection',function(ev){send('error',['Promise rejetée: '+(ev.reason&&ev.reason.message?ev.reason.message:ev.reason)]);});})();<\/script>`
+        ? `<script>(function(){var send=function(lvl,args){try{var txt=[].slice.call(args).map(function(a){if(typeof a==='object'){try{return JSON.stringify(a);}catch(e){return String(a);}}return String(a);}).join(' ');if(lvl==='warn'&&txt.indexOf('in-browser Babel transformer')!==-1)return;parent.postMessage({type:'dj-console',level:lvl,text:txt},'*');}catch(e){}};['log','warn','error'].forEach(function(m){var orig=console[m];console[m]=function(){send(m,arguments);if(orig)orig.apply(console,arguments);};});window.addEventListener('error',function(ev){send('error',[ev.message+' (ligne '+ev.lineno+')']);});window.addEventListener('unhandledrejection',function(ev){send('error',['Promise rejetée: '+(ev.reason&&ev.reason.message?ev.reason.message:ev.reason)]);});})();<\/script>`
         : '';
     const patchBridge = withLivePatch
         ? `<script>window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dj-patch')return;var st=document.getElementById('dj-live-style');if(st)st.textContent=e.data.css||'';if(e.data.htmlOnlyCss)return;var root=document.getElementById('dj-live-root');if(root)root.innerHTML=e.data.html||'';});<\/script>`
@@ -198,13 +210,13 @@ function buildSandboxDoc(html, css, js, withLivePatch = false) {
 const showTemplateMenu = ref(false);
 const starterTemplates = {
     react: {
-        label: 'Starter React.js (JSX)',
+        label: 'Starter React.js (Compteur)',
         html: `<div id="root"></div>\n<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>\n<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>\n<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`,
-        css: `body {\n    margin: 0;\n    min-height: 100vh;\n    display: grid;\n    place-items: center;\n    background: radial-gradient(circle at top, #0f172a, #05070c 70%);\n    font-family: 'Segoe UI', system-ui, sans-serif;\n    color: #f8fafc;\n}\n.react-card {\n    background: rgba(15, 23, 42, 0.85);\n    border: 1px solid rgba(56, 189, 248, 0.35);\n    border-radius: 20px;\n    padding: 2rem;\n    text-align: center;\n    max-width: 380px;\n    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);\n}\n.react-badge {\n    display: inline-block;\n    padding: 4px 12px;\n    border-radius: 999px;\n    background: rgba(56, 189, 248, 0.18);\n    color: #38bdf8;\n    font-size: 12px;\n    font-weight: 700;\n}\n.react-btn {\n    margin-top: 14px;\n    padding: 10px 22px;\n    border-radius: 999px;\n    border: none;\n    background: linear-gradient(135deg, #06b6d4, #3b82f6);\n    color: #ffffff;\n    font-weight: 700;\n    cursor: pointer;\n}`,
-        js: `const { useState } = React;\n\nfunction App() {\n    const [count, setCount] = useState(0);\n\n    return (\n        <div className="react-card">\n            <span className="react-badge">⚛️ React 18 JSX</span>\n            <h2>Compteur Tech237</h2>\n            <p>Vous avez cliqué {count} fois.</p>\n            <button className="react-btn" onClick={() => setCount(c => c + 1)}>\n                Incrémenter +1\n            </button>\n        </div>\n    );\n}\n\nReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
+        css: `body {\n    margin: 0;\n    min-height: 100vh;\n    display: grid;\n    place-items: center;\n    background: radial-gradient(circle at top, #0f172a, #05070c 70%);\n    font-family: 'Segoe UI', system-ui, sans-serif;\n    color: #f8fafc;\n}\n.react-card {\n    background: rgba(15, 23, 42, 0.88);\n    border: 1px solid rgba(56, 189, 248, 0.35);\n    border-radius: 20px;\n    padding: 2rem;\n    text-align: center;\n    min-width: 300px;\n    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);\n}\n.react-badge {\n    display: inline-block;\n    padding: 4px 12px;\n    border-radius: 999px;\n    background: rgba(56, 189, 248, 0.18);\n    color: #38bdf8;\n    font-size: 12px;\n    font-weight: 700;\n}\n.react-count {\n    font-size: 3.2rem;\n    font-weight: 800;\n    margin: 14px 0;\n    color: #38bdf8;\n}\n.react-actions {\n    display: flex;\n    gap: 10px;\n    justify-content: center;\n}\n.react-btn {\n    padding: 10px 18px;\n    border-radius: 999px;\n    border: none;\n    background: linear-gradient(135deg, #06b6d4, #3b82f6);\n    color: #ffffff;\n    font-weight: 700;\n    cursor: pointer;\n}\n.react-btn-outline {\n    padding: 10px 16px;\n    border-radius: 999px;\n    border: 1px solid rgba(56, 189, 248, 0.45);\n    background: transparent;\n    color: #bae6fd;\n    cursor: pointer;\n}`,
+        js: `const { useState } = React;\n\nfunction App() {\n    const [count, setCount] = useState(0);\n\n    return (\n        <div className="react-card">\n            <span className="react-badge">⚛️ React 18 JSX</span>\n            <h2>Compteur Tech237</h2>\n            <div className="react-count">{count}</div>\n            <div className="react-actions">\n                <button className="react-btn-outline" onClick={() => setCount(c => c - 1)}>-1</button>\n                <button className="react-btn-outline" onClick={() => setCount(0)}>Reset</button>\n                <button className="react-btn" onClick={() => setCount(c => c + 1)}>+1</button>\n            </div>\n        </div>\n    );\n}\n\nReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
     },
     vue: {
-        label: 'Starter Vue.js 3',
+        label: 'Starter Vue.js 3 (Compteur)',
         html: `<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"><\/script>\n<div id="app">\n    <div class="vue-card">\n        <span class="vue-badge">🟢 Vue.js 3</span>\n        <h2>{{ title }}</h2>\n        <p>Score en direct : <strong>{{ count }}</strong></p>\n        <div class="vue-actions">\n            <button @click="count++" class="vue-btn">+1 Point</button>\n            <button @click="count = 0" class="vue-btn-outline">Reset</button>\n        </div>\n    </div>\n</div>`,
         css: `body {\n    margin: 0;\n    min-height: 100vh;\n    display: grid;\n    place-items: center;\n    background: radial-gradient(circle at top, #064e3b, #05070c 70%);\n    font-family: 'Segoe UI', system-ui, sans-serif;\n    color: #ecfdf5;\n}\n.vue-card {\n    background: rgba(6, 20, 16, 0.88);\n    border: 1px solid rgba(52, 211, 153, 0.35);\n    border-radius: 20px;\n    padding: 2rem;\n    text-align: center;\n    max-width: 380px;\n}\n.vue-badge {\n    display: inline-block;\n    padding: 4px 12px;\n    border-radius: 999px;\n    background: rgba(16, 185, 129, 0.2);\n    color: #34d399;\n    font-size: 12px;\n    font-weight: 700;\n}\n.vue-actions {\n    display: flex;\n    gap: 10px;\n    justify-content: center;\n    margin-top: 14px;\n}\n.vue-btn {\n    padding: 10px 20px;\n    border-radius: 999px;\n    border: none;\n    background: linear-gradient(135deg, #10b981, #059669);\n    color: #ffffff;\n    font-weight: 700;\n    cursor: pointer;\n}\n.vue-btn-outline {\n    padding: 10px 18px;\n    border-radius: 999px;\n    border: 1px solid rgba(52, 211, 153, 0.45);\n    background: transparent;\n    color: #a7f3d0;\n    cursor: pointer;\n}`,
         js: `const { createApp, ref } = Vue;\n\ncreateApp({\n    setup() {\n        const title = ref('Dev Jam Vue 3');\n        const count = ref(0);\n        return { title, count };\n    }\n}).mount('#app');`,
@@ -235,6 +247,7 @@ function applyStarterTemplate(key) {
     if (!tpl) return;
     showTemplateMenu.value = false;
     if (!window.confirm(`Remplacer le code actuel par "${tpl.label}" ?`)) return;
+    clearConsoleLogs();
     htmlCode.value = tpl.html;
     cssCode.value = tpl.css;
     jsCode.value = tpl.js;
