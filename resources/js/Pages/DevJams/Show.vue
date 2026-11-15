@@ -16,6 +16,10 @@ const props = defineProps({
     initialLiveCode: { type: Object, default: null },
     initialPinnedMessage: { type: Object, default: null },
     initialHeartsCount: { type: Number, default: 0 },
+    initialRaisedHands: { type: Array, default: () => [] },
+    initialMessageReactions: { type: Object, default: () => ({}) },
+    initialSprint: { type: Object, default: null },
+    initialCreatorActiveTab: { type: String, default: 'html' },
 });
 
 const page = usePage();
@@ -149,13 +153,168 @@ const lineCount = computed(() => Math.max(20, activeCodeText.value.split('\n').l
 const previewIframeEl = ref(null);
 let jsReloadTimer = null;
 
+// Responsive Preview & Integrated JS Console
+const previewDevice = ref('desktop'); // 'desktop' | 'tablet' | 'mobile'
+const showConsole = ref(false);
+const consoleLogs = ref([]);
+const consoleErrorCount = computed(() => consoleLogs.value.filter((l) => l.level === 'error').length);
+
+function clearConsoleLogs() {
+    consoleLogs.value = [];
+}
+
+function handleSandboxMessage(e) {
+    if (!e?.data || e.data.type !== 'dj-console') return;
+    const level = e.data.level || 'log';
+    const text = String(e.data.text || '');
+    consoleLogs.value.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        level,
+        text,
+        time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    });
+    if (consoleLogs.value.length > 80) {
+        consoleLogs.value = consoleLogs.value.slice(-80);
+    }
+}
+
 function buildSandboxDoc(html, css, js, withLivePatch = false) {
     const safeCss = String(css || '').replace(/<\/style>/gi, '<\\/style>');
     const safeJs = String(js || '').replace(/<\/script>/gi, '<\\/script>');
+    const consoleBridge = withLivePatch
+        ? `<script>(function(){var send=function(lvl,args){try{var txt=[].slice.call(args).map(function(a){if(typeof a==='object'){try{return JSON.stringify(a);}catch(e){return String(a);}}return String(a);}).join(' ');parent.postMessage({type:'dj-console',level:lvl,text:txt},'*');}catch(e){}};['log','warn','error'].forEach(function(m){var orig=console[m];console[m]=function(){send(m,arguments);if(orig)orig.apply(console,arguments);};});window.addEventListener('error',function(ev){send('error',[ev.message+' (ligne '+ev.lineno+')']);});window.addEventListener('unhandledrejection',function(ev){send('error',['Promise rejetée: '+(ev.reason&&ev.reason.message?ev.reason.message:ev.reason)]);});})();<\/script>`
+        : '';
     const patchBridge = withLivePatch
         ? `<script>window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dj-patch')return;var st=document.getElementById('dj-live-style');if(st)st.textContent=e.data.css||'';var root=document.getElementById('dj-live-root');if(root)root.innerHTML=e.data.html||'';});<\/script>`
         : '';
-    return `<!doctype html><html><head><meta charset="utf-8"><style id="dj-live-style">${safeCss}</style></head><body><div id="dj-live-root">${html || ''}</div>${patchBridge}<script>${safeJs}<\/script></body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><style id="dj-live-style">${safeCss}</style></head><body><div id="dj-live-root">${html || ''}</div>${consoleBridge}${patchBridge}<script>${safeJs}<\/script></body></html>`;
+}
+
+// Starter Templates, ZIP Export & Portfolio Publish
+const showTemplateMenu = ref(false);
+const starterTemplates = {
+    tailwind: {
+        label: 'Starter Tailwind CDN',
+        html: `<script src="https://cdn.tailwindcss.com"><\/script>\n<div class="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">\n  <div class="max-w-md w-full rounded-2xl border border-indigo-500/30 bg-slate-900/80 p-8 shadow-2xl">\n    <span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/20 text-indigo-300 mb-4">Tech237 Starter</span>\n    <h1 class="text-3xl font-extrabold mb-2">Interface Moderne</h1>\n    <p class="text-slate-400 text-sm mb-6">Prêt avec Tailwind CSS CDN pour prototyper rapidement.</p>\n    <button id="tw-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-cyan-500 font-bold hover:opacity-90 transition">Tester l'action</button>\n  </div>\n</div>`,
+        css: `body { margin: 0; }`,
+        js: `document.getElementById('tw-btn')?.addEventListener('click', () => {\n  console.log('Bouton Tailwind cliqué !');\n  alert('Tailwind prêt sur Tech237 !');\n});`,
+    },
+    canvas: {
+        label: 'Starter Canvas 2D / Jeu',
+        html: `<div class="game-wrap">\n  <canvas id="stage" width="460" height="300"></canvas>\n  <p class="hint">Déplacez la souris sur le canvas</p>\n</div>`,
+        css: `body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #07090f; color: #cbd5e1; font-family: system-ui; }\n.game-wrap { text-align: center; }\ncanvas { border-radius: 16px; border: 1px solid rgba(99,102,241,0.4); background: #0f172a; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }\n.hint { font-size: 12px; margin-top: 10px; opacity: 0.75; }`,
+        js: `const canvas = document.getElementById('stage');\nconst ctx = canvas.getContext('2d');\nlet mx = 230, my = 150;\ncanvas.addEventListener('mousemove', (e) => {\n  const r = canvas.getBoundingClientRect();\n  mx = e.clientX - r.left; my = e.clientY - r.top;\n});\nfunction loop() {\n  ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';\n  ctx.fillRect(0, 0, canvas.width, canvas.height);\n  ctx.beginPath();\n  ctx.arc(mx, my, 18, 0, Math.PI * 2);\n  ctx.fillStyle = '#38bdf8';\n  ctx.fill();\n  requestAnimationFrame(loop);\n}\nloop();`,
+    },
+    dashboard: {
+        label: 'Starter Dashboard Dark',
+        html: `<main class="dash">\n  <header><h2>Analytics Tech237</h2><span class="pill">Live</span></header>\n  <section class="cards">\n    <article class="card"><small>Visiteurs</small><strong>12 480</strong></article>\n    <article class="card"><small>Conversion</small><strong>4.8%</strong></article>\n    <article class="card"><small>Revenus</small><strong>2.4M FCFA</strong></article>\n  </section>\n</main>`,
+        css: `body { margin: 0; background: #090b10; color: #f1f5f9; font-family: 'Segoe UI', sans-serif; padding: 24px; }\n.dash header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }\n.pill { background: rgba(16,185,129,0.2); color: #34d399; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }\n.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; }\n.card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }\n.card small { color: #94a3b8; }\n.card strong { font-size: 1.35rem; color: #818cf8; }`,
+        js: `console.log('Dashboard initialisé');`,
+    },
+};
+
+function applyStarterTemplate(key) {
+    if (!canCoEditSharedCode.value) return;
+    const tpl = starterTemplates[key];
+    if (!tpl) return;
+    showTemplateMenu.value = false;
+    if (!window.confirm(`Remplacer le code actuel par "${tpl.label}" ?`)) return;
+    htmlCode.value = tpl.html;
+    cssCode.value = tpl.css;
+    jsCode.value = tpl.js;
+    refreshPreviewNow();
+    showToast(`Template "${tpl.label}" chargé !`);
+}
+
+function buildZipBlob(files) {
+    const encoder = new TextEncoder();
+    const crcTable = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+        let c = i;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+        crcTable[i] = c >>> 0;
+    }
+    const crc32 = (bytes) => {
+        let c = 0xffffffff;
+        for (let i = 0; i < bytes.length; i++) c = crcTable[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+        return (c ^ 0xffffffff) >>> 0;
+    };
+    const localChunks = [];
+    const centralChunks = [];
+    let offset = 0;
+    for (const file of files) {
+        const nameBytes = encoder.encode(file.name);
+        const dataBytes = encoder.encode(file.content);
+        const crc = crc32(dataBytes);
+        const lh = new Uint8Array(30 + nameBytes.length);
+        const lv = new DataView(lh.buffer);
+        lv.setUint32(0, 0x04034b50, true);
+        lv.setUint16(4, 20, true);
+        lv.setUint32(14, crc, true);
+        lv.setUint32(18, dataBytes.length, true);
+        lv.setUint32(22, dataBytes.length, true);
+        lv.setUint16(26, nameBytes.length, true);
+        lh.set(nameBytes, 30);
+        localChunks.push(lh, dataBytes);
+
+        const ch = new Uint8Array(46 + nameBytes.length);
+        const cv = new DataView(ch.buffer);
+        cv.setUint32(0, 0x02014b50, true);
+        cv.setUint16(4, 20, true);
+        cv.setUint16(6, 20, true);
+        cv.setUint32(16, crc, true);
+        cv.setUint32(20, dataBytes.length, true);
+        cv.setUint32(24, dataBytes.length, true);
+        cv.setUint16(28, nameBytes.length, true);
+        cv.setUint32(42, offset, true);
+        ch.set(nameBytes, 46);
+        centralChunks.push(ch);
+        offset += lh.length + dataBytes.length;
+    }
+    const centralSize = centralChunks.reduce((acc, b) => acc + b.length, 0);
+    const eocd = new Uint8Array(22);
+    const ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, offset, true);
+    return new Blob([...localChunks, ...centralChunks, eocd], { type: 'application/zip' });
+}
+
+function exportProjectZip() {
+    const fullIndexHtml = `<!doctype html>\n<html lang="fr">\n<head>\n  <meta charset="utf-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>${subTitle.value || props.jam.title}</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n${htmlCode.value || ''}\n  <script src="app.js"><\/script>\n</body>\n</html>`;
+    const blob = buildZipBlob([
+        { name: 'index.html', content: fullIndexHtml },
+        { name: 'style.css', content: cssCode.value || '' },
+        { name: 'app.js', content: jsCode.value || '' },
+    ]);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${props.jam.slug || 'dev-jam'}.zip`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast('Projet exporté en ZIP (index.html, style.css, app.js) !');
+}
+
+function publishToPortfolio() {
+    const fullSnippet = `<!-- ${props.jam.title} -->\n<style>\n${cssCode.value || ''}\n</style>\n${htmlCode.value || ''}\n<script>\n${jsCode.value || ''}\n<\/script>`;
+    try {
+        localStorage.setItem('dj_portfolio_handoff', JSON.stringify({
+            title: subTitle.value || props.jam.title,
+            description: subDescription.value || props.jam.description || '',
+            html_code: htmlCode.value || '',
+            css_code: cssCode.value || '',
+            js_code: jsCode.value || '',
+            jam_slug: props.jam.slug,
+        }));
+    } catch {
+        // ignore storage errors
+    }
+    navigator.clipboard?.writeText(fullSnippet).catch(() => {});
+    showToast('Code copié ! Redirection vers votre Portfolio Builder Tech237...');
+    window.open('/espace-utilisateur/portfolio-builder/sites', '_blank', 'noopener');
 }
 
 const liveSrcDoc = ref(buildSandboxDoc(htmlCode.value, cssCode.value, jsCode.value, true));
@@ -283,6 +442,200 @@ function playHeartPopSound() {
     gain.connect(ctx.destination);
     osc.start(now);
     osc.stop(now + 0.09);
+}
+
+async function playMentionChimeSound() {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+        try {
+            await ctx.resume();
+        } catch {
+            return;
+        }
+    }
+    const now = ctx.currentTime;
+    const notes = [880, 1174.66];
+    notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        const t = now + idx * 0.09;
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.linearRampToValueAtTime(0.11, t + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.17);
+    });
+}
+
+// Raise Hand Queue
+const raisedHands = ref([...(props.initialRaisedHands || [])]);
+const isMyHandRaised = computed(() => {
+    if (!authUser.value) return false;
+    return raisedHands.value.some((h) => Number(h.id) === Number(authUser.value.id));
+});
+
+async function toggleHandRaise(targetUserId = null, forceLower = false) {
+    if (!authUser.value) {
+        showToast('Connectez-vous pour lever la main.');
+        return;
+    }
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/hand-raise`, {
+            user_id: targetUserId || authUser.value.id,
+            lower: forceLower,
+        });
+        raisedHands.value = res.data.raised_hands || [];
+        if (!targetUserId) {
+            showToast(res.data.raised ? '✋ Main levée ! Le créateur est notifié.' : 'Main baissée.');
+        }
+    } catch {
+        showToast('Impossible de mettre à jour la main levée.');
+    }
+}
+
+async function inviteFromHand(handUser) {
+    await inviteUserToCode(handUser.id);
+    await toggleHandRaise(handUser.id, true);
+}
+
+// Message Reactions
+const reactionEmojis = ['👍', '🔥', '🚀', '💡'];
+const messageReactions = ref({ ...(props.initialMessageReactions || {}) });
+
+function getMsgReactionCount(msgId, emoji) {
+    return (messageReactions.value?.[msgId]?.[emoji] || []).length;
+}
+
+function hasUserReacted(msgId, emoji) {
+    if (!authUser.value) return false;
+    const list = messageReactions.value?.[msgId]?.[emoji] || [];
+    return list.some((id) => Number(id) === Number(authUser.value.id));
+}
+
+async function toggleMessageReaction(msgId, emoji) {
+    if (!authUser.value) {
+        showToast('Connectez-vous pour réagir aux messages.');
+        return;
+    }
+    if (msgId <= 0) return;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/messages/${msgId}/react`, { emoji });
+        messageReactions.value = res.data.message_reactions || {};
+    } catch {
+        showToast('Impossible de réagir.');
+    }
+}
+
+// Quote Reply & @Mention Detection
+const replyingTo = ref(null);
+function startReply(msg) {
+    replyingTo.value = {
+        id: msg.id,
+        author: msg.user?.name || 'Participant',
+        excerpt: String(msg.message || '').slice(0, 90),
+    };
+    openChat();
+    nextTick(() => chatInputEl.value?.focus());
+}
+function cancelReply() {
+    replyingTo.value = null;
+}
+
+function isMessageMentioningMe(m) {
+    if (!authUser.value || !m?.message) return false;
+    if (Number(m.user_id) === Number(authUser.value.id)) return false;
+    const tag = String(authUser.value.username || authUser.value.name || '').replace(/\s+/g, '').toLowerCase();
+    const first = String(authUser.value.name || '').split(/\s+/)[0].toLowerCase();
+    const lower = String(m.message).toLowerCase();
+    return (tag && lower.includes(`@${tag}`)) || (first && lower.includes(`@${first}`));
+}
+
+// Synchronized Sprint / Pomodoro Timer
+const sprint = ref(props.initialSprint || null);
+const sprintTimeLeftText = ref('');
+const sprintEnded = ref(false);
+const showSprintPopover = ref(false);
+const sprintLabel = ref('Sprint Code');
+
+function updateSprintDisplay() {
+    if (!sprint.value || !sprint.value.ends_at) {
+        sprintTimeLeftText.value = '';
+        sprintEnded.value = false;
+        return;
+    }
+    const diff = Number(sprint.value.ends_at) - Date.now();
+    if (diff <= 0) {
+        sprintTimeLeftText.value = '00:00';
+        sprintEnded.value = true;
+        return;
+    }
+    sprintEnded.value = false;
+    const totalSec = Math.ceil(diff / 1000);
+    const min = String(Math.floor(totalSec / 60)).padStart(2, '0');
+    const sec = String(totalSec % 60).padStart(2, '0');
+    sprintTimeLeftText.value = `${min}:${sec}`;
+}
+
+async function startSprint(durationMin) {
+    if (!canRearrangePreview.value) return;
+    showSprintPopover.value = false;
+    try {
+        const res = await apiClient.post(`/dev-jams/${props.jam.slug}/sprint`, {
+            duration_min: durationMin,
+            label: sprintLabel.value || `Sprint ${durationMin} min`,
+        });
+        sprint.value = res.data.sprint;
+        updateSprintDisplay();
+        showToast(`⏱️ Sprint "${sprint.value?.label}" lancé (${durationMin} min) !`);
+    } catch {
+        showToast('Impossible de démarrer le sprint.');
+    }
+}
+
+async function stopSprint() {
+    if (!canRearrangePreview.value) return;
+    showSprintPopover.value = false;
+    try {
+        await apiClient.post(`/dev-jams/${props.jam.slug}/sprint`, { stop: true });
+        sprint.value = null;
+        updateSprintDisplay();
+        showToast('Sprint arrêté.');
+    } catch {
+        showToast('Impossible d’arrêter le sprint.');
+    }
+}
+
+// Watch Party (Suivre le créateur)
+const creatorActiveTab = ref(props.initialCreatorActiveTab || 'html');
+const followCreator = ref(false);
+
+watch(codeTab, (newTab) => {
+    if (canRearrangePreview.value && isOnline.value) {
+        apiClient.post(`/dev-jams/${props.jam.slug}/creator-tab`, { tab: newTab }).catch(() => {});
+    }
+});
+
+// Live Podium & Participant Badges
+const podiumSubmissions = computed(() =>
+    [...submissions.value]
+        .sort((a, b) => (b.votes_count || 0) - (a.votes_count || 0))
+        .slice(0, 3)
+);
+
+function getParticipantBadges(user) {
+    if (!user?.id) return [];
+    const badges = [];
+    const uid = Number(user.id);
+    if (Number(props.jam.creator_user_id) === uid) badges.push({ label: 'Créateur', icon: '👑', cls: 'dj-badge-gold' });
+    if (collaborators.value.some((c) => Number(c.id) === uid)) badges.push({ label: 'Co-éditeur', icon: '🤝', cls: 'dj-badge-cyan' });
+    const msgCount = messages.value.filter((m) => Number(m.user_id) === uid).length;
+    if (msgCount >= 5) badges.push({ label: 'Actif', icon: '💬', cls: 'dj-badge-violet' });
+    return badges;
 }
 
 // Floating Hearts (Multi-click Social Animation + Server Sync)
@@ -900,12 +1253,14 @@ function sendMessage() {
     lastTypingSentAt = 0;
     showEmojiPicker.value = false;
 
+    const replyContext = replyingTo.value ? { ...replyingTo.value } : null;
     const tempId = -++optimisticMsgSeq;
     const optimisticMsg = {
         id: tempId,
         user_id: authUser.value.id,
         submission_id: activeTargetSubmissionId.value,
         message: text,
+        reply_preview: replyContext,
         created_at: new Date().toISOString(),
         user: {
             id: authUser.value.id,
@@ -919,6 +1274,7 @@ function sendMessage() {
     lastSentId.value = tempId;
     messages.value.push(optimisticMsg);
     chatInput.value = '';
+    replyingTo.value = null;
     nextTick(() => {
         autoResizeChatInput();
         scrollChatBottom();
@@ -929,6 +1285,7 @@ function sendMessage() {
         .post(`/dev-jams/${props.jam.slug}/messages`, {
             message: text,
             submission_id: activeTargetSubmissionId.value,
+            reply_to_id: replyContext ? replyContext.id : null,
         })
         .then((res) => {
             const realMsg = res.data.message;
@@ -991,6 +1348,20 @@ async function pollMessages() {
         if (typeof res.data.hearts_count === 'number' && pendingHearts === 0) {
             heartCount.value = res.data.hearts_count;
         }
+        if (Array.isArray(res.data.raised_hands)) raisedHands.value = res.data.raised_hands;
+        if (res.data.message_reactions && typeof res.data.message_reactions === 'object') {
+            messageReactions.value = res.data.message_reactions;
+        }
+        if ('sprint' in res.data) {
+            sprint.value = res.data.sprint;
+            updateSprintDisplay();
+        }
+        if (res.data.creator_active_tab) {
+            creatorActiveTab.value = res.data.creator_active_tab;
+            if (followCreator.value && !canRearrangePreview.value && codeTab.value !== res.data.creator_active_tab) {
+                codeTab.value = res.data.creator_active_tab;
+            }
+        }
 
         if (Array.isArray(res.data.collaborators)) {
             collaborators.value = res.data.collaborators;
@@ -1029,6 +1400,10 @@ async function pollMessages() {
                     added += 1;
                     if (!authUser.value || Number(m.user_id) !== Number(authUser.value.id)) {
                         lastIncomingOther = m;
+                        if (isMessageMentioningMe(m)) {
+                            playMentionChimeSound();
+                            showToast(`🔔 ${m.user?.name || 'Quelqu’un'} vous a mentionné !`);
+                        }
                     }
                 }
             });
@@ -1119,12 +1494,17 @@ onMounted(() => {
     }
 
     updateCountdown();
-    countdownTimer = setInterval(updateCountdown, 1000);
+    updateSprintDisplay();
+    countdownTimer = setInterval(() => {
+        updateCountdown();
+        updateSprintDisplay();
+    }, 1000);
     pollTimer = setInterval(pollMessages, 2500);
     pollMessages();
     window.addEventListener('resize', handleWindowResize);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('message', handleSandboxMessage);
     nextTick(scrollChatBottom);
 });
 
@@ -1137,6 +1517,7 @@ onUnmounted(() => {
     window.removeEventListener('resize', handleWindowResize);
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
+    window.removeEventListener('message', handleSandboxMessage);
     window.removeEventListener('pointermove', onChatDragMove);
     window.removeEventListener('pointerup', onChatDragEnd);
     window.removeEventListener('pointermove', onPreviewDragMove);
@@ -1193,18 +1574,115 @@ onUnmounted(() => {
                     <i class="bi bi-clock me-1"></i>{{ countdownText }}
                 </span>
 
+                <!-- Synchronized Sprint / Pomodoro Timer -->
+                <div class="position-relative">
+                    <button
+                        v-if="sprint || canRearrangePreview"
+                        type="button"
+                        class="btn btn-sm rounded-pill px-2 py-1 d-flex align-items-center gap-1"
+                        :class="sprint ? (sprintEnded ? 'btn-danger' : 'btn-outline-info') : 'dj-btn-ghost'"
+                        style="font-size: 11px;"
+                        :title="canRearrangePreview ? 'Lancer ou gérer un Sprint chronométré' : 'Sprint en cours'"
+                        @click="canRearrangePreview ? (showSprintPopover = !showSprintPopover) : null"
+                    >
+                        <span>⏱️</span>
+                        <span v-if="sprint">{{ sprint.label }} : <strong>{{ sprintEnded ? 'Terminé !' : sprintTimeLeftText }}</strong></span>
+                        <span v-else class="d-none d-lg-inline">Sprint</span>
+                    </button>
+                    <div v-if="showSprintPopover && canRearrangePreview" class="dj-share-menu shadow-lg rounded-4 p-2 d-flex flex-column gap-1" style="min-width: 215px;">
+                        <input
+                            v-model="sprintLabel"
+                            type="text"
+                            class="form-control form-control-sm dj-dark-input mb-1"
+                            placeholder="Nom du sprint (ex: Sprint UI)"
+                            maxlength="60"
+                        />
+                        <div class="d-flex gap-1">
+                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(10)">10 min</button>
+                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(20)">20 min</button>
+                            <button type="button" class="btn btn-xs btn-outline-info flex-grow-1" @click="startSprint(25)">25 min</button>
+                        </div>
+                        <button v-if="sprint" type="button" class="btn btn-xs btn-outline-danger mt-1" @click="stopSprint">
+                            Arrêter le Sprint
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Watch Party: Follow Creator Active Tab -->
+                <button
+                    v-if="!canRearrangePreview"
+                    type="button"
+                    class="btn btn-sm rounded-3 px-2 py-1 d-none d-lg-flex align-items-center gap-1"
+                    :class="followCreator ? 'btn-info text-dark fw-semibold' : 'dj-btn-ghost'"
+                    style="font-size: 11px;"
+                    title="Suivre automatiquement l'onglet actif du créateur"
+                    @click="followCreator = !followCreator; if (followCreator) codeTab = creatorActiveTab;"
+                >
+                    <i class="bi bi-eye-fill"></i>
+                    <span>{{ followCreator ? 'Suit le créateur' : 'Suivre' }}</span>
+                </button>
+
+                <!-- Starter Templates -->
+                <div v-if="canCoEditSharedCode" class="position-relative d-none d-lg-block">
+                    <button
+                        type="button"
+                        class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1"
+                        title="Charger un template de démarrage"
+                        @click="showTemplateMenu = !showTemplateMenu"
+                    >
+                        <i class="bi bi-magic text-info me-1"></i>Templates
+                    </button>
+                    <div v-if="showTemplateMenu" class="dj-share-menu shadow-lg rounded-4 p-2 d-flex flex-column gap-1" style="min-width: 210px;">
+                        <button
+                            v-for="(tpl, key) in starterTemplates"
+                            :key="key"
+                            type="button"
+                            class="btn btn-sm dj-share-item text-start"
+                            @click="applyStarterTemplate(key)"
+                        >
+                            <i class="bi bi-stars text-info me-2"></i>{{ tpl.label }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- One-Click ZIP Export -->
+                <button
+                    type="button"
+                    class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1 d-none d-md-inline-flex align-items-center gap-1"
+                    title="Exporter le projet en ZIP (index.html, style.css, app.js)"
+                    @click="exportProjectZip"
+                >
+                    <i class="bi bi-file-earmark-zip-fill text-success"></i>
+                    <span class="d-none d-xl-inline">ZIP</span>
+                </button>
+
+                <!-- Publish to Portfolio -->
+                <button
+                    v-if="authUser"
+                    type="button"
+                    class="btn btn-sm dj-btn-ghost rounded-3 px-2 py-1 d-none d-xl-inline-flex align-items-center gap-1"
+                    title="Copier le code et ouvrir le Portfolio Builder Tech237"
+                    @click="publishToPortfolio"
+                >
+                    <i class="bi bi-briefcase-fill text-primary"></i>
+                    <span>Portfolio</span>
+                </button>
+
                 <!-- Co-édition & Invitations Button -->
                 <button
                     type="button"
                     class="btn btn-sm rounded-3 px-2 py-1 d-flex align-items-center gap-1"
-                    :class="collaborators.length || isCollaborator ? 'btn-outline-warning' : 'dj-btn-ghost'"
-                    title="Co-édition : inviter à coder ensemble ou révoquer l'accès"
+                    :class="collaborators.length || isCollaborator || raisedHands.length ? 'btn-outline-warning' : 'dj-btn-ghost'"
+                    title="Co-édition : inviter à coder ensemble, mains levées ou révoquer l'accès"
                     @click="showCollabModal = true"
                 >
                     <i class="bi bi-people-fill text-warning"></i>
                     <span class="d-none d-md-inline">Co-édition</span>
                     <span v-if="collaborators.length" class="badge bg-warning text-dark rounded-pill" style="font-size: 10px;">
                         {{ collaborators.length }}
+                    </span>
+                    <span v-if="raisedHands.length" class="badge bg-info text-dark rounded-pill" style="font-size: 10px;" title="Mains levées">
+                        ✋ {{ raisedHands.length }}
                     </span>
                 </button>
 
@@ -1490,6 +1968,50 @@ onUnmounted(() => {
                                     </span>
                                 </div>
                                 <div class="d-flex align-items-center gap-1">
+                                    <!-- Responsive Preview Modes -->
+                                    <div class="btn-group btn-group-xs me-1 d-none d-sm-inline-flex" role="group" aria-label="Mode responsive">
+                                        <button
+                                            type="button"
+                                            class="btn btn-xs py-0 px-1"
+                                            :class="previewDevice === 'mobile' ? 'btn-info text-dark' : 'dj-btn-ghost'"
+                                            title="Mobile (375px)"
+                                            @click="previewDevice = 'mobile'"
+                                        >
+                                            <i class="bi bi-phone"></i>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="btn btn-xs py-0 px-1"
+                                            :class="previewDevice === 'tablet' ? 'btn-info text-dark' : 'dj-btn-ghost'"
+                                            title="Tablette (768px)"
+                                            @click="previewDevice = 'tablet'"
+                                        >
+                                            <i class="bi bi-tablet"></i>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="btn btn-xs py-0 px-1"
+                                            :class="previewDevice === 'desktop' ? 'btn-info text-dark' : 'dj-btn-ghost'"
+                                            title="Desktop (100%)"
+                                            @click="previewDevice = 'desktop'"
+                                        >
+                                            <i class="bi bi-laptop"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Console JS Toggle -->
+                                    <button
+                                        type="button"
+                                        class="btn btn-xs py-0 px-2 d-flex align-items-center gap-1"
+                                        :class="showConsole ? 'btn-warning text-dark' : 'dj-btn-ghost'"
+                                        title="Afficher / masquer la Console JS"
+                                        @click="showConsole = !showConsole"
+                                    >
+                                        <i class="bi bi-terminal"></i>
+                                        <span v-if="consoleErrorCount" class="badge bg-danger rounded-pill" style="font-size: 9px;">{{ consoleErrorCount }}</span>
+                                        <span v-else-if="consoleLogs.length" class="badge bg-secondary rounded-pill" style="font-size: 9px;">{{ consoleLogs.length }}</span>
+                                    </button>
+
                                     <button
                                         v-if="canRearrangePreview && !previewFullscreen"
                                         type="button"
@@ -1507,15 +2029,50 @@ onUnmounted(() => {
                                     </button>
                                 </div>
                             </div>
-                            <iframe
-                                ref="previewIframeEl"
-                                :key="previewKey"
-                                :srcdoc="liveSrcDoc"
-                                sandbox="allow-scripts allow-modals"
-                                class="w-100 border-0 flex-grow-1"
-                                style="background: #0b0e15;"
-                                title="Aperçu en direct Dev Jam"
-                            ></iframe>
+                            <div class="flex-grow-1 d-flex justify-content-center overflow-auto dj-preview-stage">
+                                <iframe
+                                    ref="previewIframeEl"
+                                    :key="previewKey"
+                                    :srcdoc="liveSrcDoc"
+                                    sandbox="allow-scripts allow-modals"
+                                    class="border-0 h-100 dj-preview-frame"
+                                    :class="`dj-device-${previewDevice}`"
+                                    style="background: #0b0e15;"
+                                    title="Aperçu en direct Dev Jam"
+                                ></iframe>
+                            </div>
+
+                            <!-- Integrated JS Console Drawer -->
+                            <div v-if="showConsole" class="dj-console-drawer border-top d-flex flex-column">
+                                <div class="d-flex align-items-center justify-content-between px-3 py-1 border-bottom border-white border-opacity-10">
+                                    <span class="small fw-semibold text-white-50 font-monospace" style="font-size: 11px;">
+                                        <i class="bi bi-terminal-fill text-warning me-1"></i>Console JS ({{ consoleLogs.length }})
+                                    </span>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-2" style="font-size: 10px;" @click="clearConsoleLogs">
+                                            Effacer
+                                        </button>
+                                        <button type="button" class="btn btn-xs dj-btn-ghost py-0 px-1" @click="showConsole = false">
+                                            <i class="bi bi-x"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="dj-console-logs overflow-auto px-3 py-2 font-monospace">
+                                    <div v-if="!consoleLogs.length" class="text-white-50 small" style="font-size: 11px;">
+                                        Aucun log pour le moment. Utilisez <code>console.log()</code> dans app.js.
+                                    </div>
+                                    <div
+                                        v-for="entry in consoleLogs"
+                                        :key="entry.id"
+                                        class="dj-console-line d-flex align-items-start gap-2 py-1 border-bottom border-white border-opacity-5"
+                                        :class="`dj-console-${entry.level}`"
+                                    >
+                                        <span class="text-white-50 flex-shrink-0" style="font-size: 10px;">{{ entry.time }}</span>
+                                        <span class="text-uppercase fw-bold flex-shrink-0" style="font-size: 10px;">[{{ entry.level }}]</span>
+                                        <span class="text-break" style="font-size: 11px;">{{ entry.text }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Creator Drag-and-Drop Zone Overlays -->
@@ -1547,13 +2104,49 @@ onUnmounted(() => {
                             <i class="bi bi-code-slash me-1"></i>Retour à l'éditeur
                         </button>
                     </div>
+
+                    <!-- Live Podium (Top 3) -->
+                    <div v-if="podiumSubmissions.length" class="dj-glass-box rounded-4 p-3 mb-4">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="fw-bold small text-warning text-uppercase"><i class="bi bi-trophy-fill me-1"></i>Podium en direct</span>
+                            <span class="small text-white-50" style="font-size: 11px;">Classement par votes</span>
+                        </div>
+                        <div class="row g-2">
+                            <div v-for="(topSub, idx) in podiumSubmissions" :key="`podium-${topSub.id}`" class="col-md-4">
+                                <div class="dj-dark-row rounded-3 p-2 d-flex align-items-center justify-content-between gap-2">
+                                    <div class="d-flex align-items-center gap-2 min-w-0">
+                                        <span class="fs-5">{{ idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉' }}</span>
+                                        <div class="min-w-0">
+                                            <div class="fw-semibold text-white text-truncate small">{{ topSub.title }}</div>
+                                            <div class="text-white-50 text-truncate" style="font-size: 11px;">par {{ topSub.user?.name || 'Membre' }}</div>
+                                        </div>
+                                    </div>
+                                    <span class="badge bg-danger bg-opacity-25 text-danger rounded-pill flex-shrink-0">
+                                        ❤️ {{ topSub.votes_count || 0 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div v-if="submissions.length" class="row g-3">
                         <div v-for="sub in submissions" :key="sub.id" class="col-md-6 col-xl-4">
                             <div class="dj-glass-box rounded-4 p-3 h-100 d-flex flex-column">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
                                         <h6 class="fw-bold mb-0 text-white">{{ sub.title }}</h6>
-                                        <div class="small text-white-50">par {{ sub.user?.name || 'Membre' }}</div>
+                                        <div class="small text-white-50 d-flex align-items-center flex-wrap gap-1 mt-1">
+                                            <span>par {{ sub.user?.name || 'Membre' }}</span>
+                                            <span
+                                                v-for="badge in getParticipantBadges(sub.user)"
+                                                :key="badge.label"
+                                                class="badge rounded-pill"
+                                                :class="badge.cls"
+                                                style="font-size: 9px;"
+                                            >
+                                                {{ badge.icon }} {{ badge.label }}
+                                            </span>
+                                        </div>
                                     </div>
                                     <span v-if="sub.is_winner" class="badge bg-warning text-dark rounded-pill">
                                         <i class="bi bi-trophy-fill me-1"></i>Gagnant
@@ -1768,6 +2361,16 @@ onUnmounted(() => {
                 </div>
                 <div class="d-flex align-items-center gap-1 flex-shrink-0">
                     <button
+                        v-if="authUser && !canRearrangePreview"
+                        type="button"
+                        class="btn btn-xs py-0 px-2"
+                        :class="isMyHandRaised ? 'btn-info text-dark fw-semibold' : 'dj-btn-ghost'"
+                        :title="isMyHandRaised ? 'Baisser la main' : 'Lever la main pour demander la parole ou l’accès au code'"
+                        @click="toggleHandRaise()"
+                    >
+                        ✋
+                    </button>
+                    <button
                         type="button"
                         class="btn btn-xs dj-btn-ghost"
                         title="Réinitialiser la position du chat"
@@ -1823,7 +2426,10 @@ onUnmounted(() => {
                     </div>
                     <div
                         class="dj-bubble px-3 py-2"
-                        :class="isMyMessage(m) ? 'dj-bubble-me' : 'dj-bubble-other'"
+                        :class="[
+                            isMyMessage(m) ? 'dj-bubble-me' : 'dj-bubble-other',
+                            isMessageMentioningMe(m) ? 'dj-bubble-mention' : '',
+                        ]"
                     >
                         <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
                             <div class="d-flex align-items-center gap-1 min-w-0">
@@ -1836,6 +2442,16 @@ onUnmounted(() => {
                             </div>
                             <div class="d-flex align-items-center gap-1 flex-shrink-0">
                                 <span class="opacity-75" style="font-size: 10px;">{{ formatMsgTime(m.created_at) }}</span>
+                                <button
+                                    v-if="authUser && m.id > 0"
+                                    type="button"
+                                    class="btn btn-link p-0 text-white-50 opacity-75"
+                                    style="font-size: 11px;"
+                                    title="Citer ce message"
+                                    @click="startReply(m)"
+                                >
+                                    <i class="bi bi-quote"></i>
+                                </button>
                                 <button
                                     v-if="canRearrangePreview"
                                     type="button"
@@ -1878,6 +2494,12 @@ onUnmounted(() => {
                                 </button>
                             </div>
                         </div>
+                        <!-- Quote Reply Preview -->
+                        <div v-if="m.reply_preview" class="dj-quote-box rounded-2 px-2 py-1 mb-1">
+                            <div class="fw-bold text-info" style="font-size: 10px;">{{ m.reply_preview.author }}</div>
+                            <div class="text-white-50 text-truncate" style="font-size: 11px;">{{ m.reply_preview.excerpt }}</div>
+                        </div>
+
                         <div class="small" style="white-space: pre-wrap; word-break: break-word;">
                             <template v-for="(part, idx) in parseChatTokens(m.message)" :key="idx">
                                 <a
@@ -1891,8 +2513,35 @@ onUnmounted(() => {
                                 <template v-else>{{ part.text }}</template>
                             </template>
                         </div>
+
+                        <!-- Quick Message Reactions -->
+                        <div v-if="m.id > 0" class="d-flex align-items-center flex-wrap gap-1 mt-1 pt-1">
+                            <button
+                                v-for="emoji in reactionEmojis"
+                                :key="emoji"
+                                type="button"
+                                class="dj-react-pill"
+                                :class="{
+                                    active: hasUserReacted(m.id, emoji),
+                                    empty: !getMsgReactionCount(m.id, emoji),
+                                }"
+                                @click="toggleMessageReaction(m.id, emoji)"
+                            >
+                                <span>{{ emoji }}</span>
+                                <span v-if="getMsgReactionCount(m.id, emoji)" class="ms-1">{{ getMsgReactionCount(m.id, emoji) }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Quote Reply Composer Banner -->
+            <div v-if="replyingTo" class="dj-reply-banner px-3 py-1 border-top d-flex align-items-center justify-content-between gap-2">
+                <div class="min-w-0">
+                    <div class="text-info fw-semibold" style="font-size: 10px;">Réponse à {{ replyingTo.author }}</div>
+                    <div class="text-white-50 text-truncate" style="font-size: 11px;">{{ replyingTo.excerpt }}</div>
+                </div>
+                <button type="button" class="btn-close btn-close-white flex-shrink-0" style="font-size: 8px;" @click="cancelReply"></button>
             </div>
 
             <!-- WhatsApp-style Typing Indicator -->
@@ -2026,6 +2675,34 @@ onUnmounted(() => {
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-sm btn-success rounded-pill px-3" @click="respondInvite(true)">Accepter</button>
                             <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" @click="respondInvite(false)">Refuser</button>
+                        </div>
+                    </div>
+
+                    <!-- Raised Hands Queue (✋ Lever la main) -->
+                    <div v-if="raisedHands.length">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-info text-uppercase" style="font-size: 11px;">
+                                ✋ Mains levées ({{ raisedHands.length }})
+                            </span>
+                        </div>
+                        <div class="d-flex flex-column gap-2">
+                            <div v-for="h in raisedHands" :key="`hand-${h.id}`" class="d-flex align-items-center justify-content-between p-2 rounded-3 dj-dark-row">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="dj-avatar dj-avatar-other">{{ userInitials(h.name) }}</div>
+                                    <div>
+                                        <div class="small fw-semibold text-white">{{ h.name }}</div>
+                                        <div class="text-info" style="font-size: 10px;">Demande la parole / co-édition</div>
+                                    </div>
+                                </div>
+                                <div v-if="canRearrangePreview" class="d-flex gap-1">
+                                    <button type="button" class="btn btn-xs btn-warning text-dark fw-semibold rounded-pill px-2 py-1" @click="inviteFromHand(h)">
+                                        Inviter au code
+                                    </button>
+                                    <button type="button" class="btn btn-xs btn-outline-light rounded-pill px-2 py-1" @click="toggleHandRaise(h.id, true)">
+                                        Baisser
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -2709,5 +3386,95 @@ onUnmounted(() => {
     background: rgba(5, 7, 12, 0.82);
     backdrop-filter: blur(10px);
     pointer-events: all;
+}
+.dj-preview-stage {
+    background: #06080d;
+}
+.dj-preview-frame {
+    transition: width 0.25s ease;
+}
+.dj-device-desktop {
+    width: 100%;
+}
+.dj-device-tablet {
+    width: 768px;
+    max-width: 100%;
+    border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+.dj-device-mobile {
+    width: 375px;
+    max-width: 100%;
+    border-left: 1px solid rgba(56, 189, 248, 0.35) !important;
+    border-right: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+.dj-console-drawer {
+    height: 165px;
+    background: #090b10;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+.dj-console-logs {
+    flex: 1;
+    min-height: 0;
+}
+.dj-console-log {
+    color: #e2e8f0;
+}
+.dj-console-warn {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.06);
+}
+.dj-console-error {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.08);
+}
+.dj-quote-box {
+    background: rgba(0, 0, 0, 0.28);
+    border-left: 2px solid #38bdf8;
+}
+.dj-reply-banner {
+    background: rgba(15, 23, 42, 0.85);
+    border-color: rgba(56, 189, 248, 0.3) !important;
+}
+.dj-bubble-mention {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.65), 0 0 14px rgba(250, 204, 21, 0.18);
+}
+.dj-react-pill {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e2e8f0;
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-size: 10px;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.dj-react-pill.empty {
+    opacity: 0.45;
+}
+.dj-bubble:hover .dj-react-pill.empty {
+    opacity: 0.9;
+}
+.dj-react-pill.active {
+    background: rgba(56, 189, 248, 0.22);
+    border-color: rgba(56, 189, 248, 0.65);
+    color: #bae6fd;
+    opacity: 1;
+}
+.dj-badge-gold {
+    background: rgba(250, 204, 21, 0.18);
+    color: #fde047;
+    border: 1px solid rgba(250, 204, 21, 0.35);
+}
+.dj-badge-cyan {
+    background: rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+    border: 1px solid rgba(56, 189, 248, 0.35);
+}
+.dj-badge-violet {
+    background: rgba(139, 92, 246, 0.2);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.35);
 }
 </style>

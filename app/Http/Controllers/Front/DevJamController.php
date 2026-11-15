@@ -136,6 +136,13 @@ class DevJamController extends Controller
 
         $presence = $this->touchPresenceAndSnapshot($jam, $request);
         $collab = $this->collaborationSnapshot($jam, $user?->id, false);
+        $replyMap = Cache::get("dev_jam:{$jam->id}:reply_map", []);
+        $messages->transform(function ($m) use ($replyMap) {
+            if (isset($replyMap[$m->id])) {
+                $m->reply_preview = $replyMap[$m->id];
+            }
+            return $m;
+        });
 
         return Inertia::render('DevJams/Show', [
             'jam' => $jam,
@@ -150,6 +157,10 @@ class DevJamController extends Controller
             'initialLiveCode' => $collab['live_code'],
             'initialPinnedMessage' => Cache::get("dev_jam:{$jam->id}:pinned_msg"),
             'initialHeartsCount' => (int) ($jam->hearts_count ?? 0),
+            'initialRaisedHands' => $this->getRaisedHands($jam),
+            'initialMessageReactions' => Cache::get("dev_jam:{$jam->id}:msg_reactions", []),
+            'initialSprint' => $this->getActiveSprint($jam),
+            'initialCreatorActiveTab' => Cache::get("dev_jam:{$jam->id}:creator_tab", 'html'),
         ]);
     }
 
@@ -251,6 +262,13 @@ class DevJamController extends Controller
         $presence = $this->touchPresenceAndSnapshot($jam, $request);
         $userId = Auth::guard('web')->id();
         $collab = $this->collaborationSnapshot($jam, $userId, true);
+        $replyMap = Cache::get("dev_jam:{$jam->id}:reply_map", []);
+        $messages->transform(function ($m) use ($replyMap) {
+            if (isset($replyMap[$m->id])) {
+                $m->reply_preview = $replyMap[$m->id];
+            }
+            return $m;
+        });
 
         return response()->json([
             'messages' => $messages,
@@ -264,6 +282,10 @@ class DevJamController extends Controller
             'live_code' => $collab['live_code'],
             'pinned_message' => Cache::get("dev_jam:{$jam->id}:pinned_msg"),
             'hearts_count' => (int) ($jam->hearts_count ?? 0),
+            'raised_hands' => $this->getRaisedHands($jam),
+            'message_reactions' => Cache::get("dev_jam:{$jam->id}:msg_reactions", []),
+            'sprint' => $this->getActiveSprint($jam),
+            'creator_active_tab' => Cache::get("dev_jam:{$jam->id}:creator_tab", 'html'),
         ]);
     }
 
@@ -318,6 +340,7 @@ class DevJamController extends Controller
         $validated = $request->validate([
             'message' => ['required', 'string', 'min:1', 'max:1000'],
             'submission_id' => ['nullable', 'integer'],
+            'reply_to_id' => ['nullable', 'integer'],
         ]);
 
         $submissionId = $validated['submission_id'] ?? null;
@@ -336,14 +359,41 @@ class DevJamController extends Controller
             'message' => trim(strip_tags($validated['message'])),
         ]);
 
+        $replyPreview = null;
+        if (!empty($validated['reply_to_id'])) {
+            $parentMsg = DevJamMessage::with('user:id,name')
+                ->where('id', (int) $validated['reply_to_id'])
+                ->where('dev_jam_id', $jam->id)
+                ->first();
+            if ($parentMsg) {
+                $replyPreview = [
+                    'id' => $parentMsg->id,
+                    'author' => $parentMsg->user?->name ?? 'Participant',
+                    'excerpt' => mb_strimwidth($parentMsg->message, 0, 90, '...'),
+                ];
+                $replyMapKey = "dev_jam:{$jam->id}:reply_map";
+                $replyMap = Cache::get($replyMapKey, []);
+                $replyMap[$msg->id] = $replyPreview;
+                if (count($replyMap) > 250) {
+                    $replyMap = array_slice($replyMap, -200, null, true);
+                }
+                Cache::put($replyMapKey, $replyMap, now()->addDays(7));
+            }
+        }
+
         // Clear typing status immediately once message is sent
         $typingKey = "dev_jam:{$jam->id}:typing";
         $typing = Cache::get($typingKey, []);
         unset($typing[$user->id]);
         Cache::put($typingKey, $typing, now()->addSeconds(30));
 
+        $loadedMsg = $msg->load('user:id,name,username,avatar');
+        if ($replyPreview) {
+            $loadedMsg->reply_preview = $replyPreview;
+        }
+
         return response()->json([
-            'message' => $msg->load('user:id,name,username,avatar'),
+            'message' => $loadedMsg,
         ]);
     }
 
@@ -827,5 +877,163 @@ class DevJamController extends Controller
             'collab_notifications_for_me' => $notificationsForMe,
             'live_code' => Cache::get("dev_jam:{$jam->id}:live_code"),
         ];
+    }
+
+    public function toggleHandRaise(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+        $key = "dev_jam:{$jam->id}:hands";
+        $hands = Cache::get($key, []);
+        $targetUserId = (int) $request->input('user_id', $user->id);
+
+        // Only creator can dismiss another user's raised hand
+        if ($targetUserId !== $user->id && $jam->creator_user_id !== $user->id) {
+            abort(403);
+        }
+
+        if ($request->boolean('lower', false) || ($targetUserId === $user->id && isset($hands[$user->id]))) {
+            unset($hands[$targetUserId]);
+            $raised = false;
+        } else {
+            $hands[$user->id] = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'username' => $user->username,
+                'avatar' => $user->avatar,
+                'raised_at' => time(),
+            ];
+            $raised = true;
+        }
+
+        Cache::put($key, $hands, now()->addHours(6));
+
+        return response()->json([
+            'raised' => $raised,
+            'raised_hands' => $this->getRaisedHands($jam),
+        ]);
+    }
+
+    public function reactMessage(Request $request, string $slug, DevJamMessage $message)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        if ($message->dev_jam_id !== $jam->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'emoji' => ['required', 'string', 'in:👍,🔥,🚀,💡'],
+        ]);
+
+        $userId = Auth::guard('web')->id();
+        $emoji = $validated['emoji'];
+        $key = "dev_jam:{$jam->id}:msg_reactions";
+        $all = Cache::get($key, []);
+        $msgReactions = $all[$message->id] ?? [];
+        $users = $msgReactions[$emoji] ?? [];
+
+        if (in_array($userId, $users, true)) {
+            $users = array_values(array_filter($users, fn ($id) => (int) $id !== (int) $userId));
+        } else {
+            $users[] = (int) $userId;
+        }
+
+        if (empty($users)) {
+            unset($msgReactions[$emoji]);
+        } else {
+            $msgReactions[$emoji] = $users;
+        }
+
+        if (empty($msgReactions)) {
+            unset($all[$message->id]);
+        } else {
+            $all[$message->id] = $msgReactions;
+        }
+
+        Cache::put($key, $all, now()->addDays(7));
+
+        return response()->json([
+            'message_reactions' => $all,
+        ]);
+    }
+
+    public function updateSprint(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+        if ($jam->creator_user_id !== $user->id) {
+            abort(403, 'Seul le créateur de la Jam peut piloter le Sprint.');
+        }
+
+        $key = "dev_jam:{$jam->id}:sprint";
+        if ($request->boolean('stop', false)) {
+            Cache::forget($key);
+            return response()->json(['sprint' => null]);
+        }
+
+        $validated = $request->validate([
+            'duration_min' => ['required', 'integer', 'min:1', 'max:120'],
+            'label' => ['nullable', 'string', 'max:60'],
+        ]);
+
+        $duration = (int) $validated['duration_min'];
+        $sprint = [
+            'label' => trim((string) ($validated['label'] ?? '')) ?: "Sprint {$duration} min",
+            'duration_min' => $duration,
+            'started_at' => (int) round(microtime(true) * 1000),
+            'ends_at' => (int) round((microtime(true) + ($duration * 60)) * 1000),
+        ];
+
+        Cache::put($key, $sprint, now()->addMinutes($duration + 30));
+
+        return response()->json(['sprint' => $sprint]);
+    }
+
+    public function updateCreatorTab(Request $request, string $slug)
+    {
+        $jam = DevJam::where('slug', $slug)->firstOrFail();
+        $user = Auth::guard('web')->user();
+        if ($jam->creator_user_id !== $user->id) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'tab' => ['required', 'in:html,css,js'],
+        ]);
+
+        Cache::put("dev_jam:{$jam->id}:creator_tab", $validated['tab'], now()->addHours(12));
+
+        return response()->json([
+            'creator_active_tab' => $validated['tab'],
+        ]);
+    }
+
+    private function getRaisedHands(DevJam $jam): array
+    {
+        $key = "dev_jam:{$jam->id}:hands";
+        $hands = Cache::get($key, []);
+        $cutoff = time() - 7200;
+        $cleaned = array_filter($hands, fn ($h) => ($h['raised_at'] ?? 0) >= $cutoff);
+        if (count($cleaned) !== count($hands)) {
+            Cache::put($key, $cleaned, now()->addHours(6));
+        }
+
+        return array_values($cleaned);
+    }
+
+    private function getActiveSprint(DevJam $jam): ?array
+    {
+        $key = "dev_jam:{$jam->id}:sprint";
+        $sprint = Cache::get($key);
+        if (!$sprint || !isset($sprint['ends_at'])) {
+            return null;
+        }
+        // Keep sprint visible for 30s after expiration so participants see "00:00 Terminé!"
+        if (((int) $sprint['ends_at'] + 30000) < (int) round(microtime(true) * 1000)) {
+            Cache::forget($key);
+            return null;
+        }
+
+        return $sprint;
     }
 }

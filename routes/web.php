@@ -157,6 +157,10 @@ Route::middleware('auth:web')->group(function () {
     Route::post('/dev-jams/{slug}/collaborations/respond', [App\Http\Controllers\Front\DevJamController::class, 'respondCollaborationInvite'])->name('devjams.collab.respond');
     Route::post('/dev-jams/{slug}/collaborations/revoke', [App\Http\Controllers\Front\DevJamController::class, 'revokeCollaborator'])->name('devjams.collab.revoke');
     Route::post('/dev-jams/{slug}/live-code', [App\Http\Controllers\Front\DevJamController::class, 'syncLiveCode'])->name('devjams.livecode.sync');
+    Route::post('/dev-jams/{slug}/hand-raise', [App\Http\Controllers\Front\DevJamController::class, 'toggleHandRaise'])->name('devjams.handraise');
+    Route::post('/dev-jams/{slug}/messages/{message}/react', [App\Http\Controllers\Front\DevJamController::class, 'reactMessage'])->name('devjams.messages.react');
+    Route::post('/dev-jams/{slug}/sprint', [App\Http\Controllers\Front\DevJamController::class, 'updateSprint'])->name('devjams.sprint');
+    Route::post('/dev-jams/{slug}/creator-tab', [App\Http\Controllers\Front\DevJamController::class, 'updateCreatorTab'])->name('devjams.creator_tab');
 });
 Route::get('/dev-jams/{slug}', [App\Http\Controllers\Front\DevJamController::class, 'show'])->name('devjams.show');
 Route::get('/dev-jams/{slug}/messages', [App\Http\Controllers\Front\DevJamController::class, 'fetchMessages'])->name('devjams.messages.fetch');
