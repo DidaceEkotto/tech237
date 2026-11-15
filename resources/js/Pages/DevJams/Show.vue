@@ -45,7 +45,16 @@ const activeSection = ref('editor'); // editor | gallery | info
 const showExplorer = ref(true);
 const showPreview = ref(true);
 const previewFullscreen = ref(false);
-const codeTab = ref('html'); // html | css | js
+const codeTabStorageKey = `dj_code_tab_${props.jam.slug}`;
+const initialSavedCodeTab = (() => {
+    try {
+        const saved = localStorage.getItem(codeTabStorageKey);
+        return ['html', 'css', 'js'].includes(saved) ? saved : 'html';
+    } catch {
+        return 'html';
+    }
+})();
+const codeTab = ref(initialSavedCodeTab); // html | css | js
 const toast = ref('');
 
 // Creator-only Dockable Preview Layout ('right' | 'bottom')
@@ -731,7 +740,13 @@ async function stopSprint() {
 
 // Watch Party (Suivre le créateur)
 const creatorActiveTab = ref(props.initialCreatorActiveTab || 'html');
-const followCreator = ref(!props.isJamCreator);
+const followCreator = ref(false);
+
+function selectCodeTab(tab) {
+    if (!['html', 'css', 'js'].includes(tab)) return;
+    followCreator.value = false;
+    codeTab.value = tab;
+}
 
 watch(canCoEditSharedCode, (canEdit) => {
     if (!canEdit) {
@@ -741,6 +756,11 @@ watch(canCoEditSharedCode, (canEdit) => {
 });
 
 watch(codeTab, (newTab) => {
+    try {
+        localStorage.setItem(codeTabStorageKey, newTab);
+    } catch {
+        // ignore storage errors
+    }
     if (canRearrangePreview.value && isOnline.value) {
         apiClient.post(`/dev-jams/${props.jam.slug}/creator-tab`, { tab: newTab }).catch(() => {});
     }
@@ -2777,9 +2797,6 @@ onUnmounted(() => {
                 <span class="badge bg-success bg-opacity-25 border border-success border-opacity-50 text-success rounded-pill px-2 py-1 d-none d-sm-inline" style="font-size: 11px;" title="Participants connectés à cette Jam uniquement">
                     <i class="bi bi-people-fill me-1"></i>{{ onlineCount }} en ligne
                 </span>
-                <span class="badge bg-black bg-opacity-50 border border-secondary border-opacity-50 text-warning rounded-pill px-2 py-1 d-none d-md-inline" style="font-size: 11px;">
-                    <i class="bi bi-clock me-1"></i>{{ countdownText }}
-                </span>
 
                 <!-- Watch Party: Follow Creator Active Tab -->
                 <button
@@ -3002,13 +3019,13 @@ onUnmounted(() => {
 
                 <div v-if="subType === 'studio'" class="mb-3">
                     <div class="text-uppercase text-white-50 fw-bold mb-1" style="font-size: 10px; letter-spacing: 1px;">Fichiers</div>
-                    <button type="button" class="dj-file-item" :class="{ active: codeTab === 'html' }" @click="codeTab = 'html'">
+                    <button type="button" class="dj-file-item" :class="{ active: codeTab === 'html' }" @click="selectCodeTab('html')">
                         <i class="bi bi-filetype-html text-danger me-2"></i>index.html
                     </button>
-                    <button type="button" class="dj-file-item" :class="{ active: codeTab === 'css' }" @click="codeTab = 'css'">
+                    <button type="button" class="dj-file-item" :class="{ active: codeTab === 'css' }" @click="selectCodeTab('css')">
                         <i class="bi bi-filetype-css text-info me-2"></i>style.css
                     </button>
-                    <button type="button" class="dj-file-item" :class="{ active: codeTab === 'js' }" @click="codeTab = 'js'">
+                    <button type="button" class="dj-file-item" :class="{ active: codeTab === 'js' }" @click="selectCodeTab('js')">
                         <i class="bi bi-filetype-js text-warning me-2"></i>app.js
                     </button>
                 </div>
@@ -3062,13 +3079,13 @@ onUnmounted(() => {
                             <!-- VS Code Tabs -->
                             <div class="dj-tabs d-flex align-items-center justify-content-between px-2 border-bottom">
                                 <div class="d-flex">
-                                    <button type="button" class="dj-tab" :class="{ active: codeTab === 'html' }" @click="codeTab = 'html'">
+                                    <button type="button" class="dj-tab" :class="{ active: codeTab === 'html' }" @click="selectCodeTab('html')">
                                         <i class="bi bi-filetype-html text-danger me-1"></i>index.html
                                     </button>
-                                    <button type="button" class="dj-tab" :class="{ active: codeTab === 'css' }" @click="codeTab = 'css'">
+                                    <button type="button" class="dj-tab" :class="{ active: codeTab === 'css' }" @click="selectCodeTab('css')">
                                         <i class="bi bi-filetype-css text-info me-1"></i>style.css
                                     </button>
-                                    <button type="button" class="dj-tab" :class="{ active: codeTab === 'js' }" @click="codeTab = 'js'">
+                                    <button type="button" class="dj-tab" :class="{ active: codeTab === 'js' }" @click="selectCodeTab('js')">
                                         <i class="bi bi-filetype-js text-warning me-1"></i>app.js
                                     </button>
                                 </div>
@@ -3208,7 +3225,7 @@ onUnmounted(() => {
                                     </button>
 
                                     <button
-                                        v-if="canCoEditSharedCode && !previewFullscreen"
+                                        v-if="!previewFullscreen"
                                         type="button"
                                         class="btn btn-xs dj-btn-ghost py-0 px-2"
                                         :title="previewDock === 'bottom' ? 'Revenir à droite du Sandbox' : 'Placer en bas du Sandbox'"
@@ -3656,6 +3673,9 @@ onUnmounted(() => {
                 </button>
             </div>
             <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-black bg-opacity-50 border border-secondary border-opacity-50 text-warning rounded-pill px-2 py-0 d-none d-md-inline" style="font-size: 11px;">
+                    <i class="bi bi-clock me-1"></i>{{ countdownText }}
+                </span>
                 <span class="d-none d-md-inline">UTF-8</span>
                 <span>{{ codeTab.toUpperCase() }}</span>
                 <span class="d-none d-sm-inline">{{ submissions.length }} projet(s)</span>
