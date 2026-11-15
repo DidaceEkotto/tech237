@@ -944,7 +944,7 @@ const highlightPreEl = ref(null);
 const gutterEl = ref(null);
 const emmetHint = ref('');
 const editorTextStyle = {
-    fontFamily: "'Consolas', 'Courier New', monospace",
+    fontFamily: "'Consolas', 'Courier New', Courier, monospace",
     fontSize: '14px',
     fontWeight: '400',
     fontStyle: 'normal',
@@ -954,7 +954,12 @@ const editorTextStyle = {
     tabSize: '4',
     padding: '16px',
     whiteSpace: 'pre',
+    wordWrap: 'normal',
+    overflowWrap: 'normal',
+    wordBreak: 'normal',
+    textRendering: 'geometricPrecision',
     fontVariantLigatures: 'none',
+    fontFeatureSettings: '"liga" 0, "calt" 0',
     fontKerning: 'none',
 };
 
@@ -4654,7 +4659,7 @@ onUnmounted(() => {
 .dj-code-highlight code,
 .dj-code-highlight :deep(*),
 .dj-textarea-colored {
-    font-family: 'Consolas', 'Courier New', monospace !important;
+    font-family: 'Consolas', 'Courier New', Courier, monospace !important;
     font-size: 14px !important;
     font-weight: 400 !important;
     font-style: normal !important;
@@ -4662,10 +4667,15 @@ onUnmounted(() => {
     letter-spacing: 0px !important;
     word-spacing: 0px !important;
     font-variant-ligatures: none !important;
+    font-feature-settings: "liga" 0, "calt" 0 !important;
     font-kerning: none !important;
+    text-rendering: geometricPrecision !important;
     tab-size: 4 !important;
     -moz-tab-size: 4 !important;
     white-space: pre !important;
+    word-wrap: normal !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
     box-sizing: border-box !important;
 }
 .dj-code-highlight,
@@ -4687,6 +4697,8 @@ onUnmounted(() => {
 }
 .dj-code-highlight code {
     display: block;
+    min-width: 100%;
+    width: max-content;
     padding: 0 !important;
     margin: 0 !important;
     background: transparent !important;
