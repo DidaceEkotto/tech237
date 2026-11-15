@@ -184,13 +184,17 @@ function buildSandboxDoc(html, css, js, withLivePatch = false) {
     const isReactBabel = /babel-standalone|@babel\/standalone/i.test(String(html || '')) || /<[A-Z][A-Za-z0-9]*[\s/>]|ReactDOM\.createRoot|createRoot\(/.test(rawJs);
 
     if (isReactBabel) {
-        // Transform common ES module React imports into global React/ReactDOM destructuring so top-level `import` never throws SyntaxError
+        // Transform React/ReactDOM ES imports into globals & strip any other top-level import/export
         rawJs = rawJs
-            .replace(/^\s*import\s+React\s*,\s*\{([^}]+)\}\s*from\s*['"]react['"]\s*;?\s*$/gm, 'const {$1} = React;')
-            .replace(/^\s*import\s+\{([^}]+)\}\s*from\s*['"]react['"]\s*;?\s*$/gm, 'const {$1} = React;')
+            .replace(/^\s*import\s+React\s*,\s*\{([\s\S]*?)\}\s*from\s*['"]react['"]\s*;?\s*$/gm, 'const {$1} = React;')
+            .replace(/^\s*import\s+\{([\s\S]*?)\}\s*from\s*['"]react['"]\s*;?\s*$/gm, 'const {$1} = React;')
             .replace(/^\s*import\s+React\s+from\s*['"]react['"]\s*;?\s*$/gm, '')
-            .replace(/^\s*import\s+\{([^}]+)\}\s*from\s*['"]react-dom\/client['"]\s*;?\s*$/gm, 'const {$1} = ReactDOM;')
-            .replace(/^\s*import\s+ReactDOM\s+from\s*['"]react-dom(?:\/client)?['"]\s*;?\s*$/gm, '');
+            .replace(/^\s*import\s+\{([\s\S]*?)\}\s*from\s*['"]react-dom(?:\/client)?['"]\s*;?\s*$/gm, 'const {$1} = ReactDOM;')
+            .replace(/^\s*import\s+ReactDOM\s+from\s*['"]react-dom(?:\/client)?['"]\s*;?\s*$/gm, '')
+            .replace(/^\s*import\s+[\s\S]*?from\s*['"][^'"]+['"]\s*;?\s*$/gm, '')
+            .replace(/^\s*import\s+['"][^'"]+['"]\s*;?\s*$/gm, '')
+            .replace(/^\s*export\s+default\s+/gm, '')
+            .replace(/^\s*export\s+(?=(?:function|const|let|var|class)\b)/gm, '');
     }
 
     const safeJs = rawJs.replace(/<\/script>/gi, '<\\/script>');
@@ -200,10 +204,10 @@ function buildSandboxDoc(html, css, js, withLivePatch = false) {
     const patchBridge = withLivePatch
         ? `<script>window.addEventListener('message',function(e){if(!e.data||e.data.type!=='dj-patch')return;var st=document.getElementById('dj-live-style');if(st)st.textContent=e.data.css||'';if(e.data.htmlOnlyCss)return;var root=document.getElementById('dj-live-root');if(root)root.innerHTML=e.data.html||'';});<\/script>`
         : '';
-    const scriptTag = isReactBabel
-        ? `<script type="text/babel" data-presets="react">${safeJs}<\/script>`
+    const reactRunner = isReactBabel
+        ? `<script type="text/plain" id="dj-jsx-src">${safeJs}<\/script><script>(function runReact(){var srcEl=document.getElementById('dj-jsx-src');if(!srcEl)return;var tries=0;function boot(){if(window.Babel&&window.React&&window.ReactDOM){try{var out=window.Babel.transform(srcEl.textContent||'',{presets:['react']}).code;(new Function(out))();}catch(err){console.error(err&&err.message?err.message:String(err));}}else if(tries++<60){setTimeout(boot,80);}}boot();})();<\/script>`
         : `<script>${safeJs}<\/script>`;
-    return `<!doctype html><html><head><meta charset="utf-8"><style id="dj-live-style">${safeCss}</style></head><body><div id="dj-live-root">${html || ''}</div>${consoleBridge}${patchBridge}${scriptTag}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><style id="dj-live-style">${safeCss}</style></head><body><div id="dj-live-root">${html || ''}</div>${consoleBridge}${patchBridge}${reactRunner}</body></html>`;
 }
 
 // Starter Templates, ZIP Export & Portfolio Publish
@@ -211,7 +215,7 @@ const showTemplateMenu = ref(false);
 const starterTemplates = {
     react: {
         label: 'Starter React.js (Compteur)',
-        html: `<div id="root"></div>\n<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>\n<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>\n<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>`,
+        html: `<div id="root"></div>\n<script src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js" crossorigin><\/script>\n<script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin><\/script>\n<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"><\/script>`,
         css: `body {\n    margin: 0;\n    min-height: 100vh;\n    display: grid;\n    place-items: center;\n    background: radial-gradient(circle at top, #0f172a, #05070c 70%);\n    font-family: 'Segoe UI', system-ui, sans-serif;\n    color: #f8fafc;\n}\n.react-card {\n    background: rgba(15, 23, 42, 0.88);\n    border: 1px solid rgba(56, 189, 248, 0.35);\n    border-radius: 20px;\n    padding: 2rem;\n    text-align: center;\n    min-width: 300px;\n    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);\n}\n.react-badge {\n    display: inline-block;\n    padding: 4px 12px;\n    border-radius: 999px;\n    background: rgba(56, 189, 248, 0.18);\n    color: #38bdf8;\n    font-size: 12px;\n    font-weight: 700;\n}\n.react-count {\n    font-size: 3.2rem;\n    font-weight: 800;\n    margin: 14px 0;\n    color: #38bdf8;\n}\n.react-actions {\n    display: flex;\n    gap: 10px;\n    justify-content: center;\n}\n.react-btn {\n    padding: 10px 18px;\n    border-radius: 999px;\n    border: none;\n    background: linear-gradient(135deg, #06b6d4, #3b82f6);\n    color: #ffffff;\n    font-weight: 700;\n    cursor: pointer;\n}\n.react-btn-outline {\n    padding: 10px 16px;\n    border-radius: 999px;\n    border: 1px solid rgba(56, 189, 248, 0.45);\n    background: transparent;\n    color: #bae6fd;\n    cursor: pointer;\n}`,
         js: `const { useState } = React;\n\nfunction App() {\n    const [count, setCount] = useState(0);\n\n    return (\n        <div className="react-card">\n            <span className="react-badge">⚛️ React 18 JSX</span>\n            <h2>Compteur Tech237</h2>\n            <div className="react-count">{count}</div>\n            <div className="react-actions">\n                <button className="react-btn-outline" onClick={() => setCount(c => c - 1)}>-1</button>\n                <button className="react-btn-outline" onClick={() => setCount(0)}>Reset</button>\n                <button className="react-btn" onClick={() => setCount(c => c + 1)}>+1</button>\n            </div>\n        </div>\n    );\n}\n\nReactDOM.createRoot(document.getElementById('root')).render(<App />);`,
     },
