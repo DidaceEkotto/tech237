@@ -99,6 +99,7 @@ const canCoEditSharedCode = computed(() => canRearrangePreview.value || isCollab
 
 // Social Share Menu State
 const showShareMenu = ref(false);
+const showCollabModal = ref(false);
 
 const chatPosStorageKey = `dj_chat_pos_${props.jam.slug}`;
 const chatPos = ref({ x: null, y: null });
@@ -1047,6 +1048,21 @@ onUnmounted(() => {
                     <i class="bi bi-clock me-1"></i>{{ countdownText }}
                 </span>
 
+                <!-- Co-édition & Invitations Button -->
+                <button
+                    type="button"
+                    class="btn btn-sm rounded-3 px-2 py-1 d-flex align-items-center gap-1"
+                    :class="collaborators.length || isCollaborator ? 'btn-outline-warning' : 'dj-btn-ghost'"
+                    title="Co-édition : inviter à coder ensemble ou révoquer l'accès"
+                    @click="showCollabModal = true"
+                >
+                    <i class="bi bi-people-fill text-warning"></i>
+                    <span class="d-none d-md-inline">Co-édition</span>
+                    <span v-if="collaborators.length" class="badge bg-warning text-dark rounded-pill" style="font-size: 10px;">
+                        {{ collaborators.length }}
+                    </span>
+                </button>
+
                 <!-- Social Share Dropdown -->
                 <div class="position-relative">
                     <button
@@ -1767,6 +1783,104 @@ onUnmounted(() => {
                 <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" @click="openChat(); bottomLeftPopup = null;">
                     Voir le chat
                 </button>
+            </div>
+        </div>
+
+        <!-- Co-édition & Invitations Modal -->
+        <div v-if="showCollabModal" class="position-fixed top-0 start-0 w-100 h-100 bg-black bg-opacity-75 d-flex align-items-center justify-content-center p-3" style="z-index: 2700;" @click="showCollabModal = false">
+            <div class="dj-glass-box rounded-4 shadow-lg w-100 overflow-hidden d-flex flex-column" style="max-width: 540px; max-height: 82vh;" @click.stop>
+                <div class="p-3 border-bottom border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0 text-white">
+                        <i class="bi bi-people-fill text-warning me-2"></i>Co-édition &amp; Invitations d'aide
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" @click="showCollabModal = false"></button>
+                </div>
+
+                <div class="p-3 overflow-auto d-flex flex-column gap-3">
+                    <!-- Pending Invite for current user -->
+                    <div v-if="pendingInvite" class="p-3 rounded-3 bg-info bg-opacity-10 border border-info border-opacity-25">
+                        <div class="fw-bold small text-info mb-1">Invitation reçue</div>
+                        <p class="small text-light mb-2">{{ pendingInvite.from_user_name }} vous invite à manipuler le même code en direct.</p>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-success rounded-pill px-3" @click="respondInvite(true)">Accepter</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3" @click="respondInvite(false)">Refuser</button>
+                        </div>
+                    </div>
+
+                    <!-- Active Co-Editors -->
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-white-50 text-uppercase" style="font-size: 11px;">
+                                Co-éditeurs actifs ({{ collaborators.length }})
+                            </span>
+                            <button
+                                v-if="canRearrangePreview && collaborators.length"
+                                type="button"
+                                class="btn btn-xs btn-outline-danger rounded-pill px-2 py-0"
+                                @click="revokeCollaborator(null)"
+                            >
+                                Tout révoquer
+                            </button>
+                        </div>
+                        <div v-if="collaborators.length" class="d-flex flex-column gap-2">
+                            <div v-for="c in collaborators" :key="c.id" class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-white bg-opacity-5 border border-secondary border-opacity-25">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="dj-avatar dj-avatar-me">{{ userInitials(c.name) }}</div>
+                                    <div>
+                                        <div class="small fw-semibold text-white">{{ c.name }}</div>
+                                        <div class="text-success" style="font-size: 10px;">Peut modifier le code en direct</div>
+                                    </div>
+                                </div>
+                                <button
+                                    v-if="canRearrangePreview"
+                                    type="button"
+                                    class="btn btn-xs btn-outline-danger rounded-pill px-2 py-1"
+                                    @click="revokeCollaborator(c.id)"
+                                >
+                                    Révoquer
+                                </button>
+                            </div>
+                        </div>
+                        <div v-else class="small text-white-50 p-2 rounded-3 bg-black bg-opacity-25">
+                            Aucun co-éditeur actif pour le moment.
+                        </div>
+                    </div>
+
+                    <!-- Invite Participants (Creator only) -->
+                    <div v-if="canRearrangePreview">
+                        <div class="small fw-bold text-white-50 text-uppercase mb-2" style="font-size: 11px;">
+                            Inviter un participant du chat à vous aider
+                        </div>
+                        <div v-if="mentionCandidates.length" class="d-flex flex-column gap-2">
+                            <div v-for="cand in mentionCandidates" :key="cand.id" class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-white bg-opacity-5 border border-secondary border-opacity-25">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="dj-avatar dj-avatar-other">{{ userInitials(cand.name) }}</div>
+                                    <span class="small fw-semibold text-white">{{ cand.name }}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="btn btn-xs btn-outline-warning rounded-pill px-3 py-1"
+                                    :disabled="collaborators.some((c) => Number(c.id) === Number(cand.id))"
+                                    @click="inviteToCode(cand.id)"
+                                >
+                                    <i class="bi bi-person-plus-fill me-1"></i>
+                                    {{ collaborators.some((c) => Number(c.id) === Number(cand.id)) ? 'Déjà actif' : 'Inviter' }}
+                                </button>
+                            </div>
+                        </div>
+                        <div v-else class="small text-white-50 p-2 rounded-3 bg-black bg-opacity-25">
+                            Aucun autre participant connecté ou actif dans le chat pour le moment. Dès qu'un membre rejoint la Jam ou envoie un message, il apparaîtra ici.
+                        </div>
+                    </div>
+                    <div v-else class="small text-white-50 p-2 rounded-3 bg-black bg-opacity-25">
+                        <span v-if="isCollaborator" class="text-success fw-semibold">
+                            Vous êtes actuellement co-éditeur sur cette Jam : vos modifications HTML/CSS/JS sont partagées avec le créateur.
+                        </span>
+                        <span v-else>
+                            Seul le créateur de la Jam peut envoyer des invitations de co-édition. Si vous êtes invité, une popup apparaîtra en bas à gauche de votre écran.
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
 
