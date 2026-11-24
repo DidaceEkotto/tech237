@@ -68,6 +68,8 @@
                 </span>
                 <span>&bull;</span>
                 <span><i class="bi bi-clock me-1"></i>{{ estimatedReadingTime }} min de lecture</span>
+                <span>&bull;</span>
+                <span><i class="bi bi-eye me-1"></i>{{ article.views_count || 0 }} vue{{ (article.views_count || 0) > 1 ? 's' : '' }}</span>
               </div>
 
               <!-- Bookmark Button -->
@@ -388,15 +390,19 @@
                       style="height: 180px; object-fit: cover;"
                     >
                   </Link>
-                  <div class="card-body p-3">
-                    <span class="badge text-white fw-bold mb-2" style="background-color: var(--tech-green); font-size: 10px;">
+                  <div class="card-body p-3 d-flex flex-column">
+                    <span class="badge text-white fw-bold mb-2 align-self-start" style="background-color: var(--tech-green); font-size: 10px;">
                       {{ rel.category?.name_fr || 'ACTUALITÉ' }}
                     </span>
-                    <h6 class="card-title fw-bold">
+                    <h6 class="card-title fw-bold mb-2 flex-grow-1">
                       <Link :href="'/article/' + rel.slug" class="text-dark text-decoration-none">
                         {{ locale === 'en' ? (rel.title_en || rel.title_fr) : rel.title_fr }}
                       </Link>
                     </h6>
+                    <div class="d-flex justify-content-between align-items-center small text-muted pt-2 border-top">
+                      <span>{{ rel.date_formatted }}</span>
+                      <span><i class="bi bi-eye me-1"></i>{{ rel.views_count || 0 }}</span>
+                    </div>
                   </div>
                 </div>
               </div>

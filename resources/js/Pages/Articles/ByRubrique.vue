@@ -167,7 +167,10 @@
                       </span>
                     </div>
                     <div class="card-body p-3">
-                      <small class="text-muted d-block mb-1">{{ art.date_formatted }}</small>
+                      <div class="d-flex justify-content-between align-items-center small text-muted mb-1">
+                        <span>{{ art.date_formatted }}</span>
+                        <span><i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }}</span>
+                      </div>
                       <h5 class="fw-bold text-dark card-title mb-2">{{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}</h5>
                       <p class="text-muted small mb-0">{{ locale === 'en' ? (art.summary_en || art.summary_fr) : art.summary_fr }}</p>
                     </div>
@@ -188,7 +191,7 @@
                       </span>
                       <h3 class="fw-bold text-dark mb-2">{{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}</h3>
                       <p class="text-muted mb-3">{{ locale === 'en' ? (art.summary_en || art.summary_fr) : art.summary_fr }}</p>
-                      <small class="text-muted">{{ art.date_formatted }} &bull; Par {{ art.author ? art.author.name : 'Tech237' }}</small>
+                      <small class="text-muted">{{ art.date_formatted }} &bull; Par {{ art.author ? art.author.name : 'Tech237' }} &bull; <i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }} vues</small>
                     </div>
                   </div>
                 </Link>
@@ -210,7 +213,7 @@
                         </span>
                         <h5 class="fw-bold text-dark mb-1">{{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}</h5>
                         <p class="text-muted small mb-2">{{ locale === 'en' ? (art.summary_en || art.summary_fr) : art.summary_fr }}</p>
-                        <small class="text-muted">{{ art.date_formatted }}</small>
+                        <small class="text-muted">{{ art.date_formatted }} &bull; <i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }} vues</small>
                       </div>
                     </div>
                   </div>
@@ -227,7 +230,11 @@
                     <div class="card-body p-3">
                       <span v-if="art.category" class="badge mb-2" :style="{ backgroundColor: art.category.color || accentColor, color: 'white' }">{{ art.category.name_fr }}</span>
                       <h4 class="fw-bold text-dark mb-1" :class="{ 'h3': idx % 3 === 0 }">{{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}</h4>
-                      <p class="text-muted small mb-0">{{ locale === 'en' ? (art.summary_en || art.summary_fr) : art.summary_fr }}</p>
+                      <p class="text-muted small mb-2">{{ locale === 'en' ? (art.summary_en || art.summary_fr) : art.summary_fr }}</p>
+                      <div class="d-flex justify-content-between align-items-center small text-muted">
+                        <span>{{ art.date_formatted }}</span>
+                        <span><i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }}</span>
+                      </div>
                     </div>
                   </div>
                 </Link>

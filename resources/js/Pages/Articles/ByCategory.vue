@@ -66,10 +66,12 @@
                   <p v-if="articles.data[0].summary_fr" class="text-white-50 small mb-2 d-none d-md-block text-truncate" style="max-width: 90%; text-shadow: 0 1px 2px rgba(0,0,0,0.6);">
                     {{ locale === 'en' ? (articles.data[0].summary_en || articles.data[0].summary_fr) : articles.data[0].summary_fr }}
                   </p>
-                  <div class="small text-white-50 d-flex align-items-center gap-2">
+                  <div class="small text-white-50 d-flex align-items-center gap-2 flex-wrap">
                     <span class="fw-semibold text-white">{{ articles.data[0].author?.name || 'Tech237' }}</span>
                     <span>&bull;</span>
                     <span>{{ articles.data[0].date_formatted }}</span>
+                    <span>&bull;</span>
+                    <span><i class="bi bi-eye me-1"></i>{{ articles.data[0].views_count || 0 }} vues</span>
                   </div>
                 </div>
               </div>
@@ -83,15 +85,19 @@
                 <Link :href="'/article/' + art.slug">
                   <img :src="'/' + (art.featured_image || 'storage/images/chatgpt_hero.jpg')" class="card-img-top" style="height: 180px; object-fit: cover;">
                 </Link>
-                <div class="card-body p-3">
-                  <span class="badge text-dark fw-bold mb-2 text-uppercase" style="background-color: #9be106; font-size: 10px;">
+                <div class="card-body p-3 d-flex flex-column">
+                  <span class="badge text-dark fw-bold mb-2 text-uppercase align-self-start" style="background-color: #9be106; font-size: 10px;">
                     {{ currentCategoryName }}
                   </span>
-                  <h6 class="card-title fw-bold">
+                  <h6 class="card-title fw-bold mb-2 flex-grow-1">
                     <Link :href="'/article/' + art.slug" class="text-dark text-decoration-none">
                       {{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}
                     </Link>
                   </h6>
+                  <div class="d-flex justify-content-between align-items-center small text-muted pt-2 border-top">
+                    <span>{{ art.date_formatted }}</span>
+                    <span><i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -120,15 +126,19 @@
                 <Link :href="'/article/' + art.slug">
                   <img :src="'/' + art.featured_image" class="card-img-top" style="height: 160px; object-fit: cover;">
                 </Link>
-                <div class="card-body p-3">
-                  <span class="badge text-dark fw-bold mb-2 text-uppercase" style="background-color: #9be106; font-size: 10px;">
+                <div class="card-body p-3 d-flex flex-column">
+                  <span class="badge text-dark fw-bold mb-2 text-uppercase align-self-start" style="background-color: #9be106; font-size: 10px;">
                     {{ currentCategoryName }}
                   </span>
-                  <h6 class="card-title fw-bold mb-0">
+                  <h6 class="card-title fw-bold mb-2 flex-grow-1">
                     <Link :href="'/article/' + art.slug" class="text-dark text-decoration-none">
                       {{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}
                     </Link>
                   </h6>
+                  <div class="d-flex justify-content-between align-items-center small text-muted pt-2 border-top">
+                    <span>{{ art.date_formatted }}</span>
+                    <span><i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }}</span>
+                  </div>
                 </div>
               </div>
             </div>

@@ -181,10 +181,12 @@
                   <h3 class="fw-bold text-white mb-2">
                     {{ locale === 'en' ? (heroArticles[0].title_en || heroArticles[0].title_fr) : heroArticles[0].title_fr }}
                   </h3>
-                  <div class="small text-white-50 d-flex align-items-center gap-2">
+                  <div class="small text-white-50 d-flex align-items-center gap-2 flex-wrap">
                     <span><i class="bi bi-pen me-1"></i>{{ heroArticles[0].author?.name || 'Rédaction Tech237' }}</span>
                     &bull;
                     <span><i class="bi bi-clock me-1"></i>{{ heroArticles[0].date_formatted }}</span>
+                    &bull;
+                    <span><i class="bi bi-eye me-1"></i>{{ heroArticles[0].views_count || 0 }} vues</span>
                   </div>
                 </div>
               </div>
@@ -214,8 +216,9 @@
                       </Link>
                     </h6>
                   </div>
-                  <div class="extra-small text-muted mt-2">
-                    <i class="bi bi-calendar3 me-1"></i>{{ art.date_formatted }}
+                  <div class="d-flex justify-content-between align-items-center extra-small text-muted mt-2">
+                    <span><i class="bi bi-calendar3 me-1"></i>{{ art.date_formatted }}</span>
+                    <span><i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }}</span>
                   </div>
                 </div>
               </div>
@@ -241,13 +244,17 @@
                   <Link :href="'/article/' + art.slug">
                     <img :src="'/' + art.featured_image" class="card-img-top" style="height: 170px; object-fit: cover;">
                   </Link>
-                  <div class="card-body p-3">
-                    <span class="badge fw-bold mb-2 text-white" style="background-color: var(--tech-green); font-size: 10px;">HIGH-TECH</span>
-                    <h6 class="card-title fw-bold mb-0">
+                  <div class="card-body p-3 d-flex flex-column">
+                    <span class="badge fw-bold mb-2 text-white align-self-start" style="background-color: var(--tech-green); font-size: 10px;">HIGH-TECH</span>
+                    <h6 class="card-title fw-bold mb-2 flex-grow-1">
                       <Link :href="'/article/' + art.slug" class="text-decoration-none" style="color: var(--tech-navy);">
                         {{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}
                       </Link>
                     </h6>
+                    <div class="d-flex justify-content-between align-items-center extra-small text-muted mt-auto">
+                      <span><i class="bi bi-calendar3 me-1"></i>{{ art.date_formatted }}</span>
+                      <span><i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -273,13 +280,17 @@
                   <Link :href="'/article/' + art.slug">
                     <img :src="'/' + art.featured_image" class="card-img-top" style="height: 170px; object-fit: cover;">
                   </Link>
-                  <div class="card-body p-3">
-                    <span class="badge fw-bold mb-2 text-white" style="background-color: var(--tech-navy); font-size: 10px;">SÉRIES</span>
-                    <h6 class="card-title fw-bold mb-0">
+                  <div class="card-body p-3 d-flex flex-column">
+                    <span class="badge fw-bold mb-2 text-white align-self-start" style="background-color: var(--tech-navy); font-size: 10px;">SÉRIES</span>
+                    <h6 class="card-title fw-bold mb-2 flex-grow-1">
                       <Link :href="'/article/' + art.slug" class="text-decoration-none" style="color: var(--tech-navy);">
                         {{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}
                       </Link>
                     </h6>
+                    <div class="d-flex justify-content-between align-items-center extra-small text-muted mt-auto">
+                      <span><i class="bi bi-calendar3 me-1"></i>{{ art.date_formatted }}</span>
+                      <span><i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }}</span>
+                    </div>
                   </div>
                 </div>
               </div>

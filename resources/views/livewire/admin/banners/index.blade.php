@@ -21,29 +21,48 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold">Emplacement / Position d'affichage <span class="text-danger">*</span></label>
-                            <select class="form-select form-select-sm" wire:model="position" required>
-                                <optgroup label="Bannières Standard">
-                                    <option value="header_top">Header Top (Haut de page - Leaderboard)</option>
-                                    <option value="sidebar">Sidebar (Colonne latérale - Pavé 300x250)</option>
-                                    <option value="home_middle">Home Middle (Milieu de la page d'accueil)</option>
-                                    <option value="in_article">In-Article (Intégré dans le corps de l'article)</option>
-                                    <option value="footer_banner">Footer Banner (Bas de page)</option>
-                                    <option value="background">Habillage de fond (Wallpaper Background Skinning)</option>
-                                    <option value="modal_popup">Modal Popup de Bienvenue (1ère visite du jour)</option>
-                                </optgroup>
-                                <optgroup label="Fonds Publicitaires Hero / En-tête (Superposition dégradée)">
-                                    <option value="hero_games">Hero - Page Tests Jeux Vidéo (/tests-jeux-video)</option>
-                                    <option value="hero_apps">Hero - Page Tests Applications (/tests-applications)</option>
-                                    <option value="hero_pocs">Hero - Page POCs (Micro-actus &amp; Découvertes)</option>
-                                    <option value="hero_forum">Hero - Page Forum (Discussions &amp; Communauté)</option>
-                                    <option value="hero_conferences">Hero - Page Conférences (Agenda &amp; Événements)</option>
-                                    <option value="hero_jobs">Hero - Page Emplois (Carrières &amp; Recrutement IT)</option>
-                                    <option value="hero_startups">Hero - Page Startups (Écosystème 237)</option>
-                                    <option value="hero_projects">Hero - Page Projets (Showcase Développeurs)</option>
-                                    <option value="hero_entrepreneur">Hero - Page Entrepreneur du Mois</option>
-                                </optgroup>
-                            </select>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-bold mb-0">Emplacement / Position d'affichage <span class="text-danger">*</span></label>
+                                <span class="badge bg-primary-subtle text-primary rounded-pill">{{ count($positions) }} sélectionné(s)</span>
+                            </div>
+                            @php
+                                $positionGroups = [
+                                    'Bannières Standard' => [
+                                        'header_top' => 'Header Top (Haut de page - Leaderboard)',
+                                        'sidebar' => 'Sidebar (Colonne latérale - Pavé 300x250)',
+                                        'home_middle' => "Home Middle (Milieu de la page d'accueil)",
+                                        'in_article' => "In-Article (Intégré dans le corps de l'article)",
+                                        'footer_banner' => 'Footer Banner (Bas de page)',
+                                        'background' => 'Habillage de fond (Wallpaper Background Skinning)',
+                                        'modal_popup' => 'Modal Popup de Bienvenue (1ère visite du jour)',
+                                    ],
+                                    'Fonds Publicitaires Hero / En-tête (Superposition dégradée)' => [
+                                        'hero_games' => 'Hero - Page Tests Jeux Vidéo (/tests-jeux-video)',
+                                        'hero_apps' => 'Hero - Page Tests Applications (/tests-applications)',
+                                        'hero_pocs' => 'Hero - Page POCs (Micro-actus & Découvertes)',
+                                        'hero_forum' => 'Hero - Page Forum (Discussions & Communauté)',
+                                        'hero_conferences' => 'Hero - Page Conférences (Agenda & Événements)',
+                                        'hero_jobs' => 'Hero - Page Emplois (Carrières & Recrutement IT)',
+                                        'hero_startups' => 'Hero - Page Startups (Écosystème 237)',
+                                        'hero_projects' => 'Hero - Page Projets (Showcase Développeurs)',
+                                        'hero_entrepreneur' => 'Hero - Page Entrepreneur du Mois',
+                                    ],
+                                ];
+                            @endphp
+                            <div class="border rounded p-2 bg-light-subtle" style="max-height: 230px; overflow-y: auto;">
+                                @foreach($positionGroups as $groupLabel => $options)
+                                    <div class="small fw-bold text-uppercase text-muted px-1 mt-1 mb-1" style="font-size: 11px;">{{ $groupLabel }}</div>
+                                    @foreach($options as $value => $label)
+                                        <div class="form-check mb-1">
+                                            <input class="form-check-input" type="checkbox" id="pos_{{ $value }}" value="{{ $value }}" wire:model.live="positions">
+                                            <label class="form-check-label small" for="pos_{{ $value }}">{{ $label }}</label>
+                                        </div>
+                                    @endforeach
+                                @endforeach
+                            </div>
+                            @error('positions')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
 
                         <div class="mb-3">
@@ -113,9 +132,11 @@
                                         <small class="text-muted text-truncate d-block" style="max-width: 250px;">{{ $b->link_url ?? 'Lien direct' }}</small>
                                     </td>
                                     <td>
-                                        <span class="badge bg-light text-primary border">
-                                            {{ $b->position }}
-                                        </span>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach($b->positions as $pos)
+                                                <span class="badge bg-light text-primary border">{{ $pos }}</span>
+                                            @endforeach
+                                        </div>
                                     </td>
                                     <td>
                                         @if($b->is_active)

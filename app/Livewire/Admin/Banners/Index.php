@@ -14,7 +14,7 @@ class Index extends Component
 
     public ?int $bannerId = null;
     public string $title = '';
-    public string $position = 'header_top';
+    public array $positions = ['header_top'];
     public string $link_url = '';
     public string $custom_code = '';
     public $image = null;
@@ -27,7 +27,8 @@ class Index extends Component
     {
         return [
             'title' => 'required|string|max:255',
-            'position' => 'required|string',
+            'positions' => 'required|array|min:1',
+            'positions.*' => 'required|string',
             'link_url' => 'nullable|string',
             'custom_code' => 'nullable|string',
             'image' => 'nullable|image|max:10240',
@@ -39,7 +40,7 @@ class Index extends Component
         $b = AdBanner::findOrFail($id);
         $this->bannerId = $b->id;
         $this->title = $b->title;
-        $this->position = $b->position;
+        $this->positions = $b->positions ?: ['header_top'];
         $this->link_url = $b->link_url ?? '';
         $this->custom_code = $b->custom_code ?? '';
         $this->existing_image = $b->image;
@@ -49,14 +50,16 @@ class Index extends Component
 
     public function resetFields()
     {
-        $this->reset(['bannerId', 'title', 'position', 'link_url', 'custom_code', 'image', 'existing_image', 'isEditing']);
-        $this->position = 'header_top';
+        $this->reset(['bannerId', 'title', 'positions', 'link_url', 'custom_code', 'image', 'existing_image', 'isEditing']);
+        $this->positions = ['header_top'];
         $this->is_active = true;
     }
 
     public function save()
     {
         $this->validate();
+
+        $cleanPositions = array_values(array_unique(array_filter(array_map('trim', $this->positions))));
 
         $imgPath = $this->existing_image;
         if ($this->image) {
@@ -65,7 +68,7 @@ class Index extends Component
 
         $data = [
             'title' => $this->title,
-            'position' => $this->position,
+            'position' => implode(',', $cleanPositions),
             'link_url' => $this->link_url ?: null,
             'custom_code' => $this->custom_code ?: null,
             'image' => $imgPath,

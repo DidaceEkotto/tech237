@@ -68,8 +68,9 @@ class HandleInertiaRequests extends Middleware
             'adBanners' => fn () => AdBanner::where('is_active', true)
                 ->inRandomOrder()
                 ->get()
+                ->flatMap(fn (AdBanner $banner) => collect($banner->positions)->map(fn (string $pos) => ['position' => $pos, 'banner' => $banner]))
                 ->groupBy('position')
-                ->map(fn ($group) => [$group->first()]),
+                ->map(fn ($group) => [$group->first()['banner']]),
             'partners' => fn () => \Illuminate\Support\Facades\Schema::hasTable('partners') 
                 ? \App\Models\Partner::active()->get() 
                 : collect(),

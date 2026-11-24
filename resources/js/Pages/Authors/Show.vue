@@ -128,7 +128,10 @@
                 </span>
               </Link>
               <div class="card-body p-4 d-flex flex-column">
-                <div class="small text-muted mb-2">{{ art.date_formatted }}</div>
+                <div class="d-flex justify-content-between align-items-center small text-muted mb-2">
+                  <span>{{ art.date_formatted }}</span>
+                  <span><i class="bi bi-eye me-1"></i>{{ art.views_count || 0 }}</span>
+                </div>
                 <h5 class="card-title fw-bold mb-3 flex-grow-1">
                   <Link :href="'/article/' + art.slug" class="text-dark text-decoration-none line-clamp-2">
                     {{ locale === 'en' ? (art.title_en || art.title_fr) : art.title_fr }}
