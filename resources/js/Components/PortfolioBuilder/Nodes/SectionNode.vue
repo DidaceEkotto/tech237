@@ -83,8 +83,8 @@ const scopedCustomCss = computed(() => {
         </div>
 
         <div
-            class="mx-auto"
-            :style="{ maxWidth: section.advanced?.fullWidth ? '100%' : (sectionStyle.maxWidth || '1180px') }"
+            class="mx-auto w-100"
+            :style="{ maxWidth: section.advanced?.fullWidth ? '100%' : (sectionStyle.maxWidth || '100%') }"
         >
             <RowNode
                 v-for="row in (section.rows || [])"

@@ -51,7 +51,7 @@ const rowStyle = computed(() => resolveResponsiveStyles(props.row.styles, props.
             </button>
         </div>
 
-        <div class="row g-3" :style="rowStyle">
+        <div class="row g-3 mx-0" :style="rowStyle">
             <ColumnNode
                 v-for="col in (row.columns || [])"
                 :key="col.id"

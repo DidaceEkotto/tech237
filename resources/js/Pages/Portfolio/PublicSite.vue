@@ -84,7 +84,7 @@ onMounted(() => {
     />
 
     <!-- overflow-x: clip preserves position: sticky on navbars -->
-    <div class="min-vh-100 bg-white d-flex flex-column" style="overflow-x: clip;">
+    <div class="min-vh-100 bg-white d-flex flex-column w-100" style="overflow-x: clip;">
         <div
             v-if="isPreview"
             class="bg-warning-subtle text-dark border-bottom px-3 py-2 d-flex align-items-center justify-content-between small"
