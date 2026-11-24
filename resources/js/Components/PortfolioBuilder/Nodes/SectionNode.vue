@@ -34,6 +34,10 @@ const emit = defineEmits([
 ]);
 
 const sectionStyle = computed(() => resolveResponsiveStyles(props.section.styles, props.viewport));
+const outerSectionStyle = computed(() => {
+    const { maxWidth, ...rest } = sectionStyle.value || {};
+    return rest;
+});
 const scopedCustomCss = computed(() => {
     const raw = (props.section.advanced?.customCss || '').trim();
     if (!raw) return '';
@@ -45,7 +49,7 @@ const scopedCustomCss = computed(() => {
 <template>
     <section
         :id="section.advanced?.customId || `pb-sec-${section.id}`"
-        class="position-relative"
+        class="position-relative w-100"
         :class="[
             section.advanced?.cssClass || '',
             {
@@ -53,7 +57,7 @@ const scopedCustomCss = computed(() => {
                 'pb-selected-section': isEditor && selectedId === section.id,
             }
         ]"
-        :style="sectionStyle"
+        :style="outerSectionStyle"
         @click.stop="isEditor && emit('select', 'section', section.id)"
     >
         <component v-if="scopedCustomCss" :is="'style'">{{ scopedCustomCss }}</component>
